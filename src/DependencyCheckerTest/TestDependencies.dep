@@ -1,0 +1,87 @@
+// Test dependencies for DependencyChecker
+
+    // Every class may use all classes from its own namespace.
+(**).* ---> \1.*
+
+    // Special dependency for classes from global namespace
+    // (the pattern above will not work, because it contains a
+    // period): A class from the global namespace may use
+    // all classes from that namespace.
+* ---> *
+
+    // Every class may use all classes from child namespaces
+    // of its own namespace.
+(**).* ---> \1.**.*
+
+    // Every class may use all of System.
+** ---> System.**
+
+====> :=
+    \L.** ---> \R.**
+    \L.** ---> \L.**
+=:
+
+
+    // DependencyChecker may use antlr and itself.
+DependencyChecker ====> antlr
+
+    // DependencyChecker must not use Windows Forms.
+DependencyChecker.** ---! System.Windows.Forms.**
+
+_TES  := asdasdasdasdasdasd
+_TESTS := DependencyCheckerTest
+_TEST_OTHERS := xxxxxxxxxxxxx
+_TEST := asdasdasdasdasdasd
+
+    // Test declarations from dir1.dir2 may use declarations from dir1.dir3.
+_TESTS.dir1.dir2.* ---> _TESTS.dir1.dir3.*
+
+
+_TESTS.dir1.* ---> _TESTS.dir1.dir3.*
+    
+    // SomeClass::AnotherMethod may use NamespacelessTestClassForDependencyChecker -
+    // but this is questionable.
+_TESTS.dir1.dir2.SomeClass::AnotherMethod ---? NamespacelessTestClassForDependencyChecker
+
+    // A questionable rule that never fires - it should be output.
+asdlkfj.* ---? askdjf.*;
+
+    // Umlautmatching rules
+_TESTS.dirümläut.** ---> _TESTS.dirümläutö.** 
+_TESTS.dirümläut.** ---> _TESTS.dirümläutß.** 
+_TESTS.dirumlaut.** ---> _TESTS.dirumlauts.** 
+
+_TESTS.dirUEmlAEut.** ---> _TESTS.dirümläutö.** 
+_TESTS.dirUEmlAEut.** ---> _TESTS.dirUEmlAEutSZ.**
+
+    // Test case for ""open item 5""
+    // Methods called InnerClassMethod may call each other
+**/**::InnerClassMethod ---> **/**::InnerClassMethod 
+
+    // Tests must be able to see tested classes
+_TESTS.** ---> DependencyChecker.**
+
+    // Tests may use Microsoft.VisualStudio.TestTools.
+_TESTS.** ---> Microsoft.VisualStudio.TestTools.**
+
+// ------------------
+
+    // In these tests, we ignore everything in the
+    // current test class.
+DependencyCheckerTest.UnitTests ---> **
+
+    // All of system is ignored
+% ()System.**
+
+    // Classes in DependencyCheckerTests are shown separately, without the namespace
+% DependencyCheckerTests.(**)
+
+    // Classes in DependencyChecker are also shown separately, but with the namespace
+% (DependencyChecker).*
+
+    // antlr classes are shown by namespace
+% (antlr).*
+% (antlr.**).*
+
+    // Top level classes are shown as their class name
+% (*)

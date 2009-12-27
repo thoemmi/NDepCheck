@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Project DefaultTargets="__Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="3.5">
+	<UsingTask 
+		AssemblyFile="DependencyChecker.MSBuild.dll" 
+		TaskName="DependencyChecker.MSBuild.DependencyCheckerTool" />
+
+	<PropertyGroup>
+		<StandardDependencyFile>D:\WS\Main\Main\framework\src\XTplusStandardDependencies.dep</StandardDependencyFile>
+		<FrameworkDependencyFile>D:\WS\Main\Main\framework\src\FrameworkDependencies.dep</FrameworkDependencyFile>
+		<ApplicationDependencyFile>d:\ws\Main\Main\XTplusApplication\src\XTplusApplicationDependencies.dep</ApplicationDependencyFile>
+		<IlFileName>$(ProjectDir)$(IntermediateOutputPath)$(TargetName).il</IlFileName>
+	</PropertyGroup>
+	
+	<!--
+	Condition="'$(IsDesktopBuild)' != 'true'"
+	-->
+	<Target
+		Name="AfterCompile"
+		Inputs="$(TargetPath);$(StandardDependencyFile);$(FrameworkDependencyFile);$(ApplicationDependencyFile)"
+		Outputs="$(IlFileName)" 
+			>
+
+		<PropertyGroup>
+			<dependenyFile>$(FrameworkDependencyFile)</dependenyFile>
+		</PropertyGroup>
+
+		<Message Text="Decompiling $(TargetPath) to $(IlFileName)" Importance="low" />
+		<Exec Command="$(Ildasm) /NOBAR /out=$(IlFileName) /utf8 /quote /linenum $(TargetPath)" />
+		<WriteLinesToFile File="$(IntermediateOutputPath)$(CleanFile)" Overwrite="false" Lines="$(IlFileName)" />
+
+		<Message Text="Checking dependencies" Importance="low" />
+		<DependencyCheckerTool
+			RuleFiles="$(StandardDependencyFile);$(ApplicationDependencyFile)"
+			Assemblies="$(IlFileName)"
+			/>
+	</Target>
+</Project>

@@ -1,0 +1,920 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>ILDASMDC - A Dependency Checker for .NET</title>
+</head>
+
+<body bgcolor="#FFF1CC" text="#800000" link="#FF0000"
+vlink="#008080">
+
+<p align="center">&nbsp;</p>
+
+<center>
+<h1>ILDASMDC&mdash;an ILDASM-based DependencyChecker</h1>
+V.1.12 &copy; Harald M. Müller</center>
+
+<a href="#overview">Overview</a><br>
+<a href="#usedsw">Used Software</a><br>
+<a href="#license">License</a><br>
+<a href="#install">Installation</a><br>
+<a href="#concepts">Concepts</a><br>
+<a href="#usage">Usage</a><br>
+<a href="#exdefine">Examples of defining rules up-front&mdash;the preferred scenario</a><br>
+<a href="#exel">An example of a dependency detection session: Understanding the dependencies in Microsoft's Enterprise Library</a><br>
+<a href="#consider">Design considerations</a><br>
+<a href="#open">Open Items</a><br>
+<a href="#relnotes">Release Notes</a><br>
+
+This project is hosted on <a href="http://sourceforge.net"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=159756&amp;type=2" width="125" height="37" border="0" alt="SourceForge.net Logo" /></a>.
+<br>The project homepage is at <a href="http://ildasmdc.sourceforge.net">http://ildasmdc.sourceforge.net</a>.
+<br>The development homepage ("sourceforge foundry") is at <a href="https://sourceforge.net/projects/ildasmdc">https://sourceforge.net/projects/ildasmdc</a>.
+<br>My email address is harald.m.mueller@bigfoot.com.
+
+<h2><a name="overview">Overview</a></h2>
+
+ILDASMDC is a tool that helps you to keep the (static) architecture of a .Net software clean. You specify allowed dependencies between namespaces, classes, or even methods, and 
+ILDASMDC will check whether the dependencies are violated somewhere. You will use this in Nightly Builds or Continuous Integration Builds to prevent the introduction of unwanted dependencies.
+<p>Ideally, the software architect will specify the intended dependencies (or rather, dependency rules) for some module <em>before</em> code is written. However, by creating a diagram of the dependencies, it is also possible to explore and document the dependencies of an <em>existing piece of software</em>. Both ways of proceeding are especially useful to prevent the dreaded cyclic dependencies, which usually result in a tangled monolith of interdependencies, making a software unmaintainable in a quite short period of time.
+<p>ILDASMDC has proven its usefulness (and stability) in a project of 25 developers with now more than 2 million LOC.
+
+<h2><a name="usedsw">Used Software</a></h2>
+
+ILDASMDC is based on Microsoft's .NET Framework 2.0.
+<br>Internally, ILDASMDC uses ANTLR for .NET (version 2.7.5) from <a href="www.antlr.org">http://www.antlr.org</a>.
+<br>For graph drawing, you need DOT from AT&amp;T's GraphViz tool library at <a href="www.graphviz.org">http://www.graphviz.org</a>.
+
+<h2><a name="license">License</a></h2>
+
+ILDASMDC is licensed under the GPL license (see <a href=http://www.opensource.org/licenses/gpl-license.php>http://www.opensource.org/licenses/gpl-license.php</a>).
+
+<h2><a name="install">Installation</h2>
+
+<h3>Installation of executable and documentation</h3>
+
+Prerequsisites: 
+<ul>
+<li> ILDASMDC requires .NET-Framework 2.0.
+<li> For creating dependency graphs, you need AT&amp;T's Graphviz library, which can be found at <a href="www.graphviz.org">http://www.graphviz.org</a>.
+</ul>
+
+Steps:
+<ul>
+<li> Download the ZIP file ILDASMDC-1.11.zip from Sourceforge at <a href=https://sourceforge.net/projects/ildasmdc>https://sourceforge.net/projects/ildasmdc</a>.
+<li> Unzip the file. If unzipped into C:, the files will be in C:\ildasmdc\.
+<li> Optional: Add the unzip location (e.g. C:\ildasmdc\) to your path.
+<li> If you still want to use ildasm.bat (this is discouraged from version 1.11 onwards, as ILDASMDC now internally calls ILDASM), you might have to edit the first two SET commands in ildasmdc.bat so that ILDASM.EXE and DOT.EXE are found. Usually, these lines should read something like:
+<pre>
+   set ILDASM_EXE=C:\Program Files\Microsoft Visual Studio 8\SDK\v2.0\Bin\ildasm.exe
+   set DOT_EXE=C:\Program Files\ATT\Graphviz\bin\dot.exe
+</pre>
+</ul>
+
+<h3>Installation of sources</h3>
+
+<ul>
+<li> Download the ZIP file ILDASMDC-1.11-src.zip from Sourceforge at <a href=https://sourceforge.net/projects/ildasmdc>https://sourceforge.net/projects/ildasmdc</a>.
+<li> Unzip the file.
+<li> Open Official.sln in the src directory.
+</ul>
+
+<h2><a name="concepts">Concepts</a></h2>
+
+<h3>Dependency rules and builds</h3>
+
+ILDASMDC reads one or more .Net assemblies or IL files (produced by Microsoft .Net's disassembler ILDASM) and extracts all the uses of classes, structs, enums, delegates, inner classes, and methods from that file. It also needs a definition of <em>dependency rules</em>&mdash;here are two simple examples:
+
+<pre>
+    ILDASMDependencyChecker.** ---> antlr.**
+    ILDASMDependencyChecker.** ---! System.Windows.Forms.**
+</pre>
+
+The two asterisks ** are the abbreviation for "a class name, including a namespace." The two rules thus mean:
+
+<blockquote>
+    All classes (and enums, methods, ...) in and below the namespace ILDASMDependencyChecker may use all classes (structs, delegates, ...) in and below the antlr namespace.
+</blockquote>
+<blockquote>
+    All classes (etc.) in and below the namespace ILDASMDependencyChecker must not use any class (etc.) from the System.Windows.Forms namespace tree.
+</blockquote>
+
+The idea is that rules like these are defined by the software architect(s) and checked every time a build is run. When rules are violated, ILDASMDC will write something like the following and return with exit code 3:
+
+<pre>
+    **** Illegal dependency ILDASMDependencyChecker.DependencyGrapher/Node::.ctor ---> ILDASMDependencyCheckerTests.TestClass/InnerTestClass
+        (probably at src\ILDASMDependencyChecker\DependencyGrapher.cs:80)
+</pre>
+
+A violation of the rules should be like a compile time error: It breaks the build. Hence, a defined (static) software architecture can no longer degrade to some tangled web of dependencies, which will become unmaintainable over time.
+
+<h3>Showing dependencies graphically</h3>
+
+<p>ILDASMDC can also produce a DOT graph showing dependencies. This is not as useful as it sounds to most people: <em>Defining</em> and <em>checking</em> dependency rules should be the predominant goal. However, there are two applications for this feature:<ul>
+<li>First, and more important, it can be used to demonstrate and teach an existing good software architecture to people on a project.
+<li>Second, in existing projects with unknown dependencies, it can help to find the dependency structure and violations of perceived dependency rules. This, in turn can lead to a formulation of dependency rules to be adhered to, which can from then on be checked with ILDASMDC. An example of this use is given <a href="#exel">below</a>.</ul>
+
+<h2><a name="usage">Usage</a></h2>
+
+<h3>Manual use</h3>
+
+From version 1.10 onwards, it is suggested that you call ILDASMDependencyChecker directly with the corresponding options (there is still the old BAT wrapper called ildasmdc.bat, which is explained <a href="#ildasmdc">below</a>).
+A typical call to ILDASMDependencyChecker looks as follows:
+<pre>
+     ILDASMDependencyChecker /f=myrules.dep myproj*.dll myproj*.exe
+</pre>
+This will output all the dependencies in all myproj* .Net assemblies in the current directory. It is good practice to have a naming convention for the assemblies of a project; by this, the project's own assemblies can easily be distinguished from other assemblies (usually copied ones) in the same directory.
+
+The complete usage of ILDASMDependencyChecker is explained here:
+
+<pre>
+Usage:
+   ILDASMDependencyChecker [options] [&lt;filename&gt; | @&lt;file with filenames in it&gt;] ...
+where &lt;filename&gt; can be the name of
+  a .Net-DLL-Assembly
+  a .Net-EXE-Assembly
+  a UTF8 .il-file with quoted names
+
+Typical uses:
+
+* Check dependencies in My.DLL:
+      ILDASMDependencyChecker /f=MyDependencies.dep /r My.dll
+or
+      ildasm.exe /UTF8 /QUOTEALLNAMES /LINENUM /OUT=My.il My.DLL 
+      ILDASMDependencyChecker /f=MyDependencies.dep My.il
+
+* Produce graph of dependencies in My.DLL:
+      ILDASMDependencyChecker /f=MyDependencies.dep My.DLL /d=My.dot
+      dot -Tgif -oMy.gif My.dot
+
+All messages of ILDASMDependencyChecker are written to Console.Out.
+
+Options:
+   /v    Verbose. Shows regular expressions used for checking and 
+         all checked dependencies. Attention: Place /v BEFORE any
+         /f or /d option to see the regular expressions.
+
+   /r    Remember last checking time for each input file somewhere in temp
+         directory; do dependecy checking for an assembly or .il-file
+         only if it has changed since last checking time (or no time has
+         been remembered for this file).
+
+   /f=&lt;rule file&gt;  A file of dependency specifications - one specification
+         per line. Multiple dependency files can be specified.
+         Currently, the following lines are supported:
+
+           empty line            ... ignored
+           // comment            ... ignored
+           # comment             ... ignored
+
+           NAME := pattern       ... define abbreviation which is replaced
+                                     in patterns before processing. NAME
+                                     must be uppercase only (but it can
+                                     contain digits, underscores etc.).
+                                     Longer names are preferred to shorter
+                                     ones during replacement. The pattern
+                                     on the right side can in turn use 
+                                     abbreviations. Abbreviation processing
+                                     is done before all reg.exp. replacements
+                                     described below.
+
+           pattern ---&gt; pattern  ... allowed dependency. The second
+                                     pattern may contain back-references
+                                     of the form \1, \2 etc. that are
+                                     matched against corresponding (...)
+                                     groups in the first pattern.
+
+           pattern ---! pattern  ... forbidden dependency. This can be used
+                                     to exclude certain possibilities for
+                                     specific cases instead of writing many
+                                     "allowed" rules.
+
+           pattern ---? pattern  ... questionable dependency. If a dependency
+                                     matches such a rule, a warning will be
+                                     emitted. This is useful for rules that
+                                     should be removed, but have to remain
+                                     in place for pragmatic reasons (only
+                                     for some time, it is hoped).
+
+           NAME :=
+               &lt;arbitrary lines except =:&gt;
+           =:                    ... definition of a rule macro. The
+                                     arbitrary lines can contain the strings
+                                     \L and \R, which are replaced with the
+                                     corresponding patterns from the macro 
+                                     use. NAME need not consist of letters
+                                     only; also names like ===&gt;, :::&gt;, +++&gt;
+                                     etc. are allowed and quite useful.
+
+           pattern NAME pattern  ... Use of a defined macro.
+
+           % pattern (with at least one group) 
+                                 ... Define output in DAG graph (substring
+                                     matching first group is used as label).
+                                     If the group is empty, the dependency
+                                     is not shown in the graph.
+                                     Useful only with /d option.
+
+         For an example of a dependency file, see near end of this help text.
+
+         A pattern can be specified in three ways:
+
+           ^regexp$              ... matched against a declaration
+                                     ("declarations" see below)
+
+           ^regexp               ... the regexp is expanded to up to four
+                                     different forms, all of which are
+                                     matched against declarations:
+               ^regexp$                   - for matching a class name
+               ^regexp(/&lt;ident&gt;)*$  - for matching nested classes
+                                            (if regexp contains no / )
+                                            &lt;ident&gt; is the pattern
+                                            matching an identifier.
+               ^regexp::&lt;ident&gt;$          - for matching methods
+                                            (if regexp contains no ::)
+               ^regexp(/&lt;ident&gt;)*::ident$ - for methods of nested classes
+                                            (if regexp contains no / and no ::)
+
+           wildcardpath          ... first, the following replacements are done:
+
+               .       is replaced with the reg.exp. [.] (matches single period)
+
+               *       is replaced with the reg.exp. for an &lt;ident&gt; (a "name")
+
+               **      is usually replaced with &lt;ident&gt;(?:.&lt;ident&gt;)* (a 
+                       "path").
+                            (?: in a reg.exp.means that the parentheses do not 
+                            count as numbered group when matching \1, \2, etc.)
+                       However, if there is a slash (/) somewhere to the left 
+                       of the **, it is replaced with &lt;ident&gt;(?:/&lt;ident&gt;)*, 
+                       i.e., the idents are separated by /. This can be used
+                       to match inner class hierarchies.
+
+               After the wildcard replacemants, suffixes are added as for 
+               ^regexp.
+
+         Patterns are matched against declarations. A declaration is
+         retrieved from the .il file as a string of one of the forms
+
+            namespace.classname
+            namespace.classname/nestednames
+            namespace.classname::method 
+            namespace.classname/nestednames::method
+
+         Inside namespace, elements are separated by a period (.).
+         That means that the LAST period (before an optional ::)
+         separates the namespace from the classname. If there is 
+         no namespace, there is no leading . before the classname.
+         Inside nestednames, sub-nestings are separated by a slash (/).
+
+   /d=&lt;dot file&gt;   Create output of dependencies in AT&T DOT format.
+         By default, ILDASMDependencyChecker tries to remove transitive
+         edges - i.e., if a uses b, b uses c, but also a uses c, then
+         the last edge is not shown. The algorithm for this will
+         sometimes choose funny edges for removal ...
+
+   /t    Show also transitive edges in DOT graph.
+
+   /i[=&lt;N&gt;]        For each illegal edge (i.e., edge not allowed by 
+         the dependency file), show an example of a concrete illegal 
+         dependency in the DOT graph. N is the maximum width of strings 
+         used; the default is 80. Graphs can become quite cluttered 
+         with this option.
+
+Example of a dependency file with some important dependencies (all
+using the wildcardpath syntax):
+
+   // Every class may use all classes from its own namespace.
+        (**).* ---&gt; \1.*
+
+   // Special dependency for class names without namespace
+   // (the pattern above will not work, because it contains a
+   // period): A class from the global namespace may use
+   // all classes from that namespace.
+        * ---&gt; *
+
+   // Every class may use all classes from child namespaces
+   // of its own namespace.
+        (**).* ---&gt; \1.**.*
+
+   // Every class may use all of System.
+        ** ---&gt; System.**
+
+   // Use ALL as abbreviation for ILDASMDependencyChecker.**
+        ALL := ILDASMDependencyChecker.**
+
+   // All DependencyChecker classes must not use Windows Forms
+   // (even though in principle, all classes may use all of 
+   // System according to the previous ---&gt; rule).
+        ALL ---! System.Windows.Forms.**
+
+   // All DependencyChecker classes may use classes from antlr.
+        ALL ---&gt; antlr.**
+
+   // In DAG output, identify each object by its path (i.e.
+   // namespace).
+        % (**).*
+
+   // Classes without namespace are identified by their class name:
+        % (*)
+
+   // Classes in System.* are identified by the empty group, i.e.,
+   // they (and arrows reaching them) are not shown at all.
+        % ()System.**
+
+Exit codes:
+   0    All dependencies ok (including questionable rules).
+   1    Usage error.
+   2    Cannot load dependency file (syntax error or file not found).
+   3    Dependencies not ok.
+   4    IL file specified as argument not found.
+   5    Other exception (e.g. parse error in IL file).
+</pre>
+
+<h3><a name="ildasmdc">Using the ildasmdc.bat wrapper</a></h2>
+
+<p>ildasmdc.bat provides a convenience wrapper around the disassembler ILDASM.exe, the actual checker ILDASMDependencyChecker.exe, and AT&amp;T's DOT.exe (if you want to see a graph). Since version 1.10, ILDASMDependencyChecker internally calls ILDASM if passed a .DLL or .EXE, so the usefulness of this wrapper has declined sharply.</p>
+
+<p>ildasmdc.bat is used as follows:</p>
+<pre>
+    ILDASMDC [/v] [/f=rule file] ... [/n] [/g=GIF file] [/i] [/t] directory_with_.Net_DLLs_and_EXEs ...
+</pre>
+<table>
+<tr><td>/v           </td><td>Verbose mode&mdash;this is useful to check which regular expressions are used for dependency matching. The output will be quite long if you specify this.</td></tr>
+<tr><td>/f=rule file </td><td>specifies a rule file to be used. For formats of rules, see "Usage page" below and the following example sections.</td></tr>
+<tr><td>/n           </td><td>Do not read StandardDependencies.dep.</td></tr>
+<tr><td>/g=GIF file  </td><td>Create a GIF image showing the dependency graph. Units shown (classes, namespaces, methods, ...) are selected on the basis of regular expressions&mdash;see "Usage page" below and the following example sections. By an algorithm known as "transitive reduction," the number of shown edges is reduced as follows: If A uses B, and B uses C, and A also uses C, the last edge is not shown in the graph (because it is implied by A -> B -> C).</td></tr>
+<tr><td>/i           </td><td>If /g is specified, print one illegal dependency (according to the rule file) near a dependency edge.</td></tr>
+<tr><td>/t           </td><td>If /g is specified, print also transitive edges. This will usually produce a huge number of lines in your picture and make it totally useless for presentation purposes. On the other hand, this is necessary if you want to extract dependency rules from a dependency graph&mdash;then you need <em>all</em> dependencies.</td></tr>
+<tr><td>directory_with_.Net_DLLs_and_EXEs</td><td>- One or more directories which are traversed for DLLs and EXEs to be analyzed. The traversal is done by dir /s/b, hence subdirectories are also traversed. If this is not what you want, edit ildasmdc.bat accordingly.</td></tr>
+</table>
+
+<p>ildasmdc.bat writes its messages to standard output (file handle 1). If you expect many messages, you will want to redirect the output to a file.</p>
+
+<h3>Use in builds</h3>
+
+<p>In a build, you will call ILDASMDependencyChecker.EXE, and possibly DOT separately.</p>
+
+<p>Please note that ILDASMDependencyChecker.EXE's options are a little different from ildasmdc.bat's:</p>
+
+<ul>
+<li> Instead of /g=GIF File, there is /d=DOT file. The call to DOT will then create the actual graphics file (which might be GIF, JPEG, and one of many other formats&mdash;see the DOT documentation for this).
+<li> /i has an optional value, e.g. /i=60. This can be used to control the width of the strings printed for illegal dependencies.
+<li> /n is not offered.
+</ul>
+
+<p>For uses in builds, ILDASMDependencyChecker.EXE has various exit codes. Essentially, you will test for exit code = 0&mdash;this means that everything is ok; exit code = 3 is also interesting, meaning "some dependencies did not follow the rules." For the other exit codes, see the above copy of the help output of ILDASMDependencyChecker.EXE.</p>
+
+<h2><a name="exdefine">Examples of defining rules up-front&mdash;the preferred scenario</a></h2>
+
+<h3>Namespace dependency rules</h3>
+
+<p>Here is an example scenario for dependency checking. Assume you are responsible for the design of a new GUI library which uses the MVC pattern. Let's call that new library "Yet Another GUI Library" (or "Your Advanced GUI Library"), which is abbreviated as "YAGL." The architect (you) has a vision of an architecture which decouples the implementations of the three pattern roles as cleanly as possible&mdash;preferably by namespaces. To be concrete, you start with the design and implementation of buttons. You decide that you want the following namespaces:
+
+<ul>
+<li> a namespace for base and standard models&mdash;Yagl.Buttons.Models
+<li> a namespace for interfaces of models and MVC-internal Listeners on models&mdash;Yagl.Buttons.IModels
+<li> a namespace for base button controllers&mdash;Yagl.Buttons.Controllers
+<li> sub-namespaces for each supported GUI System&mdash;Yagl.Buttons.Controllers.Avalon, Yagl.Buttons.Controllers.Forms etc.
+<li> a namespace for base button views&mdash;Yagl.Buttons.Views
+<li> sub-namespaces for each supported GUI System&mdash;Yagl.Buttons.Views.Avalon, Yagl.Buttons.Views.Forms etc.
+</ul>
+
+and, moreover
+
+<ul>
+<li> namespaces that provide access to the underlying GUI system (typically through native calls)&mdash;System.GUISupport.Avalon, System.GUISupport.Windows etc.
+</ul>
+
+Your next step is to decide on the dependencies that you want to allow. This will lead to the intended decoupled architecture, where e.g. the Models namespace can be replaced (or even removed) without disturbing the rest of the design (except that, at runtime, there must of course be some concrete models around&mdash;but they could be provided by other modules, e.g. an application or a data binding layer). Here are the rules that might be necessary with the namespace division above:
+
+<pre>
+    // MODELS:
+      // Abstract and standard models use the model interfaces
+    Yagl.Buttons.Models.**          ---> Yagl.Buttons.IModels.**
+    
+    // CONTROLLERS:
+      // Controllers call View changing methods - on a general level ...
+    Yagl.Buttons.Controllers.*      ---> Yagl.Buttons.Views.*
+      // ... and for each GUI system (but not crossing
+      // GUI systems!)
+    Yagl.Buttons.Controllers.(*).** ---> Yagl.Buttons.Views.\1.**
+    
+      // GUI-system dependent Controllers use common Controller code
+    Yagl.Buttons.Controllers.*.**   ---> Yagl.Buttons.Controllers.*
+    
+      // Controllers for one GUI system use methods and events from the 
+      // corresponding native library.
+    Yagl.Buttons.Controllers.(*).** ---> System.GUISupport.\1.**
+    
+      // Controllers influence Models; and hook themselves as listeners to Models
+    Yagl.Buttons.Controllers.*      ---> Yagl.Buttons.IModels.**
+    
+    // VIEWS:
+      // Views hook themselves as listeners to Models
+    Yagl.Buttons.Views.*            ---> Yagl.Buttons.IModels.**
+    
+      // GUI-system dependent Views use common View code
+    Yagl.Buttons.Views.*.**         ---> Yagl.Buttons.Views.*
+    
+      // Views for one GUI system use methods and events from the 
+      // corresponding native library.
+    Yagl.Buttons.View.(*).**        ---> System.GUISupport.\1.**
+</pre>
+</p>
+
+<p>The last rule (but not only that one) shows how the right side of a dependency rule can <em>reference</em> the left side by using "back references" (this is due to an idea of Ralf Kretzschmar, a colleague on a project I'm currently working on). As in standard regular expressions, \1 references the first parenthesized group on the left side, \2 the second etc.</p>
+
+<p>Your team will now start designing the classes and algorithms and then code and test along. As you have ILDASMDC in your continuous build, there is no chance that someone inadvertently introduces unwanted dependencies. At some point (which might be quite early if you practice TDD) you want to assemble a small button with a controller, a view, and a model. At this time, you will probably notice that you can build this aggregate component with your defined dependencies in any of the existing namespaces, as you need access to the class constructors of controllers and views as well as models. You should now <em>not</em> weaken the dependencies: This will, if done a few more times, lead to a tangled architecture, where almost everything depends on everything.</p>
+
+<p>One possibility of a correct design which keeps the dependencies clean is that you define an additional namespace
+
+<ul>
+<li>Yagl.Buttons.Standard
+</ul>
+
+which provides typical facade classes connecting elements from all namespaces above. The dependencies of this namespace would (or could) be like this:</p>
+
+<pre>
+      // needed to create standard model via constructor
+    Yagl.Buttons.Standard.* ---> Yagl.Buttons.Models.**
+      // needed to define instance vars to models
+    Yagl.Buttons.Standard.* ---> Yagl.Buttons.IModels.**
+      // needed to create GUI-dependent controller via constructor
+    Yagl.Buttons.Standard.* ---> Yagl.Buttons.Controllers.*.**
+      // needed to create GUI-dependent view via constructor
+    Yagl.Buttons.Standard.* ---> Yagl.Buttons.Views.*.**
+</pre>
+    
+<p>&mdash;and now you are happy: Facade classes RadioButton, ToggleButton, StandardButton, MenuButton and more can be defined in the Standard namespace by instantiating objects from the Models, Views.*, and Controllers.* namespaces.</p>
+
+<p>A different concept is that instead of providing a "connecting namespace," you use dependency injection: The creation is externalized into a container (e.g. PicoContainer), which is suitably configured. In some sense, that configuration takes the role of the connecting namespace.</p>
+
+<p>In later steps of designing YAGL, you might generalize the patterns above for all sorts of GUI controls, so that you end up with dependencies like</p>
+
+<pre>
+    Yagl.(*).Models.**          ---> Yagl.\1.IModels.**
+    Yagl.(*).Controllers.*      ---> Yagl.\1.Views.*
+    Yagl.(*).Controllers.(*).** ---> Yagl.\1.Views.\2.**
+    Yagl.(*).Controllers.*.**   ---> Yagl.\1.Controllers.*
+</pre>
+etc.
+
+<h3>Macros</h3>
+
+In the previous example, you might have defined namespaces Yagl.Buttons, Yagl.Labels, Yagl.Grids etc. with the corresponding sub-namespaces (Models, IModels, Controllers, Views). Between such "modules", you might also have dependencies:<ul>
+<li>Buttons depends on Labels (to place a label on the Button)
+<li>Grids depends on Labels (for row headers) and Buttons (for column headers which allow sorting)
+<li>etc.
+</ul>
+However, the dependencies between these module should follow a consistent pattern:<ul>
+<li>The left side's Models sub-namespace may only depend on the right side's Models and IModels sub-namespaces.
+<li>The left side's Controllers sub-namespace may only depend on the right side's Controllers and Views sub-namespaces.
+<li>etc.
+</ul>
+In larger systems, such compound rules introduce an additional level of abstraction, which helps to define the constraints more concisely. Here is an example of definitions for Yagl, which uses a macro called ===&gt;:
+<pre>
+    ===> :=
+        Yagl.\L.(*).**             ---> Yagl.\R.\1.**
+        Yagl.\L.Models.**          ---> Yagl.\R.IModels.**
+        Yagl.\L.Controllers.*      ---> Yagl.\R.Views.*
+        Yagl.\L.Controllers.(*).** ---> Yagl.\R.Views.\1.**
+        Yagl.\L.Controllers.*.**   ---> Yagl.\R.Controllers.*
+    =:
+    
+    Buttons ===> Labels
+    Grids   ===> Buttons
+    Grids   ===> Labels
+</pre>
+
+<em>This feature has still not been tested extensively. I still hope to get to module checking in our large application till the end of 2007...</em>
+
+<h3>Method dependency rules</h3>
+
+<p>Here is a short explanation of a quite different dependency scenario, this time on the level of methods: An object-relational mapping I wrote does its work for searches in multiple phases (this is a sort of pipeline architecture):
+
+<ol>
+<li> First, search conditions are converted to an internal tree representation (c2t&mdash;"condition to tree")
+<li> Then, the trees are enhanced with SQL statements, depending on lazy/eager load and other factors (t2s&mdash;"tree to SQL")
+<li> Then, the SQL statements are executed (s2r&mdash;"SQL to result sets")
+<li> Finally, the result sets are converted to objects (r2o&mdash;"result sets to objects")
+</ol>
+
+Many internal classes contribute to more than one of these phases: There is state, and there are methods for each phase. For a clean architecture, methods of one phase should only call methods and access fields provided by the same phase; this is important so that methods of earlier phases (e.g. a t2s method) do not call methods of later phases (e.g. an r2o method), when the state necessary for the later phase has not yet been computed by an earlier phase! In addition, there are some common methods which may be called in each phase (e.g. property getters)&mdash;these are to be suffixed with _com. To ascertain these constraints, the methods' names are to be suffixed with the phase, e.g. ComputeSQL_t2s() or CreateObject_r2o(...). Here are possible dependency rules that help to maintain the calling architecture (when using such specific rules, the StandardDependencies.dep file cannot be used, because it allows arbitrary calls inside each class. Specify /n to suppress those rules):
+            
+<pre>
+    ORMapping.**::*_c2t  --->   ORMapping.**::*_c2t 
+    ORMapping.**::*_t2s  --->   ORMapping.**::*_t2s
+    ORMapping.**::*_s2r  --->   ORMapping.**::*_s2r 
+    ORMapping.**::*_r2o  --->   ORMapping.**::*_r2o
+    ORMapping.**::*      --->   ORMapping.**::*_com
+      // Methods may access private state (prefixed with _).
+      // A separate getter is provided for each phase that
+      // may legitimally access some field.
+    ORMapping.**::*      --->   ORMapping.**::_*
+    
+      // ORMapping may use System except Windows.Forms
+    ORMapping.**         --->   System.**
+    ORMapping.**         ---!   System.Windows.Forms.**
+      // Every class may use &lt;PrivateImplementationDetails&gt;
+    ORMapping.** ---> &lt;PrivateImplementationDetails&gt;**
+</pre>
+By the way, a shorter way of defining the first 4 rules would be:
+<pre>
+    ORMapping.**::*_(c2t|t2s|s2r|r2o)  --->   ORMapping.**::*_\1
+</pre>
+<p>However, this is probably more difficult to understand than the expanded version above.</p>
+
+<p>Also, in practice, the rules need to include methods for writing; and they will be more elaborate, as there will also be dependency rules between namespaces inside the ORMapping. E.g., some classes responsible for writing to the database&mdash;INSERT, UPDATE, DELETE&mdash;probably must not call, and not be called by, classes for querying the database.</p>
+</p>
+&nbsp;<br>
+<p>The two scenarios just described are typical and intended uses for dependency checking: You (as the architect) define the dependencies up-front and have them checked during the life-time of the project. Of course, new developments and experiences might make it necessary to add new dependencies (as new modules with new namespaces or new method types are designed), and, sometimes, also the addition and modification of dependencies for existing namespaces. However, the latter can be a quite disruptive act as it might fundamentally shake the architectural foundations of the software system. When you become (or if you already are) a seasoned software architect, you will create more and more stable architectures up-front&mdash;or (more important) learn when to delay architectural decisions so that they can be arrived at when the necessary knowledge and understanding is available.</p>
+
+<h2><a name="exel">An example of a dependency detection session: Understanding the dependencies in Microsoft's Enterprise Library (January 2006)</a></h2>
+
+<p>In real life, you will at times be confronted with existing software where the architecture is not clear. ILDASMDC gives you the possibility to draw diagrams of dependencies with arbitrary granularity, which can help to understand the dependencies and architecture. The goal of such understanding should always be to define the rules to be followed from that point on&mdash;probably after some clean-up (re-architecting) of the software under consideration. As a concrete example, let us find out the main dependencies in Microsoft's Enterprise Library of January 2006.</p>
+
+<p>We start with graphing the main modules. Because we practice whar might be called "explorative architecturing," we allow all dependencies. We store the following in a file, say msel.dep:</p>
+
+<pre>
+    ** ---> **
+    
+      // Show all leaf namespaces in graph
+    % (Microsoft.Practices.*).**
+    
+      // For System and rest of Microsoft, show only one box
+    % (System).**
+    % (Microsoft).**
+</pre>
+
+We call ildasmdc.bat as follows:
+
+<pre>
+    ildasmdc.bat /f=msel.dep /g=msel.gif "c:\Programme\Microsoft Enterprise Library January 2006\bin"   
+</pre>
+    
+<p>Here is the resulting diagram in msel.gif ...</p>
+
+<img src="index1.gif">
+
+<p>A small disappointment: We were too high-level! In the next try, we go one level deeper:</p>
+
+<pre>
+    ** ---> **
+    
+      // Show two levels below Microsoft.Practices - especially,
+      // below Microsoft.Practices.EnterpriseLibrary.
+    % (Microsoft.Practices.*.*).**
+    % (Microsoft.Practices.*).*
+    
+      // For System and rest of Microsoft, show only one box
+    % (System).**
+    % (Microsoft).**
+</pre>
+
+<p>The same call as above now yields the following diagram:</p>
+
+<img src="index2.gif">
+
+<p>Now we see for the first time the library's internal structure. The only obvious architectural flaw is the cyclic dependency between Caching and Security; we will explore this further in the next steps.
+Please remember that this diagram excludes as many transitive edges as possible&mdash;hence it might e.g. be that classes from Logging use classes from Common etc. To show the full dependencies for demonstrating the difference, let's call ILDASMDC with the /t option (/t=transitive edges):</p>
+
+<pre>
+    ildasmdc.bat /f=msel.dep /g=msel.gif /t "c:\Programme\Microsoft Enterprise Library January 2006\bin"   
+</pre>
+
+<img src="index2transitive.gif">
+
+<p>The result is typical for a weakly layered architecture and demonstrates why the removal of transitive edges helps to understand the actual dependencies. However, we will have to return to this type of diagram later. For now, let us continue with the exploration of the cycle between Caching and Security. We only show Caching and Security, but now down to the lowest namespaces. To distinguish visually between the two, we have Caching namespaces shown in a "long" format including "Practices.EnterpriseLibrary," whereas namespaces from Security are shown in a "short" format:</p>
+
+<pre>
+    ** ---> **
+    
+      // Show Caching and Security in detail.
+    % Microsoft.(Practices.EnterpriseLibrary.Caching.**).*
+    % Microsoft.Practices.EnterpriseLibrary.(Security.**).*
+    
+      // For all the rest, show nothing
+    % ()**
+</pre>
+
+<img src="index3.gif">
+
+<p>This diagram certainly needs some detailed inspection. However, after a short time it becomes clear that Caching.Cryptography and its sub-namespaces &mdash;and only those&mdash;use modules from Security. Hence, we now reformulate the graph patterns for the complete Enterprise Library:</p>
+
+<pre>
+    ** ---> **
+    
+      // Show two levels below Microsoft.Practices - especially,
+      // below Microsoft.Practices.EnterpriseLibrary.
+      // Caching.Cryptography is singled out, because it depends on Security.
+    % (Microsoft.Practices.*.*).**
+    % (Microsoft.Practices.*).*
+    % (Microsoft.Practices.EnterpriseLibrary.Caching.Cryptography).**
+    
+      // For System and rest of Microsoft, show only one box
+    % (System).**
+    % (Microsoft).**
+</pre>
+
+<p>Here is the resulting picture:</p>
+
+<img src="index4.gif">
+
+<p>Now that we have found a dependency architecture which is ok, we want to codify the dependency rules so that subsequent development cannot violate these rules. To this end, we must first show also all the transitive edges. We are no longer interested in System, because this may be used by all according to the standard rules. Therefore, we use the following graph patterns and call ILDASMDC with the /t option:</p>
+
+<pre>
+    ** ---> **
+    
+      // Show two levels below Microsoft.Practices - especially,
+      // below Microsoft.Practices.EnterpriseLibrary.
+      // Caching.Cryptography is singled out, because it depends on Security.
+    % (Microsoft.Practices.*.*).**
+    % (Microsoft.Practices.*).*
+    % (Microsoft.Practices.EnterpriseLibrary.Caching.Cryptography).**
+    
+      // Do not show System; for rest of Microsoft, show only one box
+    % ()System.**
+    % (Microsoft).**
+</pre>
+
+<img src="index5.gif">
+
+<p>The resulting graph shows us, to no-one's surprise, that Common and Configuration are used by everyone. Moreover, ObjectBuilder is also used by everyone (which is stated in the design documentation of the Enterprise Library somewhere). For the rest, we have a not too large set of specific dependencies which are easily written down. Here is the resulting list:</p>
+
+<pre>
+      // Everyone in EL may use ObjectBuilder, EL.Common, and EL.Configuration
+    Microsoft.Practices.EnterpriseLibrary.**                      ---> Microsoft.Practices.ObjectBuilder.**
+    Microsoft.Practices.EnterpriseLibrary.**                      ---> Microsoft.Practices.EnterpriseLibrary.Common.**
+    Microsoft.Practices.EnterpriseLibrary.**                      ---> Microsoft.Practices.EnterpriseLibrary.Configuration.**
+    
+      // EL.Logging and EL.Caching may use EL.Data
+    Microsoft.Practices.EnterpriseLibrary.Logging.**              ---> Microsoft.Practices.EnterpriseLibrary.Data.**
+    Microsoft.Practices.EnterpriseLibrary.Caching.**              ---> Microsoft.Practices.EnterpriseLibrary.Data.**
+    
+      // EL.Security may use EL.Caching, but not EL.Caching.Cryptography
+    Microsoft.Practices.EnterpriseLibrary.Security.**             ---> Microsoft.Practices.EnterpriseLibrary.Caching.**
+    Microsoft.Practices.EnterpriseLibrary.Security.**             ---! Microsoft.Practices.EnterpriseLibrary.Caching.Cryptography.**
+    
+      // EL.Caching.Cryptography may use EL.Security (the "backwards dependency"
+      // which created the loop we saw a few steps ago).
+    Microsoft.Practices.EnterpriseLibrary.Caching.Cryptography.** ---> Microsoft.Practices.EnterpriseLibrary.Security.**
+    
+      // EL.ExceptionHandling may use EL.Logging
+    Microsoft.Practices.EnterpriseLibrary.ExceptionHandling.**    ---> Microsoft.Practices.EnterpriseLibrary.Logging.**
+</pre>
+
+As the string Microsoft.Practices.EnterpriseLibrary is occurring quite often here, it may make sense to replace it with a shorter abbreviation, e.g. as follows:
+
+<pre>
+    _EL := Microsoft.Practices.EnterpriseLibrary
+
+      // Everyone in EL may use ObjectBuilder, EL.Common, and EL.Configuration
+    _EL.**                      ---> Microsoft.Practices.ObjectBuilder.**
+    _EL.**                      ---> _EL.Common.**
+    _EL.**                      ---> _EL.Configuration.**
+    
+      // EL.Logging and EL.Caching may use EL.Data
+    _EL.Logging.**              ---> _EL.Data.**
+    _EL.Caching.**              ---> _EL.Data.**
+    
+      // EL.Security may use EL.Caching, but not EL.Caching.Cryptography
+    _EL.Security.**             ---> _EL.Caching.**
+    _EL.Security.**             ---! _EL.Caching.Cryptography.**
+    
+      // EL.Caching.Cryptography may use EL.Security (the "backwards dependency"
+      // which created the loop we saw a few steps ago).
+    _EL.Caching.Cryptography.** ---> _EL.Security.**
+    
+      // EL.ExceptionHandling may use EL.Logging
+    _EL.ExceptionHandling.**    ---> _EL.Logging.**
+</pre>
+    
+<p>Running ILDASMDC gives us ... what is that? Zillions of "Illegal dependencies!" What's wrong here?</p>
+
+<p>Here is the first "illegal" dependency:</p>
+
+<pre>
+  **** Illegal dependency Microsoft.Practices.EnterpriseLibrary.Logging.MsmqDistributor.Instrumentation.DistributorEventLogger::LogServiceStarted ---> Microsoft.Practices.EnterpriseLibrary.Logging.MsmqDistributor.Properties.Resources::get_Culture
+</pre>
+
+<p>What does Logging use here? Here is a more concise view of the dependency (you might want to highlight this with a marker on a printout of the "illegal" dependencies):</p>
+
+<pre>
+  ...Logging.MsmqDistributor.Instrumentation... ---> ...Logging.MsmqDistributor.Properties...
+</pre>
+
+It is clear now: We forgot to specify that we are not concerned about arbitrary dependencies <em>inside</em> toplevel namespaces of the Enterprise Library. Hence, we need the following additional rule:
+
+<pre>
+      // Everyone in or below a namespace EL.* may use all other namespaces in or below the same top-level EL namespace 
+    Microsoft.Practices.EnterpriseLibrary.(*).**   ---> Microsoft.Practices.EnterpriseLibrary.\1.**
+</pre>
+
+But we would now also allow that Caching uses all of Caching.Cryptography! Although this is not the case today, we want to prevent it in the future (so that someone will not introduce a cyclic dependency with Security!). Let us disect Caching to find out about the concrete rules we want to allow. Here are the graph patterns for this job:
+
+<pre>
+    ** ---> **
+    
+      // Show only Caching (top level and one level below) so
+      // that we can find out the dependencies needed in there.
+    % (_EL.Caching).*
+    % (_EL.Caching.*).**
+    
+    % ()Microsoft.**
+    % ()System.**
+</pre>
+
+<p>The result&mdash;with transitive edges&mdash;is as follows:</p>
+
+<img src="index7.gif">
+
+<p>Thus, we now know which other namespaces are immediately below Caching. For all these&mdash;except Cryptography&mdash;, and also for Caching itself, we suppress the use Caching.Cryptography:</p>
+
+<pre>
+    _EL.Caching.*                ---! _EL.Caching.Cryptography.**
+    _EL.Caching.BackingStoreImplementations.** ---! _EL.Caching.Cryptography.**
+    _EL.Caching.Common.**        ---! _EL.Caching.Cryptography.**
+    _EL.Caching.Configuration.** ---! _EL.Caching.Cryptography.**
+    _EL.Caching.Database.**      ---! _EL.Caching.Cryptography.**
+</pre>
+etc.
+
+<p>However, this is not at all a fool-proof set of of rules: If a new sub-namespace of Caching is introduced at some future time, that future namespace could use Cryptography. An alternative idea is to decree that all namespaces not starting with C cannot use Cryptography:</p>
+
+<pre>
+    _EL.Caching.*                ---! _EL.Caching.Cryptography.**
+    _EL.Caching.[^C]*.**         ---! _EL.Caching.Cryptography.**
+</pre>
+
+However, this would still allow Caching.Common and Caching.Configuration to use Caching.Cryptography. So, we add another rule:
+
+<pre>
+    _EL.Caching.C[^r]*.**        ---! _EL.Caching.Cryptography.**
+</pre>
+
+<p>&mdash;and we could add more rules to suppress use of Cryptography by longer and longer prefixes.</p>
+<blockquote>In my opinion, a better idea would be that Microsoft changed the name of Caching.Cryptography to e.g. SecureCaching in the Enterprise Library: Then there would be a clear top-level acyclic dependency graph.</blockquote>
+<p>Together with the other rules, we get the following overall dependency rule list:</p>
+
+<pre>
+      // Everyone in or below a namespace EL.* may use all other namespaces in or below the same namespace
+    _EL.(*).**                   ---> _EL.\1.**
+
+      // However, top-level Caching and Caching sub-namespaces not starting with Cry must not use Caching.Cryptography
+    _EL.Caching.*                ---! _EL.Caching.Cryptography.**
+    _EL.Caching.[^C]*.**         ---! _EL.Caching.Cryptography.**
+    _EL.Caching.C[^r]*.**        ---! _EL.Caching.Cryptography.**
+    _EL.Caching.Cr[^y]*.**       ---! _EL.Caching.Cryptography.**
+
+      // Everyone in EL may use ObjectBuilder, EL.Common, and EL.Configuration
+    _EL.**                       ---> Microsoft.Practices.ObjectBuilder.**
+    _EL.**                       ---> _EL.Common.**
+    _EL.**                       ---> _EL.Configuration.**
+    
+      // EL.Logging and EL.Caching may use EL.Data
+    _EL.Logging.**               ---> _EL.Data.**
+    _EL.Caching.**               ---> _EL.Data.**
+    
+      // EL.Security may use EL.Caching, but not EL.Caching.Cryptography
+    _EL.Security.**              ---> _EL.Caching.**
+    _EL.Security.**              ---! _EL.Caching.Cryptography.**
+    
+      // EL.Caching.Cryptography may use EL.Security (the "backwards dependency")
+    _EL.Caching.Cryptography.**  ---> _EL.Security.**
+    
+      // EL.ExceptionHandling may use EL.Logging
+    _EL.ExceptionHandling.**     ---> _EL.Logging.**
+</pre>
+
+<p>A final run of ILDASMDC over the Enterprise Library now yields no messages&mdash;hence, our rules encompass all current dependencies. On the other hand, they are sufficiently strong to prevent future corruption of the static architecture during maintenance and redesign.</p>
+
+<p>For teaching developers about the allowed dependencies, I would start with the clean picture to show the principial layering of the library:</p>
+
+<img src="index4.gif">
+
+<p>For detailed dependencies between modules, the architect could then
+<ul>
+<li> show on a printout of the diagram above which group of namespaces has a weakly layered architecture, so that namespaces in that group can use transitively reachable namespaces;
+<li> go, with the team, through the list of dependency rules;
+<li> analyze with the team the picture with the transitive edges;
+</ul>
+or, preferably, 
+<ul>
+<li>all three!
+</ul></p>
+
+<h2><a name="consider">Design considerations</a></h2>
+
+<p>A. Couldn't there be an option showing all cyclic dependencies?&mdash; &mdash;The idea is that architecture is not arrived at by "reacting to symptoms" (e.g. to cycles), but on the contrary by "acting," i.e., by <em>wanting</em> that certain dependencies may occur, whereas others do not occur. Thus, the goal is not that a tool emits warnings, but that an architect prescribes allowed dependency patterns. These might also include cycles at certain or even many places. The object-relational mapping mentioned above, for example, had&mdash;intentionally&mdash;almost no restrictions on class dependencies, but very restrictive rules for method dependencies.</p>
+
+<p>B. Couldn't the dependency rule language allow for "except rules," e.g., "All sub-namespaces of A <em>except A.B</em> may use C"?&mdash; &mdash;<ul>
+<li>First, dependency rules should not be too complex to understand. After all, they capture the essence of the (static) structure of a software.
+<li>Second, if dependency rules need exceptions, it makes more sense to change the architecture than to describe a complicated architecture.
+<li>Third, regular expressions cannot easily express "but not containing that string." More or less expensively implementing such a feature in light of the previous items did not seem useful.
+</ul>
+
+<h2><a name="open">Open items</a></h2>
+
+<p>1. Parsing of .IL files is very heuristic. I suspect that with method dependencies, a dependency on a return type might be reported incorrectly (namely with the previous method instead of the one having the return type). This needs to be checked and corrected, if actually wrong.</p>
+
+<p>2. Provide an MSBuild task to run ILDASMDC in automated builds.</p>
+
+<p>3. Upgrade to ANTLR 3 (for performance reasons).</p>
+
+<p>4. Make ILDASMDC multi-threaded to increase performance on multi-core and multi-processor machines.</p>
+
+<h2><a name="relnotes">Release Notes</a></h2>
+
+<h3>1.12 (2008-01-12)</h3>
+<ul>
+<li>Warnings are output with console color yellow, errors are output with console color red. This helps to find errors in long outputs of warnings for questionable rules.
+</ul>
+
+<h3>1.11 (2007-11-27)</h3>
+<ul>
+<li>The lexer now also accepts the Unicode char 0xFFFF (this was excluded up to now for fear it might collide with a "-1" character). ILDASM's buffer overflow bug has presented to us IL files with 0xFFFF in them, so I have to accept that character, too.
+</ul>
+
+<h3>1.10 (2007-11-24)</h3>
+<ul>
+<li>Runtime has again been reduced by a factor of about 5. This was necessary for our application, which yields about 2 million dependencies from its .IL files. The speedup is achieved by using special checkers for rules following certain patterns. For example, a rule My.Name.Space.MyClass ---> ** need not evaluate the right hand side of a dependency at all; and for the left hand side, a simple StartsWith is sufficient, instead of a full regular expression check. There are now about 9 heuristics for faster comparisons of common "rule patterns". For our project, this reduces the runtime from around 50 minutes to about 10 minutes. (Another speedup betwwen 2 and 3 can be expected with a migration to ANTLR 3; however, ANTLR 3 no longer supports the ! operator in lexer grammars, which makes migration harder than expected).
+<li>DLL and EXE files can directly be passed to ILDASMDC. Internally, ILDASMDC will look for the registry keys <code>HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETFramework\sdkInstallRootv2.0</code> and <code>HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETFramework\sdkInstallRootv3.0</code>, append <code>\bin</code> to it and try to run <code>ILDASM.EXE</code> from the resulting directories with options <code>/NOBAR /UTF8 /QUOTE /LINE /OUT=...</code>. With this feature, use of ildasm.bat is discouraged.
+<li>The /r flag will now run dependency checking on an input file (IL, DLL, or EXE) only if it has changed since the last checker run. The information is stored as an empty file called ILDASMDCTouch#.tmp, where # is a hash code of the file's name. Currently, these "touch files" are never deleted and produce garbage in the temp folder.
+<li>ILDASM is buggy in that it sometimes fills arbitrary binary garbage characters into the filename behind .line directives (this is a buffer overflow bug known by Microsoft). Because of this, ILDASMDC now accepts almost everything inside names, i.e. between quotes.
+<li>ILDASM is buggy in that it writes 16-bit unicode characters even if passed the /UTF8 option. Therefore, ILDASMDC now tries to read a file first with <code>Encoding.UTF8</code>, but then also with <code>Encoding.Unicode</code> if the former fails.
+</ul>
+
+<h3>1.00 (2007-04-15)</h3>
+<ul>
+<li>Instead of reading all dependencies up-front (which kills memory in our project), there's now a pipeline in place so that only the dependencies of one file are in memory (thanks to the yield return statements, pipelines are really easy to program in C#!). This requires double reading if graphing is done, but it is still faster as memory comsumption is lower.
+</ul>
+
+<h3>0.99 (2007-03-26)</h3>
+<ul>
+<li>Under Vista, ILDASM sometimes creates non-UTF8 output, which crashes the .Net StreamWriter when opened with Encoding.UTF8. 
+When this happens, ILDASMDC now attempts to read the file with Encoding.ASCII, then with Encoding.Default, and finally with 
+no Encoding. Hopefully, one of these attempts succeeds (it does on our German Vista installations).
+</ul>
+
+<h3>0.98 (2007-01-20)</h3>
+<ul>
+<li>Allow control chars in filename in .line directive (a bug in ILDASM seems to produce these sometimes)
+<li>Rule statistics only output on -v
+<li>&gt; char in some names allowed (necessary for inner interface declarations)
+</ul>
+
+<h3>0.97 (2006-09-06)</h3>
+<ul>
+<li>Wildcards and directories in command line.
+</ul>
+
+<h3>0.96 (2006-08-29)</h3>
+<ul>
+<li>Corrected syntax error in ILDASMDC.BAT
+<li>Improved performance by a factor of about 100 - now, speed is acceptable for continuous integration builds (checking 600000 dependencies from about 300000 LOC in about 90 seconds).
+<li>Allowed &micro; in identifiers.
+</ul>
+
+<h3>0.95 (2006-08-28)</h3>
+<ul>
+<li>Added @infile feature
+<li>Using @infile, the BAT file again calls ILDASMDC.EXE only once, so that the rule summary is again meaningful.
+</ul>
+
+<h3>0.94 (2006-08-05)</h3>
+<ul>
+<li>Added ---? operator for questionable dependencies.
+<li>Tried to make it faster with specialized rules
+<li>Repaired a parsing bug for explicit interface implementations
+<li>ILDASMDC now requires UTF8 input; ildasmdc.bat provides UTF8 IL files.
+</ul>
+
+<h3>0.93 (2006-05-13)</h3>
+<ul>
+<li>Added macros for use in a larger project (about 20 developers/100 developer-months up to now), with a 4-tiered and modularized architecture on top of a large framework.
+<li>Added a few test cases to drive coverage to about 80%. However, exception paths make it impossible to reach 100% coverage.
+</ul>
+
+<h3>0.92 (2006-05-06)</h3>
+<ul>
+<li>Added abbreviation feature NAME := ...
+<li>Corrected Official.sln - added files which allow test project to be run.
+<li>It is now possible to specify method dependency rules for inner classes: ** is expanded to an "inner class path" with separator / if it is to the right of a /. This solves item 5. from the list of open items.
+</ul>
+
+<h3>0.91 (2006-02-21)</h3>
+
+<ul>
+<li>Documentation release.
+</ul>
+
+<h3>0.9 (2006-02)</h3>
+
+<ul>
+<li>First release.
+</ul>
+
+<p>&copy; 2006-2007 HMM&uuml;ller </p>
+</body>
+</html>
