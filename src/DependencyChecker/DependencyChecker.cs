@@ -1,5 +1,6 @@
 // (c) HMMüller 2006
 
+using System;
 using System.Collections.Generic;
 
 namespace DependencyChecker {
@@ -55,9 +56,10 @@ namespace DependencyChecker {
             foreach (Dependency d in dependencies) {
                 result &= Check(allowed, questionable, forbidden, d);
                 if (++reorgCount%256 == 0) {
-                    forbidden.Sort();
-                    allowed.Sort();
-                    questionable.Sort();
+                    Comparison<DependencyRule> sortOnDescendingHitCount = (r1, r2) => r2.HitCount - r1.HitCount;
+                    forbidden.Sort(sortOnDescendingHitCount);
+                    allowed.Sort(sortOnDescendingHitCount);
+                    questionable.Sort(sortOnDescendingHitCount);
                 }
             }
             foreach (DependencyRuleRepresentation r in _representations) {

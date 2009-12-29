@@ -1,6 +1,5 @@
 // (c) HMMüller 2006
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -14,7 +13,7 @@ namespace DependencyChecker {
     /// expression, which allows back-references
     /// (like \1) between the using and the used
     /// item.</remarks>
-    internal class DependencyRule : Pattern, IComparable {
+    internal class DependencyRule : Pattern /*, IComparable*/ {
         private readonly DependencyRuleRepresentation _rep;
         private readonly IRuleMatch _ruleMatch;
         private int _hitCount;
@@ -27,21 +26,14 @@ namespace DependencyChecker {
             _rep = rep;
         }
 
-        #region IComparable Members
-
-        public int CompareTo(object obj) {
-            return ((DependencyRule)obj)._hitCount - _hitCount;
+        public int HitCount {
+            get { return _hitCount; }
         }
 
-        #endregion
-
-        //internal int AskedForMatches {
-        //    get {
-        //        return _ruleMatch.AskedForMatches;
-        //    }
-        //}
-
-
+        public bool IsSameAs(DependencyRule rule) {
+            return _ruleMatch.Equals(rule._ruleMatch);
+        }
+        
         /// <summary>
         /// Factory method for Dependency objects. Each
         /// of the two patterns can be either a "wildcard pattern",
@@ -118,26 +110,20 @@ namespace DependencyChecker {
             return _rep + " matching " + _ruleMatch;
         }
 
+        #region Nested type: IRuleMatch
+
+        private interface IRuleMatch {
+            bool Matches(Dependency d);
+        }
+
+        #endregion
+
         #region Nested type: AbstractRuleMatch
 
         private abstract class AbstractRuleMatch : IRuleMatch {
             private static readonly Regex FIXED_PREFIX_PATTERN = new Regex("^[" + INNER_LETTER + @"<>.]*", RegexOptions.Compiled);
 
-            //private int _askedForMatches;
-            //public int AskedForMatches {
-            //    get {
-            //        return _askedForMatches;
-            //    }
-            //}
-            //protected void IncAskedCount() {
-            //    _askedForMatches++;
-            //}
-
-            #region IRuleMatch Members
-
             public abstract bool Matches(Dependency d);
-
-            #endregion
 
             protected static bool IsClassTail(string s) {
                 return s == "" || s.StartsWith("::") || s.StartsWith("/");
@@ -163,7 +149,7 @@ namespace DependencyChecker {
 
         #region Nested type: ClassClassRule
 
-        private class ClassClassRule : AbstractRuleMatch {
+        private sealed class ClassClassRule : AbstractRuleMatch {
             private static readonly Regex FIXED_CLASS_PATTERN = new Regex("^[" + INNER_LETTER + @"/<>.]*$", RegexOptions.Compiled);
 
             private readonly string _usedFixedPrefix;
@@ -174,8 +160,17 @@ namespace DependencyChecker {
                 _usedFixedPrefix = usedItemPattern;
             }
 
+            public override bool Equals(object obj) {
+                return obj is ClassClassRule
+                    && ((ClassClassRule)obj)._usedFixedPrefix == _usedFixedPrefix
+                    && ((ClassClassRule)obj)._usingFixedPrefix == _usingFixedPrefix;
+            }
+
+            public override int GetHashCode() {
+                return _usedFixedPrefix.GetHashCode() ^ _usingFixedPrefix.GetHashCode();
+            }
+
             public override bool Matches(Dependency d) {
-                //IncAskedCount();
                 return d.UsingItem.StartsWith(_usingFixedPrefix)
                        && IsClassTail(d.UsingItem.Substring(_usingFixedPrefix.Length))
                        && d.UsedItem.StartsWith(_usedFixedPrefix)
@@ -207,8 +202,17 @@ namespace DependencyChecker {
                 _usingFixedPrefix = GetPrefix(usingItemPattern);
             }
 
+            public override bool Equals(object obj) {
+                return obj is GeneralAnyRule
+                    && ((GeneralAnyRule)obj)._rex.Equals(_rex)
+                    && ((GeneralAnyRule)obj)._usingFixedPrefix == _usingFixedPrefix;
+            }
+
+            public override int GetHashCode() {
+                return _rex.GetHashCode() ^ _usingFixedPrefix.GetHashCode();
+            }
+
             public override bool Matches(Dependency d) {
-                //IncAskedCount();
                 if (d.UsingItem.StartsWith(_usingFixedPrefix)) {
                     string check = d.UsingItem;
                     return _rex.IsMatch(check);
@@ -249,8 +253,18 @@ namespace DependencyChecker {
                 _usedFixedPrefix = GetPrefix(usedItemPattern);
             }
 
+            public override bool Equals(object obj) {
+                return obj is GeneralClassRule
+                    && ((GeneralClassRule)obj)._rex.Equals(_rex)
+                    && ((GeneralClassRule)obj)._usedFixedPrefix == _usedFixedPrefix
+                    && ((GeneralClassRule)obj)._usingFixedPrefix == _usingFixedPrefix;
+            }
+
+            public override int GetHashCode() {
+                return _rex.GetHashCode() ^ _usingFixedPrefix.GetHashCode() ^ _usedFixedPrefix.GetHashCode();
+            }
+
             public override bool Matches(Dependency d) {
-                //IncAskedCount();
                 if (d.UsedItem.StartsWith(_usedFixedPrefix) && d.UsingItem.StartsWith(_usingFixedPrefix)) {
                     string check = d.UsingItem + SEPARATOR + d.UsedItem;
                     Match match = _rex.Match(check);
@@ -284,6 +298,16 @@ namespace DependencyChecker {
                 _usedRegex = new Regex("^" + ExpandAsterisks(usedItemRegex), RegexOptions.Compiled);
             }
 
+            public override bool Equals(object obj) {
+                return obj is GeneralClassWithoutBackrefRule
+                    && ((GeneralClassWithoutBackrefRule)obj)._usingRegex.Equals(_usingRegex)
+                    && ((GeneralClassWithoutBackrefRule)obj)._usedRegex == _usedRegex;
+            }
+
+            public override int GetHashCode() {
+                return _usingRegex.GetHashCode() ^ _usedRegex.GetHashCode();
+            }
+
             public static bool Accepts(string usingItemPattern, string usedItemPattern) {
                 return IsClassPatternWithoutBackref(usingItemPattern)
                        && IsClassPatternWithoutBackref(usedItemPattern);
@@ -297,7 +321,6 @@ namespace DependencyChecker {
             }
 
             public override bool Matches(Dependency d) {
-                //IncAskedCount();
                 Match usingMatch = _usingRegex.Match(d.UsingItem);
                 if (usingMatch.Success) {
                     string usingRest = d.UsingItem.Substring(usingMatch.Value.Length);
@@ -341,8 +364,18 @@ namespace DependencyChecker {
                 _usedFixedPrefix = GetPrefix(usedItemPattern);
             }
 
+            public override bool Equals(object obj) {
+                return obj is GeneralPrefixRule
+                    && ((GeneralPrefixRule)obj)._rex.Equals(_rex)
+                    && ((GeneralPrefixRule)obj)._usedFixedPrefix == _usedFixedPrefix
+                    && ((GeneralPrefixRule)obj)._usingFixedPrefix == _usingFixedPrefix;
+            }
+
+            public override int GetHashCode() {
+                return _rex.GetHashCode() ^ _usingFixedPrefix.GetHashCode() ^ _usedFixedPrefix.GetHashCode();
+            }
+
             public override bool Matches(Dependency d) {
-                //IncAskedCount();
                 if (d.UsedItem.StartsWith(_usedFixedPrefix) && d.UsingItem.StartsWith(_usingFixedPrefix)) {
                     string check = d.UsingItem + SEPARATOR + d.UsedItem;
                     return _rex.IsMatch(check);
@@ -385,8 +418,18 @@ namespace DependencyChecker {
                 _usedFixedPrefix = GetPrefix(usedItemPattern);
             }
 
+            public override bool Equals(object obj) {
+                return obj is GeneralRule
+                    && ((GeneralRule)obj)._rex.Equals(_rex)
+                    && ((GeneralRule)obj)._usedFixedPrefix == _usedFixedPrefix
+                    && ((GeneralRule)obj)._usingFixedPrefix == _usingFixedPrefix;
+            }
+
+            public override int GetHashCode() {
+                return _rex.GetHashCode() ^ _usingFixedPrefix.GetHashCode() ^ _usedFixedPrefix.GetHashCode();
+            }
+
             public override bool Matches(Dependency d) {
-                //IncAskedCount();
                 if (d.UsedItem.StartsWith(_usedFixedPrefix) && d.UsingItem.StartsWith(_usingFixedPrefix)) {
                     string check = d.UsingItem + SEPARATOR + d.UsedItem;
                     return _rex.IsMatch(check);
@@ -402,17 +445,6 @@ namespace DependencyChecker {
 
         #endregion
 
-        #region Nested type: IRuleMatch
-
-        private interface IRuleMatch {
-            bool Matches(Dependency d);
-            //int AskedForMatches {
-            //    get;
-            //}
-        }
-
-        #endregion
-
         #region Nested type: PrefixAnyRule
 
         private class PrefixAnyRule : AbstractRuleMatch {
@@ -422,8 +454,16 @@ namespace DependencyChecker {
                 _usingFixedPrefix = GetPrefix(usingItemPattern);
             }
 
+            public override bool Equals(object obj) {
+                return obj is PrefixAnyRule
+                    && ((PrefixAnyRule)obj)._usingFixedPrefix == _usingFixedPrefix;
+            }
+
+            public override int GetHashCode() {
+                return _usingFixedPrefix.GetHashCode();
+            }
+
             public override bool Matches(Dependency d) {
-                //IncAskedCount();
                 return d.UsingItem.StartsWith(_usingFixedPrefix);
             }
 
@@ -454,8 +494,17 @@ namespace DependencyChecker {
                 _usedFixedPrefix = usedItemPattern;
             }
 
+            public override bool Equals(object obj) {
+                return obj is PrefixClassRule
+                    && ((PrefixClassRule)obj)._usedFixedPrefix == _usedFixedPrefix
+                    && ((PrefixClassRule)obj)._usingFixedPrefix == _usingFixedPrefix;
+            }
+
+            public override int GetHashCode() {
+                return _usingFixedPrefix.GetHashCode() ^ _usedFixedPrefix.GetHashCode();
+            }
+
             public override bool Matches(Dependency d) {
-                //IncAskedCount();
                 return d.UsingItem.StartsWith(_usingFixedPrefix)
                        && d.UsedItem.StartsWith(_usedFixedPrefix)
                        && IsClassTail(d.UsedItem.Substring(_usedFixedPrefix.Length));
@@ -487,8 +536,17 @@ namespace DependencyChecker {
                 _usedFixedPrefix = GetPrefix(usedItemPattern);
             }
 
+            public override bool Equals(object obj) {
+                return obj is PrefixPrefixRule
+                    && ((PrefixPrefixRule)obj)._usedFixedPrefix == _usedFixedPrefix
+                    && ((PrefixPrefixRule)obj)._usingFixedPrefix == _usingFixedPrefix;
+            }
+
+            public override int GetHashCode() {
+                return _usingFixedPrefix.GetHashCode() ^ _usedFixedPrefix.GetHashCode();
+            }
+
             public override bool Matches(Dependency d) {
-                //IncAskedCount();
                 return d.UsedItem.StartsWith(_usedFixedPrefix) && d.UsingItem.StartsWith(_usingFixedPrefix);
             }
 
@@ -512,6 +570,14 @@ namespace DependencyChecker {
         #region Nested type: SameNamespaceRule
 
         private class SameNamespaceRule : AbstractRuleMatch {
+            public override bool Equals(object obj) {
+                return obj is SameNamespaceRule;
+            }
+
+            public override int GetHashCode() {
+                return 17;
+            }
+
             public override bool Matches(Dependency d) {
                 return d.UsedNamespace == d.UsingNamespace;
             }

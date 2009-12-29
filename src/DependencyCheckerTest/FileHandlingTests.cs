@@ -16,17 +16,6 @@ namespace DependencyCheckerTest {
         public static Struct13 DummyForAssemblyCopying;
         public static Test2 DummyForAssembly2Copying;
 
-        // TODO: To be tested - jeweils an jeder Stelle gefunden; und nicht gefunden [außer -x]
-        // -d ... einfache Directorysuche
-        // -d -d ... zwei einfache Directorysuchen
-        // -s ... rek. Directorysuche (mit 2 Unterdirs)
-        // -s -s ... zwei rek. DS
-        // -s -d -s ... Mischung
-        // -x ... Defaultfile
-        // -s -x ... rek. Suche, dann Defaultfile
-        // -d -x ... einfache Suche, dann Defaultfile
-        // -x -x ... nicht erlaubt.
-
         // + relativer Pfad zu File, wo's gefunden wurde. DLL/EXE muss woanders stehen!
 
         [TestInitialize]
@@ -82,6 +71,20 @@ namespace DependencyCheckerTest {
             Assert.AreEqual(0, Run(@"-x=%%\a\x\Defaults.dep", @"-d=%%\a\yy", @"-d=%%\a\xx", @"-d=%%\a\b"));
         }
 
+        [TestMethod]
+        public void TestDPlusOk() {
+            WriteDep1PlusTo(@"a\b");
+            WriteDep2PlusTo(@"a\b");
+            Assert.AreEqual(0, Run(@"-d=%%\a\xx", @"-d=%%\a\b"));
+        }
+
+        [TestMethod]
+        public void TestSPlusOk() {
+            WriteDep1PlusTo(@"a\b");
+            WriteDep2PlusTo(@"a\b\c");
+            Assert.AreEqual(0, Run(@"-s=%%\a\b"));
+        }
+
         private int Run(params string[] args) {
             return DependencyCheckerMain.Main(new List<string>(args.Select(s => s.Replace("%%", _basePath))) {
                     "DependencyCheckerTestAssembly.dll", 
@@ -96,8 +99,25 @@ namespace DependencyCheckerTest {
                 ");
         }
 
+        private void WriteDep1PlusTo(string directory) {
+            Write(directory, "DependencyCheckerTestAssembly.dll.dep",
+                @"+ Dep1Include\Dep1.dep");
+            Write(directory + @"\Dep1Include", "Dep1.dep",
+                @"DependencyCheckerTest.** ---> **
+                  * ---? **
+                ");
+        }
+
         private void WriteDep2To(string directory) {
             Write(directory, "DependencyCheckerTestAssembly2.dll.dep", "DependencyCheckerTest2.** ---> **");
+        }
+
+        private void WriteDep2PlusTo(string directory) {
+            Write(directory, "DependencyCheckerTestAssembly2.dll.dep",
+                @"+ Dep2Include\Dep2A.dep");
+            Write(directory + @"\Dep2Include", "Dep2A.dep",
+                @"+ ..\Dep2B.dep");
+            Write(directory, "Dep2B.dep", "DependencyCheckerTest2.** ---> **");
         }
 
         private void WriteXTo(string directory) {

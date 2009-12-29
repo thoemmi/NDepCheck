@@ -20,7 +20,6 @@ namespace DependencyCheckerTest {
             }
         }
 
-        //VSTET (Visual Studio Team Edition for Testers) looks in the project output dir for the deployment items. So it must be 
         [TestMethod]
         public void GeneralSucceedingTest() {
             string depFile = Path.GetTempFileName();
@@ -180,6 +179,23 @@ DependencyCheckerTest.UnitTests ---> **
         }
 
         [TestMethod]
+        public void Exit0() {
+            {
+                string depFile = Path.GetTempFileName();
+                using (TextWriter tw = new StreamWriter(depFile)) {
+                    tw.Write(@"
+                    DependencyCheckerTest.** ---> DependencyCheckerTest.**
+                    DependencyCheckerTest.** ---> System.**
+                    DependencyCheckerTest.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForDependencyChecker::I
+                    * ---? System.*
+                ");
+                }
+                Assert.AreEqual(0, DependencyCheckerMain.Main(new[] { "-x=" + depFile, "DependencyCheckerTestAssembly.dll" }));
+                File.Delete(depFile);
+            }
+        }
+
+        [TestMethod]
         public void Exit1() {
             Assert.AreEqual(1, DependencyCheckerMain.Main(new string[] { }));
             Assert.AreEqual(1, DependencyCheckerMain.Main(new[] { "/y" }));
@@ -190,39 +206,6 @@ DependencyCheckerTest.UnitTests ---> **
         public void Exit2() {
             {
                 Assert.AreEqual(2, DependencyCheckerMain.Main(new[] { "/xnonexistingfile.dep" }));
-            }
-        }
-
-        [TestMethod]
-        public void Exit5() {
-            {
-                string depFile = Path.GetTempFileName();
-                using (TextWriter tw = new StreamWriter(depFile)) {
-                    tw.Write(
-                        @"
-                    ====> :=    
-                       ** ---> blabla
-                    =:
-                    ===>> :=    
-                       ** ---> blabla
-                    =:
-                ");
-                }
-                Assert.AreEqual(5, DependencyCheckerMain.Main(new[] { "-x=" + depFile, "DependencyCheckerTestAssembly.dll" }));
-                File.Delete(depFile);
-            }
-            {
-                string depFile = Path.GetTempFileName();
-                using (TextWriter tw = new StreamWriter(depFile)) {
-                    tw.Write(
-                        @"
-                    --> :=    
-                       ** ---> blabla
-                    =:
-                ");
-                }
-                Assert.AreEqual(5, DependencyCheckerMain.Main(new[] { "-x=" + depFile, "DependencyCheckerTestAssembly.dll" }));
-                File.Delete(depFile);
             }
         }
 
@@ -258,6 +241,39 @@ DependencyCheckerTest.UnitTests ---> **
             }
             Assert.AreEqual(4, DependencyCheckerMain.Main(new[] { "/x=" + depFile, "nonexistingfile.dll" }));
             File.Delete(depFile);
+        }
+
+        [TestMethod]
+        public void Exit5() {
+            {
+                string depFile = Path.GetTempFileName();
+                using (TextWriter tw = new StreamWriter(depFile)) {
+                    tw.Write(
+                        @"
+                    ====> :=    
+                       ** ---> blabla
+                    =:
+                    ===>> :=    
+                       ** ---> blabla
+                    =:
+                ");
+                }
+                Assert.AreEqual(5, DependencyCheckerMain.Main(new[] { "-x=" + depFile, "DependencyCheckerTestAssembly.dll" }));
+                File.Delete(depFile);
+            }
+            {
+                string depFile = Path.GetTempFileName();
+                using (TextWriter tw = new StreamWriter(depFile)) {
+                    tw.Write(
+                        @"
+                    --> :=    
+                       ** ---> blabla
+                    =:
+                ");
+                }
+                Assert.AreEqual(5, DependencyCheckerMain.Main(new[] { "-x=" + depFile, "DependencyCheckerTestAssembly.dll" }));
+                File.Delete(depFile);
+            }
         }
     }
 }

@@ -76,22 +76,15 @@ namespace DependencyChecker {
             Console.Out.WriteLine(
                 @"
 Usage:
-   DependencyChecker [options] [<filename> | @<file with filenames in it>] ...
-where <filename> can be the name of
-  a .Net-DLL-Assembly
-  a .Net-EXE-Assembly
-  a UTF8 .il-file with quoted names
+   DependencyChecker [options] [<assemblyname> | @<file with assemblyname in it>] ...
 
 Typical uses:
 
 * Check dependencies in My.DLL:
-      DependencyChecker /f=MyDependencies.dep /r My.dll
-or
-      ildasm.exe /UTF8 /QUOTEALLNAMES /LINENUM /OUT=My.il My.DLL 
-      DependencyChecker /f=MyDependencies.dep My.il
+      DependencyChecker /x=MyDependencies.dep My.dll
 
 * Produce graph of dependencies in My.DLL:
-      DependencyChecker /f=MyDependencies.dep My.DLL /d=My.dot
+      DependencyChecker /x=MyDependencies.dep My.DLL /g=My.dot
       dot -Tgif -oMy.gif My.dot
 
 All messages of DependencyChecker are written to Console.Out.
@@ -100,11 +93,6 @@ Options:
    /v    Verbose. Shows regular expressions used for checking and 
          all checked dependencies. Attention: Place /v BEFORE any
          /d, /s, or /x option to see the regular expressions.
-
-   /r    Remember last checking time for each input file somewhere in temp
-         directory; do dependecy checking for an assembly or .il-file
-         only if it has changed since last checking time (or no time has
-         been remembered for this file).
 
    /d=<directory>    For each assembly file A.dll, look for corresponding 
          rule file A.dll.dep in this directory (multiple /d options are 
@@ -277,8 +265,10 @@ Exit codes:
    1    Usage error.
    2    Cannot load dependency file (syntax error or file not found).
    3    Dependencies not ok.
-   4    IL file specified as argument not found.
-   5    Other exception (e.g. parse error in IL file).
+   4    Assembly file specified as argument not found.
+   5    Other exception.
+   6    No dependency file found for an assembly in /d and /s 
+        directories, and /x not specified.
             ");
             return 1;
         }

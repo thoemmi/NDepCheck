@@ -282,13 +282,25 @@ namespace DependencyChecker {
         /// </summary>
         public void AddDependencyRules(string ruleFileName, uint lineNo, string line) {
             if (line.Contains(MAYUSE)) {
-                _allowed.AddRange(CreateDependencyRules(ruleFileName, lineNo, line, MAYUSE, false));
+                foreach (var rule in CreateDependencyRules(ruleFileName, lineNo, line, MAYUSE, false)) {
+                    Add(_allowed, rule);
+                }
             } else if (line.Contains(MAYUSE_WITH_WARNING)) {
-                _questionable.AddRange(CreateDependencyRules(ruleFileName, lineNo, line, MAYUSE_WITH_WARNING, true));
+                foreach (var rule in CreateDependencyRules(ruleFileName, lineNo, line, MAYUSE_WITH_WARNING, true)) {
+                    Add(_questionable, rule);
+                }
             } else if (line.Contains(MUSTNOTUSE)) {
-                _forbidden.AddRange(CreateDependencyRules(ruleFileName, lineNo, line, MUSTNOTUSE, false));
+                foreach (var rule in CreateDependencyRules(ruleFileName, lineNo, line, MUSTNOTUSE, false)) {
+                    Add(_forbidden, rule);
+                }
             } else {
                 throw new ApplicationException("Unexpected rule at " + ruleFileName + ":" + lineNo);
+            }
+        }
+
+        private static void Add(List<DependencyRule> ruleList, DependencyRule rule) {
+            if (!ruleList.Exists(r => r.IsSameAs(rule))) {
+                ruleList.Add(rule);
             }
         }
 
