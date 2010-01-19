@@ -1,4 +1,4 @@
-// (c) HMMüller 2006
+// (c) HMMüller 2006...2010
 
 using System;
 using DependencyCheckerTest.dir1.dir3;

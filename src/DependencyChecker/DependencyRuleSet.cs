@@ -38,7 +38,7 @@ namespace DependencyChecker {
 
         class LengthComparer : IComparer<string> {
             public int Compare(string s1, string s2) {
-                return s2.Length - s1.Length;
+                return s2.CompareTo(s1);
             }
         }
 
@@ -52,9 +52,10 @@ namespace DependencyChecker {
         private readonly List<GraphAbstraction> _graphAbstractions = new List<GraphAbstraction>();
 
         private readonly List<DependencyRuleSet> _includedRuleSets = new List<DependencyRuleSet>();
-        private readonly Dictionary<string, Macro> _macros = new Dictionary<string, Macro>();
 
+        private readonly SortedDictionary<string, Macro> _macros = new SortedDictionary<string, Macro>(new LengthComparer());
         private readonly SortedDictionary<string, string> _defines = new SortedDictionary<string, string>(new LengthComparer());
+        
         private readonly bool _verbose;
 
         /// <summary>
@@ -117,7 +118,18 @@ namespace DependencyChecker {
                     // ignore;
                 } else if (line.StartsWith("+")) {
                     string includeFilename = line.Substring(1).Trim();
-                    _includedRuleSets.Add(Create(new FileInfo(fullRuleFilename).Directory, includeFilename, verbose));
+                    DependencyRuleSet included = Create(new FileInfo(fullRuleFilename).Directory, includeFilename, verbose);
+                    _includedRuleSets.Add(included);
+
+                    // We copy the defines down into the ruleset so that the selection
+                    // of the longest name works (_defines implements this by using
+                    // a SortedDictionary with a LengthComparer).
+                    foreach (var kvp in included._defines) {
+                        _defines[kvp.Key] = kvp.Value;
+                    }
+                    foreach (var kvp in included._macros) {
+                        _macros[kvp.Key] = kvp.Value;
+                    }
                 } else if (ProcessMacroIfFound(line, verbose)) {
                     // macro is already processed as side effect in ProcessMacroIfFound()
                 } else if (line.Contains(MAYUSE) || line.Contains(MUSTNOTUSE) ||
@@ -136,8 +148,7 @@ namespace DependencyChecker {
                         line = tr.ReadLine();
                         lineNo++;
                         if (line == null) {
-                            DependencyCheckerMain.WriteError(fullRuleFilename + ": Missing " + MACRO_END + " at end", fullRuleFilename, lineNo, 0, 0,
-                                       0);
+                            DependencyCheckerMain.WriteError(fullRuleFilename + ": Missing " + MACRO_END + " at end", fullRuleFilename, lineNo, 0, 0, 0);
                             textIsOk = false;
                             break;
                         }
@@ -150,7 +161,6 @@ namespace DependencyChecker {
                         }
                     }
                 } else if (line.Contains(DEFINE)) {
-                    AddDefine(fullRuleFilename, lineNo, line);
                     AddDefine(fullRuleFilename, lineNo, line);
                 } else {
                     DependencyCheckerMain.WriteError(fullRuleFilename + ": Cannot parse line " + lineNo + ": " + line, fullRuleFilename, lineNo, 0, 0,

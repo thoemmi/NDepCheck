@@ -6,7 +6,7 @@ pushd DependencyChecker\bin\Debug
 popd
 
 pushd ..
-"c:\Program Files\7-Zip\7z.exe" a -r src\DotNetArchitectureChecker%1-src.zip src docs lib -xr!*\bin\* -xr!*\obj\* -xr!*\_ReSharper*\* -xr!*.zip -xr!*\.svn\* -xr!*.bak
+"c:\Program Files\7-Zip\7z.exe" a -r src\DotNetArchitectureChecker%1-src.zip src docs lib -xr!*\bin\* -xr!*\obj\* -xr!*\_ReSharper*\* -xr!*\*.resharper.user -xr!*.zip -xr!*\.svn\* -xr!*.bak
 popd
 
 goto :EOF

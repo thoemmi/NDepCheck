@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 
 namespace DependencyChecker {
@@ -7,7 +8,7 @@ namespace DependencyChecker {
     /// Main class of DependencyChecker.
     /// </remarks>
     public class DependencyCheckerMain {
-        private const string VERSION = "2.00";
+        private const string VERSION = "2.01";
 
         public static ILogger Logger = new ConsoleLogger();
 
@@ -65,7 +66,7 @@ namespace DependencyChecker {
         private static bool _debug;
 
         private static void WriteVersion() {
-            WriteInfo(typeof(DependencyChecker).Name + " V." + VERSION + " (c) HMMüller 2006");
+            WriteInfo(typeof(DependencyChecker).Name + " V." + VERSION + " (c) HMMüller 2006...2010");
         }
 
         private static int UsageAndExit(string message) {
@@ -287,7 +288,9 @@ Exit codes:
             int i;
             for (i = 0; i < args.Length; i++) {
                 string arg = args[i];
-                if (arg.StartsWith("-d") || arg.StartsWith("/d")) {
+                if (arg == "-debug" || arg == "/debug") {
+                    Debugger.Launch();
+                } else if (arg.StartsWith("-d") || arg.StartsWith("/d")) {
                     CreateDirectoryOption(arg, false);
                 } else if (arg.StartsWith("-s") || arg.StartsWith("/s")) {
                     CreateDirectoryOption(arg, true);
