@@ -41,7 +41,7 @@ This project is hosted on <a href="http://sourceforge.net"><img src="http://sflo
 
 <h2><a name="usedsw">Used Software</a></h2>
 
-.Net Architecture Checker is based on Microsoft's .NET Framework 2.0.
+.Net Architecture Checker is based on Microsoft's .NET Framework.
 <br>Internally, .Net Architecture Checker uses Mono's Cecil for .NET (version 0.6) from <a href="http://www.mono-project.com/Cecil">http://www.mono-project.com/Cecil</a>.
 <br>For graph drawing, you need DOT from AT&amp;T's GraphViz tool library at <a href="www.graphviz.org">http://www.graphviz.org</a>.
 
@@ -61,8 +61,8 @@ Prerequsisites:
 
 Steps:
 <ul>
-<li> Download the ZIP file DotNetArchitectureChecker1.0.zip from Sourceforge at <a href=https://sourceforge.net/projects/dotnetarchitect>https://sourceforge.net/projects/dotnetarchitect</a>.
-<li> Unzip the file. If unzipped into C:, the files will be in C:\dotnetarchitect\.
+<li> Download the ZIP file DotNetArchitectureChecker1.01.zip from Sourceforge at <a href=https://sourceforge.net/projects/dotnetarchitect>https://sourceforge.net/projects/dotnetarchitect</a>.
+<li> Unzip the file. If unzipped into C:, the files will be in C:\DotNetArchitectureChecker1.01\.
 <li> Optional: Add the unzip location (e.g. C:\dotnetarchitect\) to your path.
 </ul>
 
@@ -88,10 +88,10 @@ Steps:
 The two asterisks ** are the abbreviation for "a class name, including a namespace." The two rules thus mean:
 
 <blockquote>
-    All classes (and enums, methods, ...) in and below the namespace .Net Architecture Checker may use all classes (structs, delegates, ...) in and below the antlr namespace.
+    All classes (and enums, methods, ...) in and below the namespace <code>MyProgram</code> may use all classes (structs, delegates, ...) in and below the <code>YourLibrary</code> namespace.
 </blockquote>
 <blockquote>
-    All classes (etc.) in and below the namespace .Net Architecture Checker must not use any class (etc.) from the System.Windows.Forms namespace tree.
+    All classes (etc.) in and below the namespace <code>MyProgram</code> must <em>not</em> use any class (etc.) from the <code>System.Windows.Forms</code> namespace tree.
 </blockquote>
 
 The idea is that rules like these are defined by the software architect(s) and checked every time a build is run. When rules are violated, .Net Architecture Checker will write something like the following and return with exit code 3:
@@ -322,7 +322,7 @@ Exit codes:
 
 <p>In a build, you will call .Net Architecture Checker.EXE, and possibly DOT separately.</p>
 
-<p>For uses in builds, .Net Architecture Checker.EXE has various exit codes. Essentially, you will test for exit code = 0&mdash;this means that everything is ok; exit code = 3 is also interesting, meaning "some dependencies did not follow the rules." For the other exit codes, see the above copy of the help output of .Net Architecture Checker.EXE.</p>
+<p>For uses in builds, .Net Architecture Checker.EXE has various exit codes. Essentially, you will test for exit code = 0&mdash;this means that everything is ok; exit code = 3 is also interesting, meaning "some dependencies did not follow the rules." For the other exit codes, see the above copy of the help output of DependencyChecker.EXE.</p>
 
 <h2><a name="exdefine">Examples of defining rules up-front&mdash;the preferred scenario</a></h2>
 
@@ -334,15 +334,15 @@ Exit codes:
 <li> a namespace for base and standard models&mdash;Yagl.Buttons.Models
 <li> a namespace for interfaces of models and MVC-internal Listeners on models&mdash;Yagl.Buttons.IModels
 <li> a namespace for base button controllers&mdash;Yagl.Buttons.Controllers
-<li> sub-namespaces for each supported GUI System&mdash;Yagl.Buttons.Controllers.Avalon, Yagl.Buttons.Controllers.Forms etc.
+<li> sub-namespaces for each supported GUI System&mdash;Yagl.Buttons.Controllers.WPF, Yagl.Buttons.Controllers.Forms etc.
 <li> a namespace for base button views&mdash;Yagl.Buttons.Views
-<li> sub-namespaces for each supported GUI System&mdash;Yagl.Buttons.Views.Avalon, Yagl.Buttons.Views.Forms etc.
+<li> sub-namespaces for each supported GUI System&mdash;Yagl.Buttons.Views.WPF, Yagl.Buttons.Views.Forms etc.
 </ul>
 
 and, moreover
 
 <ul>
-<li> namespaces that provide access to the underlying GUI system (typically through native calls)&mdash;System.GUISupport.Avalon, System.GUISupport.Windows etc.
+<li> namespaces that provide access to the underlying GUI system (typically through native calls)&mdash;System.GUISupport.WPF, System.GUISupport.Forms (for System.Windows.Forms) etc.
 </ul>
 
 Your next step is to decide on the dependencies that you want to allow. This will lead to the intended decoupled architecture, where e.g. the Models namespace can be replaced (or even removed) without disturbing the rest of the design (except that, at runtime, there must of course be some concrete models around&mdash;but they could be provided by other modules, e.g. an application or a data binding layer). Here are the rules that might be necessary with the namespace division above:
@@ -446,8 +446,6 @@ In larger systems, such compound rules introduce an additional level of abstract
     Grids   ===> Labels
 </pre>
 
-<em>This feature has still not been tested extensively. I still hope to get to module checking in our large application till the end of 2007...</em>
-
 <h3>Method dependency rules</h3>
 
 <p>Here is a short explanation of a quite different dependency scenario, this time on the level of methods: An object-relational mapping I wrote does its work for searches in multiple phases (this is a sort of pipeline architecture):
@@ -459,7 +457,7 @@ In larger systems, such compound rules introduce an additional level of abstract
 <li> Finally, the result sets are converted to objects (r2o&mdash;"result sets to objects")
 </ol>
 
-Many internal classes contribute to more than one of these phases: There is state, and there are methods for each phase. For a clean architecture, methods of one phase should only call methods and access fields provided by the same phase; this is important so that methods of earlier phases (e.g. a t2s method) do not call methods of later phases (e.g. an r2o method), when the state necessary for the later phase has not yet been computed by an earlier phase! In addition, there are some common methods which may be called in each phase (e.g. property getters)&mdash;these are to be suffixed with _com. To ascertain these constraints, the methods' names are to be suffixed with the phase, e.g. ComputeSQL_t2s() or CreateObject_r2o(...). Here are possible dependency rules that help to maintain the calling architecture (when using such specific rules, the StandardDependencies.dep file cannot be used, because it allows arbitrary calls inside each class. Specify /n to suppress those rules):
+Many internal classes contribute to more than one of these phases: There is state, and there are methods for each phase. For a clean architecture, methods of one phase should only call methods and access fields provided by the same phase; this is important so that methods of earlier phases (e.g. a t2s method) do not call methods of later phases (e.g. an r2o method), when the state necessary for the later phase has not yet been computed by an earlier phase! In addition, there are some common methods which may be called in each phase (e.g. property getters)&mdash;these are to be suffixed with _com. To ascertain these constraints, the methods' names are to be suffixed with the phase, e.g. ComputeSQL_t2s() or CreateObject_r2o(...). Here are possible dependency rules that help to maintain the calling architecture:
             
 <pre>
     ORMapping.**::*_c2t  --->   ORMapping.**::*_c2t 
@@ -488,6 +486,8 @@ By the way, a shorter way of defining the first 4 rules would be:
 </p>
 &nbsp;<br>
 <p>The two scenarios just described are typical and intended uses for dependency checking: You (as the architect) define the dependencies up-front and have them checked during the life-time of the project. Of course, new developments and experiences might make it necessary to add new dependencies (as new modules with new namespaces or new method types are designed), and, sometimes, also the addition and modification of dependencies for existing namespaces. However, the latter can be a quite disruptive act as it might fundamentally shake the architectural foundations of the software system. When you become (or if you already are) a seasoned software architect, you will create more and more stable architectures up-front&mdash;or (more important) learn when to delay architectural decisions so that they can be arrived at when the necessary knowledge and understanding is available.</p>
+
+..................................Rest noch nicht fertig.............................
 
 <h2><a name="exel">An example of a dependency detection session: Understanding the dependencies in Microsoft's Enterprise Library (January 2006)</a></h2>
 
@@ -780,6 +780,16 @@ or, preferably,
 <p>2. Make .Net Architecture Checker multi-threaded to increase performance on multi-core and multi-processor machines.</p>
 
 <h2><a name="relnotes">Release Notes</a></h2>
+
+<h3>1.02 (2010-01-21)</h3>
+<ul>
+<li>Documentation updated.
+</ul>
+
+<h3>1.01 (2010-01-19)</h3>
+<ul>
+<li>Two bugs corrected in macro handling.
+</ul>
 
 <h3>1.0 (2009-12-29)</h3>
 <ul>
