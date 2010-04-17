@@ -13,7 +13,7 @@ vlink="#008080">
 
 <center>
 <h1>.Net Architecture Checker</h1>
-V.1.0 &copy; Harald M. Müller and Thomas Freudenberg</center>
+V.1.1 &copy; Harald M. Müller and Thomas Freudenberg</center>
 
 <a href="#overview">Overview</a><br>
 <a href="#usedsw">Used Software</a><br>
@@ -71,7 +71,7 @@ Steps:
 <ul>
 <li> Download the ZIP file DotNetArchitectureChecker1.0-src.zip from Sourceforge at <a href=https://sourceforge.net/projects/dotnetarchitect>https://sourceforge.net/projects/dotnetarchitect</a>.
 <li> Unzip the file.
-<li> Open DependencyCheckerAll.sln in the src directory.
+<li> Open DotNetArchitectureCheckerAll.sln in the src directory.
 </ul>
 
 <h2><a name="concepts">Concepts</a></h2>
@@ -115,7 +115,7 @@ A violation of the rules should be like a compile time error: It breaks the buil
 
 A typical call to .Net Architecture Checker looks as follows:
 <pre>
-     DependencyChecker /x=myrules.dep myproj*.dll myproj*.exe
+     DotNetArchitectureChecker /x=myrules.dep myproj*.dll myproj*.exe
 </pre>
 This will output all the dependencies in all myproj* .Net assemblies in the current directory. It is good practice to have a naming convention for the assemblies of a project; by this, the project's own assemblies can easily be distinguished from other assemblies (usually copied ones) in the same directory.
 
@@ -123,18 +123,18 @@ The complete usage of .Net Architecture Checker is explained here:
 
 <pre>
 Usage:
-   DependencyChecker [options] [<assemblyname> | @<file with assemblyname in it>] ...
+   DotNetArchitectureChecker [options] [<assemblyname> | @<file with assemblyname in it>] ...
 
 Typical uses:
 
 * Check dependencies in My.DLL:
-      DependencyChecker /x=MyDependencies.dep My.dll
+      DotNetArchitectureChecker /x=MyDependencies.dep My.dll
 
 * Produce graph of dependencies in My.DLL:
-      DependencyChecker /x=MyDependencies.dep My.DLL /g=My.dot
+      DotNetArchitectureChecker /x=MyDependencies.dep My.DLL /g=My.dot
       dot -Tgif -oMy.gif My.dot
 
-All messages of DependencyChecker are written to Console.Out.
+All messages of DotNetArchitectureChecker are written to Console.Out.
 
 Options:
    /v    Verbose. Shows regular expressions used for checking and 
@@ -251,7 +251,7 @@ Options:
                ^regexp.
 
    /g=<dot file>   Create output of dependencies in AT&T DOT format.
-         By default, DependencyChecker tries to remove transitive
+         By default, DotNetArchitectureChecker tries to remove transitive
          edges - i.e., if a uses b, b uses c, but also a uses c, then
          the last edge is not shown. The algorithm for this will
          sometimes choose funny edges for removal ...
@@ -285,15 +285,15 @@ using the wildcardpath syntax):
    // Every class may use all of System.
         ** ---> System.**
 
-   // Use ALL as abbreviation for DependencyChecker.**
-        ALL := DependencyChecker.**
+   // Use ALL as abbreviation for MyProgram.**
+        ALL := MyProgram.**
 
-   // All DependencyChecker classes must not use Windows Forms
+   // All MyProgram classes must not use Windows Forms
    // (even though in principle, all classes may use all of 
    // System according to the previous ---> rule).
         ALL ---! System.Windows.Forms.**
 
-   // All DependencyChecker classes may use classes from antlr.
+   // All MyProgram classes may use classes from antlr.
         ALL ---> antlr.**
 
    // In DAG output, identify each object by its path (i.e.
@@ -322,7 +322,7 @@ Exit codes:
 
 <p>In a build, you will call .Net Architecture Checker.EXE, and possibly DOT separately.</p>
 
-<p>For uses in builds, .Net Architecture Checker.EXE has various exit codes. Essentially, you will test for exit code = 0&mdash;this means that everything is ok; exit code = 3 is also interesting, meaning "some dependencies did not follow the rules." For the other exit codes, see the above copy of the help output of DependencyChecker.EXE.</p>
+<p>For uses in builds, DotNetArchitectureChecker.EXE has various exit codes. Essentially, you will test for exit code = 0&mdash;this means that everything is ok; exit code = 3 is also interesting, meaning "some dependencies did not follow the rules." For the other exit codes, see the above copy of the help output of DotNetArchitectureChecker.EXE.</p>
 
 <h2><a name="exdefine">Examples of defining rules up-front&mdash;the preferred scenario</a></h2>
 
@@ -509,7 +509,7 @@ By the way, a shorter way of defining the first 4 rules would be:
 We call dotnetarchitect.bat as follows:
 
 <pre>
-    DependencyChecker /x=msel.dep /g=msel.gif "c:\Programme\Microsoft Enterprise Library January 2006\bin\*.dll"
+    DotNetArchitectureChecker /x=msel.dep /g=msel.gif "c:\Programme\Microsoft Enterprise Library January 2006\bin\*.dll"
 </pre>
     
 <p>Here is the resulting diagram in msel.gif ...</p>
@@ -539,7 +539,7 @@ We call dotnetarchitect.bat as follows:
 Please remember that this diagram excludes as many transitive edges as possible&mdash;hence it might e.g. be that classes from Logging use classes from Common etc. To show the full dependencies for demonstrating the difference, let's call .Net Architecture Checker with the /t option (/t=transitive edges):</p>
 
 <pre>
-    DependencyChecker /x=msel.dep /g=msel.gif /t "c:\Programme\Microsoft Enterprise Library January 2006\bin\*.dll"
+    DotNetArchitectureChecker /x=msel.dep /g=msel.gif /t "c:\Programme\Microsoft Enterprise Library January 2006\bin\*.dll"
 </pre>
 
 <img src="index2transitive.gif">
