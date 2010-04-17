@@ -8,7 +8,7 @@ namespace DotNetArchitectureChecker {
     /// Main class of DotNetArchitectureChecker.
     /// </remarks>
     public class DotNetArchitectureCheckerMain {
-        private const string VERSION = "2.1";
+        private const string VERSION = "1.1";
 
         public static ILogger Logger = new ConsoleLogger();
 
