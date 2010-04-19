@@ -196,6 +196,25 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
         }
 
         [TestMethod]
+        public void NestedMacroTest1() {
+            {
+                string depFile = Path.GetTempFileName();
+                using (TextWriter tw = new StreamWriter(depFile)) {
+                    tw.Write(@"
+                    _A := DotNetArchitectureCheckerTest
+                    _B := _A
+                    _B.** ---> _B.**
+                    _B.** ---> System.**
+                    _B.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForDotNetArchitectureChecker::I
+                    * ---? System.*
+                ");
+                }
+                Assert.AreEqual(0, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, "DotNetArchitectureCheckerTestAssembly.dll" }));
+                File.Delete(depFile);
+            }
+        }
+
+        [TestMethod]
         public void Exit1() {
             Assert.AreEqual(1, DotNetArchitectureCheckerMain.Main(new string[] { }));
             Assert.AreEqual(1, DotNetArchitectureCheckerMain.Main(new[] { "/y" }));

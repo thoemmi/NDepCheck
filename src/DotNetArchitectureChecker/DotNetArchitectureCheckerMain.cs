@@ -8,7 +8,7 @@ namespace DotNetArchitectureChecker {
     /// Main class of DotNetArchitectureChecker.
     /// </remarks>
     public class DotNetArchitectureCheckerMain {
-        private const string VERSION = "1.1";
+        private const string VERSION = "1.2";
 
         public static ILogger Logger = new ConsoleLogger();
 
@@ -346,8 +346,10 @@ Exit codes:
                 foreach (var assemblyFilename in ExpandFilename(args[i])) {
                     string dependencyFilename = Path.GetFileName(assemblyFilename) + ".dep";
                     try {
-                        DependencyRuleSet ruleSetForAssembly = 
-                                        DependencyRuleSet.Load(dependencyFilename, _directories, _verbose) 
+                        WriteInfo("Analyzing " + assemblyFilename);
+
+                        DependencyRuleSet ruleSetForAssembly =
+                                        DependencyRuleSet.Load(dependencyFilename, _directories, _verbose)
                                         ?? _defaultRuleSet;
                         if (ruleSetForAssembly == null) {
                             WriteError(dependencyFilename +

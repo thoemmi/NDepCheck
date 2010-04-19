@@ -85,9 +85,27 @@ namespace DotNetArchitectureCheckerTest {
             Assert.AreEqual(0, Run(@"-s=%%\a\b"));
         }
 
+        [TestMethod]
+        public void TestDoubleMacro() {
+            Write(@"a\b", "A.dep",
+                @"_A := DotNetArchitectureCheckerTest
+                ");
+            Write(@"a\b", "B.dep",
+                @"+ A.dep
+                _B := _A
+                ");
+            Write(@"a\b\c", "DotNetArchitectureCheckerTestAssembly.dll.dep",
+                @"+ ..\B.dep
+                  _B.** ---> **
+                  * ---? **
+                ");
+            WriteDep2To(@"a\b\c");
+            Assert.AreEqual(0, Run(@"-s=%%\a\b"));
+        }
+
         private int Run(params string[] args) {
             return DotNetArchitectureCheckerMain.Main(new List<string>(args.Select(s => s.Replace("%%", _basePath))) {
-                    "DotNetArchitectureCheckerTestAssembly.dll", 
+                    "DotNetArchitectureCheckerTestAssembly.dll",
                     "DotNetArchitectureCheckerTestAssembly2.dll"
                 }.ToArray());
         }

@@ -8,7 +8,7 @@ using Mono.Cecil.Pdb;
 namespace DotNetArchitectureChecker {
     public static class DependencyReader {
         public static IEnumerable<Dependency> GetDependencies<T>() {
-            return GetDependencies(typeof (T));
+            return GetDependencies(typeof(T));
         }
 
         public static IEnumerable<Dependency> GetDependencies(Type t) {
@@ -46,7 +46,7 @@ namespace DotNetArchitectureChecker {
                     yield return dependency;
                 }
             }
-            DotNetArchitectureCheckerMain.WriteInfo("  Analyzing " + filename + " took " + (int) sw.Elapsed.TotalMilliseconds +
+            DotNetArchitectureCheckerMain.WriteInfo("  Analyzing " + filename + " took " + (int)sw.Elapsed.TotalMilliseconds +
                                             " ms");
             sw.Stop();
 
@@ -246,7 +246,11 @@ namespace DotNetArchitectureChecker {
             return ti;
         }
 
-        private static FullNameToken GetFullnameToken(TypeReference typeReference, string methodName = null) {
+        private static FullNameToken GetFullnameToken(TypeReference typeReference) {
+            return GetFullnameToken(typeReference, null);
+        }
+
+        private static FullNameToken GetFullnameToken(TypeReference typeReference, string methodName) {
             TypeInfo ti = GetTypeInfo(typeReference);
             string namespaceName = ti.NamespaceName;
             string className = ti.ClassName;
@@ -282,7 +286,7 @@ namespace DotNetArchitectureChecker {
             if (calledType is TypeSpecification) {
                 // E.g. the reference type System.Int32&, which is used for out parameters.
                 // or an arraytype?!?
-                calledType = ((TypeSpecification) calledType).ElementType;
+                calledType = ((TypeSpecification)calledType).ElementType;
             }
             if (!(calledType is GenericInstanceType) && !(calledType is GenericParameter)) {
                 // Currently, we do not look at generic type parameters; we would have to
@@ -293,7 +297,7 @@ namespace DotNetArchitectureChecker {
                 uint startLine = 0;
                 if (sequencePoint != null) {
                     fileName = sequencePoint.Document.Url;
-                    startLine = (uint) sequencePoint.StartLine;
+                    startLine = (uint)sequencePoint.StartLine;
                 }
                 yield return new Dependency(callingToken, calledToken, fileName, startLine, 0, 0, 0);
             }

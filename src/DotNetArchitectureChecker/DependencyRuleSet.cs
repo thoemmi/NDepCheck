@@ -55,7 +55,7 @@ namespace DotNetArchitectureChecker {
 
         private readonly SortedDictionary<string, Macro> _macros = new SortedDictionary<string, Macro>(new LengthComparer());
         private readonly SortedDictionary<string, string> _defines = new SortedDictionary<string, string>(new LengthComparer());
-        
+
         private readonly bool _verbose;
 
         /// <summary>
@@ -72,6 +72,13 @@ namespace DotNetArchitectureChecker {
             }
         }
 
+        /// <summary>
+        /// Read rule set from file.
+        /// </summary>
+        /// <param name="relativeRoot"></param>
+        /// <param name="rulefilename"></param>
+        /// <param name="verbose"></param>
+        /// <returns>Read rule set; or <c>null</c> if not poeeible to read it.</returns>
         public static DependencyRuleSet Create(DirectoryInfo relativeRoot, string rulefilename, bool verbose) {
             string fullRuleFilename = Path.Combine(relativeRoot.FullName, rulefilename);
             if (_fullFilename2RulesetCache.ContainsKey(fullRuleFilename)) {
@@ -79,12 +86,12 @@ namespace DotNetArchitectureChecker {
             } else {
                 long start = Environment.TickCount;
                 try {
-                    return new DependencyRuleSet(fullRuleFilename, verbose);
+                    var result = new DependencyRuleSet(fullRuleFilename, verbose);
+                    DotNetArchitectureCheckerMain.WriteInfo("Completed reading " + fullRuleFilename + " in " + (Environment.TickCount - start) + " ms");
+                    return result;
                 } catch (FileNotFoundException) {
                     DotNetArchitectureCheckerMain.WriteError("File " + fullRuleFilename + " not found");
                     return null;
-                } finally {
-                    DotNetArchitectureCheckerMain.WriteInfo("Completed reading " + fullRuleFilename + " in " + (Environment.TickCount - start) + " ms");
                 }
             }
         }
@@ -119,16 +126,19 @@ namespace DotNetArchitectureChecker {
                 } else if (line.StartsWith("+")) {
                     string includeFilename = line.Substring(1).Trim();
                     DependencyRuleSet included = Create(new FileInfo(fullRuleFilename).Directory, includeFilename, verbose);
-                    _includedRuleSets.Add(included);
+                    if (included != null) {
+                        // Error message when == null has been output by Create.
+                        _includedRuleSets.Add(included);
 
-                    // We copy the defines down into the ruleset so that the selection
-                    // of the longest name works (_defines implements this by using
-                    // a SortedDictionary with a LengthComparer).
-                    foreach (var kvp in included._defines) {
-                        _defines[kvp.Key] = kvp.Value;
-                    }
-                    foreach (var kvp in included._macros) {
-                        _macros[kvp.Key] = kvp.Value;
+                        // We copy the defines down into the ruleset so that the selection
+                        // of the longest name works (_defines implements this by using
+                        // a SortedDictionary with a LengthComparer).
+                        foreach (var kvp in included._defines) {
+                            _defines[kvp.Key] = kvp.Value;
+                        }
+                        foreach (var kvp in included._macros) {
+                            _macros[kvp.Key] = kvp.Value;
+                        }
                     }
                 } else if (ProcessMacroIfFound(line, verbose)) {
                     // macro is already processed as side effect in ProcessMacroIfFound()
@@ -373,7 +383,7 @@ namespace DotNetArchitectureChecker {
             visited.Add(this);
             graphAbstractions.AddRange(_graphAbstractions);
             foreach (var includedRuleSet in _includedRuleSets) {
-                includedRuleSet .ExtractGraphAbstractions(graphAbstractions, visited);                
+                includedRuleSet.ExtractGraphAbstractions(graphAbstractions, visited);
             }
         }
 
