@@ -10,8 +10,6 @@ namespace DotNetArchitectureChecker {
     /// Main class of DotNetArchitectureChecker.
     /// </remarks>
     public class DotNetArchitectureCheckerMain {
-        private const string VERSION = "1.2";
-
         public static ILogger Logger = new ConsoleLogger();
 
         // The two "workers".
@@ -59,7 +57,7 @@ namespace DotNetArchitectureChecker {
         #region Main
 
         private static void WriteVersion() {
-            WriteInfo("DotNetArchitectureChecker V." + VERSION + " (c) HMMüller 2006...2010");
+            WriteInfo("DotNetArchitectureChecker V." + typeof(DotNetArchitectureCheckerMain).Assembly.GetName().Version.ToString(2) + " (c) HMMüller 2006...2010");
         }
 
         private static int UsageAndExit(string message) {
