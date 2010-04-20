@@ -1,7 +1,9 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 
 namespace DotNetArchitectureChecker {
     /// <remarks>
@@ -15,22 +17,15 @@ namespace DotNetArchitectureChecker {
         // The two "workers".
         private readonly DependencyChecker _checker;
         private readonly DependencyGrapher _grapher;
-
-        private bool _verbose;
-
-        private readonly List<DirectoryOption> _directories = new List<DirectoryOption>();
-        private DependencyRuleSet _defaultRuleSet;
+        private readonly Options _options;
 
         public DotNetArchitectureCheckerMain() {
-            _checker = new DependencyChecker();
-            _grapher = new DependencyGrapher(_checker);
+            _options = new Options();
+            _checker = new DependencyChecker(_options);
+            _grapher = new DependencyGrapher(_checker, _options);
         }
 
         #region WriteHelpers
-
-        public static bool Debug {
-            get { return _debug; }
-        }
 
         internal static void WriteError(string msg) {
             Logger.WriteError(msg);
@@ -62,8 +57,6 @@ namespace DotNetArchitectureChecker {
 
 
         #region Main
-
-        private static bool _debug;
 
         private static void WriteVersion() {
             WriteInfo("DotNetArchitectureChecker V." + VERSION + " (c) HMMüller 2006...2010");
@@ -299,32 +292,32 @@ Exit codes:
                     if (filename == null) {
                         return UsageAndExit("Missing =filename after " + arg);
                     }
-                    if (_defaultRuleSet != null) {
+                    if (_options.DefaultRuleSet != null) {
                         return UsageAndExit("Only one default rule set can be specified with " + arg);
                     }
-                    _defaultRuleSet = DependencyRuleSet.Create(new DirectoryInfo("."), (filename), _verbose);
-                    if (_defaultRuleSet == null) {
+                    _options.DefaultRuleSet = DependencyRuleSet.Create(new DirectoryInfo("."), (filename), _options.Verbose);
+                    if (_options.DefaultRuleSet == null) {
                         return 2;
                     }
                 } else if (arg == "-v" || arg == "/v") {
-                    _verbose = _checker.Verbose = _grapher.Verbose = true;
+                    _options.Verbose = true;
                     WriteVersion();
                 } else if (arg == "-y" || arg == "/y") {
-                    _debug = _checker.Debug = _grapher.Debug = true;
+                    _options.Debug = true;
                     WriteVersion();
                 } else if (arg.StartsWith("-g") || arg.StartsWith("/g")) {
                     string filename = ExtractOptionValue(arg);
                     if (filename == null) {
                         return UsageAndExit("Missing =filename after " + arg);
                     }
-                    _grapher.DOTFilename = filename;
+                    _options.DotFilename = filename;
                 } else if (arg == "-q" || arg == "/q") {
                     showUnusedQuestionableRules = false;
                 } else if (arg == "-t" || arg == "/t") {
-                    _grapher.ShowTransitiveEdges = true;
+                    _options.ShowTransitiveEdges = true;
                 } else if (arg.StartsWith("-i") || arg.StartsWith("/i")) {
                     string lg = ExtractOptionValue(arg);
-                    _grapher.StringLengthForIllegalEdges = lg == null ? 80 : Int32.Parse(lg);
+                    _options.StringLengthForIllegalEdges = lg == null ? 80 : Int32.Parse(lg);
                 } else if (arg == "-h" || arg == "/h") {
                     return UsageAndExit(null);
                 } else if (!arg.StartsWith("/") && !arg.StartsWith("-")) {
@@ -334,23 +327,26 @@ Exit codes:
                     return UsageAndExit("Unexpected option " + arg);
                 }
             }
+            
+            // remaining arguments are assemblies
+            _options.Assemblies = args.Skip(i).ToArray();
 
-            // We are past the arguments - now, we process the input files.
-            if (i >= args.Length) {
+            // We are past the arguments - now, we process the input files.)
+            if (_options.Assemblies.Length == 0) {
                 return UsageAndExit("No assemblies specified");
             }
 
             int returnValue = 0;
 
-            for (; i < args.Length; i++) {
-                foreach (var assemblyFilename in ExpandFilename(args[i])) {
+            foreach (string fn in _options.Assemblies) {
+                foreach (var assemblyFilename in ExpandFilename(fn)) {
                     string dependencyFilename = Path.GetFileName(assemblyFilename) + ".dep";
                     try {
                         WriteInfo("Analyzing " + assemblyFilename);
 
                         DependencyRuleSet ruleSetForAssembly =
-                                        DependencyRuleSet.Load(dependencyFilename, _directories, _verbose)
-                                        ?? _defaultRuleSet;
+                                        DependencyRuleSet.Load(dependencyFilename, _options.Directories, _options.Verbose)
+                                        ?? _options.DefaultRuleSet;
                         if (ruleSetForAssembly == null) {
                             WriteError(dependencyFilename +
                                        " not found in -d and -s directories, and no default rule set provided by -x");
@@ -364,7 +360,7 @@ Exit codes:
                                 if (!success && returnValue == 0) {
                                     returnValue = 3;
                                 }
-                                if (_grapher.DOTFilename != null) {
+                                if (_options.DotFilename != null) {
                                     _grapher.Graph(ruleSetForAssembly, dependencies);
                                 }
                             } catch (FileNotFoundException ex) {
@@ -390,7 +386,7 @@ Exit codes:
         private void CreateDirectoryOption(string arg, bool recurse) {
             string path = ExtractOptionValue(arg);
             if (Directory.Exists(path)) {
-                _directories.Add(new DirectoryOption(path, recurse));
+                _options.Directories.Add(new DirectoryOption(path, recurse));
             } else {
                 WriteWarning("Directory " + path + " not found - ignored in dep-File");
             }
@@ -457,7 +453,7 @@ Exit codes:
             } catch (Exception ex) {
                 string msg = "Exception occurred: " + ex;
                 WriteError(msg);
-                if (main._verbose) {
+                if (main._options.Verbose) {
                     WriteError(ex.StackTrace);
                 }
                 return 5;

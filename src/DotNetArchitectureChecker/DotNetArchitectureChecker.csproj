@@ -90,6 +90,7 @@
     <Compile Include="FullNameToken.cs" />
     <Compile Include="GraphAbstraction.cs" />
     <Compile Include="ILogger.cs" />
+    <Compile Include="Options.cs" />
     <Compile Include="Pattern.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

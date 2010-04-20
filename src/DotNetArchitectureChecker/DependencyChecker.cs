@@ -11,15 +11,10 @@ namespace DotNetArchitectureChecker {
     /// </remarks>
     public class DependencyChecker {
         private readonly List<DependencyRuleRepresentation> _representations = new List<DependencyRuleRepresentation>();
-        private bool _debug;
-        private bool _verbose;
+        private readonly Options _options;
 
-        /// <value>
-        /// Mark output of <c>DependencyChecker</c>
-        /// as verbose.
-        /// </value>
-        public bool Verbose {
-            set { _verbose = value; }
+        public DependencyChecker(Options options) {
+            _options = options;
         }
 
         ///// <summary>
@@ -36,10 +31,6 @@ namespace DotNetArchitectureChecker {
         //        return _allowed.Count == 0;
         //    }
         //}
-
-        public bool Debug {
-            set { _debug = value; }
-        }
 
         /// <summary>
         /// Check all dependencies against dependency rules created
@@ -66,7 +57,7 @@ namespace DotNetArchitectureChecker {
                 if (showUnusedQuestionableRules && r.IsQuestionableRule && !r.WasHit) {
                     DotNetArchitectureCheckerMain.WriteInfo("Questionable rule " + r + " was never matched - maybe you can remove it!");
                 } else {
-                    if (_verbose) {
+                    if (_options.Verbose) {
                         DotNetArchitectureCheckerMain.WriteInfo("Rule " + r + " was hit " + r.HitCount + " times.");
                     }
                 }
@@ -80,22 +71,22 @@ namespace DotNetArchitectureChecker {
                             List<DependencyRule> forbidden,
                             Dependency d) {
             bool ok = false;
-            if (_verbose) {
+            if (_options.Verbose) {
                 DotNetArchitectureCheckerMain.WriteInfo("Checking " + d);
             }
             foreach (DependencyRule r in forbidden) {
-                if (r.Matches(d, _debug)) {
+                if (r.Matches(d, _options.Debug)) {
                     goto DONE;
                 }
             }
             foreach (DependencyRule r in allowed) {
-                if (r.Matches(d, _debug)) {
+                if (r.Matches(d, _options.Debug)) {
                     ok = true;
                     goto DONE;
                 }
             }
             foreach (DependencyRule r in questionable) {
-                if (r.Matches(d, _debug)) {
+                if (r.Matches(d, _options.Debug)) {
                     DotNetArchitectureCheckerMain.WriteWarning("Dependency " + d + " is questionable", d.FileName, d.StartLine,
                                                        d.StartColumn, d.EndLine, d.EndColumn);
                     ok = true;

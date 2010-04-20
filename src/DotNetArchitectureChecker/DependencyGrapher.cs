@@ -12,54 +12,13 @@ namespace DotNetArchitectureChecker {
     /// </remarks>
     public class DependencyGrapher {
         private readonly DependencyChecker _checker;
-        private bool _debug;
-        private string _dotFilename;
-        private bool _showTransitiveEdges;
-        private int? _stringLengthForIllegalEdges;
+        private readonly Options _options;
 
-        private bool _verbose;
-
-        public DependencyGrapher(DependencyChecker checker) {
+        public DependencyGrapher(DependencyChecker checker, Options options) {
             _checker = checker;
+            _options = options;
         }
 
-        /// <value>
-        /// Mark output of <c>DependencyGrapher</c>
-        /// as verbose.
-        /// </value>
-        public bool Verbose {
-            set { _verbose = value; }
-        }
-
-        /// <summary>
-        /// Set output file name. If set to <c>null</c> (or left 
-        /// at <c>null</c>), no DOT output is created.
-        /// </summary>
-        public string DOTFilename {
-            get { return _dotFilename; }
-            set { _dotFilename = value; }
-        }
-
-        /// <value>
-        /// If not null, show a concrete dependency 
-        /// for each illegal edge.
-        /// </value>
-        public int? StringLengthForIllegalEdges {
-            set { _stringLengthForIllegalEdges = value; }
-        }
-
-        /// <value>
-        /// Show transitive edges. If set to <c>null</c> (or left 
-        /// at <c>null</c>), transitive edges are heuristically
-        /// removed.
-        /// </value>
-        public bool ShowTransitiveEdges {
-            set { _showTransitiveEdges = value; }
-        }
-
-        public bool Debug {
-            set { _debug = value; }
-        }
 
         /// <summary>
         /// Create the graph for all dependencies passed in.
@@ -68,7 +27,7 @@ namespace DotNetArchitectureChecker {
                            List<DependencyRule> questionable,
                            List<DependencyRule> forbidden,
                            IEnumerable<Dependency> dependencies) {
-            if (_dotFilename != null) {
+            if (_options.DotFilename != null) {
                 var nodes = new Dictionary<string, Node>();
 
                 // First pass: Compute all edges - i.e., 
@@ -88,7 +47,7 @@ namespace DotNetArchitectureChecker {
 
                 // Third pass: Write out all nodes and
                 // all edges.
-                using (TextWriter tw = new StreamWriter(_dotFilename)) {
+                using (TextWriter tw = new StreamWriter(_options.DotFilename)) {
                     tw.WriteLine("digraph D {");
                     tw.WriteLine("ranksep = 1.5;");
                     foreach (string nodeName in nodes.Keys) {
@@ -97,11 +56,11 @@ namespace DotNetArchitectureChecker {
                     foreach (Node n in nodes.Values) {
                         foreach (Edge e in n.Edges.Values) {
                             tw.Write(e.Name);
-                            if (_stringLengthForIllegalEdges != null && e.NotOkCt > 0) {
+                            if (_options.StringLengthForIllegalEdges != null && e.NotOkCt > 0) {
                                 tw.Write(" [label=\"" +
-                                         LimitWidth(e.NotOkExample.UsingItem, (int) _stringLengthForIllegalEdges) +
+                                         LimitWidth(e.NotOkExample.UsingItem, (int)_options.StringLengthForIllegalEdges) +
                                          " --->\\n" +
-                                         LimitWidth(e.NotOkExample.UsedItem, (int) _stringLengthForIllegalEdges) +
+                                         LimitWidth(e.NotOkExample.UsedItem, (int)_options.StringLengthForIllegalEdges) +
                                          "\\n(1 of " + e.NotOkCt + ")\"];");
                             } else {
                                 tw.WriteLine(";");
@@ -174,7 +133,8 @@ namespace DotNetArchitectureChecker {
         }
 
         private void ComputeATransitiveReduction(Dictionary<string, Node> nodes) {
-            if (_showTransitiveEdges) {
+            if (_options.ShowTransitiveEdges)
+            {
                 return;
             }
 

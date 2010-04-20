@@ -131,7 +131,10 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
             var rs = new DependencyRuleSet(true);
             rs.AddGraphAbstractions("<test>", 0, "% (**)");
 
-            var dg = new DependencyGrapher(new DependencyChecker()) { DOTFilename = Path.Combine(Path.GetTempPath(), "test.dot") };
+            var options = new Options {
+                DotFilename = Path.Combine(Path.GetTempPath(), "test.dot")
+            };
+            var dg = new DependencyGrapher(new DependencyChecker(options), options);
             var deps = new List<Dependency> {
                                                 new Dependency("a1", "a1", "a2", "a2", null, 0, 0, 0, 0),
                                                 new Dependency("a1", "a1", "a4", "a4", null, 0, 0, 0, 0),
@@ -156,7 +159,11 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
             var rs = new DependencyRuleSet(true);
             rs.AddGraphAbstractions("<test>", 0, "% (**)");
 
-            var dg = new DependencyGrapher(new DependencyChecker()) { DOTFilename = Path.Combine(Path.GetTempPath(), "test.dot") };
+            var options = new Options {
+                DotFilename = Path.Combine(Path.GetTempPath(), "test.dot"),
+                ShowTransitiveEdges = true
+            };
+            var dg = new DependencyGrapher(new DependencyChecker(options), options);
             var deps = new List<Dependency> {
                                                 new Dependency("a1", "a1", "a2", "a2", null, 0, 0, 0, 0),
                                                 new Dependency("a1", "a1", "a4", "a4", null, 0, 0, 0, 0),
@@ -170,8 +177,6 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
                                                 new Dependency("b3", "b3", "b2", "b2", null, 0, 0, 0, 0),
                                                 new Dependency("b3", "b3", "b4", "b4", null, 0, 0, 0, 0)
                                             };
-
-            dg.ShowTransitiveEdges = true;
 
             dg.Graph(rs, deps);
 
