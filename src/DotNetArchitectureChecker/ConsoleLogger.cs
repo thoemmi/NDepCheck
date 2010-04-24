@@ -36,7 +36,7 @@ namespace DotNetArchitectureChecker {
 
         private static string Format(string msg, string fileName, uint lineNumber) {
             if (fileName != null) {
-                msg += "(probably at " + fileName;
+                msg += " (probably at " + fileName;
                 if (lineNumber > 0)
                     msg += ":" + lineNumber;
                 msg += ")";
