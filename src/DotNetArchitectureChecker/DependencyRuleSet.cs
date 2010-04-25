@@ -96,19 +96,20 @@ namespace DotNetArchitectureChecker {
                         IDictionary<string, Macro> macros,
                         bool verbose) {
             string fullRuleFilename = Path.Combine(relativeRoot.FullName, rulefilename);
-            if (_fullFilename2RulesetCache.ContainsKey(fullRuleFilename)) {
-                return _fullFilename2RulesetCache[fullRuleFilename];
-            } else {
-                long start = Environment.TickCount;
+            DependencyRuleSet result;
+            if (!_fullFilename2RulesetCache.TryGetValue(fullRuleFilename, out result)) {
                 try {
-                    var result = new DependencyRuleSet(fullRuleFilename, defines, macros, verbose);
-                    DotNetArchitectureCheckerMain.WriteInfo("Completed reading " + fullRuleFilename + " in " + (Environment.TickCount - start) + " ms");
-                    return result;
+                    long start = Environment.TickCount;
+                    result = new DependencyRuleSet(fullRuleFilename, defines, macros, verbose);
+                    DotNetArchitectureCheckerMain.WriteInfo("Completed reading " + fullRuleFilename + " in " +
+                                                            (Environment.TickCount - start) + " ms");
+                    _fullFilename2RulesetCache.Add(fullRuleFilename, result);
                 } catch (FileNotFoundException) {
                     DotNetArchitectureCheckerMain.WriteError("File " + fullRuleFilename + " not found");
                     return null;
                 }
             }
+            return result;
         }
 
         #region Loading
