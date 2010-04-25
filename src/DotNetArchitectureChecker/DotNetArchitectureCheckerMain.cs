@@ -59,49 +59,48 @@ namespace DotNetArchitectureChecker {
         public int Run() {
             int returnValue = 0;
 
-            foreach (string fn in _options.Assemblies) {
-                foreach (var assemblyFilename in ExpandFilename(fn)) {
-                    string dependencyFilename = Path.GetFileName(assemblyFilename) + ".dep";
-                    try {
-                        WriteInfo("Analyzing " + assemblyFilename);
-
-                        DependencyRuleSet ruleSetForAssembly =
-                                        DependencyRuleSet.Load(dependencyFilename, _options.Directories, _options.Verbose)
-                                        ?? _options.DefaultRuleSet;
-                        if (ruleSetForAssembly == null) {
-                            WriteError(dependencyFilename +
-                                       " not found in -d and -s directories, and no default rule set provided by -x");
-                            if (returnValue == 0) {
-                                returnValue = 6;
-                            }
-                        } else {
-                            try {
-                                IEnumerable<Dependency> dependencies = DependencyReader.GetDependencies(assemblyFilename);
-                                bool success = _checker.Check(ruleSetForAssembly, dependencies, _options.ShowUnusedQuestionableRules);
-                                if (!success && returnValue == 0) {
-                                    returnValue = 3;
-                                }
-                                if (_options.DotFilename != null) {
-                                    _grapher.Graph(ruleSetForAssembly, dependencies);
-                                }
-                            } catch (FileNotFoundException ex) {
-                                WriteError("Input file " + ex.FileName + " not found");
-                                if (returnValue == 0) {
-                                    returnValue = 4;
-                                }
-                            }
-                        }
-                    } catch (FileLoadException ex2) {
-                        WriteError(ex2.Message);
-                        if (returnValue == 0) {
-                            returnValue = 2;
-                        }
-                        // continue with next input file
-                    }
+            foreach (string filePattern in _options.Assemblies) {
+                foreach (var assemblyFilename in ExpandFilename(filePattern)) {
+                    var dependencyFilename = Path.GetFileName(assemblyFilename) + ".dep";
+                    // TODO: @hmmueller: is it ok to remember the highest error code?
+                    returnValue = Math.Max(returnValue, AnalyzeAssembly(assemblyFilename, dependencyFilename));
                 }
             }
 
             return returnValue;
+        }
+
+        private int AnalyzeAssembly(string assemblyFilename, string dependencyFilename) {
+            try {
+                WriteInfo("Analyzing " + assemblyFilename);
+
+                DependencyRuleSet ruleSetForAssembly =
+                    DependencyRuleSet.Load(dependencyFilename, _options.Directories, _options.Verbose)
+                    ?? _options.DefaultRuleSet;
+                if (ruleSetForAssembly == null) {
+                    WriteError(dependencyFilename +
+                               " not found in -d and -s directories, and no default rule set provided by -x");
+                    return 6;
+                } else {
+                    try {
+                        IEnumerable<Dependency> dependencies = DependencyReader.GetDependencies(assemblyFilename);
+                        bool success = _checker.Check(ruleSetForAssembly, dependencies, _options.ShowUnusedQuestionableRules);
+                        if (!success) {
+                            return 3;
+                        }
+                        if (_options.DotFilename != null) {
+                            _grapher.Graph(ruleSetForAssembly, dependencies);
+                        }
+                    } catch (FileNotFoundException ex) {
+                        WriteError("Input file " + ex.FileName + " not found");
+                        return 4;
+                    }
+                }
+            } catch (FileLoadException ex2) {
+                WriteError(ex2.Message);
+                return 2;
+            }
+            return 0;
         }
 
         private static IEnumerable<string> ExpandFilename(string filename) {
