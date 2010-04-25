@@ -81,19 +81,20 @@ namespace DotNetArchitectureChecker {
         /// <returns>Read rule set; or <c>null</c> if not poeeible to read it.</returns>
         public static DependencyRuleSet Create(DirectoryInfo relativeRoot, string rulefilename, bool verbose) {
             string fullRuleFilename = Path.Combine(relativeRoot.FullName, rulefilename);
-            if (_fullFilename2RulesetCache.ContainsKey(fullRuleFilename)) {
-                return _fullFilename2RulesetCache[fullRuleFilename];
-            } else {
-                long start = Environment.TickCount;
+            DependencyRuleSet result;
+            if (!_fullFilename2RulesetCache.TryGetValue(fullRuleFilename, out result)) {
                 try {
-                    var result = new DependencyRuleSet(fullRuleFilename, verbose);
-                    DotNetArchitectureCheckerMain.WriteInfo("Completed reading " + fullRuleFilename + " in " + (Environment.TickCount - start) + " ms");
-                    return result;
+                    long start = Environment.TickCount;
+                    result = new DependencyRuleSet(fullRuleFilename, verbose);
+                    DotNetArchitectureCheckerMain.WriteInfo("Completed reading " + fullRuleFilename + " in " +
+                                                            (Environment.TickCount - start) + " ms");
+                    _fullFilename2RulesetCache.Add(fullRuleFilename, result);
                 } catch (FileNotFoundException) {
                     DotNetArchitectureCheckerMain.WriteError("File " + fullRuleFilename + " not found");
                     return null;
                 }
             }
+            return result;
         }
 
         #region Loading
@@ -359,14 +360,20 @@ namespace DotNetArchitectureChecker {
         }
 
         public static DependencyRuleSet Load(string dependencyFilename, List<DirectoryOption> directories, bool verbose) {
-            foreach (var d in directories) {
-                string[] f = Directory.GetFiles(d.Path, dependencyFilename, d.SearchOption);
-                if (f.Length == 0) {
-                    // continue
-                } else if (f.Length == 1) {
-                    return Create(new DirectoryInfo("."), f[0], verbose);
-                } else {
-                    throw new FileLoadException(d.Path + " contains two files named " + dependencyFilename);
+            foreach (var option in directories) {
+                foreach (var directory in Directory.GetDirectories(option.Path, "*", option.SearchOption)) {
+                    try {
+                        string[] files = Directory.GetFiles(directory, dependencyFilename);
+                        if (files.Length != 0) {
+                            if (files.Length != 1) {
+                                throw new FileLoadException(directory + " contains two files named " + dependencyFilename);
+                            }
+                            return Create(new DirectoryInfo("."), files[0], verbose);
+                        }
+                    } catch (PathTooLongException) {
+                    } catch (DirectoryNotFoundException exception) {
+                        DotNetArchitectureCheckerMain.WriteError("cannot find " + dependencyFilename + " in  " + option.Path + ": " + exception.Message);
+                    }
                 }
             }
             return null; // if nothing found
