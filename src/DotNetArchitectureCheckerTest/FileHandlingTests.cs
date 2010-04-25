@@ -86,7 +86,7 @@ namespace DotNetArchitectureCheckerTest {
         }
 
         [TestMethod]
-        public void TestDoubleMacro() {
+        public void TestDoublyNestedDefine() {
             Write(@"a\b", "A.dep",
                 @"_A := DotNetArchitectureCheckerTest
                 ");
@@ -98,6 +98,23 @@ namespace DotNetArchitectureCheckerTest {
                 @"+ ..\B.dep
                   _B.** ---> **
                   * ---? **
+                ");
+            WriteDep2To(@"a\b\c");
+            Assert.AreEqual(0, Run(@"-s=%%\a\b"));
+        }
+
+        [TestMethod]
+        public void TestPushDownDefine() {
+            Write(@"a\b", "A.dep",
+                @"_A := DotNetArchitectureCheckerTest
+                  + B.dep
+                ");
+            Write(@"a\b", "B.dep",
+                @"_A.** ---> **
+                  * ---? **
+                ");
+            Write(@"a\b\c", "DotNetArchitectureCheckerTestAssembly.dll.dep",
+                @"+ ..\A.dep
                 ");
             WriteDep2To(@"a\b\c");
             Assert.AreEqual(0, Run(@"-s=%%\a\b"));

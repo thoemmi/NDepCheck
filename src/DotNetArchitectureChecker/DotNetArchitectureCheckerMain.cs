@@ -51,7 +51,6 @@ namespace DotNetArchitectureChecker {
         #endregion WriteHelpers
         
         #region Main
-        
         /// <summary>
         /// Main method. See <c>UsageAndExit</c> for the 
         /// accepted arguments. 
@@ -142,19 +141,19 @@ namespace DotNetArchitectureChecker {
         /// </summary>
         public static int Main(string[] args) {
             var options = new Options();
-            int result = options.ParseCommandLine(args);
-            if (result != 0) {
-                return result;
-            }
-
-            var main = new DotNetArchitectureCheckerMain(options);
             DateTime start = DateTime.Now;
+            
             try {
+                int result = options.ParseCommandLine(args);
+                if (result != 0) {
+                    return result;
+                }
+                var main = new DotNetArchitectureCheckerMain(options);
                 return main.Run();
             } catch (Exception ex) {
                 string msg = "Exception occurred: " + ex;
                 WriteError(msg);
-                if (main._options.Verbose) {
+                if (options.Verbose) {
                     WriteError(ex.StackTrace);
                 }
                 return 5;

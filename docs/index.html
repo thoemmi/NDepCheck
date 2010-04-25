@@ -13,7 +13,7 @@ vlink="#008080">
 
 <center>
 <h1>.Net Architecture Checker</h1>
-V.1.2 &copy; Harald M. Müller and Thomas Freudenberg</center>
+V.1.3 &copy; Harald M. Müller and Thomas Freudenberg</center>
 
 <a href="#overview">Overview</a><br>
 <a href="#usedsw">Used Software</a><br>
@@ -29,7 +29,7 @@ V.1.2 &copy; Harald M. Müller and Thomas Freudenberg</center>
 
 This project is hosted on <a href="http://sourceforge.net"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=159756&amp;type=2" width="125" height="37" border="0" alt="SourceForge.net Logo" /></a>.
 <br>The project homepage is at <a href="http://dotnetarchitect.sourceforge.net">http://dotnetarchitect.sourceforge.net</a>.
-<br>The development homepage ("sourceforge foundry") is at <a href="https://sourceforge.net/projects/dotnetarchitect">https://sourceforge.net/projects/dotnetarchitect</a>.
+<br>The development homepage ("sourceforge foundry") and <b>download page</b> is at <a href="https://sourceforge.net/projects/dotnetarchitect">https://sourceforge.net/projects/dotnetarchitect</a>.
 <br>My email address is harald.m.mueller@bigfoot.com.
 
 <h2><a name="overview">Overview</a></h2>
@@ -61,15 +61,15 @@ Prerequisites:
 
 Steps:
 <ul>
-<li> Download the ZIP file DotNetArchitectureChecker1.1.zip from Sourceforge at <a href=https://sourceforge.net/projects/dotnetarchitect>https://sourceforge.net/projects/dotnetarchitect</a>.
-<li> Unzip the file. If unzipped into C:, the files will be in C:\DotNetArchitectureChecker1.1\.
+<li> Download the ZIP file DotNetArchitectureChecker1.3.zip from Sourceforge at <a href=https://sourceforge.net/projects/dotnetarchitect>https://sourceforge.net/projects/dotnetarchitect</a>.
+<li> Unzip the file. If unzipped into C:, the files will be in C:\DotNetArchitectureChecker1.3\.
 <li> Optional: Add the unzip location (e.g. C:\dotnetarchitect\) to your path.
 </ul>
 
 <h3>Installation of sources</h3>
 
 <ul>
-<li> Download the ZIP file DotNetArchitectureChecker1.0-src.zip from Sourceforge at <a href=https://sourceforge.net/projects/dotnetarchitect>https://sourceforge.net/projects/dotnetarchitect</a>.
+<li> Download the ZIP file DotNetArchitectureChecker1.3-src.zip from Sourceforge at <a href=https://sourceforge.net/projects/dotnetarchitect>https://sourceforge.net/projects/dotnetarchitect</a>.
 <li> Unzip the file.
 <li> Open DotNetArchitectureCheckerAll.sln in the src directory.
 </ul>
@@ -487,8 +487,6 @@ By the way, a shorter way of defining the first 4 rules would be:
 &nbsp;<br>
 <p>The two scenarios just described are typical and intended uses for dependency checking: You (as the architect) define the dependencies up-front and have them checked during the life-time of the project. Of course, new developments and experiences might make it necessary to add new dependencies (as new modules with new namespaces or new method types are designed), and, sometimes, also the addition and modification of dependencies for existing namespaces. However, the latter can be a quite disruptive act as it might fundamentally shake the architectural foundations of the software system. When you become (or if you already are) a seasoned software architect, you will create more and more stable architectures up-front&mdash;or (more important) learn when to delay architectural decisions so that they can be arrived at when the necessary knowledge and understanding is available.</p>
 
-..................................Rest noch nicht fertig.............................
-
 <h2><a name="exel">An example of a dependency detection session: Understanding the dependencies in Microsoft's Enterprise Library (January 2006)</a></h2>
 
 <p>In real life, you will at times be confronted with existing software where the architecture is not clear. .Net Architecture Checker gives you the possibility to draw diagrams of dependencies with arbitrary granularity, which can help to understand the dependencies and architecture. The goal of such understanding should always be to define the rules to be followed from that point on&mdash;probably after some clean-up (re-architecting) of the software under consideration. As a concrete example, let us find out the main dependencies in Microsoft's Enterprise Library of January 2006.</p>
@@ -780,6 +778,11 @@ or, preferably,
 <p>2. Make .Net Architecture Checker multi-threaded to increase performance on multi-core and multi-processor machines.</p>
 
 <h2><a name="relnotes">Release Notes</a></h2>
+
+<h3>1.3 (2010-04-23)</h3>
+<ul>
+<li>Corrected handling of forwarding defines and macros to included .dep files.
+</ul>
 
 <h3>1.2 (2010-04-19)</h3>
 <ul>
