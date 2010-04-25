@@ -118,7 +118,7 @@ namespace DotNetArchitectureChecker {
 
         private static void WriteVersion() {
             DotNetArchitectureCheckerMain.WriteInfo("DotNetArchitectureChecker V." + typeof(DotNetArchitectureCheckerMain).Assembly.GetName().Version.ToString(2) +
-                      " (c) HMMüller 2006...2010");
+                      " (c) HMMüller, Th.Freudenberg 2006...2010");
         }
 
         private static int UsageAndExit(string message) {
