@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Linq;
 
 namespace DotNetArchitectureChecker {
     public class DependencyRuleSet {
@@ -65,36 +66,49 @@ namespace DotNetArchitectureChecker {
             _verbose = verbose;
         }
 
-        private DependencyRuleSet(string fullRuleFilename, bool verbose) {
+        private DependencyRuleSet(string fullRuleFilename,
+                    IDictionary<string, string> defines,
+                    IDictionary<string, Macro> macros,
+                    bool verbose) {
             _verbose = verbose;
+            _defines = new SortedDictionary<string, string>(defines, new LengthComparer());
+            _macros = new SortedDictionary<string, Macro>(macros, new LengthComparer());
             if (!LoadRules(fullRuleFilename, verbose)) {
-                throw new ApplicationException("...");
+                throw new ApplicationException("Could not load rules from " + fullRuleFilename);
             }
         }
+
+        internal static DependencyRuleSet Create(DirectoryInfo relativeRoot,
+                string rulefilename,
+                bool verbose) {
+            return Create(relativeRoot, rulefilename,
+            new Dictionary<string, string>(), new Dictionary<string, Macro>(), verbose);
+        }
+
 
         /// <summary>
         /// Read rule set from file.
         /// </summary>
-        /// <param name="relativeRoot"></param>
-        /// <param name="rulefilename"></param>
-        /// <param name="verbose"></param>
         /// <returns>Read rule set; or <c>null</c> if not poeeible to read it.</returns>
-        public static DependencyRuleSet Create(DirectoryInfo relativeRoot, string rulefilename, bool verbose) {
+        private static DependencyRuleSet Create(DirectoryInfo relativeRoot,
+                        string rulefilename,
+                        IDictionary<string, string> defines,
+                        IDictionary<string, Macro> macros,
+                        bool verbose) {
             string fullRuleFilename = Path.Combine(relativeRoot.FullName, rulefilename);
-            DependencyRuleSet result;
-            if (!_fullFilename2RulesetCache.TryGetValue(fullRuleFilename, out result)) {
+            if (_fullFilename2RulesetCache.ContainsKey(fullRuleFilename)) {
+                return _fullFilename2RulesetCache[fullRuleFilename];
+            } else {
+                long start = Environment.TickCount;
                 try {
-                    long start = Environment.TickCount;
-                    result = new DependencyRuleSet(fullRuleFilename, verbose);
-                    DotNetArchitectureCheckerMain.WriteInfo("Completed reading " + fullRuleFilename + " in " +
-                                                            (Environment.TickCount - start) + " ms");
-                    _fullFilename2RulesetCache.Add(fullRuleFilename, result);
+                    var result = new DependencyRuleSet(fullRuleFilename, defines, macros, verbose);
+                    DotNetArchitectureCheckerMain.WriteInfo("Completed reading " + fullRuleFilename + " in " + (Environment.TickCount - start) + " ms");
+                    return result;
                 } catch (FileNotFoundException) {
                     DotNetArchitectureCheckerMain.WriteError("File " + fullRuleFilename + " not found");
                     return null;
                 }
             }
-            return result;
         }
 
         #region Loading
@@ -126,7 +140,11 @@ namespace DotNetArchitectureChecker {
                     // ignore;
                 } else if (line.StartsWith("+")) {
                     string includeFilename = line.Substring(1).Trim();
-                    DependencyRuleSet included = Create(new FileInfo(fullRuleFilename).Directory, includeFilename, verbose);
+                    DependencyRuleSet included = Create(new FileInfo(fullRuleFilename).Directory,
+                                                        includeFilename,
+                                                        _defines,
+                                                        _macros,
+                                                        verbose);
                     if (included != null) {
                         // Error message when == null has been output by Create.
                         _includedRuleSets.Add(included);
@@ -165,7 +183,11 @@ namespace DotNetArchitectureChecker {
                         }
                         line = line.Trim();
                         if (line == MACRO_END) {
-                            _macros[macroName] = new Macro(macroText, fullRuleFilename, macroStartLineNo);
+                            var macro = new Macro(macroText, fullRuleFilename, macroStartLineNo);
+                            if (_macros.ContainsKey(macroName) && !_macros[macroName].Equals(macro)) {
+                                throw new ApplicationException("Macro '" + macroName + "' cannot be redefined differently at " + fullRuleFilename + ":" + lineNo);
+                            }
+                            _macros[macroName] = macro;
                             break;
                         } else {
                             macroText += line + "\n";
@@ -261,6 +283,19 @@ namespace DotNetArchitectureChecker {
                 RuleFileName = ruleFileName;
                 StartLineNo = startlineNo;
             }
+
+            public override bool Equals(object obj) {
+                var other = obj as Macro;
+                if (other == null) {
+                    return false;
+                } else {
+                    return other.MacroText == MacroText;
+                }
+            }
+
+            public override int GetHashCode() {
+                return MacroText.GetHashCode();
+            }
         }
 
         #endregion
@@ -275,9 +310,13 @@ namespace DotNetArchitectureChecker {
             string key = line.Substring(0, i).Trim();
             string value = line.Substring(i + DEFINE.Length).Trim();
             if (key != key.ToUpper()) {
-                throw new ApplicationException("Key in " + ruleFileName + ":" + lineNo + " is not uppercase-only");
+                throw new ApplicationException("'" + key + "' at " + ruleFileName + ":" + lineNo + " is not uppercase-only");
             }
-            _defines[key] = ExpandDefines(value);
+            string define = ExpandDefines(value);
+            if (_defines.ContainsKey(key) && _defines[key] != define) {
+                throw new ApplicationException("'" + key + "' cannot be redefined as '" + define + "' at " + ruleFileName + ":" + lineNo);
+            }
+            _defines[key] = define;
         }
 
         /// <summary>
@@ -360,24 +399,16 @@ namespace DotNetArchitectureChecker {
         }
 
         public static DependencyRuleSet Load(string dependencyFilename, List<DirectoryOption> directories, bool verbose) {
-            foreach (var option in directories) {
-                DependencyRuleSet result = LoadFileFromDirectory(dependencyFilename, verbose, option.Path);
+            foreach (var d in directories) {
+                DependencyRuleSet result = Load(dependencyFilename, d.Path, verbose);
                 if (result != null) {
                     return result;
                 }
-
-                // search in subdirectories too?
-                if (option.SearchOption != SearchOption.TopDirectoryOnly) {
-                    foreach (var directory in Directory.GetDirectories(option.Path, "*", option.SearchOption)) {
-                        try {
-                            result = LoadFileFromDirectory(dependencyFilename, verbose, directory);
-                            if (result != null) {
-                                return result;
-                            }
-                        } catch (PathTooLongException) {
-                        } catch (DirectoryNotFoundException exception) {
-                            DotNetArchitectureCheckerMain.WriteError("cannot find " + dependencyFilename + " in  " + option.Path + ": " +
-                                                                     exception.Message);
+                if (d.Recurse) {
+                    foreach (var subDir in Directory.GetDirectories(d.Path, "*", SearchOption.AllDirectories)) {
+                        result = Load(dependencyFilename, subDir, verbose);
+                        if (result != null) {
+                            return result;
                         }
                     }
                 }
@@ -385,15 +416,24 @@ namespace DotNetArchitectureChecker {
             return null; // if nothing found
         }
 
-        private static DependencyRuleSet LoadFileFromDirectory(string dependencyFilename, bool verbose, string directory) {
-            string[] files = Directory.GetFiles(directory, dependencyFilename);
-            if (files.Length != 0) {
-                if (files.Length != 1) {
-                    throw new FileLoadException(directory + " contains two files named " + dependencyFilename);
+        private static DependencyRuleSet Load(string dependencyFilename, string subDir, bool verbose) {
+            try {
+                string[] f = Directory.GetFiles(subDir, dependencyFilename);
+                if (f.Length == 0) {
+                    return null;
+                } else if (f.Length == 1) {
+                    return Create(new DirectoryInfo("."), f[0], verbose);
+                } else {
+                    throw new FileLoadException(subDir + " contains two files named " + dependencyFilename);
                 }
-                return Create(new DirectoryInfo("."), files[0], verbose);
+            } catch (PathTooLongException) {
+                // ignore
+                // DotNetArchitectureCheckerMain.WriteInfo("Path too long " + dependencyFilename + " in " + subDir + ": " + ex.Message);
+                return null;
+            } catch (DirectoryNotFoundException ex) {
+                DotNetArchitectureCheckerMain.WriteError("Cannot find " + dependencyFilename + " in  " + subDir + ": " + ex.Message);
+                return null;
             }
-            return null;
         }
 
         internal void ExtractGraphAbstractions(List<GraphAbstraction> graphAbstractions) {
