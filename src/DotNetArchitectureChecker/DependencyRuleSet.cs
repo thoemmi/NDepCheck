@@ -361,22 +361,39 @@ namespace DotNetArchitectureChecker {
 
         public static DependencyRuleSet Load(string dependencyFilename, List<DirectoryOption> directories, bool verbose) {
             foreach (var option in directories) {
-                foreach (var directory in Directory.GetDirectories(option.Path, "*", option.SearchOption)) {
-                    try {
-                        string[] files = Directory.GetFiles(directory, dependencyFilename);
-                        if (files.Length != 0) {
-                            if (files.Length != 1) {
-                                throw new FileLoadException(directory + " contains two files named " + dependencyFilename);
+                DependencyRuleSet result = LoadFileFromDirectory(dependencyFilename, verbose, option.Path);
+                if (result != null) {
+                    return result;
+                }
+
+                // search in subdirectories too?
+                if (option.SearchOption != SearchOption.TopDirectoryOnly) {
+                    foreach (var directory in Directory.GetDirectories(option.Path, "*", option.SearchOption)) {
+                        try {
+                            result = LoadFileFromDirectory(dependencyFilename, verbose, directory);
+                            if (result != null) {
+                                return result;
                             }
-                            return Create(new DirectoryInfo("."), files[0], verbose);
+                        } catch (PathTooLongException) {
+                        } catch (DirectoryNotFoundException exception) {
+                            DotNetArchitectureCheckerMain.WriteError("cannot find " + dependencyFilename + " in  " + option.Path + ": " +
+                                                                     exception.Message);
                         }
-                    } catch (PathTooLongException) {
-                    } catch (DirectoryNotFoundException exception) {
-                        DotNetArchitectureCheckerMain.WriteError("cannot find " + dependencyFilename + " in  " + option.Path + ": " + exception.Message);
                     }
                 }
             }
             return null; // if nothing found
+        }
+
+        private static DependencyRuleSet LoadFileFromDirectory(string dependencyFilename, bool verbose, string directory) {
+            string[] files = Directory.GetFiles(directory, dependencyFilename);
+            if (files.Length != 0) {
+                if (files.Length != 1) {
+                    throw new FileLoadException(directory + " contains two files named " + dependencyFilename);
+                }
+                return Create(new DirectoryInfo("."), files[0], verbose);
+            }
+            return null;
         }
 
         internal void ExtractGraphAbstractions(List<GraphAbstraction> graphAbstractions) {
