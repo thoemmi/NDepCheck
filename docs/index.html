@@ -13,7 +13,7 @@ vlink="#008080">
 
 <center>
 <h1>.Net Architecture Checker</h1>
-V.1.3 &copy; Harald M. Müller and Thomas Freudenberg</center>
+V.1.4 &copy; Harald M. Müller and Thomas Freudenberg</center>
 
 <a href="#overview">Overview</a><br>
 <a href="#usedsw">Used Software</a><br>
@@ -123,7 +123,7 @@ The complete usage of .Net Architecture Checker is explained here:
 
 <pre>
 Usage:
-   DotNetArchitectureChecker [options] [<assemblyname> | @<file with assemblyname in it>] ...
+   DotNetArchitectureChecker [options] [&lt;assemblyname&gt; | @&lt;file with assemblyname in it&gt;] ...
 
 Typical uses:
 
@@ -141,14 +141,14 @@ Options:
          all checked dependencies. Attention: Place /v BEFORE any
          /d, /s, or /x option to see the regular expressions.
 
-   /d=<directory>    For each assembly file A.dll, look for corresponding 
+   /d=&lt;directory&gt;    For each assembly file A.dll, look for corresponding 
          rule file A.dll.dep in this directory (multiple /d options are 
          supported). This is especially useful with + lines.
 
-   /s=<directory>    Like /d, but also look in all subdirectories. Mixing
+   /s=&lt;directory&gt;    Like /d, but also look in all subdirectories. Mixing
          /s and /d options is supported.
 
-   /x=<rule file>    Use this rule file if no matching rule file is found
+   /x=&lt;rule file&gt;    Use this rule file if no matching rule file is found
          via /s and /d options. This is also useful if no /s and /d options
          are specified.
 
@@ -175,7 +175,7 @@ Options:
                                      is done before all reg.exp. replacements
                                      described below.
 
-           pattern ---> pattern  ... allowed dependency. The second
+           pattern ---&gt; pattern  ... allowed dependency. The second
                                      pattern may contain back-references
                                      of the form \1, \2 etc. that are
                                      matched against corresponding (...)
@@ -194,13 +194,13 @@ Options:
                                      for some time, it is hoped).
 
            NAME :=
-               <arbitrary lines except =:>
+               &lt;arbitrary lines except =:&gt;
            =:                    ... definition of a rule macro. The
                                      arbitrary lines can contain the strings
                                      \L and \R, which are replaced with the
                                      corresponding patterns from the macro 
                                      use. NAME need not consist of letters
-                                     only; also names like ===>, :::>, +++>
+                                     only; also names like ===&gt;, :::&gt;, +++&gt;
                                      etc. are allowed and quite useful.
 
            pattern NAME pattern  ... Use of a defined macro.
@@ -223,34 +223,34 @@ Options:
                                      different forms, all of which are
                                      matched against declarations:
                ^regexp$                   - for matching a class name
-               ^regexp(/<ident>)*$        - for matching nested classes
+               ^regexp(/&lt;ident&gt;)*$        - for matching nested classes
                                             (if regexp contains no / )
-                                            <ident> is the pattern
+                                            &lt;ident&gt; is the pattern
                                             matching an identifier.
-               ^regexp::<ident>$          - for matching methods
+               ^regexp::&lt;ident&gt;$          - for matching methods
                                             (if regexp contains no ::)
-               ^regexp(/<ident>)*::ident$ - for methods of nested classes
+               ^regexp(/&lt;ident&gt;)*::ident$ - for methods of nested classes
                                             (if regexp contains no / and no ::)
 
            wildcardpath          ... first, the following replacements are done:
 
                .       is replaced with the reg.exp. [.] (matches single period)
 
-               *       is replaced with the reg.exp. for an <ident> (a "name")
+               *       is replaced with the reg.exp. for an &lt;ident&gt; (a "name")
 
-               **      is usually replaced with <ident>(?:.<ident>)* (a 
+               **      is usually replaced with &lt;ident&gt;(?:.&lt;ident&gt;)* (a 
                        "path").
                             (?: in a reg.exp.means that the parentheses do not 
                             count as numbered group when matching \1, \2, etc.)
                        However, if there is a slash (/) somewhere to the left 
-                       of the **, it is replaced with <ident>(?:/<ident>)*, 
+                       of the **, it is replaced with &lt;ident&gt;(?:/&lt;ident&gt;)*, 
                        i.e., the idents are separated by /. This can be used
                        to match inner class hierarchies.
 
                After the wildcard replacemants, suffixes are added as for 
                ^regexp.
 
-   /g=<dot file>   Create output of dependencies in AT&T DOT format.
+   /g=&lt;dot file&gt;   Create output of dependencies in AT&T DOT format.
          By default, DotNetArchitectureChecker tries to remove transitive
          edges - i.e., if a uses b, b uses c, but also a uses c, then
          the last edge is not shown. The algorithm for this will
@@ -258,7 +258,7 @@ Options:
 
    /t    Show also transitive edges in DOT graph.
 
-   /i[=<N>]        For each illegal edge (i.e., edge not allowed by 
+   /i[=&lt;N&gt;]        For each illegal edge (i.e., edge not allowed by 
          the dependency file), show an example of a concrete illegal 
          dependency in the DOT graph. N is the maximum width of strings 
          used; the default is 80. Graphs can become quite cluttered 
@@ -270,31 +270,31 @@ Example of a dependency file with some important dependencies (all
 using the wildcardpath syntax):
 
    // Every class may use all classes from its own namespace.
-        (**).* ---> \1.*
+        (**).* ---&gt; \1.*
 
    // Special dependency for class names without namespace
    // (the pattern above will not work, because it contains a
    // period): A class from the global namespace may use
    // all classes from that namespace.
-        * ---> *
+        * ---&gt; *
 
    // Every class may use all classes from child namespaces
    // of its own namespace.
-        (**).* ---> \1.**.*
+        (**).* ---&gt; \1.**.*
 
    // Every class may use all of System.
-        ** ---> System.**
+        ** ---&gt; System.**
 
    // Use ALL as abbreviation for MyProgram.**
         ALL := MyProgram.**
 
    // All MyProgram classes must not use Windows Forms
    // (even though in principle, all classes may use all of 
-   // System according to the previous ---> rule).
+   // System according to the previous ---&gt; rule).
         ALL ---! System.Windows.Forms.**
 
    // All MyProgram classes may use classes from antlr.
-        ALL ---> antlr.**
+        ALL ---&gt; antlr.**
 
    // In DAG output, identify each object by its path (i.e.
    // namespace).
@@ -350,35 +350,35 @@ Your next step is to decide on the dependencies that you want to allow. This wil
 <pre>
     // MODELS:
       // Abstract and standard models use the model interfaces
-    Yagl.Buttons.Models.**          ---> Yagl.Buttons.IModels.**
+    Yagl.Buttons.Models.**          ---&gt; Yagl.Buttons.IModels.**
     
     // CONTROLLERS:
       // Controllers call View changing methods - on a general level ...
-    Yagl.Buttons.Controllers.*      ---> Yagl.Buttons.Views.*
+    Yagl.Buttons.Controllers.*      ---&gt; Yagl.Buttons.Views.*
       // ... and for each GUI system (but not crossing
       // GUI systems!)
-    Yagl.Buttons.Controllers.(*).** ---> Yagl.Buttons.Views.\1.**
+    Yagl.Buttons.Controllers.(*).** ---&gt; Yagl.Buttons.Views.\1.**
     
       // GUI-system dependent Controllers use common Controller code
-    Yagl.Buttons.Controllers.*.**   ---> Yagl.Buttons.Controllers.*
+    Yagl.Buttons.Controllers.*.**   ---&gt; Yagl.Buttons.Controllers.*
     
       // Controllers for one GUI system use methods and events from the 
       // corresponding native library.
-    Yagl.Buttons.Controllers.(*).** ---> System.GUISupport.\1.**
+    Yagl.Buttons.Controllers.(*).** ---&gt; System.GUISupport.\1.**
     
       // Controllers influence Models; and hook themselves as listeners to Models
-    Yagl.Buttons.Controllers.*      ---> Yagl.Buttons.IModels.**
+    Yagl.Buttons.Controllers.*      ---&gt; Yagl.Buttons.IModels.**
     
     // VIEWS:
       // Views hook themselves as listeners to Models
-    Yagl.Buttons.Views.*            ---> Yagl.Buttons.IModels.**
+    Yagl.Buttons.Views.*            ---&gt; Yagl.Buttons.IModels.**
     
       // GUI-system dependent Views use common View code
-    Yagl.Buttons.Views.*.**         ---> Yagl.Buttons.Views.*
+    Yagl.Buttons.Views.*.**         ---&gt; Yagl.Buttons.Views.*
     
       // Views for one GUI system use methods and events from the 
       // corresponding native library.
-    Yagl.Buttons.View.(*).**        ---> System.GUISupport.\1.**
+    Yagl.Buttons.View.(*).**        ---&gt; System.GUISupport.\1.**
 </pre>
 </p>
 
@@ -396,13 +396,13 @@ which provides typical facade classes connecting elements from all namespaces ab
 
 <pre>
       // needed to create standard model via constructor
-    Yagl.Buttons.Standard.* ---> Yagl.Buttons.Models.**
+    Yagl.Buttons.Standard.* ---&gt; Yagl.Buttons.Models.**
       // needed to define instance vars to models
-    Yagl.Buttons.Standard.* ---> Yagl.Buttons.IModels.**
+    Yagl.Buttons.Standard.* ---&gt; Yagl.Buttons.IModels.**
       // needed to create GUI-dependent controller via constructor
-    Yagl.Buttons.Standard.* ---> Yagl.Buttons.Controllers.*.**
+    Yagl.Buttons.Standard.* ---&gt; Yagl.Buttons.Controllers.*.**
       // needed to create GUI-dependent view via constructor
-    Yagl.Buttons.Standard.* ---> Yagl.Buttons.Views.*.**
+    Yagl.Buttons.Standard.* ---&gt; Yagl.Buttons.Views.*.**
 </pre>
     
 <p>&mdash;and now you are happy: Facade classes RadioButton, ToggleButton, StandardButton, MenuButton and more can be defined in the Standard namespace by instantiating objects from the Models, Views.*, and Controllers.* namespaces.</p>
@@ -412,10 +412,10 @@ which provides typical facade classes connecting elements from all namespaces ab
 <p>In later steps of designing YAGL, you might generalize the patterns above for all sorts of GUI controls, so that you end up with dependencies like</p>
 
 <pre>
-    Yagl.(*).Models.**          ---> Yagl.\1.IModels.**
-    Yagl.(*).Controllers.*      ---> Yagl.\1.Views.*
-    Yagl.(*).Controllers.(*).** ---> Yagl.\1.Views.\2.**
-    Yagl.(*).Controllers.*.**   ---> Yagl.\1.Controllers.*
+    Yagl.(*).Models.**          ---&gt; Yagl.\1.IModels.**
+    Yagl.(*).Controllers.*      ---&gt; Yagl.\1.Views.*
+    Yagl.(*).Controllers.(*).** ---&gt; Yagl.\1.Views.\2.**
+    Yagl.(*).Controllers.*.**   ---&gt; Yagl.\1.Controllers.*
 </pre>
 etc.
 
@@ -433,17 +433,17 @@ However, the dependencies between these module should follow a consistent patter
 </ul>
 In larger systems, such compound rules introduce an additional level of abstraction, which helps to define the constraints more concisely. Here is an example of definitions for Yagl, which uses a macro called ===&gt;:
 <pre>
-    ===> :=
-        Yagl.\L.(*).**             ---> Yagl.\R.\1.**
-        Yagl.\L.Models.**          ---> Yagl.\R.IModels.**
-        Yagl.\L.Controllers.*      ---> Yagl.\R.Views.*
-        Yagl.\L.Controllers.(*).** ---> Yagl.\R.Views.\1.**
-        Yagl.\L.Controllers.*.**   ---> Yagl.\R.Controllers.*
+    ===&gt; :=
+        Yagl.\L.(*).**             ---&gt; Yagl.\R.\1.**
+        Yagl.\L.Models.**          ---&gt; Yagl.\R.IModels.**
+        Yagl.\L.Controllers.*      ---&gt; Yagl.\R.Views.*
+        Yagl.\L.Controllers.(*).** ---&gt; Yagl.\R.Views.\1.**
+        Yagl.\L.Controllers.*.**   ---&gt; Yagl.\R.Controllers.*
     =:
     
-    Buttons ===> Labels
-    Grids   ===> Buttons
-    Grids   ===> Labels
+    Buttons ===&gt; Labels
+    Grids   ===&gt; Buttons
+    Grids   ===&gt; Labels
 </pre>
 
 <h3>Method dependency rules</h3>
@@ -460,18 +460,18 @@ In larger systems, such compound rules introduce an additional level of abstract
 Many internal classes contribute to more than one of these phases: There is state, and there are methods for each phase. For a clean architecture, methods of one phase should only call methods and access fields provided by the same phase; this is important so that methods of earlier phases (e.g. a t2s method) do not call methods of later phases (e.g. an r2o method), when the state necessary for the later phase has not yet been computed by an earlier phase! In addition, there are some common methods which may be called in each phase (e.g. property getters)&mdash;these are to be suffixed with _com. To ascertain these constraints, the methods' names are to be suffixed with the phase, e.g. ComputeSQL_t2s() or CreateObject_r2o(...). Here are possible dependency rules that help to maintain the calling architecture:
             
 <pre>
-    ORMapping.**::*_c2t  --->   ORMapping.**::*_c2t 
-    ORMapping.**::*_t2s  --->   ORMapping.**::*_t2s
-    ORMapping.**::*_s2r  --->   ORMapping.**::*_s2r 
-    ORMapping.**::*_r2o  --->   ORMapping.**::*_r2o
-    ORMapping.**::*      --->   ORMapping.**::*_com
+    ORMapping.**::*_c2t  ---&gt;   ORMapping.**::*_c2t 
+    ORMapping.**::*_t2s  ---&gt;   ORMapping.**::*_t2s
+    ORMapping.**::*_s2r  ---&gt;   ORMapping.**::*_s2r 
+    ORMapping.**::*_r2o  ---&gt;   ORMapping.**::*_r2o
+    ORMapping.**::*      ---&gt;   ORMapping.**::*_com
       // Methods may access private state (prefixed with _).
       // A separate getter is provided for each phase that
       // may legitimally access some field.
-    ORMapping.**::*      --->   ORMapping.**::_*
+    ORMapping.**::*      ---&gt;   ORMapping.**::_*
     
       // ORMapping may use System except Windows.Forms
-    ORMapping.**         --->   System.**
+    ORMapping.**         ---&gt;   System.**
     ORMapping.**         ---!   System.Windows.Forms.**
       // Every class may use &lt;PrivateImplementationDetails&gt;
     ORMapping.** ---> &lt;PrivateImplementationDetails&gt;**
@@ -494,7 +494,7 @@ By the way, a shorter way of defining the first 4 rules would be:
 <p>We start with graphing the main modules. Because we practice whar might be called "explorative architecturing," we allow all dependencies. We store the following in a file, say msel.dep:</p>
 
 <pre>
-    ** ---> **
+    ** ---&gt; **
     
       // Show all leaf namespaces in graph
     % (Microsoft.Practices.*).**
@@ -517,7 +517,7 @@ We call dotnetarchitect.bat as follows:
 <p>A small disappointment: We were too high-level! In the next try, we go one level deeper:</p>
 
 <pre>
-    ** ---> **
+    ** ---&gt; **
     
       // Show two levels below Microsoft.Practices - especially,
       // below Microsoft.Practices.EnterpriseLibrary.
@@ -545,7 +545,7 @@ Please remember that this diagram excludes as many transitive edges as possible&
 <p>The result is typical for a weakly layered architecture and demonstrates why the removal of transitive edges helps to understand the actual dependencies. However, we will have to return to this type of diagram later. For now, let us continue with the exploration of the cycle between Caching and Security. We only show Caching and Security, but now down to the lowest namespaces. To distinguish visually between the two, we have Caching namespaces shown in a "long" format including "Practices.EnterpriseLibrary," whereas namespaces from Security are shown in a "short" format:</p>
 
 <pre>
-    ** ---> **
+    ** ---&gt; **
     
       // Show Caching and Security in detail.
     % Microsoft.(Practices.EnterpriseLibrary.Caching.**).*
@@ -560,7 +560,7 @@ Please remember that this diagram excludes as many transitive edges as possible&
 <p>This diagram certainly needs some detailed inspection. However, after a short time it becomes clear that Caching.Cryptography and its sub-namespaces &mdash;and only those&mdash;use modules from Security. Hence, we now reformulate the graph patterns for the complete Enterprise Library:</p>
 
 <pre>
-    ** ---> **
+    ** ---&gt; **
     
       // Show two levels below Microsoft.Practices - especially,
       // below Microsoft.Practices.EnterpriseLibrary.
@@ -581,7 +581,7 @@ Please remember that this diagram excludes as many transitive edges as possible&
 <p>Now that we have found a dependency architecture which is ok, we want to codify the dependency rules so that subsequent development cannot violate these rules. To this end, we must first show also all the transitive edges. We are no longer interested in System, because this may be used by all according to the standard rules. Therefore, we use the following graph patterns and call .Net Architecture Checker with the /t option:</p>
 
 <pre>
-    ** ---> **
+    ** ---&gt; **
     
       // Show two levels below Microsoft.Practices - especially,
       // below Microsoft.Practices.EnterpriseLibrary.
@@ -601,24 +601,24 @@ Please remember that this diagram excludes as many transitive edges as possible&
 
 <pre>
       // Everyone in EL may use ObjectBuilder, EL.Common, and EL.Configuration
-    Microsoft.Practices.EnterpriseLibrary.**                      ---> Microsoft.Practices.ObjectBuilder.**
-    Microsoft.Practices.EnterpriseLibrary.**                      ---> Microsoft.Practices.EnterpriseLibrary.Common.**
-    Microsoft.Practices.EnterpriseLibrary.**                      ---> Microsoft.Practices.EnterpriseLibrary.Configuration.**
+    Microsoft.Practices.EnterpriseLibrary.**                      ---&gt; Microsoft.Practices.ObjectBuilder.**
+    Microsoft.Practices.EnterpriseLibrary.**                      ---&gt; Microsoft.Practices.EnterpriseLibrary.Common.**
+    Microsoft.Practices.EnterpriseLibrary.**                      ---&gt; Microsoft.Practices.EnterpriseLibrary.Configuration.**
     
       // EL.Logging and EL.Caching may use EL.Data
-    Microsoft.Practices.EnterpriseLibrary.Logging.**              ---> Microsoft.Practices.EnterpriseLibrary.Data.**
-    Microsoft.Practices.EnterpriseLibrary.Caching.**              ---> Microsoft.Practices.EnterpriseLibrary.Data.**
+    Microsoft.Practices.EnterpriseLibrary.Logging.**              ---&gt; Microsoft.Practices.EnterpriseLibrary.Data.**
+    Microsoft.Practices.EnterpriseLibrary.Caching.**              ---&gt; Microsoft.Practices.EnterpriseLibrary.Data.**
     
       // EL.Security may use EL.Caching, but not EL.Caching.Cryptography
-    Microsoft.Practices.EnterpriseLibrary.Security.**             ---> Microsoft.Practices.EnterpriseLibrary.Caching.**
+    Microsoft.Practices.EnterpriseLibrary.Security.**             ---&gt; Microsoft.Practices.EnterpriseLibrary.Caching.**
     Microsoft.Practices.EnterpriseLibrary.Security.**             ---! Microsoft.Practices.EnterpriseLibrary.Caching.Cryptography.**
     
       // EL.Caching.Cryptography may use EL.Security (the "backwards dependency"
       // which created the loop we saw a few steps ago).
-    Microsoft.Practices.EnterpriseLibrary.Caching.Cryptography.** ---> Microsoft.Practices.EnterpriseLibrary.Security.**
+    Microsoft.Practices.EnterpriseLibrary.Caching.Cryptography.** ---&gt; Microsoft.Practices.EnterpriseLibrary.Security.**
     
       // EL.ExceptionHandling may use EL.Logging
-    Microsoft.Practices.EnterpriseLibrary.ExceptionHandling.**    ---> Microsoft.Practices.EnterpriseLibrary.Logging.**
+    Microsoft.Practices.EnterpriseLibrary.ExceptionHandling.**    ---&gt; Microsoft.Practices.EnterpriseLibrary.Logging.**
 </pre>
 
 As the string Microsoft.Practices.EnterpriseLibrary is occurring quite often here, it may make sense to replace it with a shorter abbreviation, e.g. as follows:
@@ -627,24 +627,24 @@ As the string Microsoft.Practices.EnterpriseLibrary is occurring quite often her
     _EL := Microsoft.Practices.EnterpriseLibrary
 
       // Everyone in EL may use ObjectBuilder, EL.Common, and EL.Configuration
-    _EL.**                      ---> Microsoft.Practices.ObjectBuilder.**
-    _EL.**                      ---> _EL.Common.**
-    _EL.**                      ---> _EL.Configuration.**
+    _EL.**                      ---&gt; Microsoft.Practices.ObjectBuilder.**
+    _EL.**                      ---&gt; _EL.Common.**
+    _EL.**                      ---&gt; _EL.Configuration.**
     
       // EL.Logging and EL.Caching may use EL.Data
-    _EL.Logging.**              ---> _EL.Data.**
-    _EL.Caching.**              ---> _EL.Data.**
+    _EL.Logging.**              ---&gt; _EL.Data.**
+    _EL.Caching.**              ---&gt; _EL.Data.**
     
       // EL.Security may use EL.Caching, but not EL.Caching.Cryptography
-    _EL.Security.**             ---> _EL.Caching.**
+    _EL.Security.**             ---&gt; _EL.Caching.**
     _EL.Security.**             ---! _EL.Caching.Cryptography.**
     
       // EL.Caching.Cryptography may use EL.Security (the "backwards dependency"
       // which created the loop we saw a few steps ago).
-    _EL.Caching.Cryptography.** ---> _EL.Security.**
+    _EL.Caching.Cryptography.** ---&gt; _EL.Security.**
     
       // EL.ExceptionHandling may use EL.Logging
-    _EL.ExceptionHandling.**    ---> _EL.Logging.**
+    _EL.ExceptionHandling.**    ---&gt; _EL.Logging.**
 </pre>
     
 <p>Running .Net Architecture Checker gives us ... what is that? Zillions of "Illegal dependencies!" What's wrong here?</p>
@@ -652,26 +652,26 @@ As the string Microsoft.Practices.EnterpriseLibrary is occurring quite often her
 <p>Here is the first "illegal" dependency:</p>
 
 <pre>
-  **** Illegal dependency Microsoft.Practices.EnterpriseLibrary.Logging.MsmqDistributor.Instrumentation.DistributorEventLogger::LogServiceStarted ---> Microsoft.Practices.EnterpriseLibrary.Logging.MsmqDistributor.Properties.Resources::get_Culture
+  **** Illegal dependency Microsoft.Practices.EnterpriseLibrary.Logging.MsmqDistributor.Instrumentation.DistributorEventLogger::LogServiceStarted ---&gt; Microsoft.Practices.EnterpriseLibrary.Logging.MsmqDistributor.Properties.Resources::get_Culture
 </pre>
 
 <p>What does Logging use here? Here is a more concise view of the dependency (you might want to highlight this with a marker on a printout of the "illegal" dependencies):</p>
 
 <pre>
-  ...Logging.MsmqDistributor.Instrumentation... ---> ...Logging.MsmqDistributor.Properties...
+  ...Logging.MsmqDistributor.Instrumentation... ---&gt; ...Logging.MsmqDistributor.Properties...
 </pre>
 
 It is clear now: We forgot to specify that we are not concerned about arbitrary dependencies <em>inside</em> toplevel namespaces of the Enterprise Library. Hence, we need the following additional rule:
 
 <pre>
       // Everyone in or below a namespace EL.* may use all other namespaces in or below the same top-level EL namespace 
-    Microsoft.Practices.EnterpriseLibrary.(*).**   ---> Microsoft.Practices.EnterpriseLibrary.\1.**
+    Microsoft.Practices.EnterpriseLibrary.(*).**   ---&gt; Microsoft.Practices.EnterpriseLibrary.\1.**
 </pre>
 
 But we would now also allow that Caching uses all of Caching.Cryptography! Although this is not the case today, we want to prevent it in the future (so that someone will not introduce a cyclic dependency with Security!). Let us disect Caching to find out about the concrete rules we want to allow. Here are the graph patterns for this job:
 
 <pre>
-    ** ---> **
+    ** ---&gt; **
     
       // Show only Caching (top level and one level below) so
       // that we can find out the dependencies needed in there.
@@ -716,7 +716,7 @@ However, this would still allow Caching.Common and Caching.Configuration to use 
 
 <pre>
       // Everyone in or below a namespace EL.* may use all other namespaces in or below the same namespace
-    _EL.(*).**                   ---> _EL.\1.**
+    _EL.(*).**                   ---&gt; _EL.\1.**
 
       // However, top-level Caching and Caching sub-namespaces not starting with Cry must not use Caching.Cryptography
     _EL.Caching.*                ---! _EL.Caching.Cryptography.**
@@ -725,23 +725,23 @@ However, this would still allow Caching.Common and Caching.Configuration to use 
     _EL.Caching.Cr[^y]*.**       ---! _EL.Caching.Cryptography.**
 
       // Everyone in EL may use ObjectBuilder, EL.Common, and EL.Configuration
-    _EL.**                       ---> Microsoft.Practices.ObjectBuilder.**
-    _EL.**                       ---> _EL.Common.**
-    _EL.**                       ---> _EL.Configuration.**
+    _EL.**                       ---&gt; Microsoft.Practices.ObjectBuilder.**
+    _EL.**                       ---&gt; _EL.Common.**
+    _EL.**                       ---&gt; _EL.Configuration.**
     
       // EL.Logging and EL.Caching may use EL.Data
-    _EL.Logging.**               ---> _EL.Data.**
-    _EL.Caching.**               ---> _EL.Data.**
+    _EL.Logging.**               ---&gt; _EL.Data.**
+    _EL.Caching.**               ---&gt; _EL.Data.**
     
       // EL.Security may use EL.Caching, but not EL.Caching.Cryptography
-    _EL.Security.**              ---> _EL.Caching.**
+    _EL.Security.**              ---&gt; _EL.Caching.**
     _EL.Security.**              ---! _EL.Caching.Cryptography.**
     
       // EL.Caching.Cryptography may use EL.Security (the "backwards dependency")
-    _EL.Caching.Cryptography.**  ---> _EL.Security.**
+    _EL.Caching.Cryptography.**  ---&gt; _EL.Security.**
     
       // EL.ExceptionHandling may use EL.Logging
-    _EL.ExceptionHandling.**     ---> _EL.Logging.**
+    _EL.ExceptionHandling.**     ---&gt; _EL.Logging.**
 </pre>
 
 <p>A final run of .Net Architecture Checker over the Enterprise Library now yields no messages&mdash;hence, our rules encompass all current dependencies. On the other hand, they are sufficiently strong to prevent future corruption of the static architecture during maintenance and redesign.</p>
@@ -778,6 +778,12 @@ or, preferably,
 <p>2. Make .Net Architecture Checker multi-threaded to increase performance on multi-core and multi-processor machines.</p>
 
 <h2><a name="relnotes">Release Notes</a></h2>
+
+<h3>1.4 (not released yet)</h3>
+<ul>
+<li>Added eager determination of full path to .dep files based on /d and /s command line 
+    options.</li>
+</ul>
 
 <h3>1.3 (2010-04-25)</h3>
 <ul>
