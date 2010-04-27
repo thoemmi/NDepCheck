@@ -399,87 +399,17 @@ namespace DotNetArchitectureChecker {
             }
         }
 
-        private static Dictionary<string, string> _ruleFilePathCache;
-
-        private static void InitRuleFilePathCache(IEnumerable<DirectoryOption> directories, bool verbose) {
-            _ruleFilePathCache = new Dictionary<string, string>();
-            long start = Environment.TickCount;
-            foreach (var directoryOption in directories) {
-                InitRuleFilePathCache(directoryOption.Path, directoryOption.Recurse, verbose);
-            }
-            DotNetArchitectureCheckerMain.WriteInfo("Completed filling rule file path cache with "+ _ruleFilePathCache.Count + " entries in " +
-                                                    (Environment.TickCount - start) + " ms");
-        }
-
-        private static void InitRuleFilePathCache(string path, bool recurse, bool verbose) {
-            foreach (var file in Directory.GetFiles(path, "*.dll.dep")) {
-                _ruleFilePathCache.Add(Path.GetFileName(file), Path.GetFullPath(file));
-                if (verbose) {
-                    DotNetArchitectureCheckerMain.WriteDebug("Adding " + Path.GetFullPath(file) + " to rule file path cache.");
-                }
-            }
-            foreach (var file in Directory.GetFiles(path, "*.exe.dep")) {
-                _ruleFilePathCache.Add(Path.GetFileName(file), Path.GetFullPath(file));
-                if (verbose) {
-                    DotNetArchitectureCheckerMain.WriteDebug("Adding " + Path.GetFullPath(file) + " to rule file path cache.");
-                }
-            }
-
-            if (recurse) {
-                foreach (var subDir in Directory.GetDirectories(path)) {
-                    InitRuleFilePathCache(subDir, recurse, verbose);
-                }
-            }
-        }
-
         public static DependencyRuleSet Load(string dependencyFilename, List<DirectoryOption> directories, bool verbose) {
-            if (_ruleFilePathCache == null) {
-                InitRuleFilePathCache(directories, verbose);
-            }
-
-            string path;
-            if (_ruleFilePathCache.TryGetValue(dependencyFilename, out path)) {
-                var result = Create(new DirectoryInfo("."), path, verbose);
-                if (result != null) {
-                    return result;
-                }
-            }
-
             foreach (var d in directories) {
-                DependencyRuleSet result = Load(dependencyFilename, d.Path, verbose);
-                if (result != null) {
-                    return result;
-                }
-                if (d.Recurse) {
-                    foreach (var subDir in Directory.GetDirectories(d.Path, "*", SearchOption.AllDirectories)) {
-                        result = Load(dependencyFilename, subDir, verbose);
-                        if (result != null) {
-                            return result;
-                        }
+                string fullName = d.GetFullNameFor(dependencyFilename);
+                if (fullName != null) {
+                    DependencyRuleSet result = Create(new DirectoryInfo("."), fullName, verbose);
+                    if (result != null) {
+                        return result;
                     }
                 }
             }
             return null; // if nothing found
-        }
-
-        private static DependencyRuleSet Load(string dependencyFilename, string subDir, bool verbose) {
-            try {
-                string[] f = Directory.GetFiles(subDir, dependencyFilename);
-                if (f.Length == 0) {
-                    return null;
-                } else if (f.Length == 1) {
-                    return Create(new DirectoryInfo("."), f[0], verbose);
-                } else {
-                    throw new FileLoadException(subDir + " contains two files named " + dependencyFilename);
-                }
-            } catch (PathTooLongException) {
-                // ignore
-                // DotNetArchitectureCheckerMain.WriteInfo("Path too long " + dependencyFilename + " in " + subDir + ": " + ex.Message);
-                return null;
-            } catch (DirectoryNotFoundException ex) {
-                DotNetArchitectureCheckerMain.WriteError("Cannot find " + dependencyFilename + " in  " + subDir + ": " + ex.Message);
-                return null;
-            }
         }
 
         internal void ExtractGraphAbstractions(List<GraphAbstraction> graphAbstractions) {
