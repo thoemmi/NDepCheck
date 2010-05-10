@@ -45,15 +45,12 @@ namespace DotNetArchitectureChecker {
         protected static List<string> Expand(string pattern) {
             if (pattern.StartsWith("^")) {
                 if (pattern.EndsWith("$")) {
-                    List<string> expanded = new List<string>();
-                    expanded.Add(pattern);
-                    return expanded;
+                    return new List<string> {pattern};
                 } else {
                     return ExpandWithSuffixes(pattern);
                 }
             } else {
-                pattern = ExpandAsterisks(pattern);
-                return ExpandWithSuffixes(pattern);
+                return ExpandWithSuffixes(ExpandAsterisks(pattern));
             }
         }
 

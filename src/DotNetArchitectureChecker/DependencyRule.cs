@@ -121,7 +121,7 @@ namespace DotNetArchitectureChecker {
         #region Nested type: AbstractRuleMatch
 
         private abstract class AbstractRuleMatch : IRuleMatch {
-            private static readonly Regex FIXED_PREFIX_PATTERN = new Regex("^[" + INNER_LETTER + @"<>.]*", RegexOptions.Compiled);
+            private static readonly Regex _fixedPrefixPattern = new Regex("^[" + INNER_LETTER + @"<>.]*", RegexOptions.Compiled);
 
             public abstract bool Matches(Dependency d);
 
@@ -130,13 +130,13 @@ namespace DotNetArchitectureChecker {
             }
 
             protected static bool IsPrefixPattern(string pattern) {
-                string prefix = FIXED_PREFIX_PATTERN.Match(pattern).Value;
+                string prefix = _fixedPrefixPattern.Match(pattern).Value;
                 return prefix.EndsWith(".")
                        && prefix + "**" == pattern;
             }
 
             protected static string GetPrefix(string pattern) {
-                return FIXED_PREFIX_PATTERN.Match(pattern).Value;
+                return _fixedPrefixPattern.Match(pattern).Value;
             }
 
             protected static bool IsClassPattern(string pattern) {
@@ -150,7 +150,7 @@ namespace DotNetArchitectureChecker {
         #region Nested type: ClassClassRule
 
         private sealed class ClassClassRule : AbstractRuleMatch {
-            private static readonly Regex FIXED_CLASS_PATTERN = new Regex("^[" + INNER_LETTER + @"/<>.]*$", RegexOptions.Compiled);
+            private static readonly Regex _fixedClassPattern = new Regex("^[" + INNER_LETTER + @"/<>.]*$", RegexOptions.Compiled);
 
             private readonly string _usedFixedPrefix;
             private readonly string _usingFixedPrefix;
@@ -182,8 +182,8 @@ namespace DotNetArchitectureChecker {
             }
 
             public static bool Accepts(string usingItemPattern, string usedItemPattern) {
-                return FIXED_CLASS_PATTERN.IsMatch(usingItemPattern)
-                       && FIXED_CLASS_PATTERN.IsMatch(usedItemPattern);
+                return _fixedClassPattern.IsMatch(usingItemPattern)
+                       && _fixedClassPattern.IsMatch(usedItemPattern);
             }
         }
 
@@ -484,7 +484,7 @@ namespace DotNetArchitectureChecker {
         #region Nested type: PrefixClassRule
 
         private class PrefixClassRule : AbstractRuleMatch {
-            private static readonly Regex FIXED_CLASS_PATTERN = new Regex("^[" + INNER_LETTER + @"/<>.]*$", RegexOptions.Compiled);
+            private static readonly Regex _fixedClassPattern = new Regex("^[" + INNER_LETTER + @"/<>.]*$", RegexOptions.Compiled);
 
             private readonly string _usedFixedPrefix;
             private readonly string _usingFixedPrefix;
@@ -519,7 +519,7 @@ namespace DotNetArchitectureChecker {
                 return
                     usingPrefix.EndsWith(".")
                     && usingPrefix + "**" == usingItemPattern
-                    && FIXED_CLASS_PATTERN.IsMatch(usedItemPattern);
+                    && _fixedClassPattern.IsMatch(usedItemPattern);
             }
         }
 

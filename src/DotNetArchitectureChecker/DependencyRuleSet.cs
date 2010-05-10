@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Linq;
 
 namespace DotNetArchitectureChecker {
     public class DependencyRuleSet {
@@ -224,7 +223,8 @@ namespace DotNetArchitectureChecker {
                     }
                 }
                 foreach (string definedMacroName in _macros.Keys) {
-                    if (compactedName == CompactedName(definedMacroName)) {
+                    if (macroName != definedMacroName
+                        && compactedName == CompactedName(definedMacroName)) {
                         DotNetArchitectureCheckerMain.WriteError(
                             ruleFileName + ", line " + lineNo + ": Macro name " + macroName +
                             " is too similar to already defined name " +
@@ -254,7 +254,7 @@ namespace DotNetArchitectureChecker {
         private bool ProcessMacroIfFound(string line, bool verbose) {
             string foundMacroName;
             foreach (string macroName in _macros.Keys) {
-                if (line.Contains(macroName)) {
+                if (line.Contains(macroName) && !line.StartsWith(macroName) && !line.Contains(MACRO_DEFINE)) {
                     foundMacroName = macroName;
                     goto PROCESS_MACRO;
                 }

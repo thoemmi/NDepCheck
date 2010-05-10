@@ -219,6 +219,34 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
             }
         }
 
+
+        [TestMethod]
+        public void MacroRedefinitionTest() {
+            {
+                string depFile = Path.GetTempFileName();
+                using (TextWriter tw = new StreamWriter(depFile)) {
+                    tw.Write(@"
+                    ===> :=
+                        \L ---> \R
+                    =:
+                    ===> :=
+                        \L ---> \R
+                    =:
+                    _A := DotNetArchitectureCheckerTest
+                    _B := _A
+                    _B.** ===> _B.**
+                    _B.** ===> System.**
+                    _B.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForDotNetArchitectureChecker::I
+                    * ---? System.*
+                ");
+                }
+                Assert.AreEqual(0, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, "DotNetArchitectureCheckerTestAssembly.dll" }));
+                File.Delete(depFile);
+            }
+        }
+
+
+
         [TestMethod]
         public void Exit1() {
             Assert.AreEqual(1, DotNetArchitectureCheckerMain.Main(new string[] { }));
