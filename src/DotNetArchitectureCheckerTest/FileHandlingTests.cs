@@ -123,7 +123,7 @@ namespace DotNetArchitectureCheckerTest {
         private int Run(params string[] args) {
             return DotNetArchitectureCheckerMain.Main(new List<string>(args.Select(s => s.Replace("%%", _basePath))) {
                     "DotNetArchitectureCheckerTestAssembly.dll",
-                    "DotNetArchitectureCheckerTestAssembly2.dll"
+                    "DotNetArchitectureCheckerTestAssemblyÄÖÜß.dll"
                 }.ToArray());
         }
 
@@ -144,11 +144,11 @@ namespace DotNetArchitectureCheckerTest {
         }
 
         private void WriteDep2To(string directory) {
-            Write(directory, "DotNetArchitectureCheckerTestAssembly2.dll.dep", "DotNetArchitectureCheckerTest2.** ---> **");
+            Write(directory, "DotNetArchitectureCheckerTestAssemblyÄÖÜß.dll.dep", "DotNetArchitectureCheckerTest2.** ---> **");
         }
 
         private void WriteDep2PlusTo(string directory) {
-            Write(directory, "DotNetArchitectureCheckerTestAssembly2.dll.dep",
+            Write(directory, "DotNetArchitectureCheckerTestAssemblyÄÖÜß.dll.dep",
                 @"+ Dep2Include\Dep2A.dep");
             Write(directory + @"\Dep2Include", "Dep2A.dep",
                 @"+ ..\Dep2B.dep");

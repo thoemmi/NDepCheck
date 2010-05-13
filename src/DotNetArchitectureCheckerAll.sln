@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNetArchitectureCheckerTe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNetArchitectureCheckerTestAssembly", "DotNetArchitectureCheckerTestAssembly\DotNetArchitectureCheckerTestAssembly.csproj", "{12182557-4A79-4950-BEC5-735AA73FC3FF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNetArchitectureCheckerTestAssembly2", "DotNetArchitectureCheckerTestAssembly2\DotNetArchitectureCheckerTestAssembly2.csproj", "{724AFB8E-E89C-4864-B9E1-274D177524FA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNetArchitectureCheckerTestAssemblyÄÖÜß", "DotNetArchitectureCheckerTestAssemblyÄÖÜß\DotNetArchitectureCheckerTestAssemblyÄÖÜß.csproj", "{724AFB8E-E89C-4864-B9E1-274D177524FA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

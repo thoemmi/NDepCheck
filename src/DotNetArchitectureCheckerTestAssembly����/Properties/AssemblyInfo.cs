@@ -1,17 +1,16 @@
 ﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using DotNetArchitectureChecker;
 
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("DotNetArchitectureChecker 1.5")]
-[assembly: AssemblyDescription("Architecture Checker for .Net")]
+[assembly: AssemblyTitle("TestLib")]
+[assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("DotNetArchitectureChecker")]
-[assembly: AssemblyCopyright("Copyright HMMüller & Th. Freudenberg ©  2007..2010")]
+[assembly: AssemblyCompany("Pharmatechnik GmbH & Co. KG")]
+[assembly: AssemblyProduct("TestLib")]
+[assembly: AssemblyCopyright("Copyright © Pharmatechnik GmbH & Co. KG 2009")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -21,7 +20,7 @@ using DotNetArchitectureChecker;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("46b1a529-6166-4f5d-bbba-e4b45a8f6006")]
+[assembly: Guid("d82d9611-c604-443f-bb3d-183382e9c058")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -30,5 +29,8 @@ using DotNetArchitectureChecker;
 //      Build Number
 //      Revision
 //
-[assembly: AssemblyVersion("1.5.0.0")]
-[assembly: AssemblyFileVersion("1.5.0.0")]
+// You can specify all the values or you can default the Build and Revision Numbers 
+// by using the '*' as shown below:
+// [assembly: AssemblyVersion("1.0.*")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]

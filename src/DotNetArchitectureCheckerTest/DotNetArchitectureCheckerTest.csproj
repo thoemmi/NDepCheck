@@ -71,13 +71,13 @@
     <Compile Include="MainTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\DotNetArchitectureCheckerTestAssembly2\DotNetArchitectureCheckerTestAssembly2.csproj">
-      <Project>{724AFB8E-E89C-4864-B9E1-274D177524FA}</Project>
-      <Name>DotNetArchitectureCheckerTestAssembly2</Name>
-    </ProjectReference>
     <ProjectReference Include="..\DotNetArchitectureCheckerTestAssembly\DotNetArchitectureCheckerTestAssembly.csproj">
       <Project>{12182557-4A79-4950-BEC5-735AA73FC3FF}</Project>
       <Name>DotNetArchitectureCheckerTestAssembly</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\DotNetArchitectureCheckerTestAssemblyÄÖÜß\DotNetArchitectureCheckerTestAssemblyÄÖÜß.csproj">
+      <Project>{724AFB8E-E89C-4864-B9E1-274D177524FA}</Project>
+      <Name>DotNetArchitectureCheckerTestAssemblyÄÖÜß</Name>
     </ProjectReference>
     <ProjectReference Include="..\DotNetArchitectureChecker\DotNetArchitectureChecker.csproj">
       <Project>{FF14C674-9AC8-4658-8A89-C2EEAC3453F3}</Project>

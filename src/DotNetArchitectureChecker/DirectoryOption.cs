@@ -12,10 +12,11 @@ namespace DotNetArchitectureChecker {
         private void Add(string path, string pattern, SearchOption o) {
             foreach (var f in Directory.GetFiles(path, pattern, o)) {
                 var fileName = Path.GetFileName(f);
+                    string fullPath = Path.GetFullPath(f);
                 if (_smallToFullMap.ContainsKey(fileName)) {
-                    // WriteWarning ..
+                    DotNetArchitectureCheckerMain.WriteWarning(fileName + " found at two places: " + _smallToFullMap[fileName] + " and " + fullPath + "; second one is ignored");
                 } else {
-                    _smallToFullMap[fileName] = Path.GetFullPath(Path.Combine(path, f));
+                    _smallToFullMap[fileName] = fullPath;
                 }
             }
         }
