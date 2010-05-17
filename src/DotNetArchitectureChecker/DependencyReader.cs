@@ -295,11 +295,17 @@ namespace DotNetArchitectureChecker {
                 FullNameToken calledToken = GetFullnameToken(calledType, methodName);
                 string fileName = null;
                 uint startLine = 0;
+                uint startColumn = 0;
+                uint endLine = 0;
+                uint endColumn = 0;
                 if (sequencePoint != null) {
                     fileName = sequencePoint.Document.Url;
                     startLine = (uint)sequencePoint.StartLine;
+                    startColumn = (uint) sequencePoint.StartColumn;
+                    endLine = (uint) sequencePoint.EndLine;
+                    endColumn= (uint) sequencePoint.EndColumn;
                 }
-                yield return new Dependency(callingToken, calledToken, fileName, startLine, 0, 0, 0);
+                yield return new Dependency(callingToken, calledToken, fileName, startLine, startColumn, endLine, endColumn);
             }
 
             var genericInstanceType = calledType as GenericInstanceType;
