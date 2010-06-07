@@ -7,6 +7,7 @@ using System.Linq;
 namespace DotNetArchitectureChecker {
     public class Options {
         private readonly List<DirectoryOption> _directories = new List<DirectoryOption>();
+        private readonly List<AssemblyOption> _assemblies = new List<AssemblyOption>();
 
         /// <summary>
         /// Set output file name. If set to <c>null</c> (or left
@@ -26,21 +27,23 @@ namespace DotNetArchitectureChecker {
         /// If not null, show a concrete dependency 
         /// for each illegal edge.
         /// </value>
-        public int? StringLengthForIllegalEdges { get; set; }
+        public int? StringLengthForIllegalEdges { get; private set; }
 
-        public bool ShowUnusedQuestionableRules { get; set; }
+        public bool ShowUnusedQuestionableRules { get; private set; }
 
         /// <value>
         /// Mark output of <c>DependencyGrapher</c>
         /// as verbose.
         /// </value>
-        public bool Verbose { get; set; }
+        public bool Verbose { get; private set; }
 
-        public bool Debug { get; set; }
+        public bool Debug { get; private set; }
 
-        public DependencyRuleSet DefaultRuleSet { get; set; }
+        public DependencyRuleSet DefaultRuleSet { get; private set; }
 
-        public string[] Assemblies { get; set; }
+        public List<AssemblyOption> Assemblies {
+            get { return _assemblies; }
+        }
 
         public List<DirectoryOption> Directories {
             get { return _directories; }
@@ -106,10 +109,17 @@ namespace DotNetArchitectureChecker {
             }
 
             // remaining arguments are assemblies
-            Assemblies = args.Skip(i).ToArray();
+            for (; i < args.Length; i++) {
+                string positive = args[i];
+                string negative =
+                    i + 2 < args.Length && (args[i+1] == "/e" | args[i+1] == "-e")
+                    ? args[i += 2]
+                    : null;
+                Assemblies.Add(new AssemblyOption(positive, negative));
+            }
 
             // We are past the arguments - now, we process the input files.)
-            if (Assemblies.Length == 0) {
+            if (Assemblies.Count == 0) {
                 return UsageAndExit("No assemblies specified");
             }
 
@@ -129,24 +139,20 @@ namespace DotNetArchitectureChecker {
             Console.Out.WriteLine(
                 @"
 Usage:
-   DotNetArchitectureChecker [options] [<assemblyname> | @<file with assemblyname in it>] ...
+   DotNetArchitectureChecker [<option> ...] [<assemblyspec>] ...
 
 Typical uses:
 
-* Check dependencies in My.DLL:
-      DotNetArchitectureChecker /x=MyDependencies.dep My.dll
+* Check dependencies in My.DLL; My.dll.dep is somewhere below SourceDir:
+      DotNetArchitectureChecker /s=SourceDir My.dll
 
 * Produce graph of dependencies in My.DLL:
-      DotNetArchitectureChecker /x=MyDependencies.dep My.DLL /g=My.dot
+      DotNetArchitectureChecker /s=SourceDir My.DLL /g=My.dot
       dot -Tgif -oMy.gif My.dot
 
 All messages of DotNetArchitectureChecker are written to Console.Out.
 
 Options:
-   /v    Verbose. Shows regular expressions used for checking and 
-         all checked dependencies. Attention: Place /v BEFORE any
-         /d, /s, or /x option to see the regular expressions.
-
    /d=<directory>    For each assembly file A.dll, look for corresponding 
          rule file A.dll.dep in this directory (multiple /d options are 
          supported). This is especially useful with + lines.
@@ -158,9 +164,51 @@ Options:
          via /s and /d options. This is also useful if no /s and /d options
          are specified.
 
-   RULE FILES:
-         Rule files contain one per line.
-         The following lines are supported:
+   /g=<dot file>   Create output of dependencies in AT&T DOT format.
+         By default, DotNetArchitectureChecker tries to remove transitive
+         edges - i.e., if a uses b, b uses c, but also a uses c, then
+         the last edge is not shown. The algorithm for this will
+         sometimes choose funny edges for removal ...
+
+   /t    Show also transitive edges in DOT graph.
+
+   /i[=<N>]        For each illegal edge (i.e., edge not allowed by 
+         the dependency file), show an example of a concrete illegal 
+         dependency in the DOT graph. N is the maximum width of strings 
+         used; the default is 80. Graphs can become quite cluttered 
+         with this option.
+
+   /v    Verbose. Shows regular expressions used for checking and 
+         all checked dependencies. Attention: Place /v BEFORE any
+         /d, /s, or /x option to see the regular expressions.
+         Produces lots of output.
+
+   /y    Even more debugging output.
+
+   /debug   Start with debugger.
+
+Assemblyspecs - one of the following:
+    
+    simplefilename      the assembly is checked.
+                        e.g. ProjectDir\bin\MyProject.Main.dll
+
+    filepattern         all matching assemblies are checked.
+                        e.g. bin\MyProject.*.dll 
+
+    directory           all .DLL and .EXE files in the directory are checked.
+                        e.g. MyProject\bin\Debug
+
+    @filename           lines are read as assembly filenames and checked.
+                        The file may contain empty lines, which are ignored.
+                        e.g. @MyListOfFiles.txt
+
+    <one of the above> /e <one of the above>            
+                        The files after the /e are excluded from checking.
+                        e.g. MyProject.*.dll /e *.vshost.*
+
+Rules files:
+         Rule files contain rule definition commands.
+         The following commands are supported:
 
            empty line            ... ignored
            // comment            ... ignored
@@ -180,6 +228,9 @@ Options:
                                      abbreviations. Abbreviation processing
                                      is done before all reg.exp. replacements
                                      described below.
+                                     If an abbreviation definition for the 
+                                     same name is encountered twice, it must
+                                     define exactly the same value.
 
            pattern ---> pattern  ... allowed dependency. The second
                                      pattern may contain back-references
@@ -208,6 +259,15 @@ Options:
                                      use. NAME need not consist of letters
                                      only; also names like ===>, :::>, +++>
                                      etc. are allowed and quite useful.
+                                     However, names must not be ""too
+                                     similar"": If repeated characters are
+                                     are replaced with a single one, they must
+                                     still be different; hence, ===> and ====>
+                                     are ""too similar"" and lead to an error.
+                                     As with abbreviations, if a macro 
+                                     definition for the same name is 
+                                     encountered twice, it must define 
+                                     exactly the same value.
 
            pattern NAME pattern  ... Use of a defined macro.
 
@@ -256,21 +316,7 @@ Options:
                After the wildcard replacemants, suffixes are added as for 
                ^regexp.
 
-   /g=<dot file>   Create output of dependencies in AT&T DOT format.
-         By default, DotNetArchitectureChecker tries to remove transitive
-         edges - i.e., if a uses b, b uses c, but also a uses c, then
-         the last edge is not shown. The algorithm for this will
-         sometimes choose funny edges for removal ...
 
-   /t    Show also transitive edges in DOT graph.
-
-   /i[=<N>]        For each illegal edge (i.e., edge not allowed by 
-         the dependency file), show an example of a concrete illegal 
-         dependency in the DOT graph. N is the maximum width of strings 
-         used; the default is 80. Graphs can become quite cluttered 
-         with this option.
-
-   /y    Extra debugging output.
 
 Example of a dependency file with some important dependencies (all
 using the wildcardpath syntax):

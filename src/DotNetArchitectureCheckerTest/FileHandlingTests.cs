@@ -120,15 +120,29 @@ namespace DotNetArchitectureCheckerTest {
             Assert.AreEqual(0, Run(@"-s=%%\a\b"));
         }
 
+        [TestMethod]
+        public void TestExcept() {
+            WriteDep1To(@"a\b");
+
+            int result = DotNetArchitectureCheckerMain.Main(new List<string>() {
+                    @"-s=" + _basePath + @"\a",
+                    "DotNetArchitectureCheckerTestAssembly.dll",
+                    "DotNetArchitectureCheckerTestAssemblyÄÖÜß.*",
+                    "/e",
+                    "DotNetArchitectureCheckerTestAssemblyÄÖÜß.dll",
+                }.ToArray());
+            Assert.AreEqual(0, result);
+        }
+
         private int Run(params string[] args) {
             return DotNetArchitectureCheckerMain.Main(new List<string>(args.Select(s => s.Replace("%%", _basePath))) {
                     "DotNetArchitectureCheckerTestAssembly.dll",
-                    "DotNetArchitectureCheckerTestAssemblyÄÖÜß.dll"
+                    "DotNetArchitectureCheckerTestAssemblyÄÖÜß.*"
                 }.ToArray());
         }
 
         private void WriteDep1To(string directory) {
-            Write(directory, "DotNetArchitectureCheckerTestAssembly.dll.dep", 
+            Write(directory, "DotNetArchitectureCheckerTestAssembly.dll.dep",
                 @"DotNetArchitectureCheckerTest.** ---> **
                   * ---? **
                 ");

@@ -58,11 +58,15 @@ namespace DotNetArchitectureChecker {
         public int Run() {
             int returnValue = 0;
 
-            foreach (string filePattern in _options.Assemblies) {
-                foreach (var assemblyFilename in ExpandFilename(filePattern)) {
-                    var dependencyFilename = Path.GetFileName(assemblyFilename) + ".dep";
-                    // TODO: @hmmueller: is it ok to remember the highest error code?
-                    returnValue = Math.Max(returnValue, AnalyzeAssembly(assemblyFilename, dependencyFilename));
+            foreach (var filePattern in _options.Assemblies) {
+                foreach (var assemblyFilename in filePattern.ExpandFilename()) {
+                    string extension = Path.GetExtension(assemblyFilename).ToLowerInvariant();
+                    // Only DLLs and EXEs are checked - everything else is ignored (e.g. PDBs).
+                    if (extension == ".dll" | extension == ".exe") {
+                        var dependencyFilename = Path.GetFileName(assemblyFilename) + ".dep";
+                        // We remember just the highest error code - the specific errors are in the output.
+                        returnValue = Math.Max(returnValue, AnalyzeAssembly(assemblyFilename, dependencyFilename));
+                    }
                 }
             }
 
@@ -100,40 +104,6 @@ namespace DotNetArchitectureChecker {
                 return 2;
             }
             return 0;
-        }
-
-        private static IEnumerable<string> ExpandFilename(string filename) {
-            if (filename.StartsWith("@")) {
-                using (TextReader nameFile = new StreamReader(filename.Substring(1))) {
-                    for (; ; ) {
-                        string name = nameFile.ReadLine();
-                        if (name == null) {
-                            break;
-                        }
-                        name = name.Trim();
-                        if (name != "") {
-                            yield return name;
-                        }
-                    }
-                }
-            } else if (filename.Contains("*") || filename.Contains("?")) {
-                int sepPos = filename.LastIndexOf(Path.DirectorySeparatorChar);
-
-                string dir = sepPos < 0 ? "." : filename.Substring(0, sepPos);
-                string filePattern = sepPos < 0 ? filename : filename.Substring(sepPos + 1);
-                foreach (string name in Directory.GetFiles(dir, filePattern)) {
-                    yield return name;
-                }
-            } else if (Directory.Exists(filename)) {
-                foreach (string name in Directory.GetFiles(filename, "*.dll")) {
-                    yield return name;
-                }
-                foreach (string name in Directory.GetFiles(filename, "*.exe")) {
-                    yield return name;
-                }
-            } else {
-                yield return filename;
-            }
         }
 
         /// <summary>

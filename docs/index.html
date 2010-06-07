@@ -6,14 +6,11 @@ content="text/html; charset=iso-8859-1">
 <title>.Net Architecture Checker - A Dependency Checker for .NET</title>
 </head>
 
-<body bgcolor="#FFF1CC" text="#800000" link="#FF0000"
-vlink="#008080">
-
 <p align="center">&nbsp;</p>
 
 <center>
 <h1>.Net Architecture Checker</h1>
-V.1.5 &copy; Harald M. Müller and Thomas Freudenberg</center>
+V.1.7 &copy; Harald M. Müller and Thomas Freudenberg</center>
 
 <a href="#overview">Overview</a><br>
 <a href="#usedsw">Used Software</a><br>
@@ -61,15 +58,15 @@ Prerequisites:
 
 Steps:
 <ul>
-<li> Download the ZIP file DotNetArchitectureChecker1.3.zip from Sourceforge at <a href=https://sourceforge.net/projects/dotnetarchitect>https://sourceforge.net/projects/dotnetarchitect</a>.
-<li> Unzip the file. If unzipped into C:, the files will be in C:\DotNetArchitectureChecker1.3\.
+<li> Download the ZIP file DotNetArchitectureChecker1.7.zip from Sourceforge at <a href=https://sourceforge.net/projects/dotnetarchitect>https://sourceforge.net/projects/dotnetarchitect</a>.
+<li> Unzip the file. If unzipped into C:, the files will be in C:\DotNetArchitectureChecker1.7\.
 <li> Optional: Add the unzip location (e.g. C:\dotnetarchitect\) to your path.
 </ul>
 
 <h3>Installation of sources</h3>
 
 <ul>
-<li> Download the ZIP file DotNetArchitectureChecker1.3-src.zip from Sourceforge at <a href=https://sourceforge.net/projects/dotnetarchitect>https://sourceforge.net/projects/dotnetarchitect</a>.
+<li> Download the ZIP file DotNetArchitectureChecker1.7-src.zip from Sourceforge at <a href=https://sourceforge.net/projects/dotnetarchitect>https://sourceforge.net/projects/dotnetarchitect</a>.
 <li> Unzip the file.
 <li> Open DotNetArchitectureCheckerAll.sln in the src directory.
 </ul>
@@ -123,24 +120,20 @@ The complete usage of .Net Architecture Checker is explained here:
 
 <pre>
 Usage:
-   DotNetArchitectureChecker [options] [&lt;assemblyname&gt; | @&lt;file with assemblyname in it&gt;] ...
+   DotNetArchitectureChecker [&lt;option&gt; ...] [&lt;assemblyfilespec&gt; ...]
 
 Typical uses:
 
-* Check dependencies in My.DLL:
-      DotNetArchitectureChecker /x=MyDependencies.dep My.dll
+* Check dependencies in My.DLL; My.dll.dep is somewhere below SourceDir:
+      DotNetArchitectureChecker /s=SourceDir My.dll
 
 * Produce graph of dependencies in My.DLL:
-      DotNetArchitectureChecker /x=MyDependencies.dep My.DLL /g=My.dot
+      DotNetArchitectureChecker /s=SourceDir My.DLL /g=My.dot
       dot -Tgif -oMy.gif My.dot
 
 All messages of DotNetArchitectureChecker are written to Console.Out.
 
 Options:
-   /v    Verbose. Shows regular expressions used for checking and 
-         all checked dependencies. Attention: Place /v BEFORE any
-         /d, /s, or /x option to see the regular expressions.
-
    /d=&lt;directory&gt;    For each assembly file A.dll, look for corresponding 
          rule file A.dll.dep in this directory (multiple /d options are 
          supported). This is especially useful with + lines.
@@ -152,9 +145,51 @@ Options:
          via /s and /d options. This is also useful if no /s and /d options
          are specified.
 
-   RULE FILES:
-         Rule files contain one per line.
-         The following lines are supported:
+   /g=&lt;dot file&gt;   Create output of dependencies in AT&T DOT format.
+         By default, DotNetArchitectureChecker tries to remove transitive
+         edges - i.e., if a uses b, b uses c, but also a uses c, then
+         the last edge is not shown. The algorithm for this will
+         sometimes choose funny edges for removal ...
+
+   /t    Show also transitive edges in DOT graph.
+
+   /i[=&lt;N&gt;]        For each illegal edge (i.e., edge not allowed by 
+         the dependency file), show an example of a concrete illegal 
+         dependency in the DOT graph. N is the maximum width of strings 
+         used; the default is 80. Graphs can become quite cluttered 
+         with this option.
+
+   /v    Verbose. Shows regular expressions used for checking and 
+         all checked dependencies. Attention: Place /v BEFORE any
+         /d, /s, or /x option to see the regular expressions.
+         Produces lots of output.
+
+   /y    Even more debugging output.
+
+   /debug   Start with debugger.
+
+Assemblyspecs - one of the following:
+    
+    simplefilename      the assembly is checked.
+                        e.g. ProjectDir\bin\MyProject.Main.dll
+
+    filepattern         all matching assemblies are checked.
+                        e.g. bin\MyProject.*.dll 
+
+    directory           all .DLL and .EXE files in the directory are checked.
+                        e.g. MyProject\bin\Debug
+
+    @filename           lines are read as assembly filenames and checked.
+                        The file may contain empty lines, which are ignored.
+                        e.g. @MyListOfFiles.txt
+
+    &lt;one of the above&gt; /e &lt;one of the above&gt;            
+                        The files after the /e are excluded from checking.
+                        e.g. MyProject.*.dll /e *.vshost.*
+
+Rules files:
+         Rule files contain rule definition commands.
+         The following commands are supported:
 
            empty line            ... ignored
            // comment            ... ignored
@@ -174,6 +209,9 @@ Options:
                                      abbreviations. Abbreviation processing
                                      is done before all reg.exp. replacements
                                      described below.
+                                     If an abbreviation definition for the 
+                                     same name is encountered twice, it must
+                                     define exactly the same value.
 
            pattern ---&gt; pattern  ... allowed dependency. The second
                                      pattern may contain back-references
@@ -202,6 +240,15 @@ Options:
                                      use. NAME need not consist of letters
                                      only; also names like ===&gt;, :::&gt;, +++&gt;
                                      etc. are allowed and quite useful.
+                                     However, names must not be "too
+                                     similar": If repeated characters are
+                                     are replaced with a single one, they must
+                                     still be different; hence, ===&gt; and ====&gt;
+                                     are "too similar" and lead to an error.
+                                     As with abbreviations, if a macro 
+                                     definition for the same name is 
+                                     encountered twice, it must define 
+                                     exactly the same value.
 
            pattern NAME pattern  ... Use of a defined macro.
 
@@ -250,21 +297,7 @@ Options:
                After the wildcard replacemants, suffixes are added as for 
                ^regexp.
 
-   /g=&lt;dot file&gt;   Create output of dependencies in AT&T DOT format.
-         By default, DotNetArchitectureChecker tries to remove transitive
-         edges - i.e., if a uses b, b uses c, but also a uses c, then
-         the last edge is not shown. The algorithm for this will
-         sometimes choose funny edges for removal ...
 
-   /t    Show also transitive edges in DOT graph.
-
-   /i[=&lt;N&gt;]        For each illegal edge (i.e., edge not allowed by 
-         the dependency file), show an example of a concrete illegal 
-         dependency in the DOT graph. N is the maximum width of strings 
-         used; the default is 80. Graphs can become quite cluttered 
-         with this option.
-
-   /y    Extra debugging output.
 
 Example of a dependency file with some important dependencies (all
 using the wildcardpath syntax):
@@ -778,6 +811,16 @@ or, preferably,
 <p>2. Make .Net Architecture Checker multi-threaded to increase performance on multi-core and multi-processor machines.</p>
 
 <h2><a name="relnotes">Release Notes</a></h2>
+
+<h3>1.7 (2010-06-07)</h3>
+<ul>
+<li>Only .DLL and .EXEs are checked; and /e option for exclusion of files.</li>
+</ul>
+
+<h3>1.6 (2010-05-10)</h3>
+<ul>
+<li>Changes for MS build usage.</li>
+</ul>
 
 <h3>1.5 (2010-05-10)</h3>
 <ul>
