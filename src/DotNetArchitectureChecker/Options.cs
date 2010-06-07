@@ -139,7 +139,7 @@ namespace DotNetArchitectureChecker {
             Console.Out.WriteLine(
                 @"
 Usage:
-   DotNetArchitectureChecker [<option> ...] [<assemblyspec>] ...
+   DotNetArchitectureChecker [<option> ...] [<assemblyfilespec> ...]
 
 Typical uses:
 
