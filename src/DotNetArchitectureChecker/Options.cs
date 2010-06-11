@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 
 namespace DotNetArchitectureChecker {
     public class Options {
@@ -27,19 +26,19 @@ namespace DotNetArchitectureChecker {
         /// If not null, show a concrete dependency 
         /// for each illegal edge.
         /// </value>
-        public int? StringLengthForIllegalEdges { get; private set; }
+        public int? StringLengthForIllegalEdges { get; set; }
 
-        public bool ShowUnusedQuestionableRules { get; private set; }
+        public bool ShowUnusedQuestionableRules { get; set; }
 
         /// <value>
         /// Mark output of <c>DependencyGrapher</c>
         /// as verbose.
         /// </value>
-        public bool Verbose { get; private set; }
+        public bool Verbose { get; set; }
 
-        public bool Debug { get; private set; }
+        public bool Debug { get; set; }
 
-        public DependencyRuleSet DefaultRuleSet { get; private set; }
+        public DependencyRuleSet DefaultRuleSet { get; set; }
 
         public List<AssemblyOption> Assemblies {
             get { return _assemblies; }

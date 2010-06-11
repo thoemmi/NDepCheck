@@ -4,6 +4,9 @@ namespace DotNetArchitectureChecker {
     internal class ConsoleLogger : ILogger {
         #region ILogger Members
 
+        public void StartProcessingAssembly(string assemblyFilename) {
+        }
+
         public void WriteError(string msg) {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Out.WriteLine("**** " + msg);

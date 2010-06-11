@@ -77,7 +77,7 @@ namespace DotNetArchitectureChecker {
             }
         }
 
-        internal static DependencyRuleSet Create(DirectoryInfo relativeRoot,
+        public static DependencyRuleSet Create(DirectoryInfo relativeRoot,
                 string rulefilename,
                 bool verbose) {
             return Create(relativeRoot, rulefilename,
@@ -100,7 +100,7 @@ namespace DotNetArchitectureChecker {
                 try {
                     long start = Environment.TickCount;
                     result = new DependencyRuleSet(fullRuleFilename, defines, macros, verbose);
-                    DotNetArchitectureCheckerMain.WriteInfo("Completed reading " + fullRuleFilename + " in " +
+                    DotNetArchitectureCheckerMain.WriteDebug("Completed reading " + fullRuleFilename + " in " +
                                                             (Environment.TickCount - start) + " ms");
                     _fullFilename2RulesetCache.Add(fullRuleFilename, result);
                 } catch (FileNotFoundException) {

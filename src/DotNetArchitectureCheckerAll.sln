@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNetArchitectureCheckerTe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNetArchitectureCheckerTestAssemblyÄÖÜß", "DotNetArchitectureCheckerTestAssemblyÄÖÜß\DotNetArchitectureCheckerTestAssemblyÄÖÜß.csproj", "{724AFB8E-E89C-4864-B9E1-274D177524FA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNetArchitectureChecker.MSBuild", "DotNetArchitectureChecker.MSBuild\DotNetArchitectureChecker.MSBuild.csproj", "{A327E6E5-768A-4C1D-9C3C-F04345A6CF57}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,6 +33,10 @@ Global
 		{724AFB8E-E89C-4864-B9E1-274D177524FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{724AFB8E-E89C-4864-B9E1-274D177524FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{724AFB8E-E89C-4864-B9E1-274D177524FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A327E6E5-768A-4C1D-9C3C-F04345A6CF57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A327E6E5-768A-4C1D-9C3C-F04345A6CF57}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A327E6E5-768A-4C1D-9C3C-F04345A6CF57}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A327E6E5-768A-4C1D-9C3C-F04345A6CF57}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

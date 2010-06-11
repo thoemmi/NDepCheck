@@ -56,6 +56,8 @@ namespace DotNetArchitectureChecker {
         /// accepted arguments. 
         /// </summary>
         public int Run() {
+            System.Text.RegularExpressions.Regex.CacheSize = 1024;
+
             int returnValue = 0;
 
             foreach (var filePattern in _options.Assemblies) {
@@ -76,6 +78,7 @@ namespace DotNetArchitectureChecker {
         private int AnalyzeAssembly(string assemblyFilename, string dependencyFilename) {
             try {
                 WriteInfo("Analyzing " + assemblyFilename);
+                Logger.StartProcessingAssembly(Path.GetFileName(assemblyFilename));
 
                 DependencyRuleSet ruleSetForAssembly =
                     DependencyRuleSet.Load(dependencyFilename, _options.Directories, _options.Verbose)
