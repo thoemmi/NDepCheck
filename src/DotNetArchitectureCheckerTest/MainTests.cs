@@ -95,6 +95,8 @@ _TESTS.** ---> Microsoft.VisualStudio.TestTools.**
     // current test class.
 DotNetArchitectureCheckerTest.UnitTests ---> **
 
+// ------------------
+
     // All of system is ignored
 % ()System.**
 
@@ -128,7 +130,7 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
 
         [TestMethod]
         public void SmallGrapherTest() {
-            var rs = new DependencyRuleSet(true);
+            var rs = new DependencyRuleSet(true, true);
             rs.AddGraphAbstractions("<test>", 0, "% (**)");
 
             var options = new Options {
@@ -156,7 +158,7 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
 
         [TestMethod]
         public void TransitiveReductionGrapherTest() {
-            var rs = new DependencyRuleSet(true);
+            var rs = new DependencyRuleSet(true, true);
             rs.AddGraphAbstractions("<test>", 0, "% (**)");
 
             var options = new Options {
@@ -194,6 +196,26 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
                     DotNetArchitectureCheckerTest.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForDotNetArchitectureChecker::I
                     * ---? System.*
                 ");
+                }
+                Assert.AreEqual(0, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, "DotNetArchitectureCheckerTestAssembly.dll" }));
+                File.Delete(depFile);
+            }
+        }
+
+        [TestMethod]
+        public void Exit0Aspects() {
+            {
+                string depFile = Path.GetTempFileName();
+                using (TextWriter tw = new StreamWriter(depFile)) {
+                    tw.Write(@"
+                    ** ---> **
+
+                    // Schlägt fehlt, weil eine SpecialMethod auch auf YetAnotherMethod zugreift!
+                    **::*SpecialMethod* {
+                        ---> System.*
+                        ---> **::*SpecialMethod*
+                    }
+                    ");
                 }
                 Assert.AreEqual(0, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, "DotNetArchitectureCheckerTestAssembly.dll" }));
                 File.Delete(depFile);
@@ -270,13 +292,38 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
                     ** ---> blabla
                 ");
                 }
-                Assert.AreEqual(3, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, "DotNetArchitectureCheckerTestAssembly.dll" }));
+                Assert.AreEqual(3,
+                                DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, "DotNetArchitectureCheckerTestAssembly.dll" }));
                 File.Delete(depFile);
             }
             {
                 string depFile = Path.GetTempFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write("");
+                }
+                Assert.AreEqual(3,
+                                DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, "DotNetArchitectureCheckerTestAssembly.dll" }));
+                File.Delete(depFile);
+            }
+        }
+
+        [TestMethod]
+        public void Exit3Aspects() {
+            {
+                string depFile = Path.GetTempFileName();
+                using (TextWriter tw = new StreamWriter(depFile)) {
+                    tw.Write(@"
+                    DotNetArchitectureCheckerTest.** ---> DotNetArchitectureCheckerTest.**
+                    DotNetArchitectureCheckerTest.** ---> System.**
+                    DotNetArchitectureCheckerTest.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForDotNetArchitectureChecker::I
+                    * ---? System.*
+
+                    // Schlägt fehlt, weil eine SpecialMethod auch auf YetAnotherMethod zugreift!
+                    **::*SpecialMethod* {
+                        ---> System.*
+                        ---> **::*SpecialMethod*
+                    }
+                    ");
                 }
                 Assert.AreEqual(3, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, "DotNetArchitectureCheckerTestAssembly.dll" }));
                 File.Delete(depFile);

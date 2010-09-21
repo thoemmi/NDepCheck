@@ -74,7 +74,7 @@ namespace DotNetArchitectureChecker {
                     if (DefaultRuleSet != null) {
                         return UsageAndExit("Only one default rule set can be specified with " + arg);
                     }
-                    DefaultRuleSet = DependencyRuleSet.Create(new DirectoryInfo("."), filename, Verbose);
+                    DefaultRuleSet = DependencyRuleSet.Create(new DirectoryInfo("."), filename, Verbose, Debug);
                     if (DefaultRuleSet == null) {
                         return 2;
                     }
@@ -249,6 +249,15 @@ Rules files:
                                      in place for pragmatic reasons (only
                                      for some time, it is hoped).
 
+           pattern {             ... aspect rule set. All dependencies whose
+               --->,                 left side matches the pattern must
+               ---?, and             additionally match one of the rules.
+               ---! rules            This is very useful for defining
+           }                         partial rule sets that are orthogonal to
+                                     the global rules (which must describe
+                                     all dependencies in the checked
+                                     assemblies).
+
            NAME :=
                <arbitrary lines except =:>
            =:                    ... definition of a rule macro. The
@@ -316,6 +325,16 @@ Rules files:
                ^regexp.
 
 
+Exit codes:
+   0    All dependencies ok (including questionable rules).
+   1    Usage error.
+   2    Cannot load dependency file (syntax error or file not found).
+   3    Dependencies not ok.
+   4    Assembly file specified as argument not found.
+   5    Other exception.
+   6    No dependency file found for an assembly in /d and /s 
+        directories, and /x not specified.
+
 
 Example of a dependency file with some important dependencies (all
 using the wildcardpath syntax):
@@ -347,6 +366,14 @@ using the wildcardpath syntax):
    // All MyProgram classes may use classes from antlr.
         ALL ---> antlr.**
 
+   // Special methods must only call special methods
+   // and getters and setters.
+   **::*SpecialMethod* {
+      ** ---> **::*SpecialMethod*
+      ** ---> **::get_*
+      ** ---> **::set_
+   }
+
    // In DAG output, identify each object by its path (i.e.
    // namespace).
         % (**).*
@@ -357,16 +384,6 @@ using the wildcardpath syntax):
    // Classes in System.* are identified by the empty group, i.e.,
    // they (and arrows reaching them) are not shown at all.
         % ()System.**
-
-Exit codes:
-   0    All dependencies ok (including questionable rules).
-   1    Usage error.
-   2    Cannot load dependency file (syntax error or file not found).
-   3    Dependencies not ok.
-   4    Assembly file specified as argument not found.
-   5    Other exception.
-   6    No dependency file found for an assembly in /d and /s 
-        directories, and /x not specified.
             ");
             return 1;
         }

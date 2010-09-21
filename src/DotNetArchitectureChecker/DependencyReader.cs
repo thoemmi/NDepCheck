@@ -180,6 +180,11 @@ namespace DotNetArchitectureChecker {
                                                                   Instruction instruction, SequencePoint sequencePoint) {
             var methodReference = instruction.Operand as MethodReference;
 
+            // Durch die !IsLinked-Bedingung wird der Test MainTests.Exit0Aspects mit den Calls
+            // zwischen Nested-Klassen in DotNetArchitectureCheckerTests.cs - Klasse Class14.Class13EInner2, Methode SpecialMethodOfInnerClass
+            // rot: Weil die Calls zwischen der Class14 und der Nested Class wegen IsLinked==true hier einfach ausgefiltert
+            // werden ...
+            // WIESO SOLL DAS SO SEIN? - bitte um Erklärung!
             if (methodReference != null && !IsLinked(methodReference.DeclaringType, owner)) {
                 foreach (
                     Dependency dependency in
@@ -246,11 +251,7 @@ namespace DotNetArchitectureChecker {
             return ti;
         }
 
-        private static FullNameToken GetFullnameToken(TypeReference typeReference) {
-            return GetFullnameToken(typeReference, null);
-        }
-
-        private static FullNameToken GetFullnameToken(TypeReference typeReference, string methodName) {
+        private static FullNameToken GetFullnameToken(TypeReference typeReference, string methodName = null) {
             TypeInfo ti = GetTypeInfo(typeReference);
             string namespaceName = ti.NamespaceName;
             string className = ti.ClassName;

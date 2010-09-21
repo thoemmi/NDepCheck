@@ -64,6 +64,12 @@ _TESTS.** ---> DotNetArchitectureChecker.**
     // Tests may use Microsoft.VisualStudio.TestTools.
 _TESTS.** ---> Microsoft.VisualStudio.TestTools.**
 
+**::*SpecialMethod* {
+    ** ---> **::*SpecialMethod*
+    ---> **::get_*
+    ---> **::set_
+}
+
 // ------------------
 
     // In these tests, we ignore everything in the

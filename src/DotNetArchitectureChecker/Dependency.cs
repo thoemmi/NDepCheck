@@ -131,14 +131,7 @@ namespace DotNetArchitectureChecker {
         /// </summary>
         /// <returns></returns>
         public string IllegalMessage() {
-            string message = "Illegal dependency " + _usingItem + " ---> " + _usedItem;
-            //if (_fileName != "") {
-            //    message += "\r\n    (probably at " + _fileName;
-            //    if (_lineNumber > 0)
-            //        message += ":" + _lineNumber;
-            //    message += ")";
-            //}
-            return message;
+            return "Illegal dependency " + _usingItem + " ---> " + _usedItem;
         }
     }
 }

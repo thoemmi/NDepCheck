@@ -23,9 +23,7 @@ namespace DotNetArchitectureChecker {
         /// <summary>
         /// Create the graph for all dependencies passed in.
         /// </summary>
-        private void Graph(IEnumerable<GraphAbstraction> graphAbstractions, List<DependencyRule> allowed,
-                           List<DependencyRule> questionable,
-                           List<DependencyRule> forbidden,
+        private void Graph(IEnumerable<GraphAbstraction> graphAbstractions, IEnumerable<DependencyRuleGroup> ruleGroups,
                            IEnumerable<Dependency> dependencies) {
             if (_options.DotFilename != null) {
                 var nodes = new Dictionary<string, Node>();
@@ -35,10 +33,7 @@ namespace DotNetArchitectureChecker {
                 // group from each regexp match and put it
                 // into edgeToLabel and n.odes
                 foreach (Dependency d in dependencies) {
-                    ComputeDependencyEdge(graphAbstractions, allowed,
-                                          questionable,
-                                          forbidden,
-                                          d, nodes);
+                    ComputeDependencyEdge(graphAbstractions, ruleGroups, d, nodes);
                 }
 
                 // Second pass: Remove transitive
@@ -79,9 +74,8 @@ namespace DotNetArchitectureChecker {
             return s;
         }
 
-        private void ComputeDependencyEdge(IEnumerable<GraphAbstraction> graphAbstractions, List<DependencyRule> allowed,
-                                           List<DependencyRule> questionable,
-                                           List<DependencyRule> forbidden,
+        private void ComputeDependencyEdge(IEnumerable<GraphAbstraction> graphAbstractions, 
+            IEnumerable<DependencyRuleGroup> ruleSet,
                                            Dependency d, Dictionary<string, Node> nodes) {
             string usingMatch = null;
             string usedMatch = null;
@@ -106,7 +100,7 @@ namespace DotNetArchitectureChecker {
             } else if (usingMatch == "" || usedMatch == "") {
                 // ignore this edge!
             } else {
-                bool isOk = _checker.Check(allowed, questionable, forbidden, d);
+                bool isOk = _checker.Check(ruleSet, new List<Dependency> {d}, false);
 
                 // Filter out loops that are ok - they are not shown.
                 // All other edges (non-loops; and non-ok loops) are shown.
@@ -176,13 +170,8 @@ namespace DotNetArchitectureChecker {
         public void Graph(DependencyRuleSet ruleSet, IEnumerable<Dependency> dependencies) {
             var graphAbstractions = new List<GraphAbstraction>();
             ruleSet.ExtractGraphAbstractions(graphAbstractions);
-
-            var allowed = new List<DependencyRule>();
-            var questionable = new List<DependencyRule>();
-            var forbidden = new List<DependencyRule>();
-            ruleSet.ExtractDependencyRules(allowed, questionable, forbidden);
-
-            Graph(graphAbstractions, allowed, questionable, forbidden, dependencies);
+            var x = ruleSet.ExtractDependencyGroups();
+            Graph(graphAbstractions, x, dependencies);
         }
 
         #region Nested type: Edge

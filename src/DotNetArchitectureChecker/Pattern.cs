@@ -11,7 +11,7 @@ namespace DotNetArchitectureChecker {
     /// extend regular expression in four ways (not at all,
     /// inner classes, methods, and methods of inner classes).
     /// </remarks>
-    internal abstract class Pattern {
+    public abstract class Pattern {
 
         // The question mark at the end seems to be necessary when a mal-formed UTF8 file (emitted
         // from  under Vista) is read.
@@ -21,7 +21,7 @@ namespace DotNetArchitectureChecker {
 
         protected const string ASTERISK_ESCAPE = "@#@"; // needed so that we can do a few replacements with *
         protected const string ASTERISK_ABBREV = "...";
-        protected const string IDENT_ESCAPED = "(?:<[" + INNER_LETTER + "={}\\-\\$.<>]" + ASTERISK_ESCAPE + "|[{" + LETTER + "\\$][>" + INNER_LETTER + "={}\\-\\$]" + ASTERISK_ESCAPE + ")";
+        protected const string IDENT_ESCAPED = "(?:<[" + INNER_LETTER + "={}\\-\\$.<>]" + ASTERISK_ESCAPE + "|[{" + INNER_LETTER + "\\$][>" + INNER_LETTER + "={}\\-\\$]" + ASTERISK_ESCAPE + ")";
         // <> is for generic inner classes like XTPlus.Framework.Common.BidirectionalCollections.BiList/<>c__DisplayClass2
         // {}=- is for <PrivateImplementationDetails>{935F4626-4085-4FB6-8006-FFE32E60A3DA}/__StaticArrayInitTypeSize=12
         protected const string PATH_ESCAPED = IDENT_ESCAPED + "(?:[.]" + IDENT_ESCAPED + ")" + ASTERISK_ESCAPE;
@@ -29,6 +29,8 @@ namespace DotNetArchitectureChecker {
 
         protected static readonly string IDENT_NONESCAPED = IDENT_ESCAPED.Replace(ASTERISK_ESCAPE, "*");
         protected const string METHODNAME_NONESCAPED = "[<>." + LETTER + "_\\$][<>" + INNER_LETTER + ".\\$\\-,]" + "*";
+        protected static readonly string OPTIONAL_NESTED_CLASSES = "(?:" + IDENT_NONESCAPED + "(?:/" + IDENT_NONESCAPED + ")*)?";
+
         // leading . is for ::.ctor
         // inner . and $ are e.g. for antlr.CommonHiddenStreamToken::IToken.getColumn$PST060001A3
         // <> is for generic delegate methods like ::<>9__CachedAnonymousMethodDelegate1
@@ -45,7 +47,7 @@ namespace DotNetArchitectureChecker {
         protected static List<string> Expand(string pattern) {
             if (pattern.StartsWith("^")) {
                 if (pattern.EndsWith("$")) {
-                    return new List<string> {pattern};
+                    return new List<string> { pattern };
                 } else {
                     return ExpandWithSuffixes(pattern);
                 }
@@ -86,9 +88,13 @@ namespace DotNetArchitectureChecker {
             if (!pattern.Contains("::")) {
                 expanded.Add(pattern + "::" + METHODNAME_NONESCAPED + "$");
                 if (!pattern.Contains("/")) {
-                    string exForSubclasses = pattern + "(/" + IDENT_NONESCAPED + ")+";
+                    string exForSubclasses = pattern + OPTIONAL_NESTED_CLASSES;
                     expanded.Add(exForSubclasses + "$");
                     expanded.Add(exForSubclasses + "::" + METHODNAME_NONESCAPED + "$");
+                }
+            } else {
+                if (!pattern.Contains("/")) {
+                    expanded.Add(pattern.Replace("::", OPTIONAL_NESTED_CLASSES + "::"));
                 }
             }
             return expanded;

@@ -42,7 +42,7 @@ namespace DotNetArchitectureChecker.MSBuild {
                 .AddTo(options.Assemblies);
 
             if (DefaultRuleSet != null) {
-                options.DefaultRuleSet = DependencyRuleSet.Create(new DirectoryInfo("."), DefaultRuleSet.ItemSpec, true);
+                options.DefaultRuleSet = DependencyRuleSet.Create(new DirectoryInfo("."), DefaultRuleSet.ItemSpec, true, false);
             }
             if (Directories != null) {
                 Directories

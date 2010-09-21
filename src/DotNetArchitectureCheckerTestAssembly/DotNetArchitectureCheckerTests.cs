@@ -165,6 +165,14 @@ namespace DotNetArchitectureCheckerTest.dir1.dir2 {
         public ISomeInterface YetAnotherMethod(ISomeInterface s) {
             return s;
         }
+
+        public void SomeSpecialMethod1() {
+            SomeSpecialMethod2();
+        }
+
+        public void SomeSpecialMethod2() {
+            YetAnotherMethod(null);
+        }
     }
 }
 
@@ -176,9 +184,22 @@ namespace DotNetArchitectureCheckerTest.dir1.dir4 {
             public int InnerClassMethod() {
                 return Class13E.Class13EInner.InnerClassMethod();
             }
+
+            public static void SpecialMethodOfInnerClass() {
+                SomeSpecialMethod1();
+                NonspecialMethod1();
+            }
         }
 
         #endregion
+
+        public static void SomeSpecialMethod1() {
+            Class13EInner2.SpecialMethodOfInnerClass();
+        }
+
+        public static void NonspecialMethod1() {
+            Class13EInner2.SpecialMethodOfInnerClass();
+        }
     }
 }
 

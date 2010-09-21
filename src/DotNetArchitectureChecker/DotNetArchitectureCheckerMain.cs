@@ -81,7 +81,7 @@ namespace DotNetArchitectureChecker {
                 Logger.StartProcessingAssembly(Path.GetFileName(assemblyFilename));
 
                 DependencyRuleSet ruleSetForAssembly =
-                    DependencyRuleSet.Load(dependencyFilename, _options.Directories, _options.Verbose)
+                    DependencyRuleSet.Load(dependencyFilename, _options.Directories, _options.Verbose, _options.Debug)
                     ?? _options.DefaultRuleSet;
                 if (ruleSetForAssembly == null) {
                     WriteError(dependencyFilename +
@@ -89,8 +89,9 @@ namespace DotNetArchitectureChecker {
                     return 6;
                 } else {
                     try {
-                        IEnumerable<Dependency> dependencies = DependencyReader.GetDependencies(assemblyFilename);
-                        bool success = _checker.Check(ruleSetForAssembly, dependencies, _options.ShowUnusedQuestionableRules);
+                       IEnumerable<Dependency> dependencies = DependencyReader.GetDependencies(assemblyFilename);
+                        IEnumerable<DependencyRuleGroup> groups = ruleSetForAssembly.ExtractDependencyGroups();
+                        bool success = _checker.Check(groups, dependencies, _options.ShowUnusedQuestionableRules);
                         if (!success) {
                             return 3;
                         }

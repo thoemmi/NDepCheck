@@ -13,7 +13,7 @@ namespace DotNetArchitectureChecker {
     /// expression, which allows back-references
     /// (like \1) between the using and the used
     /// item.</remarks>
-    internal class DependencyRule : Pattern /*, IComparable*/ {
+    internal class DependencyRule : Pattern {
         private readonly DependencyRuleRepresentation _rep;
         private readonly IRuleMatch _ruleMatch;
         private int _hitCount;
@@ -33,7 +33,7 @@ namespace DotNetArchitectureChecker {
         public bool IsSameAs(DependencyRule rule) {
             return _ruleMatch.Equals(rule._ruleMatch);
         }
-        
+
         /// <summary>
         /// Factory method for Dependency objects. Each
         /// of the two patterns can be either a "wildcard pattern",
@@ -42,12 +42,11 @@ namespace DotNetArchitectureChecker {
         /// $).
         /// </summary>
         /// <param name="usingItemPattern">Pattern for the "user" side
-        /// of a dependency.</param>
+        ///   of a dependency.</param>
         /// <param name="usedItemPattern">Pattern for the "used" side
-        /// of a dependency.</param>
+        ///   of a dependency.</param>
         /// <param name="rep">Visible representation of this rule.</param>
-        public static List<DependencyRule> CreateDependencyRules(string usingItemPattern, string usedItemPattern,
-                                                                 DependencyRuleRepresentation rep) {
+        public static List<DependencyRule> CreateDependencyRules(string usingItemPattern, string usedItemPattern, DependencyRuleRepresentation rep) {
             var result = new List<DependencyRule>();
             if (SameNamespaceRule.Accepts(usingItemPattern, usedItemPattern)) {
                 result.Add(new DependencyRule(new SameNamespaceRule(), rep));
@@ -63,6 +62,10 @@ namespace DotNetArchitectureChecker {
                 List<string> expandedUsingItemRegexs = Expand(usingItemPattern);
                 result.AddRange(
                     expandedUsingItemRegexs.Select(er => new DependencyRule(new GeneralAnyRule(er, usingItemPattern), rep)));
+            } else if (AnyGeneralRule.Accepts(usingItemPattern)) {
+                List<string> expandedUsedItemRegexs = Expand(usedItemPattern);
+                result.AddRange(
+                    expandedUsedItemRegexs.Select(er => new DependencyRule(new AnyGeneralRule(er, usedItemPattern), rep)));
             } else if (GeneralClassWithoutBackrefRule.Accepts(usingItemPattern, usedItemPattern)) {
                 result.Add(new DependencyRule(new GeneralClassWithoutBackrefRule(usingItemPattern, usedItemPattern), rep));
             } else if (GeneralPrefixRule.Accepts(usingItemPattern, usedItemPattern)) {
@@ -227,6 +230,49 @@ namespace DotNetArchitectureChecker {
 
             public static bool Accepts(string usedItemPattern) {
                 return usedItemPattern.Trim() == "**";
+            }
+        }
+
+        #endregion
+
+        #region Nested type: GeneralAnyRule
+
+        private class AnyGeneralRule : AbstractRuleMatch {
+            private readonly string _rex;
+            private readonly string _usedFixedPrefix;
+
+            public AnyGeneralRule(string usedItemRegex, string usedItemPattern) {
+                string pattern = usedItemRegex.Trim();
+                _rex = pattern;
+
+                _usedFixedPrefix = GetPrefix(usedItemPattern);
+            }
+
+            public override bool Equals(object obj) {
+                return obj is AnyGeneralRule
+                    && ((AnyGeneralRule)obj)._rex.Equals(_rex)
+                    && ((AnyGeneralRule)obj)._usedFixedPrefix == _usedFixedPrefix;
+            }
+
+            public override int GetHashCode() {
+                return _rex.GetHashCode() ^ _usedFixedPrefix.GetHashCode();
+            }
+
+            public override bool Matches(Dependency d) {
+                if (d.UsedItem.StartsWith(_usedFixedPrefix)) {
+                    string check = d.UsedItem;
+                    return Regex.IsMatch(check, _rex);
+                } else {
+                    return false;
+                }
+            }
+
+            public override string ToString() {
+                return "AnyGeneralRule: ~~~ --->  {" + _usedFixedPrefix + "~~~} " + _rex;
+            }
+
+            public static bool Accepts(string usingItemPattern) {
+                return usingItemPattern.Trim() == "**";
             }
         }
 

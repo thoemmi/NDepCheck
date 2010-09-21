@@ -44,10 +44,8 @@ namespace DotNetArchitectureChecker {
 
         private static readonly IDictionary<string, DependencyRuleSet> _fullFilename2RulesetCache = new Dictionary<string, DependencyRuleSet>();
 
-        private readonly List<DependencyRule> _allowed = new List<DependencyRule>();
-        private readonly List<DependencyRule> _questionable = new List<DependencyRule>();
-        private readonly List<DependencyRule> _forbidden = new List<DependencyRule>();
-        private readonly List<DependencyRuleRepresentation> _representations = new List<DependencyRuleRepresentation>();
+        private readonly List<DependencyRuleGroup> _ruleGroups = new List<DependencyRuleGroup>();
+        private readonly DependencyRuleGroup _mainRuleGroup;
 
         private readonly List<GraphAbstraction> _graphAbstractions = new List<GraphAbstraction>();
 
@@ -57,31 +55,47 @@ namespace DotNetArchitectureChecker {
         private readonly SortedDictionary<string, string> _defines = new SortedDictionary<string, string>(new LengthComparer());
 
         private readonly bool _verbose;
+        private readonly bool _debug;
 
         /// <summary>
         /// Constructor for test cases.
         /// </summary>
-        public DependencyRuleSet(bool verbose) {
+        public DependencyRuleSet(bool verbose, bool debug) {
             _verbose = verbose;
+            _debug = debug;
+            _mainRuleGroup = new DependencyRuleGroup("");
+            _ruleGroups.Add(_mainRuleGroup);
         }
 
         private DependencyRuleSet(string fullRuleFilename,
                     IDictionary<string, string> defines,
                     IDictionary<string, Macro> macros,
-                    bool verbose) {
-            _verbose = verbose;
+                    bool verbose, bool debug)
+            : this(verbose, debug) {
             _defines = new SortedDictionary<string, string>(defines, new LengthComparer());
             _macros = new SortedDictionary<string, Macro>(macros, new LengthComparer());
-            if (!LoadRules(fullRuleFilename, verbose)) {
+            if (!LoadRules(fullRuleFilename, verbose, debug)) {
                 throw new ApplicationException("Could not load rules from " + fullRuleFilename);
+            }
+        }
+
+        public bool Verbose {
+            get {
+                return _verbose;
+            }
+        }
+
+        public bool Debug {
+            get {
+                return _debug;
             }
         }
 
         public static DependencyRuleSet Create(DirectoryInfo relativeRoot,
                 string rulefilename,
-                bool verbose) {
+                bool verbose, bool debug) {
             return Create(relativeRoot, rulefilename,
-            new Dictionary<string, string>(), new Dictionary<string, Macro>(), verbose);
+            new Dictionary<string, string>(), new Dictionary<string, Macro>(), verbose, debug);
         }
 
 
@@ -93,13 +107,13 @@ namespace DotNetArchitectureChecker {
                         string rulefilename,
                         IDictionary<string, string> defines,
                         IDictionary<string, Macro> macros,
-                        bool verbose) {
+                        bool verbose, bool debug) {
             string fullRuleFilename = Path.Combine(relativeRoot.FullName, rulefilename);
             DependencyRuleSet result;
             if (!_fullFilename2RulesetCache.TryGetValue(fullRuleFilename, out result)) {
                 try {
                     long start = Environment.TickCount;
-                    result = new DependencyRuleSet(fullRuleFilename, defines, macros, verbose);
+                    result = new DependencyRuleSet(fullRuleFilename, defines, macros, verbose, debug);
                     DotNetArchitectureCheckerMain.WriteDebug("Completed reading " + fullRuleFilename + " in " +
                                                             (Environment.TickCount - start) + " ms");
                     _fullFilename2RulesetCache.Add(fullRuleFilename, result);
@@ -116,16 +130,17 @@ namespace DotNetArchitectureChecker {
         /// <summary>
         /// Load a rule file.
         /// </summary>
-        private bool LoadRules(string fullRuleFilename, bool verbose) {
+        private bool LoadRules(string fullRuleFilename, bool verbose, bool debug) {
             using (TextReader tr = new StreamReader(fullRuleFilename, Encoding.Default)) {
-                return ProcessText(fullRuleFilename, 0, tr, LEFT_PARAM, RIGHT_PARAM, verbose);
+                return ProcessText(fullRuleFilename, 0, tr, LEFT_PARAM, RIGHT_PARAM, verbose, debug);
             }
         }
 
         private bool ProcessText(string fullRuleFilename, uint startLineNo, TextReader tr, string leftParam,
-                                 string rightParam, bool verbose) {
+                                 string rightParam, bool verbose, bool debug) {
             uint lineNo = startLineNo;
             bool textIsOk = true;
+            DependencyRuleGroup currentGroup = _mainRuleGroup;
             for (; ; ) {
                 string line = tr.ReadLine();
 
@@ -144,7 +159,7 @@ namespace DotNetArchitectureChecker {
                                                         includeFilename,
                                                         _defines,
                                                         _macros,
-                                                        verbose);
+                                                        verbose, debug);
                     if (included != null) {
                         // Error message when == null has been output by Create.
                         _includedRuleSets.Add(included);
@@ -159,11 +174,24 @@ namespace DotNetArchitectureChecker {
                             _macros[kvp.Key] = kvp.Value;
                         }
                     }
-                } else if (ProcessMacroIfFound(line, verbose)) {
+                } else if (line.EndsWith("{")) {
+                    if (currentGroup.Group != "") {
+                        DotNetArchitectureCheckerMain.WriteError(fullRuleFilename + ": Nested '... {' not possible", fullRuleFilename, lineNo, 0, 0, 0);
+                    } else {
+                        currentGroup = new DependencyRuleGroup(line.TrimEnd('{').TrimEnd());
+                        _ruleGroups.Add(currentGroup);
+                    }
+                } else if (line == "}") {
+                    if (currentGroup.Group != "") {
+                        currentGroup = _mainRuleGroup;
+                    } else {
+                        DotNetArchitectureCheckerMain.WriteError(fullRuleFilename + ": '}' without corresponding '... {'", fullRuleFilename, lineNo, 0, 0, 0);
+                    }
+                } else if (ProcessMacroIfFound(line, verbose, debug)) {
                     // macro is already processed as side effect in ProcessMacroIfFound()
                 } else if (line.Contains(MAYUSE) || line.Contains(MUSTNOTUSE) ||
                            line.Contains(MAYUSE_WITH_WARNING)) {
-                    AddDependencyRules(fullRuleFilename, lineNo, line);
+                    currentGroup.AddDependencyRules(this, fullRuleFilename, lineNo, line);
                 } else if (line.StartsWith(GRAPHIT)) {
                     AddGraphAbstractions(fullRuleFilename, lineNo, line);
                 } else if (line.EndsWith(MACRO_DEFINE)) {
@@ -251,7 +279,7 @@ namespace DotNetArchitectureChecker {
             return result.ToUpperInvariant();
         }
 
-        private bool ProcessMacroIfFound(string line, bool verbose) {
+        private bool ProcessMacroIfFound(string line, bool verbose, bool debug) {
             string foundMacroName;
             foreach (string macroName in _macros.Keys) {
                 if (line.Contains(macroName) && !line.StartsWith(macroName) && !line.Contains(MACRO_DEFINE)) {
@@ -266,7 +294,7 @@ namespace DotNetArchitectureChecker {
             int macroPos = line.IndexOf(foundMacroName);
             string leftParam = line.Substring(0, macroPos).Trim();
             string rightParam = line.Substring(macroPos + foundMacroName.Length).Trim();
-            ProcessText(macro.RuleFileName, macro.StartLineNo, new StringReader(macro.MacroText), leftParam, rightParam, verbose);
+            ProcessText(macro.RuleFileName, macro.StartLineNo, new StringReader(macro.MacroText), leftParam, rightParam, verbose, debug);
             return true;
         }
 
@@ -325,7 +353,10 @@ namespace DotNetArchitectureChecker {
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
-        private string ExpandDefines(string s) {
+        internal string ExpandDefines(string s) {
+            if (string.IsNullOrEmpty(s)) {
+                s = "**";
+            }
             // Debug.WriteLine("--------");
             foreach (string key in _defines.Keys) {
                 // Debug.WriteLine(key);
@@ -336,51 +367,37 @@ namespace DotNetArchitectureChecker {
             return s;
         }
 
-        /// <summary>
-        /// Add one or more <c>DependencyRules</c>s from a single input
-        /// line.
-        /// public for testability.
-        /// </summary>
-        public void AddDependencyRules(string ruleFileName, uint lineNo, string line) {
-            if (line.Contains(MAYUSE)) {
-                foreach (var rule in CreateDependencyRules(ruleFileName, lineNo, line, MAYUSE, false)) {
-                    Add(_allowed, rule);
+        public static DependencyRuleSet Load(string dependencyFilename, List<DirectoryOption> directories, bool verbose, bool debug) {
+            foreach (var d in directories) {
+                string fullName = d.GetFullNameFor(dependencyFilename);
+                if (fullName != null) {
+                    DependencyRuleSet result = Create(new DirectoryInfo("."), fullName, verbose, debug);
+                    if (result != null) {
+                        return result;
+                    }
                 }
-            } else if (line.Contains(MAYUSE_WITH_WARNING)) {
-                foreach (var rule in CreateDependencyRules(ruleFileName, lineNo, line, MAYUSE_WITH_WARNING, true)) {
-                    Add(_questionable, rule);
-                }
-            } else if (line.Contains(MUSTNOTUSE)) {
-                foreach (var rule in CreateDependencyRules(ruleFileName, lineNo, line, MUSTNOTUSE, false)) {
-                    Add(_forbidden, rule);
-                }
-            } else {
-                throw new ApplicationException("Unexpected rule at " + ruleFileName + ":" + lineNo);
+            }
+            return null; // if nothing found
+        }
+
+
+
+        internal void ExtractGraphAbstractions(List<GraphAbstraction> graphAbstractions) {
+            ExtractGraphAbstractions(graphAbstractions, new List<DependencyRuleSet>());
+        }
+
+        private void ExtractGraphAbstractions(List<GraphAbstraction> graphAbstractions, List<DependencyRuleSet> visited) {
+            if (visited.Contains(this)) {
+                return;
+            }
+            visited.Add(this);
+            graphAbstractions.AddRange(_graphAbstractions);
+            foreach (var includedRuleSet in _includedRuleSets) {
+                includedRuleSet.ExtractGraphAbstractions(graphAbstractions, visited);
             }
         }
 
-        private static void Add(List<DependencyRule> ruleList, DependencyRule rule) {
-            if (!ruleList.Exists(r => r.IsSameAs(rule))) {
-                ruleList.Add(rule);
-            }
-        }
 
-        private IEnumerable<DependencyRule> CreateDependencyRules(string ruleFileName, uint lineNo, string line, string sep, bool questionableRule) {
-            DependencyRuleRepresentation rep = new DependencyRuleRepresentation(ruleFileName, lineNo, line, questionableRule);
-            _representations.Add(rep);
-            int i = line.IndexOf(sep);
-            string usingPattern = ExpandDefines(line.Substring(0, i).Trim());
-            string usedPattern = ExpandDefines(line.Substring(i + sep.Length).Trim());
-            List<DependencyRule> deps = DependencyRule.CreateDependencyRules(usingPattern, usedPattern, rep);
-
-            if (_verbose) {
-                DotNetArchitectureCheckerMain.WriteInfo("Rules used for checking " + line + " (" + ruleFileName + ":" + lineNo + ")");
-                foreach (DependencyRule d in deps) {
-                    DotNetArchitectureCheckerMain.WriteInfo("  " + d);
-                }
-            }
-            return deps;
-        }
 
         /// <summary>
         /// Add one or more <c>GraphAbstraction</c>s from a single input
@@ -399,48 +416,26 @@ namespace DotNetArchitectureChecker {
             }
         }
 
-        public static DependencyRuleSet Load(string dependencyFilename, List<DirectoryOption> directories, bool verbose) {
-            foreach (var d in directories) {
-                string fullName = d.GetFullNameFor(dependencyFilename);
-                if (fullName != null) {
-                    DependencyRuleSet result = Create(new DirectoryInfo("."), fullName, verbose);
-                    if (result != null) {
-                        return result;
-                    }
+        internal IEnumerable<DependencyRuleGroup> ExtractDependencyGroups() {
+            var result = new Dictionary<string, DependencyRuleGroup>();
+            CombineGroupsFromChildren(result, new List<DependencyRuleSet>());
+            return result.Values;
+        }
+
+        private void CombineGroupsFromChildren(Dictionary<string, DependencyRuleGroup> result, List<DependencyRuleSet> visited) {
+            if (visited.Contains(this)) {
+                return;
+            }
+            visited.Add(this);
+            foreach (var g in _ruleGroups) {
+                if (result.ContainsKey(g.Group)) {
+                    result[g.Group] = result[g.Group].Combine(g);
+                } else {
+                    result[g.Group] = g;
                 }
             }
-            return null; // if nothing found
-        }
-
-        internal void ExtractGraphAbstractions(List<GraphAbstraction> graphAbstractions) {
-            ExtractGraphAbstractions(graphAbstractions, new List<DependencyRuleSet>());
-        }
-
-        private void ExtractGraphAbstractions(List<GraphAbstraction> graphAbstractions, List<DependencyRuleSet> visited) {
-            if (visited.Contains(this)) {
-                return;
-            }
-            visited.Add(this);
-            graphAbstractions.AddRange(_graphAbstractions);
             foreach (var includedRuleSet in _includedRuleSets) {
-                includedRuleSet.ExtractGraphAbstractions(graphAbstractions, visited);
-            }
-        }
-
-        internal void ExtractDependencyRules(List<DependencyRule> allowed, List<DependencyRule> questionable, List<DependencyRule> forbidden) {
-            ExtractDependencyRules(allowed, questionable, forbidden, new List<DependencyRuleSet>());
-        }
-
-        private void ExtractDependencyRules(List<DependencyRule> allowed, List<DependencyRule> questionable, List<DependencyRule> forbidden, List<DependencyRuleSet> visited) {
-            if (visited.Contains(this)) {
-                return;
-            }
-            visited.Add(this);
-            allowed.AddRange(_allowed);
-            questionable.AddRange(_questionable);
-            forbidden.AddRange(_forbidden);
-            foreach (var includedRuleSet in _includedRuleSets) {
-                includedRuleSet.ExtractDependencyRules(allowed, questionable, forbidden, visited);
+                includedRuleSet.CombineGroupsFromChildren(result, visited);
             }
         }
     }
