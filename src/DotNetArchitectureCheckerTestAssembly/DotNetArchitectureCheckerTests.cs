@@ -187,7 +187,7 @@ namespace DotNetArchitectureCheckerTest.dir1.dir4 {
 
             public static void SpecialMethodOfInnerClass() {
                 SomeSpecialMethod1();
-                NonspecialMethod1();
+                ExtraordinaryMethod();
             }
         }
 
@@ -197,7 +197,7 @@ namespace DotNetArchitectureCheckerTest.dir1.dir4 {
             Class13EInner2.SpecialMethodOfInnerClass();
         }
 
-        public static void NonspecialMethod1() {
+        public static void ExtraordinaryMethod() {
             Class13EInner2.SpecialMethodOfInnerClass();
         }
     }

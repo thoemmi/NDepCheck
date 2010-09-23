@@ -214,6 +214,7 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
                     **::*SpecialMethod* {
                         ---> System.*
                         ---> **::*SpecialMethod*
+                        ---> **::*ExtraordinaryMethod*
                     }
                     ");
                 }
@@ -318,7 +319,7 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
                     DotNetArchitectureCheckerTest.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForDotNetArchitectureChecker::I
                     * ---? System.*
 
-                    // Schlägt fehlt, weil eine SpecialMethod auch auf YetAnotherMethod zugreift!
+                    // Schlägt fehlt, weil eine SpecialMethod auch auf ExtraordinaryMethod zugreift!
                     **::*SpecialMethod* {
                         ---> System.*
                         ---> **::*SpecialMethod*

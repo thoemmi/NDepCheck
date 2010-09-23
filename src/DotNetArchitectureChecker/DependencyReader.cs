@@ -184,7 +184,7 @@ namespace DotNetArchitectureChecker {
             // zwischen Nested-Klassen in DotNetArchitectureCheckerTests.cs - Klasse Class14.Class13EInner2, Methode SpecialMethodOfInnerClass
             // rot: Weil die Calls zwischen der Class14 und der Nested Class wegen IsLinked==true hier einfach ausgefiltert
             // werden ...
-            // WIESO SOLL DAS SO SEIN? - bitte um Erklärung!
+            // WIESO SOLL DAS SO SEIN? - bitte um Erklärung! ==> SIehe nun temporäre Änderung an IsLinked - IST DAS OK?
             if (methodReference != null && !IsLinked(methodReference.DeclaringType, owner)) {
                 foreach (
                     Dependency dependency in
@@ -232,7 +232,13 @@ namespace DotNetArchitectureChecker {
             if (referringType == referrer) {
                 return true;
             }
-            return IsLinked(referringType, referrer.DeclaringType) || IsLinked(referringType.DeclaringType, referrer);
+
+            // Ich habe hier die Suche über DeclaringType einmal rausgenommen; Tests funktionieren genausogut,
+            // und auch ein Durchlauf über das Framework schaut m.E. korrekt aus!
+            // Eigentlich glaube ich auch, dass das return true oben nicht ok ist: Auch wenn beide Typen gleich
+            // sind, muss eine Dependency entstehen und geprüft werden - wieso soll es hier eine Ausnahme geben???
+            return false;
+            //return IsLinked(referringType, referrer.DeclaringType) || IsLinked(referringType.DeclaringType, referrer);
         }
 
         private static TypeInfo GetTypeInfo(TypeReference reference) {

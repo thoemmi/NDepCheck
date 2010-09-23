@@ -1,6 +1,7 @@
 // (c) HMMüller 2006...2010
 
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace DotNetArchitectureChecker {
     /// <remarks>
@@ -17,19 +18,27 @@ namespace DotNetArchitectureChecker {
         // from  under Vista) is read.
         protected const string LETTER = @"\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}µ_?";
 
-        protected const string INNER_LETTER = LETTER + @"\p{Nd}\p{Pc}\p{Mn}\p{Mc}\p{Cf}";
+        protected const string INNER_LETTER_BASE = LETTER + @"\p{Nd}\p{Pc}\p{Mn}\p{Mc}\p{Cf}";
+
+        // <> is for generic inner classes like XTPlus.Framework.Common.BidirectionalCollections.BiList/<>c__DisplayClass2
+        // {}=- is for <PrivateImplementationDetails>{935F4626-4085-4FB6-8006-FFE32E60A3DA}/__StaticArrayInitTypeSize=12
+        private const string INNER_LETTER_AFTER_LT = INNER_LETTER_BASE + "={}\\-\\$.<>";
+        private const string INNER_LETTER = ">" + INNER_LETTER_BASE + "={}\\-\\$";
+        private const string FIRST_LETTER = "{" + INNER_LETTER_BASE + "\\$";
 
         protected const string ASTERISK_ESCAPE = "@#@"; // needed so that we can do a few replacements with *
         protected const string ASTERISK_ABBREV = "...";
-        protected const string IDENT_ESCAPED = "(?:<[" + INNER_LETTER + "={}\\-\\$.<>]" + ASTERISK_ESCAPE + "|[{" + INNER_LETTER + "\\$][>" + INNER_LETTER + "={}\\-\\$]" + ASTERISK_ESCAPE + ")";
-        // <> is for generic inner classes like XTPlus.Framework.Common.BidirectionalCollections.BiList/<>c__DisplayClass2
-        // {}=- is for <PrivateImplementationDetails>{935F4626-4085-4FB6-8006-FFE32E60A3DA}/__StaticArrayInitTypeSize=12
+
+        protected const string IDENT_ESCAPED = "(?:<[" + INNER_LETTER_AFTER_LT + "]" + ASTERISK_ESCAPE + "|[" + FIRST_LETTER + "][" + INNER_LETTER + "]" + ASTERISK_ESCAPE + ")";
+        protected const string IDENT_PREFIX_ESCAPED = IDENT_ESCAPED + "?";
+        protected const string IDENT_INFIX_ESCAPED = "[" + INNER_LETTER + "]" + ASTERISK_ESCAPE;
+
         protected const string PATH_ESCAPED = IDENT_ESCAPED + "(?:[.]" + IDENT_ESCAPED + ")" + ASTERISK_ESCAPE;
         protected const string INNER_PATH_ESCAPED = IDENT_ESCAPED + "(?:[/]" + IDENT_ESCAPED + ")" + ASTERISK_ESCAPE;
 
         protected static readonly string IDENT_NONESCAPED = IDENT_ESCAPED.Replace(ASTERISK_ESCAPE, "*");
-        protected const string METHODNAME_NONESCAPED = "[<>." + LETTER + "_\\$][<>" + INNER_LETTER + ".\\$\\-,]" + "*";
-        protected static readonly string OPTIONAL_NESTED_CLASSES = "(?:" + IDENT_NONESCAPED + "(?:/" + IDENT_NONESCAPED + ")*)?";
+        protected const string METHODNAME_NONESCAPED = "[<>." + LETTER + "_\\$][<>" + INNER_LETTER_BASE + ".\\$\\-,]" + "*";
+        protected static readonly string OPTIONAL_NESTED_CLASSES = "(?:/" + IDENT_NONESCAPED + ")*";
 
         // leading . is for ::.ctor
         // inner . and $ are e.g. for antlr.CommonHiddenStreamToken::IToken.getColumn$PST060001A3
@@ -63,16 +72,34 @@ namespace DotNetArchitectureChecker {
                 int indexOfSlash = pattern.IndexOf('/');
                 if (indexOfSlash >= 0 && indexOfSlash < indexOfPath) {
                     // ** is to the left of a / -> it is expanded to IDENT(/IDENT)*
-                    pattern = pattern.Substring(0, indexOfPath) + INNER_PATH_ESCAPED + pattern.Substring(indexOfPath + 2);
+                    pattern = Interpolate2(pattern, indexOfPath, INNER_PATH_ESCAPED);
                 } else {
                     // ** is not to the left of a / -> it is expanded to IDENT(.IDENT)*
-                    pattern = pattern.Substring(0, indexOfPath) + PATH_ESCAPED + pattern.Substring(indexOfPath + 2);
+                    pattern = Interpolate2(pattern, indexOfPath, PATH_ESCAPED);
                 }
             }
-            pattern = pattern.Replace("*", IDENT_ESCAPED)
-                .Replace(ASTERISK_ESCAPE, "*")
-                .Replace(ASTERISK_ABBREV, "*");
+            while (pattern.Contains("*")) {
+                int indexOfIdentPart = pattern.IndexOf("*");
+                if (indexOfIdentPart > 0 && Regex.IsMatch(pattern[indexOfIdentPart - 1].ToString(), "[" + INNER_LETTER + "]")) {
+                    pattern = Interpolate1(pattern, indexOfIdentPart, IDENT_INFIX_ESCAPED);
+                } else if (indexOfIdentPart < pattern.Length - 1 && Regex.IsMatch(pattern[indexOfIdentPart + 1].ToString(), "[" + INNER_LETTER + "]")) {
+                    pattern = Interpolate1(pattern, indexOfIdentPart, IDENT_PREFIX_ESCAPED);
+                } else {
+                    pattern = Interpolate1(pattern, indexOfIdentPart, IDENT_ESCAPED);
+                }
+            }
+
+            pattern = pattern.Replace(ASTERISK_ESCAPE, "*").Replace(ASTERISK_ABBREV, "*");
+
             return pattern;
+        }
+
+        private static string Interpolate1(string pattern, int indexOfIdentPart, string value) {
+            return pattern.Substring(0, indexOfIdentPart) + value + pattern.Substring(indexOfIdentPart + 1);
+        }
+
+        private static string Interpolate2(string pattern, int indexOfPath, string value) {
+            return pattern.Substring(0, indexOfPath) + value + pattern.Substring(indexOfPath + 2);
         }
 
         /// <summary>
@@ -84,20 +111,32 @@ namespace DotNetArchitectureChecker {
         private static List<string> ExpandWithSuffixes(string pattern) {
             List<string> expanded = new List<string>();
             pattern = "^" + pattern;
-            expanded.Add(pattern + "$");
             if (!pattern.Contains("::")) {
-                expanded.Add(pattern + "::" + METHODNAME_NONESCAPED + "$");
+                // No :: --> add all possible methods.
                 if (!pattern.Contains("/")) {
-                    string exForSubclasses = pattern + OPTIONAL_NESTED_CLASSES;
-                    expanded.Add(exForSubclasses + "$");
-                    expanded.Add(exForSubclasses + "::" + METHODNAME_NONESCAPED + "$");
+                    // If there is no slash, the class pattern part (before the ::) also includes
+                    // all nested classes of the given class. Saying "only in top-level class"
+                    // is currently not possible.
+                    pattern = pattern + OPTIONAL_NESTED_CLASSES;
                 }
+                expanded.Add(pattern + "::" + METHODNAME_NONESCAPED + "$");
             } else {
+                // :: --> method pattern.
                 if (!pattern.Contains("/")) {
-                    expanded.Add(pattern.Replace("::", OPTIONAL_NESTED_CLASSES + "::"));
+                    // If there is no slash, the class pattern part (before the ::) also includes
+                    // all nested classes of the given class. Saying "only in top-level class"
+                    // is currently not possible.
+                    pattern = pattern.Replace("::", OPTIONAL_NESTED_CLASSES + "::");
                 }
             }
+            expanded.Add(pattern + "$");
             return expanded;
+        }
+
+        protected static string DebugContract(string regex) {
+            return regex.Replace(FIRST_LETTER, "F")
+                .Replace(INNER_LETTER, "I")
+                .Replace(INNER_LETTER_AFTER_LT, "J");
         }
     }
 }

@@ -124,7 +124,7 @@ namespace DotNetArchitectureChecker {
         #region Nested type: AbstractRuleMatch
 
         private abstract class AbstractRuleMatch : IRuleMatch {
-            private static readonly Regex _fixedPrefixPattern = new Regex("^[" + INNER_LETTER + @"<>.]*", RegexOptions.Compiled);
+            private static readonly Regex _fixedPrefixPattern = new Regex("^[" + INNER_LETTER_BASE + @"<>.]*", RegexOptions.Compiled);
 
             public abstract bool Matches(Dependency d);
 
@@ -153,7 +153,7 @@ namespace DotNetArchitectureChecker {
         #region Nested type: ClassClassRule
 
         private sealed class ClassClassRule : AbstractRuleMatch {
-            private static readonly Regex _fixedClassPattern = new Regex("^[" + INNER_LETTER + @"/<>.]*$", RegexOptions.Compiled);
+            private static readonly Regex _fixedClassPattern = new Regex("^[" + INNER_LETTER_BASE + @"/<>.]*$", RegexOptions.Compiled);
 
             private readonly string _usedFixedPrefix;
             private readonly string _usingFixedPrefix;
@@ -199,9 +199,7 @@ namespace DotNetArchitectureChecker {
             private readonly string _usingFixedPrefix;
 
             public GeneralAnyRule(string usingItemRegex, string usingItemPattern) {
-                string pattern = usingItemRegex.Trim();
-                _rex = pattern;
-
+                _rex = usingItemRegex.Trim();
                 _usingFixedPrefix = GetPrefix(usingItemPattern);
             }
 
@@ -217,15 +215,20 @@ namespace DotNetArchitectureChecker {
 
             public override bool Matches(Dependency d) {
                 if (d.UsingItem.StartsWith(_usingFixedPrefix)) {
-                    string check = d.UsingItem;
-                    return Regex.IsMatch(check, _rex);
+                    return Regex.IsMatch(d.UsingItem, _rex);
                 } else {
                     return false;
                 }
             }
 
+            private string DebugUsing {
+                get {
+                    return DebugContract(_rex);
+                }
+            }
+
             public override string ToString() {
-                return "AnyRule: {" + _usingFixedPrefix + "~~~} " + _rex + " ---> ~~~";
+                return "AnyRule: {" + _usingFixedPrefix + "~~~} " + _rex + " = " + DebugUsing + " ---> ~~~";
             }
 
             public static bool Accepts(string usedItemPattern) {
@@ -235,16 +238,14 @@ namespace DotNetArchitectureChecker {
 
         #endregion
 
-        #region Nested type: GeneralAnyRule
+        #region Nested type: AnyGeneralRule
 
         private class AnyGeneralRule : AbstractRuleMatch {
             private readonly string _rex;
             private readonly string _usedFixedPrefix;
 
             public AnyGeneralRule(string usedItemRegex, string usedItemPattern) {
-                string pattern = usedItemRegex.Trim();
-                _rex = pattern;
-
+                _rex = usedItemRegex.Trim();
                 _usedFixedPrefix = GetPrefix(usedItemPattern);
             }
 
@@ -260,15 +261,20 @@ namespace DotNetArchitectureChecker {
 
             public override bool Matches(Dependency d) {
                 if (d.UsedItem.StartsWith(_usedFixedPrefix)) {
-                    string check = d.UsedItem;
-                    return Regex.IsMatch(check, _rex);
+                    return Regex.IsMatch(d.UsedItem, _rex);
                 } else {
                     return false;
                 }
             }
 
+            private string DebugUsed {
+                get {
+                    return DebugContract(_rex);
+                }
+            }
+
             public override string ToString() {
-                return "AnyGeneralRule: ~~~ --->  {" + _usedFixedPrefix + "~~~} " + _rex;
+                return "AnyGeneralRule: ~~~ --->  {" + _usedFixedPrefix + "~~~} " + _rex + " = " + DebugUsed;
             }
 
             public static bool Accepts(string usingItemPattern) {
@@ -292,8 +298,7 @@ namespace DotNetArchitectureChecker {
                 // The pattern now looks as follows:
                 //     ^...$===>>^...
                 // Thus, we must remove the internal $ and ^:
-                pattern = pattern.Replace("$" + SEPARATOR + "^", SEPARATOR);
-                _rex = pattern;
+                _rex = pattern.Replace("$" + SEPARATOR + "^", SEPARATOR);
 
                 _usingFixedPrefix = GetPrefix(usingItemPattern);
                 _usedFixedPrefix = GetPrefix(usedItemPattern);
@@ -321,8 +326,14 @@ namespace DotNetArchitectureChecker {
                 }
             }
 
+            private string DebugUsingUsed {
+                get {
+                    return DebugContract(_rex);
+                }
+            }
+
             public override string ToString() {
-                return "GeneralClassRule: {" + _usingFixedPrefix + " / " + _usedFixedPrefix + "}" + _rex;
+                return "GeneralClassRule: {" + _usingFixedPrefix + " / " + _usedFixedPrefix + "}" + _rex + " = " + DebugUsingUsed;
             }
 
 
@@ -382,8 +393,20 @@ namespace DotNetArchitectureChecker {
                 }
             }
 
+            private string DebugUsing {
+                get {
+                    return DebugContract(_usingRegex);
+                }
+            }
+
+            private string DebugUsed {
+                get {
+                    return DebugContract(_usedRegex);
+                }
+            }
+
             public override string ToString() {
-                return "GeneralClassWithoutBackrefRule: {" + _usingRegex + " / " + _usedRegex + "}";
+                return "GeneralClassWithoutBackrefRule: {" + _usingRegex + " = " + DebugUsing + " / " + _usedRegex + " = " + DebugUsed + "}";
             }
         }
 
@@ -403,8 +426,7 @@ namespace DotNetArchitectureChecker {
                 // The pattern now looks as follows:
                 //     ^...$===>>^...
                 // Thus, we must remove the internal $ and ^:
-                pattern = pattern.Replace("$" + SEPARATOR + "^", SEPARATOR);
-                _rex = pattern;
+                _rex = pattern.Replace("$" + SEPARATOR + "^", SEPARATOR);
 
                 _usingFixedPrefix = GetPrefix(usingItemPattern);
                 _usedFixedPrefix = GetPrefix(usedItemPattern);
@@ -423,15 +445,20 @@ namespace DotNetArchitectureChecker {
 
             public override bool Matches(Dependency d) {
                 if (d.UsedItem.StartsWith(_usedFixedPrefix) && d.UsingItem.StartsWith(_usingFixedPrefix)) {
-                    string check = d.UsingItem + SEPARATOR + d.UsedItem;
-                    return Regex.IsMatch(check, _rex);
+                    return Regex.IsMatch(d.UsingItem + SEPARATOR + d.UsedItem, _rex);
                 } else {
                     return false;
                 }
             }
 
+            private string DebugUsingUsed {
+                get {
+                    return DebugContract(_rex);
+                }
+            }
+
             public override string ToString() {
-                return "GeneralPrefixRule: {" + _usingFixedPrefix + " / " + _usedFixedPrefix + "}" + _rex;
+                return "GeneralPrefixRule: {" + _usingFixedPrefix + " / " + _usedFixedPrefix + "}" + _rex + " = " + DebugUsingUsed;
             }
 
 
@@ -457,8 +484,7 @@ namespace DotNetArchitectureChecker {
                 // The pattern now looks as follows:
                 //     ^...$===>>^...$
                 // Thus, we must remove the internal $ and ^:
-                pattern = pattern.Replace("$" + SEPARATOR + "^", SEPARATOR);
-                _rex = pattern;
+                _rex = pattern.Replace("$" + SEPARATOR + "^", SEPARATOR);
 
                 _usingFixedPrefix = GetPrefix(usingItemPattern);
                 _usedFixedPrefix = GetPrefix(usedItemPattern);
@@ -477,15 +503,20 @@ namespace DotNetArchitectureChecker {
 
             public override bool Matches(Dependency d) {
                 if (d.UsedItem.StartsWith(_usedFixedPrefix) && d.UsingItem.StartsWith(_usingFixedPrefix)) {
-                    string check = d.UsingItem + SEPARATOR + d.UsedItem;
-                    return Regex.IsMatch(check, _rex);
+                    return Regex.IsMatch(d.UsingItem + SEPARATOR + d.UsedItem, _rex);
                 } else {
                     return false;
                 }
             }
 
+            private string DebugUsingUsed {
+                get {
+                    return DebugContract(_rex);
+                }
+            }
+
             public override string ToString() {
-                return "GeneralRule: {" + _usingFixedPrefix + " / " + _usedFixedPrefix + "}" + _rex;
+                return "GeneralRule: {" + _usingFixedPrefix + " / " + _usedFixedPrefix + "}" + _rex + " = " +  DebugUsingUsed;
             }
         }
 
@@ -530,7 +561,7 @@ namespace DotNetArchitectureChecker {
         #region Nested type: PrefixClassRule
 
         private class PrefixClassRule : AbstractRuleMatch {
-            private static readonly Regex _fixedClassPattern = new Regex("^[" + INNER_LETTER + @"/<>.]*$", RegexOptions.Compiled);
+            private static readonly Regex _fixedClassPattern = new Regex("^[" + INNER_LETTER_BASE + @"/<>.]*$", RegexOptions.Compiled);
 
             private readonly string _usedFixedPrefix;
             private readonly string _usingFixedPrefix;
