@@ -13,6 +13,8 @@ namespace DotNetArchitectureCheckerTest {
     /// </remarks>
     [TestClass]
     public class MainTests {
+        private static readonly string TestAssemblyPath = Path.Combine(Path.GetDirectoryName(typeof (MainTests).Assembly.Location), "DotNetArchitectureCheckerTest.dll");
+
         private static void AssertNotContains(string path, string s) {
             using (TextReader tr = new StreamReader(path)) {
                 string all = tr.ReadToEnd();
@@ -117,7 +119,7 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
             using (TextWriter tw = new StreamWriter(outFile)) {
                 TextWriter oldOut = Console.Out;
                 Console.SetOut(tw);
-                string[] args = { "/v", "/x", "/f=" + depFile, "DotNetArchitectureCheckerTest.dll" };
+                string[] args = { "/v", "/x", "/f=" + depFile, TestAssemblyPath };
                 DotNetArchitectureCheckerMain.Main(args);
                 Console.SetOut(oldOut);
             }
@@ -195,7 +197,7 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
                     * ---? System.*
                 ");
                 }
-                Assert.AreEqual(0, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, "DotNetArchitectureCheckerTestAssembly.dll" }));
+                Assert.AreEqual(0, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
         }
@@ -214,7 +216,7 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
                     * ---? System.*
                 ");
                 }
-                Assert.AreEqual(0, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, "DotNetArchitectureCheckerTestAssembly.dll" }));
+                Assert.AreEqual(0, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
         }
@@ -240,7 +242,7 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
                     * ---? System.*
                 ");
                 }
-                Assert.AreEqual(0, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, "DotNetArchitectureCheckerTestAssembly.dll" }));
+                Assert.AreEqual(0, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
         }
@@ -270,7 +272,7 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
                     ** ---> blabla
                 ");
                 }
-                Assert.AreEqual(3, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, "DotNetArchitectureCheckerTestAssembly.dll" }));
+                Assert.AreEqual(3, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
             {
@@ -278,7 +280,7 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write("");
                 }
-                Assert.AreEqual(3, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, "DotNetArchitectureCheckerTestAssembly.dll" }));
+                Assert.AreEqual(3, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
         }
@@ -310,7 +312,7 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
                     =:
                 ");
                 }
-                Assert.AreEqual(5, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, "DotNetArchitectureCheckerTestAssembly.dll" }));
+                Assert.AreEqual(5, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
             {
@@ -323,7 +325,7 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
                     =:
                 ");
                 }
-                Assert.AreEqual(5, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, "DotNetArchitectureCheckerTestAssembly.dll" }));
+                Assert.AreEqual(5, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
         }

@@ -126,7 +126,7 @@ namespace DotNetArchitectureCheckerTest {
 
             int result = DotNetArchitectureCheckerMain.Main(new List<string>() {
                     @"-s=" + _basePath + @"\a",
-                    "DotNetArchitectureCheckerTestAssembly.dll",
+                    GetPath("DotNetArchitectureCheckerTestAssembly.dll"),
                     "DotNetArchitectureCheckerTestAssemblyÄÖÜß.*",
                     "/e",
                     "DotNetArchitectureCheckerTestAssemblyÄÖÜß.dll",
@@ -136,7 +136,7 @@ namespace DotNetArchitectureCheckerTest {
 
         private int Run(params string[] args) {
             return DotNetArchitectureCheckerMain.Main(new List<string>(args.Select(s => s.Replace("%%", _basePath))) {
-                    "DotNetArchitectureCheckerTestAssembly.dll",
+                    GetPath("DotNetArchitectureCheckerTestAssembly.dll"),
                     "DotNetArchitectureCheckerTestAssemblyÄÖÜß.*"
                 }.ToArray());
         }
@@ -178,6 +178,10 @@ namespace DotNetArchitectureCheckerTest {
             using (TextWriter tw = new StreamWriter(Path.Combine(di.FullName, depFileName))) {
                 tw.WriteLine(data);
             }
+        }
+
+        private string GetPath(string assembly) {
+            return Path.Combine(Path.GetDirectoryName(typeof(MainTests).Assembly.Location), assembly);
         }
     }
 }
