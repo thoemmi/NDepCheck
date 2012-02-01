@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using System.Web;
 using Microsoft.Build.Framework;
@@ -9,7 +10,9 @@ namespace DotNetArchitectureChecker.MSBuild {
         private readonly bool _generateErrorHtml;
         private readonly bool _logWarnings;
         private string _currentAssemblyFilename;
+        private bool _currentAssemblyFilenameWasLogged;
         private readonly StringBuilder _stringBuilder = new StringBuilder();
+        private readonly Dictionary<string,int> _assembliesWithErrors = new Dictionary<string, int>();
 
         public MSBuildLogger(TaskLoggingHelper log, bool generateErrorHtml, bool logWarnings) {
             _log = log;
@@ -19,6 +22,7 @@ namespace DotNetArchitectureChecker.MSBuild {
 
         public void StartProcessingAssembly(string assemblyFilename) {
             _currentAssemblyFilename = assemblyFilename;
+            _currentAssemblyFilenameWasLogged = false;
         }
 
         public void WriteError(string msg) {
@@ -35,9 +39,14 @@ namespace DotNetArchitectureChecker.MSBuild {
             if (!_generateErrorHtml) {
                 return;
             }
-            if (!string.IsNullOrEmpty(_currentAssemblyFilename)) {
-                _stringBuilder.AppendLine("<h3>" + _currentAssemblyFilename + "</h3>");
-                _currentAssemblyFilename = null;
+            if (!_currentAssemblyFilenameWasLogged) {
+                _stringBuilder.AppendLine("<h3><a name=\"" + _currentAssemblyFilename + "\">" + _currentAssemblyFilename + "</a></h3>");
+                _currentAssemblyFilenameWasLogged = true;
+            }
+            lock (_assembliesWithErrors) {
+                int errors;
+                _assembliesWithErrors.TryGetValue(_currentAssemblyFilename, out errors);
+                _assembliesWithErrors[_currentAssemblyFilename] = errors + 1;
             }
             _stringBuilder.AppendLine("<span style=\"color: red;\"/>" + HttpUtility.HtmlEncode(msg) + "</span><hr center width=\"80%\">");
         }
@@ -72,7 +81,18 @@ namespace DotNetArchitectureChecker.MSBuild {
         }
 
         public string GetErrorHtml() {
-            return _stringBuilder.ToString();
+            var summary = new StringBuilder();
+            summary.AppendLine("<h2>Summary</h2>");
+            if (_assembliesWithErrors.Count > 0) {
+                foreach (var assembly in _assembliesWithErrors) {
+                    summary.AppendFormat("<a href=\"#{0}\">{0}</a>: {1} error{2}<br/>", assembly.Key, assembly.Value, assembly.Value == 1 ? "" : "s");
+                    summary.AppendLine();
+                }
+                summary.AppendLine("<hr center width=\"80%\" />");
+            } else {
+                summary.AppendLine("Congratulations, no errors detected");
+            }
+            return summary.ToString() + _stringBuilder.ToString();
         }
     }
 }
