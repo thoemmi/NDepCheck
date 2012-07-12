@@ -14,7 +14,7 @@ namespace NDepCheck {
                 var fileName = Path.GetFileName(f);
                     string fullPath = Path.GetFullPath(f);
                 if (_smallToFullMap.ContainsKey(fileName)) {
-                    DotNetArchitectureCheckerMain.WriteWarning(fileName + " found at two places: " + _smallToFullMap[fileName] + " and " + fullPath + "; second one is ignored");
+                    Program.WriteWarning(fileName + " found at two places: " + _smallToFullMap[fileName] + " and " + fullPath + "; second one is ignored");
                 } else {
                     _smallToFullMap[fileName] = fullPath;
                 }

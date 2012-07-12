@@ -28,10 +28,10 @@ namespace NDepCheck {
             }
             foreach (DependencyRuleRepresentation r in _representations) {
                 if (showUnusedQuestionableRules && r.IsQuestionableRule && !r.WasHit) {
-                    DotNetArchitectureCheckerMain.WriteInfo("Questionable rule " + r + " was never matched - maybe you can remove it!");
+                    Program.WriteInfo("Questionable rule " + r + " was never matched - maybe you can remove it!");
                 } else {
                     if (_options.Verbose) {
-                        DotNetArchitectureCheckerMain.WriteInfo("Rule " + r + " was hit " + r.HitCount + " times.");
+                        Program.WriteInfo("Rule " + r + " was hit " + r.HitCount + " times.");
                     }
                 }
             }

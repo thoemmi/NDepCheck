@@ -126,30 +126,30 @@ namespace NDepCheck {
         }
 
         private static void WriteVersion() {
-            DotNetArchitectureCheckerMain.WriteInfo("DotNetArchitectureChecker V." + typeof(DotNetArchitectureCheckerMain).Assembly.GetName().Version.ToString(2) +
+            Program.WriteInfo("NDepCheck V." + typeof(Program).Assembly.GetName().Version.ToString(2) +
                       " (c) HMMüller, Th.Freudenberg 2006...2010");
         }
 
         private static int UsageAndExit(string message) {
             if (message != null) {
-                DotNetArchitectureCheckerMain.WriteInfo(message);
+                Program.WriteInfo(message);
             }
             WriteVersion();
             Console.Out.WriteLine(
                 @"
 Usage:
-   DotNetArchitectureChecker [<option> ...] [<assemblyfilespec> ...]
+   NDepCheck [<option> ...] [<assemblyfilespec> ...]
 
 Typical uses:
 
 * Check dependencies in My.DLL; My.dll.dep is somewhere below SourceDir:
-      DotNetArchitectureChecker /s=SourceDir My.dll
+      NDepCheck /s=SourceDir My.dll
 
 * Produce graph of dependencies in My.DLL:
-      DotNetArchitectureChecker /s=SourceDir My.DLL /g=My.dot
+      NDepCheck /s=SourceDir My.DLL /g=My.dot
       dot -Tgif -oMy.gif My.dot
 
-All messages of DotNetArchitectureChecker are written to Console.Out.
+All messages of NDepCheck are written to Console.Out.
 
 Options:
    /d=<directory>    For each assembly file A.dll, look for corresponding 
@@ -164,7 +164,7 @@ Options:
          are specified.
 
    /g=<dot file>   Create output of dependencies in AT&T DOT format.
-         By default, DotNetArchitectureChecker tries to remove transitive
+         By default, NDepCheck tries to remove transitive
          edges - i.e., if a uses b, b uses c, but also a uses c, then
          the last edge is not shown. The algorithm for this will
          sometimes choose funny edges for removal ...
@@ -393,7 +393,7 @@ using the wildcardpath syntax):
             if (Directory.Exists(path)) {
                 Directories.Add(new DirectoryOption(path, recurse));
             } else {
-                DotNetArchitectureCheckerMain.WriteWarning("Directory " + path + " not found - ignored in dep-File");
+                Program.WriteWarning("Directory " + path + " not found - ignored in dep-File");
             }
         }
 

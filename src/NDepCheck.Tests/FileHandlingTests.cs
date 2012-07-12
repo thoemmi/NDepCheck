@@ -124,18 +124,18 @@ namespace NDepCheck.Tests {
         public void TestExcept() {
             WriteDep1To(@"a\b");
 
-            int result = DotNetArchitectureCheckerMain.Main(new List<string>() {
+            int result = Program.Main(new List<string>() {
                     @"-s=" + _basePath + @"\a",
                     GetPath("NDepCheck.TestAssembly.dll"),
-                    "DotNetArchitectureCheckerTestAssemblyÄÖÜß.*",
+                    "NDepCheck.TestAssemblyÄÖÜß.*",
                     "/e",
-                    "DotNetArchitectureCheckerTestAssemblyÄÖÜß.dll",
+                    "NDepCheck.TestAssemblyÄÖÜß.dll",
                 }.ToArray());
             Assert.AreEqual(0, result);
         }
 
         private int Run(params string[] args) {
-            return DotNetArchitectureCheckerMain.Main(new List<string>(args.Select(s => s.Replace("%%", _basePath))) {
+            return Program.Main(new List<string>(args.Select(s => s.Replace("%%", _basePath))) {
                     GetPath("NDepCheck.TestAssembly.dll"),
                     "NDepCheck.TestAssemblyÄÖÜß.*"
                 }.ToArray());

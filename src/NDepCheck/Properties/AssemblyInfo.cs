@@ -6,12 +6,12 @@ using NDepCheck;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("DotNetArchitectureChecker 1.7")]
-[assembly: AssemblyDescription("Architecture Checker for .Net")]
+[assembly: AssemblyTitle("NDepCheck 1.8")]
+[assembly: AssemblyDescription("Dependency Checker for .NET")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("DotNetArchitectureChecker")]
-[assembly: AssemblyCopyright("Copyright HMMüller & Th. Freudenberg ©  2007..2010")]
+[assembly: AssemblyProduct("NDepCheck")]
+[assembly: AssemblyCopyright("Copyright HMMüller & Th. Freudenberg ©  2007..2012")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

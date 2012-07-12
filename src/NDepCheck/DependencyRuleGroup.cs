@@ -75,9 +75,9 @@ namespace NDepCheck {
             List<DependencyRule> deps = DependencyRule.CreateDependencyRules(usingPattern, usedPattern, rep);
 
             if (parent.Verbose) {
-                DotNetArchitectureCheckerMain.WriteInfo("Rules used for checking " + line + " (" + ruleFileName + ":" + lineNo + ")");
+                Program.WriteInfo("Rules used for checking " + line + " (" + ruleFileName + ":" + lineNo + ")");
                 foreach (DependencyRule d in deps) {
-                    DotNetArchitectureCheckerMain.WriteInfo("  " + d);
+                    Program.WriteInfo("  " + d);
                 }
             }
             return deps;
@@ -119,7 +119,7 @@ namespace NDepCheck {
         private bool Check(Dependency d, bool verbose, bool debug) {
             bool ok = false;
             if (verbose) {
-                DotNetArchitectureCheckerMain.WriteInfo("Checking " + d);
+                Program.WriteInfo("Checking " + d);
             }
             foreach (DependencyRule r in _forbidden) {
                 if (r.Matches(d, debug)) {
@@ -134,7 +134,7 @@ namespace NDepCheck {
             }
             foreach (DependencyRule r in _questionable) {
                 if (r.Matches(d, debug)) {
-                    DotNetArchitectureCheckerMain.WriteWarning("Dependency " + d + " is questionable", d.FileName, d.StartLine,
+                    Program.WriteWarning("Dependency " + d + " is questionable", d.FileName, d.StartLine,
                                                        d.StartColumn, d.EndLine, d.EndColumn);
                     ok = true;
                     goto DONE;
@@ -142,7 +142,7 @@ namespace NDepCheck {
             }
         DONE:
             if (!ok) {
-                DotNetArchitectureCheckerMain.WriteError(d.IllegalMessage(), d.FileName, d.StartLine, d.StartColumn, d.EndLine, d.EndColumn);
+                Program.WriteError(d.IllegalMessage(), d.FileName, d.StartLine, d.StartColumn, d.EndLine, d.EndColumn);
             }
             return ok;
         }

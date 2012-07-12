@@ -28,7 +28,7 @@ namespace NDepCheck.MSBuild {
 
         public override bool Execute() {
             var logger = new MSBuildLogger(Log, GenerateErrorHtml, LogWarnings);
-            DotNetArchitectureCheckerMain.Logger = logger;
+            Program.Logger = logger;
 
             var options = new Options {
                 Debug = false,
@@ -50,7 +50,7 @@ namespace NDepCheck.MSBuild {
                     .AddTo(options.Directories);
             }
 
-            var main = new DotNetArchitectureCheckerMain(options);
+            var main = new Program(options);
             ExitCode = main.Run();
 
             if (GenerateErrorHtml) {

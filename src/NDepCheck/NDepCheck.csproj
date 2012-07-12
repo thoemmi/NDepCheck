@@ -84,7 +84,7 @@
     <Compile Include="ConsoleLogger.cs" />
     <Compile Include="Dependency.cs" />
     <Compile Include="DependencyChecker.cs" />
-    <Compile Include="DotNetArchitectureCheckerMain.cs" />
+    <Compile Include="Program.cs" />
     <Compile Include="DependencyGrapher.cs" />
     <Compile Include="DependencyReader.cs" />
     <Compile Include="DependencyRule.cs" />

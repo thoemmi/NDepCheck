@@ -83,10 +83,10 @@ namespace NDepCheck.TestAssembly.dir1.dir3 {
     public delegate Class13E Delegate13(Class13D e);
 }
 
-public class NamespacelessTestClassForDotNetArchitectureChecker {
+public class NamespacelessTestClassForNDepCheck {
     public static int I;
 
-    static NamespacelessTestClassForDotNetArchitectureChecker() {
+    static NamespacelessTestClassForNDepCheck() {
         I = new Random().Next();
     }
 }
@@ -159,7 +159,7 @@ namespace NDepCheck.TestAssembly.dir1.dir2 {
 
         protected internal static int AnotherMethod(Class13D d) {
             new Class13A("NDepCheck.TestAssembly.dir1.dir3.SomeClass");
-            return NamespacelessTestClassForDotNetArchitectureChecker.I;
+            return NamespacelessTestClassForNDepCheck.I;
         }
 
         public ISomeInterface YetAnotherMethod(ISomeInterface s) {

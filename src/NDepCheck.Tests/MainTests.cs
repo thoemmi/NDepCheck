@@ -8,7 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace NDepCheck.Tests {
     /// <remarks>
-    /// Tests of DotNetArchitectureChecker
+    /// Tests of NDepCheck
     /// </remarks>
     [TestClass]
     public class MainTests {
@@ -51,10 +51,10 @@ namespace NDepCheck.Tests {
 =:
 
 
-    // DotNetArchitectureChecker may use antlr and itself.
+    // NDepCheck may use antlr and itself.
 NDepCheck ====> antlr
 
-    // DotNetArchitectureChecker must not use Windows Forms.
+    // NDepCheck must not use Windows Forms.
 NDepCheck.** ---! System.Windows.Forms.**
 
 _TES  := asdasdasdasdasdasd
@@ -68,9 +68,9 @@ _TESTS.dir1.dir2.* ---> _TESTS.dir1.dir3.*
 
 _TESTS.dir1.* ---> _TESTS.dir1.dir3.*
     
-    // SomeClass::AnotherMethod may use NamespacelessTestClassForDotNetArchitectureChecker -
+    // SomeClass::AnotherMethod may use NamespacelessTestClassForNDepCheck -
     // but this is questionable.
-_TESTS.dir1.dir2.SomeClass::AnotherMethod ---? NamespacelessTestClassForDotNetArchitectureChecker
+_TESTS.dir1.dir2.SomeClass::AnotherMethod ---? NamespacelessTestClassForNDepCheck
 
     // A questionable rule that never fires - it should be output.
 asdlkfj.* ---? askdjf.*;
@@ -101,10 +101,10 @@ NDepCheck.Tests ---> **
     // All of system is ignored
 % ()System.**
 
-    // Classes in DotNetArchitectureCheckerTests are shown separately, without the namespace
+    // Classes in NDepCheck.Tests are shown separately, without the namespace
 % NDepCheck.Tests.(**)
 
-    // Classes in DotNetArchitectureChecker are also shown separately, but with the namespace
+    // Classes in NDepCheck are also shown separately, but with the namespace
 % (NDepCheck).*
 
     // antlr classes are shown by namespace
@@ -121,7 +121,7 @@ NDepCheck.Tests ---> **
                 TextWriter oldOut = Console.Out;
                 Console.SetOut(tw);
                 string[] args = { "/v", "/x", "/f=" + depFile, TestAssemblyPath };
-                DotNetArchitectureCheckerMain.Main(args);
+                Program.Main(args);
                 Console.SetOut(oldOut);
             }
             AssertNotContains(outFile, "****");
@@ -194,11 +194,11 @@ NDepCheck.Tests ---> **
                     tw.Write(@"
                     NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
                     NDepCheck.TestAssembly.** ---> System.**
-                    NDepCheck.TestAssembly.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForDotNetArchitectureChecker::I
+                    NDepCheck.TestAssembly.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForNDepCheck::I
                     * ---? System.*
                 ");
                 }
-                Assert.AreEqual(0, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
+                Assert.AreEqual(0, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
         }
@@ -219,7 +219,7 @@ NDepCheck.Tests ---> **
                     }
                     ");
                 }
-                Assert.AreEqual(0, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
+                Assert.AreEqual(0, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
         }
@@ -234,11 +234,11 @@ NDepCheck.Tests ---> **
                     _B := _A
                     _B.** ---> _B.**
                     _B.** ---> System.**
-                    _B.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForDotNetArchitectureChecker::I
+                    _B.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForNDepCheck::I
                     * ---? System.*
                 ");
                 }
-                Assert.AreEqual(0, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
+                Assert.AreEqual(0, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
         }
@@ -260,11 +260,11 @@ NDepCheck.Tests ---> **
                     _B := _A
                     _B.** ===> _B.**
                     _B.** ===> System.**
-                    _B.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForDotNetArchitectureChecker::I
+                    _B.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForNDepCheck::I
                     * ---? System.*
                 ");
                 }
-                Assert.AreEqual(0, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
+                Assert.AreEqual(0, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
         }
@@ -273,15 +273,15 @@ NDepCheck.Tests ---> **
 
         [TestMethod]
         public void Exit1() {
-            Assert.AreEqual(1, DotNetArchitectureCheckerMain.Main(new string[] { }));
-            Assert.AreEqual(1, DotNetArchitectureCheckerMain.Main(new[] { "/y" }));
-            Assert.AreEqual(1, DotNetArchitectureCheckerMain.Main(new[] { "/v", "-v", "-i", "/i=100", "-t", "/t", "-g=someDotFile.dot" }));
+            Assert.AreEqual(1, Program.Main(new string[] { }));
+            Assert.AreEqual(1, Program.Main(new[] { "/y" }));
+            Assert.AreEqual(1, Program.Main(new[] { "/v", "-v", "-i", "/i=100", "-t", "/t", "-g=someDotFile.dot" }));
         }
 
         [TestMethod]
         public void Exit2() {
             {
-                Assert.AreEqual(2, DotNetArchitectureCheckerMain.Main(new[] { "/xnonexistingfile.dep" }));
+                Assert.AreEqual(2, Program.Main(new[] { "/xnonexistingfile.dep" }));
             }
         }
 
@@ -294,7 +294,7 @@ NDepCheck.Tests ---> **
                     ** ---> blabla
                 ");
                 }
-                Assert.AreEqual(3, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
+                Assert.AreEqual(3, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
             {
@@ -302,7 +302,7 @@ NDepCheck.Tests ---> **
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write("");
                 }
-                Assert.AreEqual(3, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
+                Assert.AreEqual(3, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
         }
@@ -313,9 +313,9 @@ NDepCheck.Tests ---> **
                 string depFile = Path.GetTempFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(@"
-                    DotNetArchitectureCheckerTest.** ---> DotNetArchitectureCheckerTest.**
-                    DotNetArchitectureCheckerTest.** ---> System.**
-                    DotNetArchitectureCheckerTest.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForDotNetArchitectureChecker::I
+                    NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
+                    NDepCheck.TestAssembly.** ---> System.**
+                    NDepCheck.TestAssembly.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForNDepCheck::I
                     * ---? System.*
 
                     // Schlägt fehlt, weil eine SpecialMethod auch auf ExtraordinaryMethod zugreift!
@@ -325,7 +325,7 @@ NDepCheck.Tests ---> **
                     }
                     ");
                 }
-                Assert.AreEqual(3, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
+                Assert.AreEqual(3, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
         }
@@ -338,7 +338,7 @@ NDepCheck.Tests ---> **
                     ** ---> blabla
                 ");
             }
-            Assert.AreEqual(4, DotNetArchitectureCheckerMain.Main(new[] { "/x=" + depFile, "nonexistingfile.dll" }));
+            Assert.AreEqual(4, Program.Main(new[] { "/x=" + depFile, "nonexistingfile.dll" }));
             File.Delete(depFile);
         }
 
@@ -357,7 +357,7 @@ NDepCheck.Tests ---> **
                     =:
                 ");
                 }
-                Assert.AreEqual(5, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
+                Assert.AreEqual(5, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
             {
@@ -370,7 +370,7 @@ NDepCheck.Tests ---> **
                     =:
                 ");
                 }
-                Assert.AreEqual(5, DotNetArchitectureCheckerMain.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
+                Assert.AreEqual(5, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
         }

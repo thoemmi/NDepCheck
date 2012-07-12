@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("DotNetArchitectureChecker.MSBuild")]
+[assembly: AssemblyTitle("NDepCheck.MSBuild")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Microsoft")]
-[assembly: AssemblyProduct("DotNetArchitectureChecker.MSBuild")]
-[assembly: AssemblyCopyright("Copyright © Microsoft 2010")]
+[assembly: AssemblyCompany("")]
+[assembly: AssemblyProduct("NDepCheck.MSBuild")]
+[assembly: AssemblyCopyright("Copyright HMMüller & Th. Freudenberg ©  2007..2012")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

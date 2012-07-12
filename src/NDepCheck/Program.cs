@@ -4,9 +4,9 @@ using System.IO;
 
 namespace NDepCheck {
     /// <remarks>
-    /// Main class of DotNetArchitectureChecker.
+    /// Main class of NDepCheck.
     /// </remarks>
-    public class DotNetArchitectureCheckerMain {
+    public class Program {
         public static ILogger Logger = new ConsoleLogger();
 
         // The two "workers".
@@ -14,7 +14,7 @@ namespace NDepCheck {
         private readonly DependencyGrapher _grapher;
         private readonly Options _options;
 
-        public DotNetArchitectureCheckerMain(Options options) {
+        public Program(Options options) {
             _options = options;
             _checker = new DependencyChecker(_options);
             _grapher = new DependencyGrapher(_checker, _options);
@@ -122,7 +122,7 @@ namespace NDepCheck {
                 if (result != 0) {
                     return result;
                 }
-                var main = new DotNetArchitectureCheckerMain(options);
+                var main = new Program(options);
                 return main.Run();
             } catch (Exception ex) {
                 string msg = "Exception occurred: " + ex;

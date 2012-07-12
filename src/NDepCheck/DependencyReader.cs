@@ -22,13 +22,13 @@ namespace NDepCheck {
         public static IEnumerable<Dependency> GetDependencies(string filename, Predicate<TypeDefinition> typeFilter) {
             var sw = new Stopwatch();
             sw.Start();
-            DotNetArchitectureCheckerMain.WriteInfo("Reading " + filename);
+            Program.WriteInfo("Reading " + filename);
 
             AssemblyDefinition assembly = AssemblyFactory.GetAssembly(filename);
             try {
                 assembly.MainModule.LoadSymbols();
             } catch (Exception ex) {
-                DotNetArchitectureCheckerMain.WriteWarning(
+                Program.WriteWarning(
                     "Loading symbols for assembly " + filename + " failed - maybe .PDB file is missing. (" + ex.Message +
                     ")", filename, 0, 0, 0, 0);
             }
@@ -46,7 +46,7 @@ namespace NDepCheck {
                     yield return dependency;
                 }
             }
-            DotNetArchitectureCheckerMain.WriteInfo("  Analyzing " + filename + " took " + (int)sw.Elapsed.TotalMilliseconds +
+            Program.WriteInfo("  Analyzing " + filename + " took " + (int)sw.Elapsed.TotalMilliseconds +
                                             " ms");
             sw.Stop();
 
@@ -181,7 +181,7 @@ namespace NDepCheck {
             var methodReference = instruction.Operand as MethodReference;
 
             // Durch die !IsLinked-Bedingung wird der Test MainTests.Exit0Aspects mit den Calls
-            // zwischen Nested-Klassen in DotNetArchitectureCheckerTests.cs - Klasse Class14.Class13EInner2, Methode SpecialMethodOfInnerClass
+            // zwischen Nested-Klassen in NDepCheck.TestAssembly.cs - Klasse Class14.Class13EInner2, Methode SpecialMethodOfInnerClass
             // rot: Weil die Calls zwischen der Class14 und der Nested Class wegen IsLinked==true hier einfach ausgefiltert
             // werden ...
             // WIESO SOLL DAS SO SEIN? - bitte um Erklärung! ==> SIehe nun temporäre Änderung an IsLinked - IST DAS OK?
