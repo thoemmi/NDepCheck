@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using DotNetArchitectureCheckerTest2.dir1.dir3;
+using NDepCheck.TestAssembly.dir1.dir3;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.Tests.dir1.dir3;
+using NDepCheck.TestAssemblyÄÖÜß.dir1.dir3;
 
 namespace NDepCheck.Tests {
     [TestClass]

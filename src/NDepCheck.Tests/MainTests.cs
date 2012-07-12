@@ -12,7 +12,7 @@ namespace NDepCheck.Tests {
     /// </remarks>
     [TestClass]
     public class MainTests {
-        private static readonly string TestAssemblyPath = Path.Combine(Path.GetDirectoryName(typeof (MainTests).Assembly.Location), "DotNetArchitectureCheckerTest.dll");
+        private static readonly string TestAssemblyPath = Path.Combine(Path.GetDirectoryName(typeof (MainTests).Assembly.Location), "NDepCheck.TestAssembly.dll");
 
         private static void AssertNotContains(string path, string s) {
             using (TextReader tr = new StreamReader(path)) {
@@ -27,7 +27,7 @@ namespace NDepCheck.Tests {
             using (TextWriter tw = new StreamWriter(depFile, false, Encoding.Default)) {
                 tw.Write(
                     @"
-// Test dependencies for DotNetArchitectureChecker
+// Test dependencies for NDepCheck
 
     // Every class may use all classes from its own namespace.
 (**).* ---> \1.*
@@ -52,13 +52,13 @@ namespace NDepCheck.Tests {
 
 
     // DotNetArchitectureChecker may use antlr and itself.
-DotNetArchitectureChecker ====> antlr
+NDepCheck ====> antlr
 
     // DotNetArchitectureChecker must not use Windows Forms.
-DotNetArchitectureChecker.** ---! System.Windows.Forms.**
+NDepCheck.** ---! System.Windows.Forms.**
 
 _TES  := asdasdasdasdasdasd
-_TESTS := DotNetArchitectureCheckerTest
+_TESTS := NDepCheck.Tests
 _TEST_OTHERS := xxxxxxxxxxxxx
 _TEST := asdasdasdasdasdasd
 
@@ -85,7 +85,7 @@ _TESTS.dirumlaut.** ---> _TESTS.dirumlauts.**
 **/**::InnerClassMethod ---> **/**::InnerClassMethod 
 
     // Tests must be able to see tested classes
-_TESTS.** ---> DotNetArchitectureChecker.**
+_TESTS.** ---> NDepCheck.**
 
     // Tests may use Microsoft.VisualStudio.TestTools.
 _TESTS.** ---> Microsoft.VisualStudio.TestTools.**
@@ -94,7 +94,7 @@ _TESTS.** ---> Microsoft.VisualStudio.TestTools.**
 
     // In these tests, we ignore everything in the
     // current test class.
-DotNetArchitectureCheckerTest.UnitTests ---> **
+NDepCheck.Tests ---> **
 
 // ------------------
 
@@ -102,10 +102,10 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
 % ()System.**
 
     // Classes in DotNetArchitectureCheckerTests are shown separately, without the namespace
-% DotNetArchitectureCheckerTests.(**)
+% NDepCheck.Tests.(**)
 
     // Classes in DotNetArchitectureChecker are also shown separately, but with the namespace
-% (DotNetArchitectureChecker).*
+% (NDepCheck).*
 
     // antlr classes are shown by namespace
 % (antlr).*
@@ -192,9 +192,9 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
                 string depFile = Path.GetTempFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(@"
-                    DotNetArchitectureCheckerTest.** ---> DotNetArchitectureCheckerTest.**
-                    DotNetArchitectureCheckerTest.** ---> System.**
-                    DotNetArchitectureCheckerTest.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForDotNetArchitectureChecker::I
+                    NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
+                    NDepCheck.TestAssembly.** ---> System.**
+                    NDepCheck.TestAssembly.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForDotNetArchitectureChecker::I
                     * ---? System.*
                 ");
                 }
@@ -230,7 +230,7 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
                 string depFile = Path.GetTempFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(@"
-                    _A := DotNetArchitectureCheckerTest
+                    _A := NDepCheck.TestAssembly
                     _B := _A
                     _B.** ---> _B.**
                     _B.** ---> System.**
@@ -256,7 +256,7 @@ DotNetArchitectureCheckerTest.UnitTests ---> **
                     ===> :=
                         \L ---> \R
                     =:
-                    _A := DotNetArchitectureCheckerTest
+                    _A := NDepCheck.TestAssembly
                     _B := _A
                     _B.** ===> _B.**
                     _B.** ===> System.**

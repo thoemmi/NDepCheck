@@ -1,15 +1,15 @@
 // (c) HMMüller 2006...2010
 
 using System;
-using NDepCheck.Tests.dir1.dir3;
-using NDepCheck.Tests.dirUEmlAEutSZ;
-using NDepCheck.Tests.dirümläutö;
+using NDepCheck.TestAssembly.dir1.dir3;
+using NDepCheck.TestAssembly.dirUEmlAEutSZ;
+using NDepCheck.TestAssembly.dirümläutö;
 
-namespace NDepCheck.Tests.dir1.dir3 {
+namespace NDepCheck.TestAssembly.dir1.dir3 {
     /// <summary>
     /// This and all other classes in and below
     /// the <c>dir1</c> namespace are used for testing
-    /// the DotNetArchitectureChecker.
+    /// the NDepCheck.
     /// </summary>
     public struct Struct13 {
         public int I;
@@ -21,7 +21,7 @@ namespace NDepCheck.Tests.dir1.dir3 {
 
         public Class13A(string t) {
             T[0][0] = t;
-            S = "DotNetArchitectureCheckerTests.dir1.dir3.Class13d";
+            S = "NDepCheck.TestAssembly.dir1.dir3.Class13d";
         }
     }
 
@@ -91,14 +91,14 @@ public class NamespacelessTestClassForDotNetArchitectureChecker {
     }
 }
 
-namespace NDepCheck.Tests.dir1 {
+namespace NDepCheck.TestAssembly.dir1 {
     public interface ISomeInterface {
         Class13A Class13AMethod(Class13B b, Class13C c);
         Class13E.Class13EInner.Class13EInnerInner CreateInner3();
     }
 }
 
-namespace NDepCheck.Tests.dir1.dir2 {
+namespace NDepCheck.TestAssembly.dir1.dir2 {
     public delegate Struct13 SomeDelegate(Class13A param);
 
     public enum SomeEnum {
@@ -151,14 +151,14 @@ namespace NDepCheck.Tests.dir1.dir2 {
         }
 
         protected static void OtherMethod(Class13D[] d) {
-            var auxVar = new Class13A("DotNetArchitectureCheckerTest.dir1.dir3.SomeClass");
+            var auxVar = new Class13A("NDepCheck.TestAssembly.dir1.dir3.SomeClass");
             if (auxVar.S == auxVar.T[0][0]) {
                 SomeStruct.Method(d[0].X);
             }
         }
 
         protected internal static int AnotherMethod(Class13D d) {
-            new Class13A("DotNetArchitectureCheckerTest.dir1.dir3.SomeClass");
+            new Class13A("NDepCheck.TestAssembly.dir1.dir3.SomeClass");
             return NamespacelessTestClassForDotNetArchitectureChecker.I;
         }
 
@@ -176,7 +176,7 @@ namespace NDepCheck.Tests.dir1.dir2 {
     }
 }
 
-namespace NDepCheck.Tests.dir1.dir4 {
+namespace NDepCheck.TestAssembly.dir1.dir4 {
     public class Class14 {
         #region Nested type: Class13eInner2
 
@@ -203,7 +203,7 @@ namespace NDepCheck.Tests.dir1.dir4 {
     }
 }
 
-namespace NDepCheck.Tests.dirümläut {
+namespace NDepCheck.TestAssembly.dirümläut {
     public class Class14 {
         public int Method() {
             return ClassA.Mäthod() + ClassÄ.Method();
@@ -211,7 +211,7 @@ namespace NDepCheck.Tests.dirümläut {
     }
 }
 
-namespace NDepCheck.Tests.dirümläutö {
+namespace NDepCheck.TestAssembly.dirümläutö {
     public class ClassA {
         public static int Mäthod() {
             return 0;
@@ -225,7 +225,7 @@ namespace NDepCheck.Tests.dirümläutö {
     }
 }
 
-namespace NDepCheck.Tests.dirUEmlAEut {
+namespace NDepCheck.TestAssembly.dirUEmlAEut {
     public class Class14A {
         public int Method() {
             return ClassA.Mäthod() + ClassÄ.Method();
@@ -239,7 +239,7 @@ namespace NDepCheck.Tests.dirUEmlAEut {
     }
 }
 
-namespace NDepCheck.Tests.dirUEmlAEutSZ {
+namespace NDepCheck.TestAssembly.dirUEmlAEutSZ {
     public class ClassAA {
         public static int Mäthod() {
             return 0;
@@ -253,7 +253,7 @@ namespace NDepCheck.Tests.dirUEmlAEutSZ {
     }
 }
 
-namespace NDepCheck.Tests.dirumlaut {
+namespace NDepCheck.TestAssembly.dirumlaut {
     public class Class14 {
         public int Method() {
             return dirumlauts.ClassA.Mäthod() + dirumlauts.ClassÄ.Method();
@@ -261,7 +261,7 @@ namespace NDepCheck.Tests.dirumlaut {
     }
 }
 
-namespace NDepCheck.Tests.dirumlauts {
+namespace NDepCheck.TestAssembly.dirumlauts {
     public class ClassA {
         public static int Mäthod() {
             return 0;

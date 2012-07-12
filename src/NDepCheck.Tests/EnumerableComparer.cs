@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Collections.Generic;
 
-namespace NDepCheck.Tests {
+namespace NDepCheck.TestAssembly {
     internal class EnumerableComparer<T> {
 
         private readonly Func<T, T, bool> _matchesPerfectly;

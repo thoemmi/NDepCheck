@@ -1,6 +1,6 @@
-﻿using NDepCheck.Tests.dir1.dir3;
+﻿using NDepCheck.TestAssembly.dir1.dir3;
 
-namespace NDepCheck.Tests.dir1.dir2 {
+namespace NDepCheck.TestAssembly.dir1.dir2 {
     public interface ISomeInterface {
         int IntMethod();
         Class13A Class13AMethod(Class13B b, Class13C c);
