@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using NDepCheck.TestAssembly.dir1.dir3;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.TestAssemblyÄÖÜß.dir1.dir3;
@@ -87,13 +88,13 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestDoublyNestedDefine() {
             Write(@"a\b", "A.dep",
-                @"_A := DotNetArchitectureCheckerTest
+                @"_A := NDepCheck.TestAssembly
                 ");
             Write(@"a\b", "B.dep",
                 @"+ A.dep
                 _B := _A
                 ");
-            Write(@"a\b\c", "DotNetArchitectureCheckerTestAssembly.dll.dep",
+            Write(@"a\b\c", "NDepCheck.TestAssembly.dll.dep",
                 @"+ ..\B.dep
                   _B.** ---> **
                   * ---? **
@@ -105,14 +106,14 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestPushDownDefine() {
             Write(@"a\b", "A.dep",
-                @"_A := DotNetArchitectureCheckerTest
+                @"_A := NDepCheck.TestAssembly
                   + B.dep
                 ");
             Write(@"a\b", "B.dep",
                 @"_A.** ---> **
                   * ---? **
                 ");
-            Write(@"a\b\c", "DotNetArchitectureCheckerTestAssembly.dll.dep",
+            Write(@"a\b\c", "NDepCheck.TestAssembly.dll.dep",
                 @"+ ..\A.dep
                 ");
             WriteDep2To(@"a\b\c");
@@ -125,7 +126,7 @@ namespace NDepCheck.Tests {
 
             int result = DotNetArchitectureCheckerMain.Main(new List<string>() {
                     @"-s=" + _basePath + @"\a",
-                    GetPath("DotNetArchitectureCheckerTestAssembly.dll"),
+                    GetPath("NDepCheck.TestAssembly.dll"),
                     "DotNetArchitectureCheckerTestAssemblyÄÖÜß.*",
                     "/e",
                     "DotNetArchitectureCheckerTestAssemblyÄÖÜß.dll",
@@ -135,37 +136,33 @@ namespace NDepCheck.Tests {
 
         private int Run(params string[] args) {
             return DotNetArchitectureCheckerMain.Main(new List<string>(args.Select(s => s.Replace("%%", _basePath))) {
-                    GetPath("DotNetArchitectureCheckerTestAssembly.dll"),
-                    "DotNetArchitectureCheckerTestAssemblyÄÖÜß.*"
+                    GetPath("NDepCheck.TestAssembly.dll"),
+                    "NDepCheck.TestAssemblyÄÖÜß.*"
                 }.ToArray());
         }
 
         private void WriteDep1To(string directory) {
-            Write(directory, "DotNetArchitectureCheckerTestAssembly.dll.dep",
-                @"DotNetArchitectureCheckerTest.** ---> **
+            Write(directory, "NDepCheck.TestAssembly.dll.dep",
+                @"NDepCheck.TestAssembly.** ---> **
                   * ---? **
                 ");
         }
 
         private void WriteDep1PlusTo(string directory) {
-            Write(directory, "DotNetArchitectureCheckerTestAssembly.dll.dep",
-                @"+ Dep1Include\Dep1.dep");
-            Write(directory + @"\Dep1Include", "Dep1.dep",
-                @"DotNetArchitectureCheckerTest.** ---> **
+            Write(directory, "NDepCheck.TestAssembly.dll.dep", @"+ Dep1Include\Dep1.dep");
+            Write(directory + @"\Dep1Include", "Dep1.dep", @"NDepCheck.TestAssembly.** ---> **
                   * ---? **
                 ");
         }
 
         private void WriteDep2To(string directory) {
-            Write(directory, "DotNetArchitectureCheckerTestAssemblyÄÖÜß.dll.dep", "DotNetArchitectureCheckerTest2.** ---> **");
+            Write(directory, "NDepCheck.TestAssemblyÄÖÜß.dll.dep", "NDepCheck.TestAssemblyÄÖÜß.** ---> **");
         }
 
         private void WriteDep2PlusTo(string directory) {
-            Write(directory, "DotNetArchitectureCheckerTestAssemblyÄÖÜß.dll.dep",
-                @"+ Dep2Include\Dep2A.dep");
-            Write(directory + @"\Dep2Include", "Dep2A.dep",
-                @"+ ..\Dep2B.dep");
-            Write(directory, "Dep2B.dep", "DotNetArchitectureCheckerTest2.** ---> **");
+            Write(directory,                   "NDepCheck.TestAssemblyÄÖÜß.dll.dep", @"+ Dep2Include\Dep2A.dep");
+            Write(directory + @"\Dep2Include", "Dep2A.dep",                          @"+ ..\Dep2B.dep");
+            Write(directory,                   "Dep2B.dep",                          @"NDepCheck.TestAssemblyÄÖÜß.** ---> **");
         }
 
         private void WriteXTo(string directory) {
@@ -174,7 +171,7 @@ namespace NDepCheck.Tests {
 
         private void Write(string directory, string depFileName, string data) {
             DirectoryInfo di = Directory.CreateDirectory(Path.Combine(_basePath, directory));
-            using (TextWriter tw = new StreamWriter(Path.Combine(di.FullName, depFileName))) {
+            using (TextWriter tw = new StreamWriter(Path.Combine(di.FullName, depFileName), false, Encoding.UTF8)) {
                 tw.WriteLine(data);
             }
         }
