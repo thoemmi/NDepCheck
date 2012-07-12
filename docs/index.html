@@ -1,0 +1,871 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>.Net Architecture Checker - A Dependency Checker for .NET</title>
+</head>
+
+<p align="center">&nbsp;</p>
+
+<center>
+<h1>.Net Architecture Checker</h1>
+V.1.7 &copy; Harald M. Müller and Thomas Freudenberg</center>
+
+<a href="#overview">Overview</a><br>
+<a href="#usedsw">Used Software</a><br>
+<a href="#license">License</a><br>
+<a href="#install">Installation</a><br>
+<a href="#concepts">Concepts</a><br>
+<a href="#usage">Usage</a><br>
+<a href="#exdefine">Examples of defining rules up-front&mdash;the preferred scenario</a><br>
+<a href="#exel">An example of a dependency detection session: Understanding the dependencies in Microsoft's Enterprise Library</a><br>
+<a href="#consider">Design considerations</a><br>
+<a href="#open">Open Items</a><br>
+<a href="#relnotes">Release Notes</a><br>
+
+This project is hosted on <a href="http://sourceforge.net"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=159756&amp;type=2" width="125" height="37" border="0" alt="SourceForge.net Logo" /></a>.
+<br>The project homepage is at <a href="http://dotnetarchitect.sourceforge.net">http://dotnetarchitect.sourceforge.net</a>.
+<br>The development homepage ("sourceforge foundry") and <b>download page</b> is at <a href="https://sourceforge.net/projects/dotnetarchitect">https://sourceforge.net/projects/dotnetarchitect</a>.
+<br>My email address is harald.m.mueller@bigfoot.com.
+
+<h2><a name="overview">Overview</a></h2>
+
+.Net Architecture Checker is a tool that helps you to keep the (static) architecture of a .Net software clean. You specify allowed dependencies between namespaces, classes, or even methods, and 
+.Net Architecture Checker will check whether the dependencies are violated somewhere. You will use this in Nightly Builds or Continuous Integration Builds to prevent the introduction of unwanted dependencies.
+<p>Ideally, the software architect will specify the intended dependencies (or rather, dependency rules) for some module <em>before</em> code is written. However, by creating a diagram of the dependencies, it is also possible to explore and document the dependencies of an <em>existing piece of software</em>. Both ways of proceeding are especially useful to prevent the dreaded cyclic dependencies, which usually result in a tangled monolith of interdependencies, making a software unmaintainable in a quite short period of time.
+<p>.Net Architecture Checker has proven its usefulness (and stability) in a project of 25 developers with now more than 2 million LOC.
+
+<h2><a name="usedsw">Used Software</a></h2>
+
+.Net Architecture Checker is based on Microsoft's .NET Framework.
+<br>Internally, .Net Architecture Checker uses Mono's Cecil for .NET (version 0.6) from <a href="http://www.mono-project.com/Cecil">http://www.mono-project.com/Cecil</a>.
+<br>For graph drawing, you need DOT from AT&amp;T's GraphViz tool library at <a href="http://www.graphviz.org">http://www.graphviz.org</a>.
+
+<h2><a name="license">License</a></h2>
+
+.Net Architecture Checker is licensed under the LGPL license (see <a href=http://www.opensource.org/licenses/lgpl-3.0.html>http://www.opensource.org/licenses/lgpl-3.0.html</a>).
+
+<h2><a name="install">Installation</h2>
+
+<h3>Installation of executable and documentation</h3>
+
+Prerequisites: 
+<ul>
+<li> .Net Architecture Checker requires .NET-Framework 3.5.
+<li> For creating dependency graphs, you need AT&amp;T's Graphviz library, which can be found at <a href="http://www.graphviz.org">http://www.graphviz.org</a>.
+</ul>
+
+Steps:
+<ul>
+<li> Download the ZIP file DotNetArchitectureChecker1.7.zip from Sourceforge at <a href=https://sourceforge.net/projects/dotnetarchitect>https://sourceforge.net/projects/dotnetarchitect</a>.
+<li> Unzip the file. If unzipped into C:, the files will be in C:\DotNetArchitectureChecker1.7\.
+<li> Optional: Add the unzip location (e.g. C:\dotnetarchitect\) to your path.
+</ul>
+
+<h3>Installation of sources</h3>
+
+<ul>
+<li> Download the ZIP file DotNetArchitectureChecker1.7-src.zip from Sourceforge at <a href=https://sourceforge.net/projects/dotnetarchitect>https://sourceforge.net/projects/dotnetarchitect</a>.
+<li> Unzip the file.
+<li> Open DotNetArchitectureCheckerAll.sln in the src directory.
+</ul>
+
+<h2><a name="concepts">Concepts</a></h2>
+
+<h3>Dependency rules and builds</h3>
+
+.Net Architecture Checker reads one or more .Net assemblies and extracts all the uses of classes, structs, enums, delegates, inner classes, and methods from that file. It also needs a definition of <em>dependency rules</em>&mdash;here are two simple examples:
+
+<pre>
+    MyProgram.** ---> YourLibrary.**
+    MyProgram.** ---! System.Windows.Forms.**
+</pre>
+
+The two asterisks ** are the abbreviation for "a class name, including a namespace." The two rules thus mean:
+
+<blockquote>
+    All classes (and enums, methods, ...) in and below the namespace <code>MyProgram</code> may use all classes (structs, delegates, ...) in and below the <code>YourLibrary</code> namespace.
+</blockquote>
+<blockquote>
+    All classes (etc.) in and below the namespace <code>MyProgram</code> must <em>not</em> use any class (etc.) from the <code>System.Windows.Forms</code> namespace tree.
+</blockquote>
+
+The idea is that rules like these are defined by the software architect(s) and checked every time a build is run. When rules are violated, .Net Architecture Checker will write something like the following and return with exit code 3:
+
+<pre>
+    **** Illegal dependency MyProgram.MyClass/NestedClass::.ctor ---> SomeOtherLibrary.Class
+        (probably at src\MyProgram\MyClass.cs:80)
+</pre>
+
+A violation of the rules should be like a compile time error: It breaks the build. Hence, a defined (static) software architecture can no longer degrade to some tangled web of dependencies, which will become unmaintainable over time.
+
+<h3>Showing dependencies graphically</h3>
+
+<p>.Net Architecture Checker can also produce a DOT graph showing dependencies. This is not as useful as it sounds to most people: <em>Defining</em> and <em>checking</em> dependency rules should be the predominant goal. However, there are two applications for this feature:<ul>
+<li>First, and more important, it can be used to demonstrate and teach an existing good software architecture to people on a project.
+<li>Second, in existing projects with unknown dependencies, it can help to find the dependency structure and violations of perceived dependency rules. This, in turn can lead to a formulation of dependency rules to be adhered to, which can from then on be checked with .Net Architecture Checker. An example of this use is given <a href="#exel">below</a>.</ul>
+
+<h2><a name="usage">Usage</a></h2>
+
+<h3>Manual use</h3>
+
+A typical call to .Net Architecture Checker looks as follows:
+<pre>
+     DotNetArchitectureChecker /x=myrules.dep myproj*.dll myproj*.exe
+</pre>
+This will output all the dependencies in all myproj* .Net assemblies in the current directory. It is good practice to have a naming convention for the assemblies of a project; by this, the project's own assemblies can easily be distinguished from other assemblies (usually copied ones) in the same directory.
+
+The complete usage of .Net Architecture Checker is explained here:
+
+<pre>
+Usage:
+   DotNetArchitectureChecker [&lt;option&gt; ...] [&lt;assemblyfilespec&gt; ...]
+
+Typical uses:
+
+* Check dependencies in My.DLL; My.dll.dep is somewhere below SourceDir:
+      DotNetArchitectureChecker /s=SourceDir My.dll
+
+* Produce graph of dependencies in My.DLL:
+      DotNetArchitectureChecker /s=SourceDir My.DLL /g=My.dot
+      dot -Tgif -oMy.gif My.dot
+
+All messages of DotNetArchitectureChecker are written to Console.Out.
+
+Options:
+   /d=&lt;directory&gt;    For each assembly file A.dll, look for corresponding 
+         rule file A.dll.dep in this directory (multiple /d options are 
+         supported). This is especially useful with + lines.
+
+   /s=&lt;directory&gt;    Like /d, but also look in all subdirectories. Mixing
+         /s and /d options is supported.
+
+   /x=&lt;rule file&gt;    Use this rule file if no matching rule file is found
+         via /s and /d options. This is also useful if no /s and /d options
+         are specified.
+
+   /g=&lt;dot file&gt;   Create output of dependencies in AT&T DOT format.
+         By default, DotNetArchitectureChecker tries to remove transitive
+         edges - i.e., if a uses b, b uses c, but also a uses c, then
+         the last edge is not shown. The algorithm for this will
+         sometimes choose funny edges for removal ...
+
+   /t    Show also transitive edges in DOT graph.
+
+   /i[=&lt;N&gt;]        For each illegal edge (i.e., edge not allowed by 
+         the dependency file), show an example of a concrete illegal 
+         dependency in the DOT graph. N is the maximum width of strings 
+         used; the default is 80. Graphs can become quite cluttered 
+         with this option.
+
+   /v    Verbose. Shows regular expressions used for checking and 
+         all checked dependencies. Attention: Place /v BEFORE any
+         /d, /s, or /x option to see the regular expressions.
+         Produces lots of output.
+
+   /y    Even more debugging output.
+
+   /debug   Start with debugger.
+
+Assemblyspecs - one of the following:
+    
+    simplefilename      the assembly is checked.
+                        e.g. ProjectDir\bin\MyProject.Main.dll
+
+    filepattern         all matching assemblies are checked.
+                        e.g. bin\MyProject.*.dll 
+
+    directory           all .DLL and .EXE files in the directory are checked.
+                        e.g. MyProject\bin\Debug
+
+    @filename           lines are read as assembly filenames and checked.
+                        The file may contain empty lines, which are ignored.
+                        e.g. @MyListOfFiles.txt
+
+    &lt;one of the above&gt; /e &lt;one of the above&gt;            
+                        The files after the /e are excluded from checking.
+                        e.g. MyProject.*.dll /e *.vshost.*
+
+Rules files:
+         Rule files contain rule definition commands.
+         The following commands are supported:
+
+           empty line            ... ignored
+           // comment            ... ignored
+           # comment             ... ignored
+
+           + filepath            ... include rules from that file. The path
+                                     is interpreted relative to the current
+                                     rule file.
+
+           NAME := pattern       ... define abbreviation which is replaced
+                                     in patterns before processing. NAME
+                                     must be uppercase only (but it can
+                                     contain digits, underscores etc.).
+                                     Longer names are preferred to shorter
+                                     ones during replacement. The pattern
+                                     on the right side can in turn use 
+                                     abbreviations. Abbreviation processing
+                                     is done before all reg.exp. replacements
+                                     described below.
+                                     If an abbreviation definition for the 
+                                     same name is encountered twice, it must
+                                     define exactly the same value.
+
+           pattern ---&gt; pattern  ... allowed dependency. The second
+                                     pattern may contain back-references
+                                     of the form \1, \2 etc. that are
+                                     matched against corresponding (...)
+                                     groups in the first pattern.
+
+           pattern ---! pattern  ... forbidden dependency. This can be used
+                                     to exclude certain possibilities for
+                                     specific cases instead of writing many
+                                     "allowed" rules.
+
+           pattern ---? pattern  ... questionable dependency. If a dependency
+                                     matches such a rule, a warning will be
+                                     emitted. This is useful for rules that
+                                     should be removed, but have to remain
+                                     in place for pragmatic reasons (only
+                                     for some time, it is hoped).
+
+           NAME :=
+               &lt;arbitrary lines except =:&gt;
+           =:                    ... definition of a rule macro. The
+                                     arbitrary lines can contain the strings
+                                     \L and \R, which are replaced with the
+                                     corresponding patterns from the macro 
+                                     use. NAME need not consist of letters
+                                     only; also names like ===&gt;, :::&gt;, +++&gt;
+                                     etc. are allowed and quite useful.
+                                     However, names must not be "too
+                                     similar": If repeated characters are
+                                     are replaced with a single one, they must
+                                     still be different; hence, ===&gt; and ====&gt;
+                                     are "too similar" and lead to an error.
+                                     As with abbreviations, if a macro 
+                                     definition for the same name is 
+                                     encountered twice, it must define 
+                                     exactly the same value.
+
+           pattern NAME pattern  ... Use of a defined macro.
+
+           % pattern (with at least one group) 
+                                 ... Define output in DAG graph (substring
+                                     matching first group is used as label).
+                                     If the group is empty, the dependency
+                                     is not shown in the graph.
+                                     Useful only with /d option.
+
+         For an example of a dependency file, see near end of this help text.
+
+         A pattern can be specified in three ways:
+
+           ^regexp$              ... matched against a declaration
+                                     ("declarations" see below)
+
+           ^regexp               ... the regexp is expanded to up to four
+                                     different forms, all of which are
+                                     matched against declarations:
+               ^regexp$                   - for matching a class name
+               ^regexp(/&lt;ident&gt;)*$        - for matching nested classes
+                                            (if regexp contains no / )
+                                            &lt;ident&gt; is the pattern
+                                            matching an identifier.
+               ^regexp::&lt;ident&gt;$          - for matching methods
+                                            (if regexp contains no ::)
+               ^regexp(/&lt;ident&gt;)*::ident$ - for methods of nested classes
+                                            (if regexp contains no / and no ::)
+
+           wildcardpath          ... first, the following replacements are done:
+
+               .       is replaced with the reg.exp. [.] (matches single period)
+
+               *       is replaced with the reg.exp. for an &lt;ident&gt; (a "name")
+
+               **      is usually replaced with &lt;ident&gt;(?:.&lt;ident&gt;)* (a 
+                       "path").
+                            (?: in a reg.exp.means that the parentheses do not 
+                            count as numbered group when matching \1, \2, etc.)
+                       However, if there is a slash (/) somewhere to the left 
+                       of the **, it is replaced with &lt;ident&gt;(?:/&lt;ident&gt;)*, 
+                       i.e., the idents are separated by /. This can be used
+                       to match inner class hierarchies.
+
+               After the wildcard replacemants, suffixes are added as for 
+               ^regexp.
+
+
+
+Example of a dependency file with some important dependencies (all
+using the wildcardpath syntax):
+
+   // Every class may use all classes from its own namespace.
+        (**).* ---&gt; \1.*
+
+   // Special dependency for class names without namespace
+   // (the pattern above will not work, because it contains a
+   // period): A class from the global namespace may use
+   // all classes from that namespace.
+        * ---&gt; *
+
+   // Every class may use all classes from child namespaces
+   // of its own namespace.
+        (**).* ---&gt; \1.**.*
+
+   // Every class may use all of System.
+        ** ---&gt; System.**
+
+   // Use ALL as abbreviation for MyProgram.**
+        ALL := MyProgram.**
+
+   // All MyProgram classes must not use Windows Forms
+   // (even though in principle, all classes may use all of 
+   // System according to the previous ---&gt; rule).
+        ALL ---! System.Windows.Forms.**
+
+   // All MyProgram classes may use classes from antlr.
+        ALL ---&gt; antlr.**
+
+   // In DAG output, identify each object by its path (i.e.
+   // namespace).
+        % (**).*
+
+   // Classes without namespace are identified by their class name:
+        % (*)
+
+   // Classes in System.* are identified by the empty group, i.e.,
+   // they (and arrows reaching them) are not shown at all.
+        % ()System.**
+
+Exit codes:
+   0    All dependencies ok (including questionable rules).
+   1    Usage error.
+   2    Cannot load dependency file (syntax error or file not found).
+   3    Dependencies not ok.
+   4    Assembly file specified as argument not found.
+   5    Other exception.
+   6    No dependency file found for an assembly in /d and /s 
+        directories, and /x not specified.
+</pre>
+
+<h3>Use in builds</h3>
+
+<p>In a build, you will call .Net Architecture Checker.EXE, and possibly DOT separately.</p>
+
+<p>For uses in builds, DotNetArchitectureChecker.EXE has various exit codes. Essentially, you will test for exit code = 0&mdash;this means that everything is ok; exit code = 3 is also interesting, meaning "some dependencies did not follow the rules." For the other exit codes, see the above copy of the help output of DotNetArchitectureChecker.EXE.</p>
+
+<h2><a name="exdefine">Examples of defining rules up-front&mdash;the preferred scenario</a></h2>
+
+<h3>Namespace dependency rules</h3>
+
+<p>Here is an example scenario for dependency checking. Assume you are responsible for the design of a new GUI library which uses the MVC pattern. Let's call that new library "Yet Another GUI Library" (or "Your Advanced GUI Library"), which is abbreviated as "YAGL." The architect (you) has a vision of an architecture which decouples the implementations of the three pattern roles as cleanly as possible&mdash;preferably by namespaces. To be concrete, you start with the design and implementation of buttons. You decide that you want the following namespaces:
+
+<ul>
+<li> a namespace for base and standard models&mdash;Yagl.Buttons.Models
+<li> a namespace for interfaces of models and MVC-internal Listeners on models&mdash;Yagl.Buttons.IModels
+<li> a namespace for base button controllers&mdash;Yagl.Buttons.Controllers
+<li> sub-namespaces for each supported GUI System&mdash;Yagl.Buttons.Controllers.WPF, Yagl.Buttons.Controllers.Forms etc.
+<li> a namespace for base button views&mdash;Yagl.Buttons.Views
+<li> sub-namespaces for each supported GUI System&mdash;Yagl.Buttons.Views.WPF, Yagl.Buttons.Views.Forms etc.
+</ul>
+
+and, moreover
+
+<ul>
+<li> namespaces that provide access to the underlying GUI system (typically through native calls)&mdash;System.GUISupport.WPF, System.GUISupport.Forms (for System.Windows.Forms) etc.
+</ul>
+
+Your next step is to decide on the dependencies that you want to allow. This will lead to the intended decoupled architecture, where e.g. the Models namespace can be replaced (or even removed) without disturbing the rest of the design (except that, at runtime, there must of course be some concrete models around&mdash;but they could be provided by other modules, e.g. an application or a data binding layer). Here are the rules that might be necessary with the namespace division above:
+
+<pre>
+    // MODELS:
+      // Abstract and standard models use the model interfaces
+    Yagl.Buttons.Models.**          ---&gt; Yagl.Buttons.IModels.**
+    
+    // CONTROLLERS:
+      // Controllers call View changing methods - on a general level ...
+    Yagl.Buttons.Controllers.*      ---&gt; Yagl.Buttons.Views.*
+      // ... and for each GUI system (but not crossing
+      // GUI systems!)
+    Yagl.Buttons.Controllers.(*).** ---&gt; Yagl.Buttons.Views.\1.**
+    
+      // GUI-system dependent Controllers use common Controller code
+    Yagl.Buttons.Controllers.*.**   ---&gt; Yagl.Buttons.Controllers.*
+    
+      // Controllers for one GUI system use methods and events from the 
+      // corresponding native library.
+    Yagl.Buttons.Controllers.(*).** ---&gt; System.GUISupport.\1.**
+    
+      // Controllers influence Models; and hook themselves as listeners to Models
+    Yagl.Buttons.Controllers.*      ---&gt; Yagl.Buttons.IModels.**
+    
+    // VIEWS:
+      // Views hook themselves as listeners to Models
+    Yagl.Buttons.Views.*            ---&gt; Yagl.Buttons.IModels.**
+    
+      // GUI-system dependent Views use common View code
+    Yagl.Buttons.Views.*.**         ---&gt; Yagl.Buttons.Views.*
+    
+      // Views for one GUI system use methods and events from the 
+      // corresponding native library.
+    Yagl.Buttons.View.(*).**        ---&gt; System.GUISupport.\1.**
+</pre>
+</p>
+
+<p>The last rule (but not only that one) shows how the right side of a dependency rule can <em>reference</em> the left side by using "back references" (this is due to an idea of Ralf Kretzschmar, a colleague on a project I'm currently working on). As in standard regular expressions, \1 references the first parenthesized group on the left side, \2 the second etc.</p>
+
+<p>Your team will now start designing the classes and algorithms and then code and test along. As you have .Net Architecture Checker in your continuous build, there is no chance that someone inadvertently introduces unwanted dependencies. At some point (which might be quite early if you practice TDD) you want to assemble a small button with a controller, a view, and a model. At this time, you will probably notice that you can build this aggregate component with your defined dependencies in any of the existing namespaces, as you need access to the class constructors of controllers and views as well as models. You should now <em>not</em> weaken the dependencies: This will, if done a few more times, lead to a tangled architecture, where almost everything depends on everything.</p>
+
+<p>One possibility of a correct design which keeps the dependencies clean is that you define an additional namespace
+
+<ul>
+<li>Yagl.Buttons.Standard
+</ul>
+
+which provides typical facade classes connecting elements from all namespaces above. The dependencies of this namespace would (or could) be like this:</p>
+
+<pre>
+      // needed to create standard model via constructor
+    Yagl.Buttons.Standard.* ---&gt; Yagl.Buttons.Models.**
+      // needed to define instance vars to models
+    Yagl.Buttons.Standard.* ---&gt; Yagl.Buttons.IModels.**
+      // needed to create GUI-dependent controller via constructor
+    Yagl.Buttons.Standard.* ---&gt; Yagl.Buttons.Controllers.*.**
+      // needed to create GUI-dependent view via constructor
+    Yagl.Buttons.Standard.* ---&gt; Yagl.Buttons.Views.*.**
+</pre>
+    
+<p>&mdash;and now you are happy: Facade classes RadioButton, ToggleButton, StandardButton, MenuButton and more can be defined in the Standard namespace by instantiating objects from the Models, Views.*, and Controllers.* namespaces.</p>
+
+<p>A different concept is that instead of providing a "connecting namespace," you use dependency injection: The creation is externalized into a container (e.g. PicoContainer), which is suitably configured. In some sense, that configuration takes the role of the connecting namespace.</p>
+
+<p>In later steps of designing YAGL, you might generalize the patterns above for all sorts of GUI controls, so that you end up with dependencies like</p>
+
+<pre>
+    Yagl.(*).Models.**          ---&gt; Yagl.\1.IModels.**
+    Yagl.(*).Controllers.*      ---&gt; Yagl.\1.Views.*
+    Yagl.(*).Controllers.(*).** ---&gt; Yagl.\1.Views.\2.**
+    Yagl.(*).Controllers.*.**   ---&gt; Yagl.\1.Controllers.*
+</pre>
+etc.
+
+<h3>Macros</h3>
+
+In the previous example, you might have defined namespaces Yagl.Buttons, Yagl.Labels, Yagl.Grids etc. with the corresponding sub-namespaces (Models, IModels, Controllers, Views). Between such "modules", you might also have dependencies:<ul>
+<li>Buttons depends on Labels (to place a label on the Button)
+<li>Grids depends on Labels (for row headers) and Buttons (for column headers which allow sorting)
+<li>etc.
+</ul>
+However, the dependencies between these module should follow a consistent pattern:<ul>
+<li>The left side's Models sub-namespace may only depend on the right side's Models and IModels sub-namespaces.
+<li>The left side's Controllers sub-namespace may only depend on the right side's Controllers and Views sub-namespaces.
+<li>etc.
+</ul>
+In larger systems, such compound rules introduce an additional level of abstraction, which helps to define the constraints more concisely. Here is an example of definitions for Yagl, which uses a macro called ===&gt;:
+<pre>
+    ===&gt; :=
+        Yagl.\L.(*).**             ---&gt; Yagl.\R.\1.**
+        Yagl.\L.Models.**          ---&gt; Yagl.\R.IModels.**
+        Yagl.\L.Controllers.*      ---&gt; Yagl.\R.Views.*
+        Yagl.\L.Controllers.(*).** ---&gt; Yagl.\R.Views.\1.**
+        Yagl.\L.Controllers.*.**   ---&gt; Yagl.\R.Controllers.*
+    =:
+    
+    Buttons ===&gt; Labels
+    Grids   ===&gt; Buttons
+    Grids   ===&gt; Labels
+</pre>
+
+<h3>Method dependency rules</h3>
+
+<p>Here is a short explanation of a quite different dependency scenario, this time on the level of methods: An object-relational mapping I wrote does its work for searches in multiple phases (this is a sort of pipeline architecture):
+
+<ol>
+<li> First, search conditions are converted to an internal tree representation (c2t&mdash;"condition to tree")
+<li> Then, the trees are enhanced with SQL statements, depending on lazy/eager load and other factors (t2s&mdash;"tree to SQL")
+<li> Then, the SQL statements are executed (s2r&mdash;"SQL to result sets")
+<li> Finally, the result sets are converted to objects (r2o&mdash;"result sets to objects")
+</ol>
+
+Many internal classes contribute to more than one of these phases: There is state, and there are methods for each phase. For a clean architecture, methods of one phase should only call methods and access fields provided by the same phase; this is important so that methods of earlier phases (e.g. a t2s method) do not call methods of later phases (e.g. an r2o method), when the state necessary for the later phase has not yet been computed by an earlier phase! In addition, there are some common methods which may be called in each phase (e.g. property getters)&mdash;these are to be suffixed with _com. To ascertain these constraints, the methods' names are to be suffixed with the phase, e.g. ComputeSQL_t2s() or CreateObject_r2o(...). Here are possible dependency rules that help to maintain the calling architecture:
+            
+<pre>
+    ORMapping.**::*_c2t  ---&gt;   ORMapping.**::*_c2t 
+    ORMapping.**::*_t2s  ---&gt;   ORMapping.**::*_t2s
+    ORMapping.**::*_s2r  ---&gt;   ORMapping.**::*_s2r 
+    ORMapping.**::*_r2o  ---&gt;   ORMapping.**::*_r2o
+    ORMapping.**::*      ---&gt;   ORMapping.**::*_com
+      // Methods may access private state (prefixed with _).
+      // A separate getter is provided for each phase that
+      // may legitimally access some field.
+    ORMapping.**::*      ---&gt;   ORMapping.**::_*
+    
+      // ORMapping may use System except Windows.Forms
+    ORMapping.**         ---&gt;   System.**
+    ORMapping.**         ---!   System.Windows.Forms.**
+      // Every class may use &lt;PrivateImplementationDetails&gt;
+    ORMapping.** ---> &lt;PrivateImplementationDetails&gt;**
+</pre>
+By the way, a shorter way of defining the first 4 rules would be:
+<pre>
+    ORMapping.**::*_(c2t|t2s|s2r|r2o)  --->   ORMapping.**::*_\1
+</pre>
+<p>However, this is probably more difficult to understand than the expanded version above.</p>
+
+<p>Also, in practice, the rules need to include methods for writing; and they will be more elaborate, as there will also be dependency rules between namespaces inside the ORMapping. E.g., some classes responsible for writing to the database&mdash;INSERT, UPDATE, DELETE&mdash;probably must not call, and not be called by, classes for querying the database.</p>
+</p>
+&nbsp;<br>
+<p>The two scenarios just described are typical and intended uses for dependency checking: You (as the architect) define the dependencies up-front and have them checked during the life-time of the project. Of course, new developments and experiences might make it necessary to add new dependencies (as new modules with new namespaces or new method types are designed), and, sometimes, also the addition and modification of dependencies for existing namespaces. However, the latter can be a quite disruptive act as it might fundamentally shake the architectural foundations of the software system. When you become (or if you already are) a seasoned software architect, you will create more and more stable architectures up-front&mdash;or (more important) learn when to delay architectural decisions so that they can be arrived at when the necessary knowledge and understanding is available.</p>
+
+<h2><a name="exel">An example of a dependency detection session: Understanding the dependencies in Microsoft's Enterprise Library (January 2006)</a></h2>
+
+<p>In real life, you will at times be confronted with existing software where the architecture is not clear. .Net Architecture Checker gives you the possibility to draw diagrams of dependencies with arbitrary granularity, which can help to understand the dependencies and architecture. The goal of such understanding should always be to define the rules to be followed from that point on&mdash;probably after some clean-up (re-architecting) of the software under consideration. As a concrete example, let us find out the main dependencies in Microsoft's Enterprise Library of January 2006.</p>
+
+<p>We start with graphing the main modules. Because we practice whar might be called "explorative architecturing," we allow all dependencies. We store the following in a file, say msel.dep:</p>
+
+<pre>
+    ** ---&gt; **
+    
+      // Show all leaf namespaces in graph
+    % (Microsoft.Practices.*).**
+    
+      // For System and rest of Microsoft, show only one box
+    % (System).**
+    % (Microsoft).**
+</pre>
+
+We call dotnetarchitect.bat as follows:
+
+<pre>
+    DotNetArchitectureChecker /x=msel.dep /g=msel.gif "c:\Programme\Microsoft Enterprise Library January 2006\bin\*.dll"
+</pre>
+    
+<p>Here is the resulting diagram in msel.gif ...</p>
+
+<img src="index1.gif">
+
+<p>A small disappointment: We were too high-level! In the next try, we go one level deeper:</p>
+
+<pre>
+    ** ---&gt; **
+    
+      // Show two levels below Microsoft.Practices - especially,
+      // below Microsoft.Practices.EnterpriseLibrary.
+    % (Microsoft.Practices.*.*).**
+    % (Microsoft.Practices.*).*
+    
+      // For System and rest of Microsoft, show only one box
+    % (System).**
+    % (Microsoft).**
+</pre>
+
+<p>The same call as above now yields the following diagram:</p>
+
+<img src="index2.gif">
+
+<p>Now we see for the first time the library's internal structure. The only obvious architectural flaw is the cyclic dependency between Caching and Security; we will explore this further in the next steps.
+Please remember that this diagram excludes as many transitive edges as possible&mdash;hence it might e.g. be that classes from Logging use classes from Common etc. To show the full dependencies for demonstrating the difference, let's call .Net Architecture Checker with the /t option (/t=transitive edges):</p>
+
+<pre>
+    DotNetArchitectureChecker /x=msel.dep /g=msel.gif /t "c:\Programme\Microsoft Enterprise Library January 2006\bin\*.dll"
+</pre>
+
+<img src="index2transitive.gif">
+
+<p>The result is typical for a weakly layered architecture and demonstrates why the removal of transitive edges helps to understand the actual dependencies. However, we will have to return to this type of diagram later. For now, let us continue with the exploration of the cycle between Caching and Security. We only show Caching and Security, but now down to the lowest namespaces. To distinguish visually between the two, we have Caching namespaces shown in a "long" format including "Practices.EnterpriseLibrary," whereas namespaces from Security are shown in a "short" format:</p>
+
+<pre>
+    ** ---&gt; **
+    
+      // Show Caching and Security in detail.
+    % Microsoft.(Practices.EnterpriseLibrary.Caching.**).*
+    % Microsoft.Practices.EnterpriseLibrary.(Security.**).*
+    
+      // For all the rest, show nothing
+    % ()**
+</pre>
+
+<img src="index3.gif">
+
+<p>This diagram certainly needs some detailed inspection. However, after a short time it becomes clear that Caching.Cryptography and its sub-namespaces &mdash;and only those&mdash;use modules from Security. Hence, we now reformulate the graph patterns for the complete Enterprise Library:</p>
+
+<pre>
+    ** ---&gt; **
+    
+      // Show two levels below Microsoft.Practices - especially,
+      // below Microsoft.Practices.EnterpriseLibrary.
+      // Caching.Cryptography is singled out, because it depends on Security.
+    % (Microsoft.Practices.*.*).**
+    % (Microsoft.Practices.*).*
+    % (Microsoft.Practices.EnterpriseLibrary.Caching.Cryptography).**
+    
+      // For System and rest of Microsoft, show only one box
+    % (System).**
+    % (Microsoft).**
+</pre>
+
+<p>Here is the resulting picture:</p>
+
+<img src="index4.gif">
+
+<p>Now that we have found a dependency architecture which is ok, we want to codify the dependency rules so that subsequent development cannot violate these rules. To this end, we must first show also all the transitive edges. We are no longer interested in System, because this may be used by all according to the standard rules. Therefore, we use the following graph patterns and call .Net Architecture Checker with the /t option:</p>
+
+<pre>
+    ** ---&gt; **
+    
+      // Show two levels below Microsoft.Practices - especially,
+      // below Microsoft.Practices.EnterpriseLibrary.
+      // Caching.Cryptography is singled out, because it depends on Security.
+    % (Microsoft.Practices.*.*).**
+    % (Microsoft.Practices.*).*
+    % (Microsoft.Practices.EnterpriseLibrary.Caching.Cryptography).**
+    
+      // Do not show System; for rest of Microsoft, show only one box
+    % ()System.**
+    % (Microsoft).**
+</pre>
+
+<img src="index5.gif">
+
+<p>The resulting graph shows us, to no-one's surprise, that Common and Configuration are used by everyone. Moreover, ObjectBuilder is also used by everyone (which is stated in the design documentation of the Enterprise Library somewhere). For the rest, we have a not too large set of specific dependencies which are easily written down. Here is the resulting list:</p>
+
+<pre>
+      // Everyone in EL may use ObjectBuilder, EL.Common, and EL.Configuration
+    Microsoft.Practices.EnterpriseLibrary.**                      ---&gt; Microsoft.Practices.ObjectBuilder.**
+    Microsoft.Practices.EnterpriseLibrary.**                      ---&gt; Microsoft.Practices.EnterpriseLibrary.Common.**
+    Microsoft.Practices.EnterpriseLibrary.**                      ---&gt; Microsoft.Practices.EnterpriseLibrary.Configuration.**
+    
+      // EL.Logging and EL.Caching may use EL.Data
+    Microsoft.Practices.EnterpriseLibrary.Logging.**              ---&gt; Microsoft.Practices.EnterpriseLibrary.Data.**
+    Microsoft.Practices.EnterpriseLibrary.Caching.**              ---&gt; Microsoft.Practices.EnterpriseLibrary.Data.**
+    
+      // EL.Security may use EL.Caching, but not EL.Caching.Cryptography
+    Microsoft.Practices.EnterpriseLibrary.Security.**             ---&gt; Microsoft.Practices.EnterpriseLibrary.Caching.**
+    Microsoft.Practices.EnterpriseLibrary.Security.**             ---! Microsoft.Practices.EnterpriseLibrary.Caching.Cryptography.**
+    
+      // EL.Caching.Cryptography may use EL.Security (the "backwards dependency"
+      // which created the loop we saw a few steps ago).
+    Microsoft.Practices.EnterpriseLibrary.Caching.Cryptography.** ---&gt; Microsoft.Practices.EnterpriseLibrary.Security.**
+    
+      // EL.ExceptionHandling may use EL.Logging
+    Microsoft.Practices.EnterpriseLibrary.ExceptionHandling.**    ---&gt; Microsoft.Practices.EnterpriseLibrary.Logging.**
+</pre>
+
+As the string Microsoft.Practices.EnterpriseLibrary is occurring quite often here, it may make sense to replace it with a shorter abbreviation, e.g. as follows:
+
+<pre>
+    _EL := Microsoft.Practices.EnterpriseLibrary
+
+      // Everyone in EL may use ObjectBuilder, EL.Common, and EL.Configuration
+    _EL.**                      ---&gt; Microsoft.Practices.ObjectBuilder.**
+    _EL.**                      ---&gt; _EL.Common.**
+    _EL.**                      ---&gt; _EL.Configuration.**
+    
+      // EL.Logging and EL.Caching may use EL.Data
+    _EL.Logging.**              ---&gt; _EL.Data.**
+    _EL.Caching.**              ---&gt; _EL.Data.**
+    
+      // EL.Security may use EL.Caching, but not EL.Caching.Cryptography
+    _EL.Security.**             ---&gt; _EL.Caching.**
+    _EL.Security.**             ---! _EL.Caching.Cryptography.**
+    
+      // EL.Caching.Cryptography may use EL.Security (the "backwards dependency"
+      // which created the loop we saw a few steps ago).
+    _EL.Caching.Cryptography.** ---&gt; _EL.Security.**
+    
+      // EL.ExceptionHandling may use EL.Logging
+    _EL.ExceptionHandling.**    ---&gt; _EL.Logging.**
+</pre>
+    
+<p>Running .Net Architecture Checker gives us ... what is that? Zillions of "Illegal dependencies!" What's wrong here?</p>
+
+<p>Here is the first "illegal" dependency:</p>
+
+<pre>
+  **** Illegal dependency Microsoft.Practices.EnterpriseLibrary.Logging.MsmqDistributor.Instrumentation.DistributorEventLogger::LogServiceStarted ---&gt; Microsoft.Practices.EnterpriseLibrary.Logging.MsmqDistributor.Properties.Resources::get_Culture
+</pre>
+
+<p>What does Logging use here? Here is a more concise view of the dependency (you might want to highlight this with a marker on a printout of the "illegal" dependencies):</p>
+
+<pre>
+  ...Logging.MsmqDistributor.Instrumentation... ---&gt; ...Logging.MsmqDistributor.Properties...
+</pre>
+
+It is clear now: We forgot to specify that we are not concerned about arbitrary dependencies <em>inside</em> toplevel namespaces of the Enterprise Library. Hence, we need the following additional rule:
+
+<pre>
+      // Everyone in or below a namespace EL.* may use all other namespaces in or below the same top-level EL namespace 
+    Microsoft.Practices.EnterpriseLibrary.(*).**   ---&gt; Microsoft.Practices.EnterpriseLibrary.\1.**
+</pre>
+
+But we would now also allow that Caching uses all of Caching.Cryptography! Although this is not the case today, we want to prevent it in the future (so that someone will not introduce a cyclic dependency with Security!). Let us disect Caching to find out about the concrete rules we want to allow. Here are the graph patterns for this job:
+
+<pre>
+    ** ---&gt; **
+    
+      // Show only Caching (top level and one level below) so
+      // that we can find out the dependencies needed in there.
+    % (_EL.Caching).*
+    % (_EL.Caching.*).**
+    
+    % ()Microsoft.**
+    % ()System.**
+</pre>
+
+<p>The result&mdash;with transitive edges&mdash;is as follows:</p>
+
+<img src="index7.gif">
+
+<p>Thus, we now know which other namespaces are immediately below Caching. For all these&mdash;except Cryptography&mdash;, and also for Caching itself, we suppress the use Caching.Cryptography:</p>
+
+<pre>
+    _EL.Caching.*                ---! _EL.Caching.Cryptography.**
+    _EL.Caching.BackingStoreImplementations.** ---! _EL.Caching.Cryptography.**
+    _EL.Caching.Common.**        ---! _EL.Caching.Cryptography.**
+    _EL.Caching.Configuration.** ---! _EL.Caching.Cryptography.**
+    _EL.Caching.Database.**      ---! _EL.Caching.Cryptography.**
+</pre>
+etc.
+
+<p>However, this is not at all a fool-proof set of of rules: If a new sub-namespace of Caching is introduced at some future time, that future namespace could use Cryptography. An alternative idea is to decree that all namespaces not starting with C cannot use Cryptography:</p>
+
+<pre>
+    _EL.Caching.*                ---! _EL.Caching.Cryptography.**
+    _EL.Caching.[^C]*.**         ---! _EL.Caching.Cryptography.**
+</pre>
+
+However, this would still allow Caching.Common and Caching.Configuration to use Caching.Cryptography. So, we add another rule:
+
+<pre>
+    _EL.Caching.C[^r]*.**        ---! _EL.Caching.Cryptography.**
+</pre>
+
+<p>&mdash;and we could add more rules to suppress use of Cryptography by longer and longer prefixes.</p>
+<blockquote>In my opinion, a better idea would be that Microsoft changed the name of Caching.Cryptography to e.g. SecureCaching in the Enterprise Library: Then there would be a clear top-level acyclic dependency graph.</blockquote>
+<p>Together with the other rules, we get the following overall dependency rule list:</p>
+
+<pre>
+      // Everyone in or below a namespace EL.* may use all other namespaces in or below the same namespace
+    _EL.(*).**                   ---&gt; _EL.\1.**
+
+      // However, top-level Caching and Caching sub-namespaces not starting with Cry must not use Caching.Cryptography
+    _EL.Caching.*                ---! _EL.Caching.Cryptography.**
+    _EL.Caching.[^C]*.**         ---! _EL.Caching.Cryptography.**
+    _EL.Caching.C[^r]*.**        ---! _EL.Caching.Cryptography.**
+    _EL.Caching.Cr[^y]*.**       ---! _EL.Caching.Cryptography.**
+
+      // Everyone in EL may use ObjectBuilder, EL.Common, and EL.Configuration
+    _EL.**                       ---&gt; Microsoft.Practices.ObjectBuilder.**
+    _EL.**                       ---&gt; _EL.Common.**
+    _EL.**                       ---&gt; _EL.Configuration.**
+    
+      // EL.Logging and EL.Caching may use EL.Data
+    _EL.Logging.**               ---&gt; _EL.Data.**
+    _EL.Caching.**               ---&gt; _EL.Data.**
+    
+      // EL.Security may use EL.Caching, but not EL.Caching.Cryptography
+    _EL.Security.**              ---&gt; _EL.Caching.**
+    _EL.Security.**              ---! _EL.Caching.Cryptography.**
+    
+      // EL.Caching.Cryptography may use EL.Security (the "backwards dependency")
+    _EL.Caching.Cryptography.**  ---&gt; _EL.Security.**
+    
+      // EL.ExceptionHandling may use EL.Logging
+    _EL.ExceptionHandling.**     ---&gt; _EL.Logging.**
+</pre>
+
+<p>A final run of .Net Architecture Checker over the Enterprise Library now yields no messages&mdash;hence, our rules encompass all current dependencies. On the other hand, they are sufficiently strong to prevent future corruption of the static architecture during maintenance and redesign.</p>
+
+<p>For teaching developers about the allowed dependencies, I would start with the clean picture to show the principial layering of the library:</p>
+
+<img src="index4.gif">
+
+<p>For detailed dependencies between modules, the architect could then
+<ul>
+<li> show on a printout of the diagram above which group of namespaces has a weakly layered architecture, so that namespaces in that group can use transitively reachable namespaces;
+<li> go, with the team, through the list of dependency rules;
+<li> analyze with the team the picture with the transitive edges;
+</ul>
+or, preferably, 
+<ul>
+<li>all three!
+</ul></p>
+
+<h2><a name="consider">Design considerations</a></h2>
+
+<p>A. Couldn't there be an option showing all cyclic dependencies?&mdash; &mdash;The idea is that architecture is not arrived at by "reacting to symptoms" (e.g. to cycles), but on the contrary by "acting," i.e., by <em>wanting</em> that certain dependencies may occur, whereas others do not occur. Thus, the goal is not that a tool emits warnings, but that an architect prescribes allowed dependency patterns. These might also include cycles at certain or even many places. The object-relational mapping mentioned above, for example, had&mdash;intentionally&mdash;almost no restrictions on class dependencies, but very restrictive rules for method dependencies.</p>
+
+<p>B. Couldn't the dependency rule language allow for "except rules," e.g., "All sub-namespaces of A <em>except A.B</em> may use C"?&mdash; &mdash;<ul>
+<li>First, dependency rules should not be too complex to understand. After all, they capture the essence of the (static) structure of a software.
+<li>Second, if dependency rules need exceptions, it makes more sense to change the architecture than to describe a complicated architecture.
+<li>Third, regular expressions cannot easily express "but not containing that string." More or less expensively implementing such a feature in light of the previous items did not seem useful.
+</ul>
+
+<h2><a name="open">Open items</a></h2>
+
+<p>1. Provide an MSBuild task to run .Net Architecture Checker in automated builds.</p>
+
+<p>2. Make .Net Architecture Checker multi-threaded to increase performance on multi-core and multi-processor machines.</p>
+
+<h2><a name="relnotes">Release Notes</a></h2>
+
+<h3>1.7 (2010-06-07)</h3>
+<ul>
+<li>Only .DLL and .EXEs are checked; and /e option for exclusion of files.</li>
+</ul>
+
+<h3>1.6 (2010-05-10)</h3>
+<ul>
+<li>Changes for MS build usage.</li>
+</ul>
+
+<h3>1.5 (2010-05-10)</h3>
+<ul>
+<li>Multiple definitions of same macro now work correctly.</li>
+</ul>
+
+<h3>1.4 (2010-04-27)</h3>
+<ul>
+<li>Added eager determination of full path to .dep files based on /d and /s command line 
+    options.</li>
+</ul>
+
+<h3>1.3 (2010-04-25)</h3>
+<ul>
+<li>Corrected handling of forwarding defines and macros to included .dep files.
+<li>Corrected a bug with rule set caching.
+</ul>
+
+<h3>1.2 (2010-04-19)</h3>
+<ul>
+<li>Corrected handling of missing nested .dep file.
+</ul>
+
+<h3>1.1 (2010-04-17)</h3>
+<ul>
+<li>Only base file name is used to get .dep file name.
+<li>Documentation updated
+<li>Homepage now has documentation. 
+</ul>
+
+<h3>1.02 (2010-01-21)</h3>
+<ul>
+<li>Documentation updated.
+</ul>
+
+<h3>1.01 (2010-01-19)</h3>
+<ul>
+<li>Two bugs corrected in macro handling.
+</ul>
+
+<h3>1.0 (2009-12-29)</h3>
+<ul>
+<li>New version based on Thomas Freudenberg's rewrite using the Mono Cecil library.
+</ul>
+
+<p>&copy; 2006-2009 HMM&uuml;ller and Thomas Freudenberg</p>
+</body>
+</html>
