@@ -1,0 +1,14 @@
+// (c) HMMüller 2006...2010
+
+  // A dependency that allows everything to use everything.
+  // DO NOT USE THIS PRODUCTIVELY - it will render the
+  // DotNetArchitectureChecker useless!
+** ---> **
+
+  // Show all leaf namespaces in graph
+// % (**).*
+% (Microsoft.Practices.**).*
+
+  // For System and Microsoft, show only top namespace
+% (System.*).**
+% (Microsoft.*).**
