@@ -24,9 +24,9 @@ namespace NDepCheck {
             sw.Start();
             Program.WriteInfo("Reading " + filename);
 
-            AssemblyDefinition assembly = AssemblyFactory.GetAssembly(filename);
+            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(filename);
             try {
-                assembly.MainModule.LoadSymbols();
+                assembly.MainModule.ReadSymbols();
             } catch (Exception ex) {
                 Program.WriteWarning(
                     "Loading symbols for assembly " + filename + " failed - maybe .PDB file is missing. (" + ex.Message +
@@ -49,12 +49,6 @@ namespace NDepCheck {
             Program.WriteInfo("  Analyzing " + filename + " took " + (int)sw.Elapsed.TotalMilliseconds +
                                             " ms");
             sw.Stop();
-
-            yield break;
-        }
-
-        public static void Init() {
-            new PdbFactory();
         }
 
         private static IEnumerable<Dependency> AnalyzeType(TypeDefinition type) {
@@ -102,13 +96,6 @@ namespace NDepCheck {
                 }
             }
 
-            foreach (MethodDefinition method in type.Constructors) {
-                callingToken = GetFullnameToken(type, method.Name);
-                foreach (Dependency dependency in AnalyzeMethod(type, callingToken, method)) {
-                    yield return dependency;
-                }
-            }
-
             foreach (MethodDefinition method in type.Methods) {
                 callingToken = GetFullnameToken(type, method.Name);
                 foreach (Dependency dependency in AnalyzeMethod(type, callingToken, method)) {
@@ -145,9 +132,9 @@ namespace NDepCheck {
                 }
             }
 
-            if (method.ReturnType != null && !IsLinked(method.ReturnType.ReturnType, method.DeclaringType.DeclaringType)) {
+            if (method.ReturnType != null && !IsLinked(method.ReturnType, method.DeclaringType.DeclaringType)) {
                 foreach (
-                    Dependency dependency in GetDependencies(callingToken, method.ReturnType.ReturnType, null, null)) {
+                    Dependency dependency in GetDependencies(callingToken, method.ReturnType, null, null)) {
                     yield return dependency;
                 }
             }
@@ -194,7 +181,7 @@ namespace NDepCheck {
                 }
                 foreach (
                     Dependency dependency in
-                        GetDependencies(callingToken, methodReference.ReturnType.ReturnType, null, sequencePoint)) {
+                        GetDependencies(callingToken, methodReference.ReturnType, null, sequencePoint)) {
                     yield return dependency;
                 }
             }
