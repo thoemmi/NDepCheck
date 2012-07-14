@@ -75,9 +75,9 @@ namespace NDepCheck {
             List<DependencyRule> deps = DependencyRule.CreateDependencyRules(usingPattern, usedPattern, rep);
 
             if (parent.Verbose) {
-                Log.Info("Rules used for checking {0} ({1}:{2})", line, ruleFileName, lineNo);
+                Log.WriteInfo("Rules used for checking " + line + " (" + ruleFileName + ":" + lineNo + ")");
                 foreach (DependencyRule d in deps) {
-                    Log.Info("  " + d);
+                    Log.WriteInfo("  " + d);
                 }
             }
             return deps;
@@ -119,7 +119,7 @@ namespace NDepCheck {
         private bool Check(Dependency d, bool verbose, bool debug) {
             bool ok = false;
             if (verbose) {
-                Log.Info("Checking " + d);
+                Log.WriteInfo("Checking " + d);
             }
             foreach (DependencyRule r in _forbidden) {
                 if (r.Matches(d, debug)) {
@@ -134,14 +134,15 @@ namespace NDepCheck {
             }
             foreach (DependencyRule r in _questionable) {
                 if (r.Matches(d, debug)) {
-                    Log.Warning("Dependency " + d + " is questionable", d.FileName, d.StartLine, d.StartColumn, d.EndLine, d.EndColumn);
+                    Log.WriteWarning("Dependency " + d + " is questionable", d.FileName, d.StartLine,
+                                                       d.StartColumn, d.EndLine, d.EndColumn);
                     ok = true;
                     goto DONE;
                 }
             }
         DONE:
             if (!ok) {
-                Log.Error(d.IllegalMessage(), d.FileName, d.StartLine, d.StartColumn, d.EndLine, d.EndColumn);
+                Log.WriteError(d.IllegalMessage(), d.FileName, d.StartLine, d.StartColumn, d.EndLine, d.EndColumn);
             }
             return ok;
         }

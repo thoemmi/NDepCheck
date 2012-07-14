@@ -30,13 +30,15 @@ namespace NDepCheck {
         public static IEnumerable<Dependency> GetDependencies(string filename, Predicate<TypeDefinition> typeFilter) {
             var sw = new Stopwatch();
             sw.Start();
-            Log.Info("Reading {0}", filename);
+            Log.WriteInfo("Reading " + filename);
 
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(filename);
             try {
                 assembly.MainModule.ReadSymbols();
             } catch (Exception ex) {
-                Log.Warning("Loading symbols for assembly {0} failed - maybe .PDB file is missing. ({1})", filename, ex.Message);
+                Log.WriteWarning(
+                    "Loading symbols for assembly " + filename + " failed - maybe .PDB file is missing. (" + ex.Message +
+                    ")", filename, 0, 0, 0, 0);
             }
 
             foreach (TypeDefinition type in assembly.MainModule.Types) {
@@ -52,7 +54,8 @@ namespace NDepCheck {
                     yield return dependency;
                 }
             }
-            Log.Info("  Analyzing {0} took {1} ms", filename, (int)sw.Elapsed.TotalMilliseconds);
+            Log.WriteInfo("  Analyzing " + filename + " took " + (int)sw.Elapsed.TotalMilliseconds +
+                                            " ms");
             sw.Stop();
         }
 

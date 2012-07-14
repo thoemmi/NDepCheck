@@ -114,10 +114,11 @@ namespace NDepCheck {
                 try {
                     long start = Environment.TickCount;
                     result = new DependencyRuleSet(fullRuleFilename, defines, macros, verbose, debug);
-                    Log.Debug("Completed reading {0} in {1} ms", fullRuleFilename, (Environment.TickCount - start));
+                    Log.WriteDebug("Completed reading " + fullRuleFilename + " in " +
+                                                            (Environment.TickCount - start) + " ms");
                     _fullFilename2RulesetCache.Add(fullRuleFilename, result);
                 } catch (FileNotFoundException) {
-                    Log.Error("File {0} not found", fullRuleFilename);
+                    Log.WriteError("File " + fullRuleFilename + " not found");
                     return null;
                 }
             }
@@ -175,7 +176,7 @@ namespace NDepCheck {
                     }
                 } else if (line.EndsWith("{")) {
                     if (currentGroup.Group != "") {
-                        Log.Error(fullRuleFilename + ": Nested '... {' not possible", fullRuleFilename, lineNo, 0, 0, 0);
+                        Log.WriteError(fullRuleFilename + ": Nested '... {' not possible", fullRuleFilename, lineNo, 0, 0, 0);
                     } else {
                         currentGroup = new DependencyRuleGroup(line.TrimEnd('{').TrimEnd());
                         _ruleGroups.Add(currentGroup);
@@ -184,7 +185,7 @@ namespace NDepCheck {
                     if (currentGroup.Group != "") {
                         currentGroup = _mainRuleGroup;
                     } else {
-                        Log.Error(fullRuleFilename + ": '}' without corresponding '... {'", fullRuleFilename, lineNo, 0, 0, 0);
+                        Log.WriteError(fullRuleFilename + ": '}' without corresponding '... {'", fullRuleFilename, lineNo, 0, 0, 0);
                     }
                 } else if (ProcessMacroIfFound(line, verbose, debug)) {
                     // macro is already processed as side effect in ProcessMacroIfFound()
@@ -204,7 +205,7 @@ namespace NDepCheck {
                         line = tr.ReadLine();
                         lineNo++;
                         if (line == null) {
-                            Log.Error(fullRuleFilename + ": Missing " + MACRO_END + " at end", fullRuleFilename, lineNo, 0, 0, 0);
+                            Log.WriteError(fullRuleFilename + ": Missing " + MACRO_END + " at end", fullRuleFilename, lineNo, 0, 0, 0);
                             textIsOk = false;
                             break;
                         }
@@ -223,7 +224,7 @@ namespace NDepCheck {
                 } else if (line.Contains(DEFINE)) {
                     AddDefine(fullRuleFilename, lineNo, line);
                 } else {
-                    Log.Error(fullRuleFilename + ": Cannot parse line " + lineNo + ": " + line, fullRuleFilename, lineNo, 0, 0,
+                    Log.WriteError(fullRuleFilename + ": Cannot parse line " + lineNo + ": " + line, fullRuleFilename, lineNo, 0, 0,
                                0);
                     textIsOk = false;
                 }
@@ -233,7 +234,7 @@ namespace NDepCheck {
 
         private bool CheckDefinedName(string macroName, string ruleFileName, uint lineNo) {
             if (macroName.Contains(" ")) {
-                Log.Error(
+                Log.WriteError(
                     ruleFileName + ", line " + lineNo + ": Macro name must not contain white space: " + macroName,
                     ruleFileName,
                     lineNo, 0, 0, 0);
@@ -242,7 +243,7 @@ namespace NDepCheck {
                 string compactedName = CompactedName(macroName);
                 foreach (string reservedName in _reservedNames) {
                     if (compactedName == CompactedName(reservedName)) {
-                        Log.Error(
+                        Log.WriteError(
                             ruleFileName + ", line " + lineNo + ": Macro name " + macroName +
                             " is too similar to predefined name " +
                             reservedName, ruleFileName, lineNo, 0, 0, 0);
@@ -252,7 +253,7 @@ namespace NDepCheck {
                 foreach (string definedMacroName in _macros.Keys) {
                     if (macroName != definedMacroName
                         && compactedName == CompactedName(definedMacroName)) {
-                            Log.Error(
+                            Log.WriteError(
                             ruleFileName + ", line " + lineNo + ": Macro name " + macroName +
                             " is too similar to already defined name " +
                             definedMacroName, ruleFileName, lineNo, 0, 0, 0);
@@ -408,9 +409,9 @@ namespace NDepCheck {
             List<GraphAbstraction> a = GraphAbstraction.CreateGraphAbstractions(line);
             _graphAbstractions.AddRange(a);
             if (_verbose) {
-                Log.Info("Reg.exps used for drawing {0} ({1}:{2})", line, ruleFileName, lineNo);
+                Log.WriteInfo("Reg.exps used for drawing " + line + " (" + ruleFileName + ":" + lineNo + ")");
                 foreach (GraphAbstraction ga in a) {
-                    Log.Info(ga.ToString());
+                    Log.WriteInfo(ga.ToString());
                 }
             }
         }
@@ -439,4 +440,3 @@ namespace NDepCheck {
         }
     }
 }
-

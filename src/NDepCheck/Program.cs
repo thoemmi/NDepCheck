@@ -47,14 +47,15 @@ namespace NDepCheck {
 
         private int AnalyzeAssembly(string assemblyFilename, string dependencyFilename) {
             try {
-                Log.Info("Analyzing {0}", assemblyFilename);
+                Log.WriteInfo("Analyzing " + assemblyFilename);
                 Log.StartProcessingAssembly(Path.GetFileName(assemblyFilename));
 
                 DependencyRuleSet ruleSetForAssembly =
                     DependencyRuleSet.Load(dependencyFilename, _options.Directories, _options.Verbose, _options.Debug)
                     ?? _options.DefaultRuleSet;
                 if (ruleSetForAssembly == null) {
-                    Log.Error("{0} not found in -d and -s directories, and no default rule set provided by -x", dependencyFilename);
+                    Log.WriteError(dependencyFilename +
+                               " not found in -d and -s directories, and no default rule set provided by -x");
                     return 6;
                 } else {
                     try {
@@ -68,12 +69,12 @@ namespace NDepCheck {
                             _grapher.Graph(ruleSetForAssembly, dependencies);
                         }
                     } catch (FileNotFoundException ex) {
-                        Log.Error("Input file {0} not found", ex.FileName);
+                        Log.WriteError("Input file " + ex.FileName + " not found");
                         return 4;
                     }
                 }
             } catch (FileLoadException ex2) {
-                Log.Error(ex2.Message);
+                Log.WriteError(ex2.Message);
                 return 2;
             }
             return 0;
@@ -94,22 +95,23 @@ namespace NDepCheck {
                 var main = new Program(options);
                 return main.Run();
             } catch (Exception ex) {
-                Log.Error("Exception occurred: {0}", ex);
+                string msg = "Exception occurred: " + ex;
+                Log.WriteError(msg);
                 if (options.Verbose) {
-                    Log.Error(ex.StackTrace);
+                    Log.WriteError(ex.StackTrace);
                 }
                 return 5;
             } finally {
                 DateTime end = DateTime.Now;
                 TimeSpan runtime = end.Subtract(start);
                 if (runtime < new TimeSpan(0, 0, 1)) {
-                    Log.Info("DC took {0} ms.", runtime.Milliseconds);
+                    Log.WriteInfo("DC took " + runtime.Milliseconds + " ms.");
                 } else if (runtime < new TimeSpan(0, 1, 0)) {
-                    Log.Info("DC took {0} s.", runtime.TotalSeconds);
+                    Log.WriteInfo("DC took " + runtime.TotalSeconds + " s.");
                 } else if (runtime < new TimeSpan(1, 0, 0)) {
-                    Log.Info("DC took {0} min and {1} s.", runtime.Minutes, runtime.Seconds);
+                    Log.WriteInfo("DC took " + runtime.Minutes + " min and " + runtime.Seconds + " s.");
                 } else {
-                    Log.Info("DC took {0} hours.", runtime.TotalHours);
+                    Log.WriteInfo("DC took " + runtime.TotalHours + " hours.");
                 }
             }
         }
