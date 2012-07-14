@@ -114,11 +114,10 @@ namespace NDepCheck {
                 try {
                     long start = Environment.TickCount;
                     result = new DependencyRuleSet(fullRuleFilename, defines, macros, verbose, debug);
-                    Log.WriteDebug("Completed reading " + fullRuleFilename + " in " +
-                                                            (Environment.TickCount - start) + " ms");
+                    Log.Debug("Completed reading {0} in {1} ms", fullRuleFilename, (Environment.TickCount - start));
                     _fullFilename2RulesetCache.Add(fullRuleFilename, result);
                 } catch (FileNotFoundException) {
-                    Log.WriteError("File " + fullRuleFilename + " not found");
+                    Log.Error("File {0} not found", fullRuleFilename);
                     return null;
                 }
             }
@@ -409,9 +408,9 @@ namespace NDepCheck {
             List<GraphAbstraction> a = GraphAbstraction.CreateGraphAbstractions(line);
             _graphAbstractions.AddRange(a);
             if (_verbose) {
-                Log.WriteInfo("Reg.exps used for drawing " + line + " (" + ruleFileName + ":" + lineNo + ")");
+                Log.Info("Reg.exps used for drawing {0} ({1}:{2})", line, ruleFileName, lineNo);
                 foreach (GraphAbstraction ga in a) {
-                    Log.WriteInfo(ga.ToString());
+                    Log.Info(ga.ToString());
                 }
             }
         }
@@ -440,3 +439,4 @@ namespace NDepCheck {
         }
     }
 }
+

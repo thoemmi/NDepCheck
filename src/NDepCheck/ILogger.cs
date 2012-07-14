@@ -1,4 +1,6 @@
-﻿namespace NDepCheck {
+﻿using System;
+
+namespace NDepCheck {
     public interface ILogger {
         void StartProcessingAssembly(string assemblyFilename);
         void WriteError(string msg);
@@ -16,8 +18,8 @@
             Logger.StartProcessingAssembly(assemblyFilename);
         }
 
-        internal static void WriteError(string msg) {
-            Logger.WriteError(msg);
+        internal static void Error(string format, params object[] args) {
+            Logger.WriteError(String.Format(format, args));
         }
 
         internal static void WriteError(string msg, string fileName, uint startLine, uint startColumn, uint endLine,
@@ -25,8 +27,8 @@
             Logger.WriteError(msg, fileName, startLine, startColumn, endLine, endColumn);
         }
 
-        internal static void WriteWarning(string msg) {
-            Logger.WriteWarning(msg);
+        internal static void Warning(string format, params object[] args) {
+            Logger.WriteWarning(String.Format(format, args));
         }
 
         internal static void WriteWarning(string msg, string fileName, uint startLine, uint startColumn, uint endLine,
@@ -34,12 +36,12 @@
             Logger.WriteWarning(msg, fileName, startLine, startColumn, endLine, endColumn);
         }
 
-        internal static void WriteInfo(string msg) {
-            Logger.WriteInfo(msg);
+        internal static void Info(string format, params object[] args) {
+            Logger.WriteInfo(String.Format(format, args));
         }
 
-        internal static void WriteDebug(string msg) {
-            Logger.WriteDebug(msg);
+        internal static void Debug(string format, params object[] args) {
+            Logger.WriteDebug(String.Format(format, args));
         }
     }
 }

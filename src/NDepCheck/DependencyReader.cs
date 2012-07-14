@@ -22,7 +22,7 @@ namespace NDepCheck {
         public static IEnumerable<Dependency> GetDependencies(string filename, Predicate<TypeDefinition> typeFilter) {
             var sw = new Stopwatch();
             sw.Start();
-            Log.WriteInfo("Reading " + filename);
+            Log.Info("Reading {0}", filename);
 
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(filename);
             try {
@@ -46,8 +46,7 @@ namespace NDepCheck {
                     yield return dependency;
                 }
             }
-            Log.WriteInfo("  Analyzing " + filename + " took " + (int)sw.Elapsed.TotalMilliseconds +
-                                            " ms");
+            Log.Info("  Analyzing {0} took {1} ms", filename, (int)sw.Elapsed.TotalMilliseconds);
             sw.Stop();
         }
 

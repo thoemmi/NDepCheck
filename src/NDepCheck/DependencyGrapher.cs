@@ -94,9 +94,9 @@ namespace NDepCheck {
                 }
             }
             if (usingMatch == null) {
-                Log.WriteInfo("No graph output pattern found for drawing " + d.UsingItem + " - I ignore it");
+                Log.Info("No graph output pattern found for drawing {0} - I ignore it", d.UsingItem);
             } else if (usedMatch == null) {
-                Log.WriteInfo("No graph output pattern found for drawing " + d.UsedItem + " - I ignore it");
+                Log.Info("No graph output pattern found for drawing {0} - I ignore it", d.UsedItem);
             } else if (usingMatch == "" || usedMatch == "") {
                 // ignore this edge!
             } else {

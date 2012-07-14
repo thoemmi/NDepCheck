@@ -75,9 +75,9 @@ namespace NDepCheck {
             List<DependencyRule> deps = DependencyRule.CreateDependencyRules(usingPattern, usedPattern, rep);
 
             if (parent.Verbose) {
-                Log.WriteInfo("Rules used for checking " + line + " (" + ruleFileName + ":" + lineNo + ")");
+                Log.Info("Rules used for checking {0} ({1}:{2})", line, ruleFileName, lineNo);
                 foreach (DependencyRule d in deps) {
-                    Log.WriteInfo("  " + d);
+                    Log.Info("  " + d);
                 }
             }
             return deps;
@@ -119,7 +119,7 @@ namespace NDepCheck {
         private bool Check(Dependency d, bool verbose, bool debug) {
             bool ok = false;
             if (verbose) {
-                Log.WriteInfo("Checking " + d);
+                Log.Info("Checking " + d);
             }
             foreach (DependencyRule r in _forbidden) {
                 if (r.Matches(d, debug)) {
