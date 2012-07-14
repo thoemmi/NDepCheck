@@ -7,49 +7,19 @@ namespace NDepCheck {
     /// Main class of NDepCheck.
     /// </remarks>
     public class Program {
-        public static ILogger Logger = new ConsoleLogger();
-
         // The two "workers".
         private readonly DependencyChecker _checker;
         private readonly DependencyGrapher _grapher;
         private readonly Options _options;
 
         public Program(Options options) {
+            Log.Logger = new ConsoleLogger();
+
             _options = options;
             _checker = new DependencyChecker(_options);
             _grapher = new DependencyGrapher(_checker, _options);
         }
 
-        #region WriteHelpers
-
-        internal static void WriteError(string msg) {
-            Logger.WriteError(msg);
-        }
-
-        internal static void WriteError(string msg, string fileName, uint startLine, uint startColumn, uint endLine,
-                                        uint endColumn) {
-            Logger.WriteError(msg, fileName, startLine, startColumn, endLine, endColumn);
-        }
-
-        internal static void WriteWarning(string msg) {
-            Logger.WriteWarning(msg);
-        }
-
-        internal static void WriteWarning(string msg, string fileName, uint startLine, uint startColumn, uint endLine,
-                                          uint endColumn) {
-            Logger.WriteWarning(msg, fileName, startLine, startColumn, endLine, endColumn);
-        }
-
-        internal static void WriteInfo(string msg) {
-            Logger.WriteInfo(msg);
-        }
-
-        internal static void WriteDebug(string msg) {
-            Logger.WriteDebug(msg);
-        }
-
-        #endregion WriteHelpers
-        
         #region Main
         /// <summary>
         /// Main method. See <c>UsageAndExit</c> for the 
@@ -77,14 +47,14 @@ namespace NDepCheck {
 
         private int AnalyzeAssembly(string assemblyFilename, string dependencyFilename) {
             try {
-                WriteInfo("Analyzing " + assemblyFilename);
-                Logger.StartProcessingAssembly(Path.GetFileName(assemblyFilename));
+                Log.WriteInfo("Analyzing " + assemblyFilename);
+                Log.StartProcessingAssembly(Path.GetFileName(assemblyFilename));
 
                 DependencyRuleSet ruleSetForAssembly =
                     DependencyRuleSet.Load(dependencyFilename, _options.Directories, _options.Verbose, _options.Debug)
                     ?? _options.DefaultRuleSet;
                 if (ruleSetForAssembly == null) {
-                    WriteError(dependencyFilename +
+                    Log.WriteError(dependencyFilename +
                                " not found in -d and -s directories, and no default rule set provided by -x");
                     return 6;
                 } else {
@@ -99,12 +69,12 @@ namespace NDepCheck {
                             _grapher.Graph(ruleSetForAssembly, dependencies);
                         }
                     } catch (FileNotFoundException ex) {
-                        WriteError("Input file " + ex.FileName + " not found");
+                        Log.WriteError("Input file " + ex.FileName + " not found");
                         return 4;
                     }
                 }
             } catch (FileLoadException ex2) {
-                WriteError(ex2.Message);
+                Log.WriteError(ex2.Message);
                 return 2;
             }
             return 0;
@@ -126,22 +96,22 @@ namespace NDepCheck {
                 return main.Run();
             } catch (Exception ex) {
                 string msg = "Exception occurred: " + ex;
-                WriteError(msg);
+                Log.WriteError(msg);
                 if (options.Verbose) {
-                    WriteError(ex.StackTrace);
+                    Log.WriteError(ex.StackTrace);
                 }
                 return 5;
             } finally {
                 DateTime end = DateTime.Now;
                 TimeSpan runtime = end.Subtract(start);
                 if (runtime < new TimeSpan(0, 0, 1)) {
-                    WriteInfo("DC took " + runtime.Milliseconds + " ms.");
+                    Log.WriteInfo("DC took " + runtime.Milliseconds + " ms.");
                 } else if (runtime < new TimeSpan(0, 1, 0)) {
-                    WriteInfo("DC took " + runtime.TotalSeconds + " s.");
+                    Log.WriteInfo("DC took " + runtime.TotalSeconds + " s.");
                 } else if (runtime < new TimeSpan(1, 0, 0)) {
-                    WriteInfo("DC took " + runtime.Minutes + " min and " + runtime.Seconds + " s.");
+                    Log.WriteInfo("DC took " + runtime.Minutes + " min and " + runtime.Seconds + " s.");
                 } else {
-                    WriteInfo("DC took " + runtime.TotalHours + " hours.");
+                    Log.WriteInfo("DC took " + runtime.TotalHours + " hours.");
                 }
             }
         }

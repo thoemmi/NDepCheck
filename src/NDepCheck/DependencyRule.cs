@@ -94,7 +94,7 @@ namespace NDepCheck {
         /// </summary>
         public bool Matches(Dependency d, bool debug) {
             if (debug) {
-                Program.WriteDebug("Checking " + d + " against " + this);
+                Log.WriteDebug("Checking " + d + " against " + this);
             }
             if (_ruleMatch.Matches(d)) {
                 _hitCount++;
