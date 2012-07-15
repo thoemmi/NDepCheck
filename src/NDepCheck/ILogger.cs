@@ -22,7 +22,7 @@ namespace NDepCheck {
             Logger.WriteError(String.Format(format, args));
         }
 
-        internal static void WriteError(string msg, string fileName, uint startLine, uint startColumn, uint endLine,
+        internal static void Error(string msg, string fileName, uint startLine, uint startColumn, uint endLine,
                                         uint endColumn) {
             Logger.WriteError(msg, fileName, startLine, startColumn, endLine, endColumn);
         }
@@ -31,7 +31,7 @@ namespace NDepCheck {
             Logger.WriteWarning(String.Format(format, args));
         }
 
-        internal static void WriteWarning(string msg, string fileName, uint startLine, uint startColumn, uint endLine,
+        internal static void Warning(string msg, string fileName, uint startLine, uint startColumn, uint endLine,
                                           uint endColumn) {
             Logger.WriteWarning(msg, fileName, startLine, startColumn, endLine, endColumn);
         }

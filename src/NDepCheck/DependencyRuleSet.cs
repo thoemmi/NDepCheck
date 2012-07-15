@@ -175,7 +175,7 @@ namespace NDepCheck {
                     }
                 } else if (line.EndsWith("{")) {
                     if (currentGroup.Group != "") {
-                        Log.WriteError(fullRuleFilename + ": Nested '... {' not possible", fullRuleFilename, lineNo, 0, 0, 0);
+                        Log.Error(fullRuleFilename + ": Nested '... {' not possible", fullRuleFilename, lineNo, 0, 0, 0);
                     } else {
                         currentGroup = new DependencyRuleGroup(line.TrimEnd('{').TrimEnd());
                         _ruleGroups.Add(currentGroup);
@@ -184,7 +184,7 @@ namespace NDepCheck {
                     if (currentGroup.Group != "") {
                         currentGroup = _mainRuleGroup;
                     } else {
-                        Log.WriteError(fullRuleFilename + ": '}' without corresponding '... {'", fullRuleFilename, lineNo, 0, 0, 0);
+                        Log.Error(fullRuleFilename + ": '}' without corresponding '... {'", fullRuleFilename, lineNo, 0, 0, 0);
                     }
                 } else if (ProcessMacroIfFound(line, verbose, debug)) {
                     // macro is already processed as side effect in ProcessMacroIfFound()
@@ -204,7 +204,7 @@ namespace NDepCheck {
                         line = tr.ReadLine();
                         lineNo++;
                         if (line == null) {
-                            Log.WriteError(fullRuleFilename + ": Missing " + MACRO_END + " at end", fullRuleFilename, lineNo, 0, 0, 0);
+                            Log.Error(fullRuleFilename + ": Missing " + MACRO_END + " at end", fullRuleFilename, lineNo, 0, 0, 0);
                             textIsOk = false;
                             break;
                         }
@@ -223,7 +223,7 @@ namespace NDepCheck {
                 } else if (line.Contains(DEFINE)) {
                     AddDefine(fullRuleFilename, lineNo, line);
                 } else {
-                    Log.WriteError(fullRuleFilename + ": Cannot parse line " + lineNo + ": " + line, fullRuleFilename, lineNo, 0, 0,
+                    Log.Error(fullRuleFilename + ": Cannot parse line " + lineNo + ": " + line, fullRuleFilename, lineNo, 0, 0,
                                0);
                     textIsOk = false;
                 }
@@ -233,7 +233,7 @@ namespace NDepCheck {
 
         private bool CheckDefinedName(string macroName, string ruleFileName, uint lineNo) {
             if (macroName.Contains(" ")) {
-                Log.WriteError(
+                Log.Error(
                     ruleFileName + ", line " + lineNo + ": Macro name must not contain white space: " + macroName,
                     ruleFileName,
                     lineNo, 0, 0, 0);
@@ -242,7 +242,7 @@ namespace NDepCheck {
                 string compactedName = CompactedName(macroName);
                 foreach (string reservedName in _reservedNames) {
                     if (compactedName == CompactedName(reservedName)) {
-                        Log.WriteError(
+                        Log.Error(
                             ruleFileName + ", line " + lineNo + ": Macro name " + macroName +
                             " is too similar to predefined name " +
                             reservedName, ruleFileName, lineNo, 0, 0, 0);
@@ -252,7 +252,7 @@ namespace NDepCheck {
                 foreach (string definedMacroName in _macros.Keys) {
                     if (macroName != definedMacroName
                         && compactedName == CompactedName(definedMacroName)) {
-                            Log.WriteError(
+                            Log.Error(
                             ruleFileName + ", line " + lineNo + ": Macro name " + macroName +
                             " is too similar to already defined name " +
                             definedMacroName, ruleFileName, lineNo, 0, 0, 0);

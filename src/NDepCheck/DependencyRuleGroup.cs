@@ -134,15 +134,14 @@ namespace NDepCheck {
             }
             foreach (DependencyRule r in _questionable) {
                 if (r.Matches(d, debug)) {
-                    Log.WriteWarning("Dependency " + d + " is questionable", d.FileName, d.StartLine,
-                                                       d.StartColumn, d.EndLine, d.EndColumn);
+                    Log.Warning("Dependency " + d + " is questionable", d.FileName, d.StartLine, d.StartColumn, d.EndLine, d.EndColumn);
                     ok = true;
                     goto DONE;
                 }
             }
         DONE:
             if (!ok) {
-                Log.WriteError(d.IllegalMessage(), d.FileName, d.StartLine, d.StartColumn, d.EndLine, d.EndColumn);
+                Log.Error(d.IllegalMessage(), d.FileName, d.StartLine, d.StartColumn, d.EndLine, d.EndColumn);
             }
             return ok;
         }

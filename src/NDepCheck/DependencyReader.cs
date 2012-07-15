@@ -28,9 +28,7 @@ namespace NDepCheck {
             try {
                 assembly.MainModule.ReadSymbols();
             } catch (Exception ex) {
-                Log.WriteWarning(
-                    "Loading symbols for assembly " + filename + " failed - maybe .PDB file is missing. (" + ex.Message +
-                    ")", filename, 0, 0, 0, 0);
+                Log.Warning("Loading symbols for assembly {0} failed - maybe .PDB file is missing. ({1})", filename, ex.Message);
             }
 
             foreach (TypeDefinition type in assembly.MainModule.Types) {
