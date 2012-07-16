@@ -7,6 +7,14 @@ using Mono.Cecil.Pdb;
 
 namespace NDepCheck {
     public static class DependencyReader {
+        internal static void Init() {
+#pragma warning disable 168
+            // the only purpose of this instruction is to create a reference to Mono.Cecil.Pdb.
+            // Otherwise Visual Studio won't copy that assembly to the output path.
+            var readerProvider = new PdbReaderProvider();
+#pragma warning restore 168
+        }
+
         public static IEnumerable<Dependency> GetDependencies<T>() {
             return GetDependencies(typeof(T));
         }
