@@ -6,7 +6,7 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 
 namespace NDepCheck.MSBuild {
-    public class DependencyChecker : Task {
+    public class NDepCheck : Task {
         public string DotFilename { get; set; }
         public bool ShowTransitiveEdges { get; set; }
         public bool ShowUnusedQuestionableRules { get; set; }
