@@ -28,7 +28,7 @@ namespace NDepCheck.MSBuild {
 
         public override bool Execute() {
             var logger = new MSBuildLogger(Log, GenerateErrorHtml, LogWarnings);
-            NDepCheck.Log.Logger = logger;
+            global::NDepCheck.Log.Logger = logger;
 
             var options = new Options {
                 Debug = false,
