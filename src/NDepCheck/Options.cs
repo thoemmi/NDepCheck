@@ -126,13 +126,13 @@ namespace NDepCheck {
         }
 
         private static void WriteVersion() {
-            Program.WriteInfo("NDepCheck V." + typeof(Program).Assembly.GetName().Version.ToString(2) +
+            Log.WriteInfo("NDepCheck V." + typeof(Program).Assembly.GetName().Version.ToString(2) +
                       " (c) HMMüller, Th.Freudenberg 2006...2010");
         }
 
         private static int UsageAndExit(string message) {
             if (message != null) {
-                Program.WriteInfo(message);
+                Log.WriteInfo(message);
             }
             WriteVersion();
             Console.Out.WriteLine(
@@ -393,7 +393,7 @@ using the wildcardpath syntax):
             if (Directory.Exists(path)) {
                 Directories.Add(new DirectoryOption(path, recurse));
             } else {
-                Program.WriteWarning("Directory " + path + " not found - ignored in dep-File");
+                Log.WriteWarning("Directory " + path + " not found - ignored in dep-File");
             }
         }
 

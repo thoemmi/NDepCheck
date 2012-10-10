@@ -32,7 +32,9 @@ namespace NDepCheck {
         }
 
         public void WriteDebug(string msg) {
+            Console.ForegroundColor = ConsoleColor.DarkGray;
             Console.Out.WriteLine("//// " + msg);
+            Console.ResetColor();
         }
 
         #endregion
