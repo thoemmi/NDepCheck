@@ -35,9 +35,8 @@ namespace NDepCheck {
                     string extension = Path.GetExtension(assemblyFilename).ToLowerInvariant();
                     // Only DLLs and EXEs are checked - everything else is ignored (e.g. PDBs).
                     if (extension == ".dll" | extension == ".exe") {
-                        var dependencyFilename = Path.GetFileName(assemblyFilename) + ".dep";
                         // We remember just the highest error code - the specific errors are in the output.
-                        returnValue = Math.Max(returnValue, AnalyzeAssembly(assemblyFilename, dependencyFilename));
+                        returnValue = Math.Max(returnValue, AnalyzeAssembly(assemblyFilename));
                     }
                 }
             }
@@ -45,7 +44,8 @@ namespace NDepCheck {
             return returnValue;
         }
 
-        private int AnalyzeAssembly(string assemblyFilename, string dependencyFilename) {
+        private int AnalyzeAssembly(string assemblyFilename) {
+            var dependencyFilename = Path.GetFileName(assemblyFilename) + ".dep";
             try {
                 Log.WriteInfo("Analyzing " + assemblyFilename);
                 Log.StartProcessingAssembly(Path.GetFileName(assemblyFilename));

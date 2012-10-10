@@ -75,7 +75,7 @@ namespace NDepCheck {
             List<DependencyRule> deps = DependencyRule.CreateDependencyRules(usingPattern, usedPattern, rep);
 
             if (parent.Verbose) {
-                Log.WriteInfo("Rules used for checking " + line + " (" + ruleFileName + ":" + lineNo + ")");
+                Log.WriteInfo(String.Format("Rules used for checking {0} ({1}:{2})", line, ruleFileName, lineNo));
                 foreach (DependencyRule d in deps) {
                     Log.WriteInfo("  " + d);
                 }
@@ -121,24 +121,17 @@ namespace NDepCheck {
             if (verbose) {
                 Log.WriteInfo("Checking " + d);
             }
-            foreach (DependencyRule r in _forbidden) {
-                if (r.Matches(d, debug)) {
-                    goto DONE;
-                }
+            if (_forbidden.Any(r => r.Matches(d, debug))) {
+                goto DONE;
             }
-            foreach (DependencyRule r in _allowed) {
-                if (r.Matches(d, debug)) {
-                    ok = true;
-                    goto DONE;
-                }
+            if (_allowed.Any(r => r.Matches(d, debug))) {
+                ok = true;
+                goto DONE;
             }
-            foreach (DependencyRule r in _questionable) {
-                if (r.Matches(d, debug)) {
-                    Log.WriteWarning("Dependency " + d + " is questionable", d.FileName, d.StartLine,
-                                                       d.StartColumn, d.EndLine, d.EndColumn);
-                    ok = true;
-                    goto DONE;
-                }
+            if (_questionable.Any(r => r.Matches(d, debug))) {
+                Log.WriteWarning("Dependency " + d + " is questionable", d.FileName, d.StartLine, d.StartColumn, d.EndLine, d.EndColumn);
+                ok = true;
+                goto DONE;
             }
         DONE:
             if (!ok) {
