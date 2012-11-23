@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 
 namespace NDepCheck {
     internal class ConsoleLogger : ILogger {
@@ -9,7 +10,7 @@ namespace NDepCheck {
 
         public void WriteError(string msg) {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.Out.WriteLine("**** " + msg);
+            Console.Out.WriteLine(msg);
             Console.ResetColor();
         }
 
@@ -19,7 +20,7 @@ namespace NDepCheck {
 
         public void WriteWarning(string msg) {
             Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.Out.WriteLine("???? " + msg);
+            Console.Out.WriteLine(msg);
             Console.ResetColor();
         }
 
@@ -28,12 +29,12 @@ namespace NDepCheck {
         }
 
         public void WriteInfo(string msg) {
-            Console.Out.WriteLine("---- " + msg);
+            Console.Out.WriteLine(msg);
         }
 
         public void WriteDebug(string msg) {
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Out.WriteLine("//// " + msg);
+            Console.Out.WriteLine(msg);
             Console.ResetColor();
         }
 
@@ -41,12 +42,16 @@ namespace NDepCheck {
 
         private static string Format(string msg, string fileName, uint lineNumber) {
             if (fileName != null) {
-                msg += " (probably at " + fileName;
-                if (lineNumber > 0)
-                    msg += ":" + lineNumber;
-                msg += ")";
+                var sb = new StringBuilder(msg);
+                sb.Append(" (probably at ").Append(fileName);
+                if (lineNumber > 0) {
+                    sb.Append(":").Append(lineNumber);
+                }
+                sb.Append(")");
+                return sb.ToString();
+            } else {
+                return msg;
             }
-            return msg;
         }
     }
 }
