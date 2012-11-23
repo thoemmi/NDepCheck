@@ -37,8 +37,7 @@ namespace NDepCheck {
                 assembly.MainModule.ReadSymbols();
             } catch (Exception ex) {
                 Log.WriteWarning(
-                    "Loading symbols for assembly " + filename + " failed - maybe .PDB file is missing. (" + ex.Message +
-                    ")", filename, 0, 0, 0, 0);
+                    String.Format("Loading symbols for assembly {0} failed - maybe .PDB file is missing. ({1})", filename, ex.Message), filename, 0, 0, 0, 0);
             }
 
             foreach (TypeDefinition type in assembly.MainModule.Types) {
@@ -54,8 +53,7 @@ namespace NDepCheck {
                     yield return dependency;
                 }
             }
-            Log.WriteInfo("  Analyzing " + filename + " took " + (int)sw.Elapsed.TotalMilliseconds +
-                                            " ms");
+            Log.WriteInfo(String.Format("Analyzing {0} took {1} ms", filename, (int)sw.Elapsed.TotalMilliseconds));
             sw.Stop();
         }
 
