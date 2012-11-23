@@ -74,7 +74,7 @@ namespace NDepCheck {
                     if (DefaultRuleSet != null) {
                         return UsageAndExit("Only one default rule set can be specified with " + arg);
                     }
-                    DefaultRuleSet = DependencyRuleSet.Create(new DirectoryInfo("."), filename, Verbose, Debug);
+                    DefaultRuleSet = DependencyRuleSet.Create(new DirectoryInfo("."), filename);
                     if (DefaultRuleSet == null) {
                         return 2;
                     }

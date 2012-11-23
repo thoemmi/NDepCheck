@@ -29,6 +29,8 @@ namespace NDepCheck.MSBuild {
         public override bool Execute() {
             var logger = new MSBuildLogger(Log, GenerateErrorHtml, LogWarnings);
             global::NDepCheck.Log.Logger = logger;
+            global::NDepCheck.Log.IsVerboseEnabled = false;
+            global::NDepCheck.Log.IsDebugEnabled = true;
 
             var options = new Options {
                 Debug = false,
@@ -42,7 +44,7 @@ namespace NDepCheck.MSBuild {
                 .AddTo(options.Assemblies);
 
             if (DefaultRuleSet != null) {
-                options.DefaultRuleSet = DependencyRuleSet.Create(new DirectoryInfo("."), DefaultRuleSet.ItemSpec, true, false);
+                options.DefaultRuleSet = DependencyRuleSet.Create(new DirectoryInfo("."), DefaultRuleSet.ItemSpec);
             }
             if (Directories != null) {
                 Directories

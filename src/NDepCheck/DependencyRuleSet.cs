@@ -54,48 +54,29 @@ namespace NDepCheck {
         private readonly SortedDictionary<string, Macro> _macros = new SortedDictionary<string, Macro>(new LengthComparer());
         private readonly SortedDictionary<string, string> _defines = new SortedDictionary<string, string>(new LengthComparer());
 
-        private readonly bool _verbose;
-        private readonly bool _debug;
-
         /// <summary>
         /// Constructor for test cases.
         /// </summary>
-        public DependencyRuleSet(bool verbose, bool debug) {
-            _verbose = verbose;
-            _debug = debug;
+        public DependencyRuleSet() {
             _mainRuleGroup = new DependencyRuleGroup("");
             _ruleGroups.Add(_mainRuleGroup);
         }
 
         private DependencyRuleSet(string fullRuleFilename,
                     IDictionary<string, string> defines,
-                    IDictionary<string, Macro> macros,
-                    bool verbose, bool debug)
-            : this(verbose, debug) {
+                    IDictionary<string, Macro> macros)
+            : this() {
             _defines = new SortedDictionary<string, string>(defines, new LengthComparer());
             _macros = new SortedDictionary<string, Macro>(macros, new LengthComparer());
-            if (!LoadRules(fullRuleFilename, verbose, debug)) {
+            if (!LoadRules(fullRuleFilename)) {
                 throw new ApplicationException("Could not load rules from " + fullRuleFilename);
             }
         }
 
-        public bool Verbose {
-            get {
-                return _verbose;
-            }
-        }
-
-        public bool Debug {
-            get {
-                return _debug;
-            }
-        }
-
         public static DependencyRuleSet Create(DirectoryInfo relativeRoot,
-                string rulefilename,
-                bool verbose, bool debug) {
+                string rulefilename) {
             return Create(relativeRoot, rulefilename,
-            new Dictionary<string, string>(), new Dictionary<string, Macro>(), verbose, debug);
+            new Dictionary<string, string>(), new Dictionary<string, Macro>());
         }
 
 
@@ -106,14 +87,13 @@ namespace NDepCheck {
         private static DependencyRuleSet Create(DirectoryInfo relativeRoot,
                         string rulefilename,
                         IDictionary<string, string> defines,
-                        IDictionary<string, Macro> macros,
-                        bool verbose, bool debug) {
+                        IDictionary<string, Macro> macros) {
             string fullRuleFilename = Path.Combine(relativeRoot.FullName, rulefilename);
             DependencyRuleSet result;
             if (!_fullFilename2RulesetCache.TryGetValue(fullRuleFilename, out result)) {
                 try {
                     long start = Environment.TickCount;
-                    result = new DependencyRuleSet(fullRuleFilename, defines, macros, verbose, debug);
+                    result = new DependencyRuleSet(fullRuleFilename, defines, macros);
                     Log.WriteDebug("Completed reading " + fullRuleFilename + " in " +
                                                             (Environment.TickCount - start) + " ms");
                     _fullFilename2RulesetCache.Add(fullRuleFilename, result);
@@ -130,14 +110,14 @@ namespace NDepCheck {
         /// <summary>
         /// Load a rule file.
         /// </summary>
-        private bool LoadRules(string fullRuleFilename, bool verbose, bool debug) {
+        private bool LoadRules(string fullRuleFilename) {
             using (TextReader tr = new StreamReader(fullRuleFilename, Encoding.Default)) {
-                return ProcessText(fullRuleFilename, 0, tr, LEFT_PARAM, RIGHT_PARAM, verbose, debug);
+                return ProcessText(fullRuleFilename, 0, tr, LEFT_PARAM, RIGHT_PARAM);
             }
         }
 
         private bool ProcessText(string fullRuleFilename, uint startLineNo, TextReader tr, string leftParam,
-                                 string rightParam, bool verbose, bool debug) {
+                                 string rightParam) {
             uint lineNo = startLineNo;
             bool textIsOk = true;
             DependencyRuleGroup currentGroup = _mainRuleGroup;
@@ -158,8 +138,7 @@ namespace NDepCheck {
                     DependencyRuleSet included = Create(new FileInfo(fullRuleFilename).Directory,
                                                         includeFilename,
                                                         _defines,
-                                                        _macros,
-                                                        verbose, debug);
+                                                        _macros);
                     if (included != null) {
                         // Error message when == null has been output by Create.
                         _includedRuleSets.Add(included);
@@ -187,7 +166,7 @@ namespace NDepCheck {
                     } else {
                         Log.WriteError(fullRuleFilename + ": '}' without corresponding '... {'", fullRuleFilename, lineNo, 0, 0, 0);
                     }
-                } else if (ProcessMacroIfFound(line, verbose, debug)) {
+                } else if (ProcessMacroIfFound(line)) {
                     // macro is already processed as side effect in ProcessMacroIfFound()
                 } else if (line.Contains(MAYUSE) || line.Contains(MUSTNOTUSE) ||
                            line.Contains(MAYUSE_WITH_WARNING)) {
@@ -279,7 +258,7 @@ namespace NDepCheck {
             return result.ToUpperInvariant();
         }
 
-        private bool ProcessMacroIfFound(string line, bool verbose, bool debug) {
+        private bool ProcessMacroIfFound(string line) {
             string foundMacroName;
             foreach (string macroName in _macros.Keys) {
                 if (line.Contains(macroName) && !line.StartsWith(macroName) && !line.Contains(MACRO_DEFINE)) {
@@ -294,7 +273,7 @@ namespace NDepCheck {
             int macroPos = line.IndexOf(foundMacroName);
             string leftParam = line.Substring(0, macroPos).Trim();
             string rightParam = line.Substring(macroPos + foundMacroName.Length).Trim();
-            ProcessText(macro.RuleFileName, macro.StartLineNo, new StringReader(macro.MacroText), leftParam, rightParam, verbose, debug);
+            ProcessText(macro.RuleFileName, macro.StartLineNo, new StringReader(macro.MacroText), leftParam, rightParam);
             return true;
         }
 
@@ -367,11 +346,11 @@ namespace NDepCheck {
             return s;
         }
 
-        public static DependencyRuleSet Load(string dependencyFilename, List<DirectoryOption> directories, bool verbose, bool debug) {
+        public static DependencyRuleSet Load(string dependencyFilename, List<DirectoryOption> directories) {
             foreach (var d in directories) {
                 string fullName = d.GetFullNameFor(dependencyFilename);
                 if (fullName != null) {
-                    DependencyRuleSet result = Create(new DirectoryInfo("."), fullName, verbose, debug);
+                    DependencyRuleSet result = Create(new DirectoryInfo("."), fullName);
                     if (result != null) {
                         return result;
                     }
@@ -408,7 +387,7 @@ namespace NDepCheck {
             line = ExpandDefines(line.Substring(GRAPHIT.Length).Trim());
             List<GraphAbstraction> a = GraphAbstraction.CreateGraphAbstractions(line);
             _graphAbstractions.AddRange(a);
-            if (_verbose) {
+            if (Log.IsVerboseEnabled) {
                 Log.WriteInfo("Reg.exps used for drawing " + line + " (" + ruleFileName + ":" + lineNo + ")");
                 foreach (GraphAbstraction ga in a) {
                     Log.WriteInfo(ga.ToString());

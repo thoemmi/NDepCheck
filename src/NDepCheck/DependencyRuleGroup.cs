@@ -74,7 +74,7 @@ namespace NDepCheck {
             string usedPattern = parent.ExpandDefines(line.Substring(i + sep.Length).Trim());
             List<DependencyRule> deps = DependencyRule.CreateDependencyRules(usingPattern, usedPattern, rep);
 
-            if (parent.Verbose) {
+            if (Log.IsVerboseEnabled) {
                 Log.WriteInfo(String.Format("Rules used for checking {0} ({1}:{2})", line, ruleFileName, lineNo));
                 foreach (DependencyRule d in deps) {
                     Log.WriteInfo("  " + d);
@@ -90,7 +90,7 @@ namespace NDepCheck {
                 _forbidden.Union(other._forbidden));
         }
 
-        public bool Check(IEnumerable<Dependency> dependencies, bool verbose, bool debug) {
+        public bool Check(IEnumerable<Dependency> dependencies) {
             bool result = true;
             int reorgCount = 0;
             int nextReorg = 200;
@@ -103,7 +103,7 @@ namespace NDepCheck {
                     if (_groupRegexes != null) {
                         _groupRegexes.ToString();
                     }
-                    result &= Check(d, verbose, debug);
+                    result &= Check(d);
                     if (++reorgCount > nextReorg) {
                         _forbidden.Sort(_sortOnDescendingHitCount);
                         _allowed.Sort(_sortOnDescendingHitCount);
@@ -116,19 +116,19 @@ namespace NDepCheck {
             return result;
         }
 
-        private bool Check(Dependency d, bool verbose, bool debug) {
+        private bool Check(Dependency d) {
             bool ok = false;
-            if (verbose) {
+            if (Log.IsVerboseEnabled) {
                 Log.WriteInfo("Checking " + d);
             }
-            if (_forbidden.Any(r => r.Matches(d, debug))) {
+            if (_forbidden.Any(r => r.Matches(d))) {
                 goto DONE;
             }
-            if (_allowed.Any(r => r.Matches(d, debug))) {
+            if (_allowed.Any(r => r.Matches(d))) {
                 ok = true;
                 goto DONE;
             }
-            if (_questionable.Any(r => r.Matches(d, debug))) {
+            if (_questionable.Any(r => r.Matches(d))) {
                 Log.WriteWarning("Dependency " + d + " is questionable", d.FileName, d.StartLine, d.StartColumn, d.EndLine, d.EndColumn);
                 ok = true;
                 goto DONE;

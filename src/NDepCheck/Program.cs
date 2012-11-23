@@ -13,10 +13,8 @@ namespace NDepCheck {
         private readonly Options _options;
 
         public Program(Options options) {
-            Log.Logger = new ConsoleLogger();
-
             _options = options;
-            _checker = new DependencyChecker(_options);
+            _checker = new DependencyChecker();
             _grapher = new DependencyGrapher(_checker, _options);
         }
 
@@ -51,7 +49,7 @@ namespace NDepCheck {
                 Log.StartProcessingAssembly(Path.GetFileName(assemblyFilename));
 
                 DependencyRuleSet ruleSetForAssembly =
-                    DependencyRuleSet.Load(dependencyFilename, _options.Directories, _options.Verbose, _options.Debug)
+                    DependencyRuleSet.Load(dependencyFilename, _options.Directories)
                     ?? _options.DefaultRuleSet;
                 if (ruleSetForAssembly == null) {
                     Log.WriteError(dependencyFilename +
@@ -84,6 +82,8 @@ namespace NDepCheck {
         /// The static Main method.
         /// </summary>
         public static int Main(string[] args) {
+            Log.Logger = new ConsoleLogger();
+
             var options = new Options();
             DateTime start = DateTime.Now;
             
@@ -92,6 +92,8 @@ namespace NDepCheck {
                 if (result != 0) {
                     return result;
                 }
+                Log.IsDebugEnabled = options.Debug;
+                Log.IsVerboseEnabled = options.Verbose;
                 var main = new Program(options);
                 return main.Run();
             } catch (Exception ex) {

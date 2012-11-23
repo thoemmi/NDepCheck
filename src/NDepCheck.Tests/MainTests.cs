@@ -131,13 +131,13 @@ NDepCheck.Tests ---> **
 
         [TestMethod]
         public void SmallGrapherTest() {
-            var rs = new DependencyRuleSet(true, true);
+            var rs = new DependencyRuleSet();
             rs.AddGraphAbstractions("<test>", 0, "% (**)");
 
             var options = new Options {
                 DotFilename = Path.Combine(Path.GetTempPath(), "test.dot")
             };
-            var dg = new DependencyGrapher(new DependencyChecker(options), options);
+            var dg = new DependencyGrapher(new DependencyChecker(), options);
             var deps = new List<Dependency> {
                                                 new Dependency("a1", "a1", "a2", "a2", null, 0, 0, 0, 0),
                                                 new Dependency("a1", "a1", "a4", "a4", null, 0, 0, 0, 0),
@@ -159,14 +159,14 @@ NDepCheck.Tests ---> **
 
         [TestMethod]
         public void TransitiveReductionGrapherTest() {
-            var rs = new DependencyRuleSet(true, true);
+            var rs = new DependencyRuleSet();
             rs.AddGraphAbstractions("<test>", 0, "% (**)");
 
             var options = new Options {
                 DotFilename = Path.Combine(Path.GetTempPath(), "test.dot"),
                 ShowTransitiveEdges = true
             };
-            var dg = new DependencyGrapher(new DependencyChecker(options), options);
+            var dg = new DependencyGrapher(new DependencyChecker(), options);
             var deps = new List<Dependency> {
                                                 new Dependency("a1", "a1", "a2", "a2", null, 0, 0, 0, 0),
                                                 new Dependency("a1", "a1", "a4", "a4", null, 0, 0, 0, 0),

@@ -10,11 +10,6 @@ namespace NDepCheck {
     /// </remarks>
     public class DependencyChecker {
         private readonly List<DependencyRuleRepresentation> _representations = new List<DependencyRuleRepresentation>();
-        private readonly Options _options;
-
-        public DependencyChecker(Options options) {
-            _options = options;
-        }
 
         /// <summary>
         /// Check all dependencies against dependency rules created
@@ -24,13 +19,13 @@ namespace NDepCheck {
         public bool Check(IEnumerable<DependencyRuleGroup> groups, IEnumerable<Dependency> dependencies, bool showUnusedQuestionableRules) {
             bool result = true;
             foreach (var g in groups) {
-                result &= g.Check(dependencies, _options.Verbose, _options.Debug);
+                result &= g.Check(dependencies);
             }
             foreach (DependencyRuleRepresentation r in _representations) {
                 if (showUnusedQuestionableRules && r.IsQuestionableRule && !r.WasHit) {
                     Log.WriteInfo("Questionable rule " + r + " was never matched - maybe you can remove it!");
                 } else {
-                    if (_options.Verbose) {
+                    if (Log.IsVerboseEnabled) {
                         Log.WriteInfo("Rule " + r + " was hit " + r.HitCount + " times.");
                     }
                 }

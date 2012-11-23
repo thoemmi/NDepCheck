@@ -92,8 +92,8 @@ namespace NDepCheck {
         /// Check whether a concrete using item and used item
         /// match this dependency.
         /// </summary>
-        public bool Matches(Dependency d, bool debug) {
-            if (debug) {
+        public bool Matches(Dependency d) {
+            if (Log.IsDebugEnabled) {
                 Log.WriteDebug("Checking " + d + " against " + this);
             }
             if (_ruleMatch.Matches(d)) {

@@ -11,6 +11,8 @@
 
     public static class Log {
         public static ILogger Logger { get; set; }
+        public static bool IsVerboseEnabled { get; set; }
+        public static bool IsDebugEnabled { get; set; }
 
         internal static void StartProcessingAssembly(string assemblyFilename) {
             Logger.StartProcessingAssembly(assemblyFilename);
