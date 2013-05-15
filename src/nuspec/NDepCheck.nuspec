@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>NDepCheck</id>
-    <version>1.8.0.9</version>
+    <version>1.8.0</version>
     <authors>thoemmi hmmueller</authors>
     <owners>thoemmi hmmueller</owners>
     <projectUrl>https://github.com/thoemmi/ndepcheck</projectUrl>
