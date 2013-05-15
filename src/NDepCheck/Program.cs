@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace NDepCheck {
     /// <remarks>
@@ -18,6 +20,11 @@ namespace NDepCheck {
             _grapher = new DependencyGrapher(_checker, _options);
         }
 
+        private class ThreadData {
+            public CheckerContext Context { get; set; }
+            public int MaxErrorCode { get; set; }
+        }
+
         #region Main
         /// <summary>
         /// Main method. See <c>UsageAndExit</c> for the 
@@ -28,19 +35,25 @@ namespace NDepCheck {
 
             int returnValue = 0;
 
-            var context = new CheckerContext();
-            foreach (var filePattern in _options.Assemblies) {
-                foreach (var assemblyFilename in filePattern.ExpandFilename()) {
-                    string extension = Path.GetExtension(assemblyFilename).ToLowerInvariant();
-                    // Only DLLs and EXEs are checked - everything else is ignored (e.g. PDBs).
-                    if (extension == ".dll" | extension == ".exe") {
-                        // We remember just the highest error code - the specific errors are in the output.
-                        returnValue = Math.Max(returnValue, AnalyzeAssembly(context, assemblyFilename));
-                    }
-                }
-            }
+            int maxDegree = Math.Max(1, _options.MaxCpuCount);
+            Parallel.ForEach(
+                _options.Assemblies.SelectMany(filePattern => filePattern.ExpandFilename()).Where(IsAssembly),
+                new ParallelOptions { MaxDegreeOfParallelism = maxDegree },
+                () => new ThreadData { Context = new CheckerContext(), MaxErrorCode = 0 },
+                (assemblyFilename, state, loopData) => {
+                    var result = AnalyzeAssembly(loopData.Context, assemblyFilename);
+                    loopData.MaxErrorCode = Math.Max(loopData.MaxErrorCode, result);
+                    return loopData;
+                },
+                loopData => returnValue = Math.Max(returnValue, loopData.MaxErrorCode)
+                );
 
             return returnValue;
+        }
+
+        private static bool IsAssembly(string filename) {
+            var extension = Path.GetExtension(filename).ToLowerInvariant();
+            return extension == ".dll" || extension == ".exe";
         }
 
         private int AnalyzeAssembly(CheckerContext checkerContext, string assemblyFilename) {

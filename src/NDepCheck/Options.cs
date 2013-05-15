@@ -40,6 +40,8 @@ namespace NDepCheck {
 
         public string DefaultRuleSetFile { get; set; }
 
+        public int MaxCpuCount { get; set; }
+
         public List<AssemblyOption> Assemblies {
             get { return _assemblies; }
         }
@@ -103,6 +105,14 @@ namespace NDepCheck {
                 } else if (!arg.StartsWith("/") && !arg.StartsWith("-")) {
                     // We are done with the options.
                     break;
+                } else if (arg.StartsWith("/m") || arg.StartsWith("-m")) {
+                    string ms = ExtractOptionValue(arg);
+                    int m;
+                    if (!String.IsNullOrEmpty(ms) && Int32.TryParse(ms, out m)) {
+                        MaxCpuCount = m;
+                    } else {
+                        MaxCpuCount = Environment.ProcessorCount;
+                    }
                 } else {
                     return UsageAndExit("Unexpected option " + arg);
                 }
@@ -177,6 +187,11 @@ Options:
          dependency in the DOT graph. N is the maximum width of strings 
          used; the default is 80. Graphs can become quite cluttered 
          with this option.
+
+   /m[=N]   Specifies the maximum number of concurrent threads to use. 
+         If you don't include this switch, the default value is 1. If
+         you include this switch without specifying a value, NDepCheck
+         will use up to the number of processors in the computer.
 
    /v    Verbose. Shows regular expressions used for checking and 
          all checked dependencies. Attention: Place /v BEFORE any
@@ -406,7 +421,7 @@ using the wildcardpath syntax):
             string filename;
             if (arg.Length <= 2) {
                 return null;
-            } else if (arg[2] == '=') {
+            } else if (arg[2] == '=' || arg[2] == ':') {
                 filename = arg.Substring(3);
             } else {
                 filename = arg.Substring(2);
