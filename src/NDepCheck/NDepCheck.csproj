@@ -91,6 +91,7 @@
   <ItemGroup>
     <Compile Include="AssemblyOption.cs" />
     <Compile Include="DependencyRuleGroup.cs" />
+    <Compile Include="DependencyRuleRepresentation.cs" />
     <Compile Include="DependencyRuleSet.cs" />
     <Compile Include="ConsoleLogger.cs" />
     <Compile Include="Dependency.cs" />
