@@ -13,7 +13,7 @@ namespace NDepCheck {
         internal IEnumerable<string> ExpandFilename() {
             var result = new List<string>(ExpandFilename(_positive));
             if (_negativeOrNull != null) {
-                var negative = new List<string>(ExpandFilename(_negativeOrNull)).ConvertAll<string>(f => Path.GetFullPath(f));
+                var negative = new List<string>(ExpandFilename(_negativeOrNull)).ConvertAll(Path.GetFullPath);
                 result.RemoveAll(f => negative.Contains(Path.GetFullPath(f)));
             }
             return result;
