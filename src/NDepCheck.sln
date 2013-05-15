@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NDepCheck", "NDepCheck\NDepCheck.csproj", "{FF14C674-9AC8-4658-8A89-C2EEAC3453F3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NDepCheck.Tests", "NDepCheck.Tests\NDepCheck.Tests.csproj", "{88671B88-A572-458E-8A13-FDDB79A1C902}"
@@ -10,6 +10,13 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NDepCheck.TestAssemblyÄÖÜß", "NDepCheck.TestAssemblyÄÖÜß\NDepCheck.TestAssemblyÄÖÜß.csproj", "{724AFB8E-E89C-4864-B9E1-274D177524FA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NDepCheck.MSBuild", "NDepCheck.MSBuild\NDepCheck.MSBuild.csproj", "{A327E6E5-768A-4C1D-9C3C-F04345A6CF57}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{5EC85268-7900-4B42-8083-76A5DD210940}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
