@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
@@ -44,7 +43,7 @@ namespace NDepCheck.MSBuild {
                 .AddTo(options.Assemblies);
 
             if (DefaultRuleSet != null) {
-                options.DefaultRuleSet = DependencyRuleSet.Create(new DirectoryInfo("."), DefaultRuleSet.ItemSpec);
+                options.DefaultRuleSetFile = DefaultRuleSet.ItemSpec;
             }
             if (Directories != null) {
                 Directories

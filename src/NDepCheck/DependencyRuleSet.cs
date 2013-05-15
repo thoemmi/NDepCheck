@@ -5,6 +5,7 @@ using System.Text;
 
 namespace NDepCheck {
     public class DependencyRuleSet {
+        private readonly CheckerContext _checkerContext;
         private const string LEFT_PARAM = "\\L";
         private const string MACRO_DEFINE = ":=";
         private const string MACRO_END = "=:";
@@ -42,8 +43,6 @@ namespace NDepCheck {
             }
         }
 
-        private static readonly IDictionary<string, DependencyRuleSet> _fullFilename2RulesetCache = new Dictionary<string, DependencyRuleSet>();
-
         private readonly List<DependencyRuleGroup> _ruleGroups = new List<DependencyRuleGroup>();
         private readonly DependencyRuleGroup _mainRuleGroup;
 
@@ -57,52 +56,21 @@ namespace NDepCheck {
         /// <summary>
         /// Constructor for test cases.
         /// </summary>
-        public DependencyRuleSet() {
+        public DependencyRuleSet(CheckerContext checkerContext) {
+            _checkerContext = checkerContext;
             _mainRuleGroup = new DependencyRuleGroup("");
             _ruleGroups.Add(_mainRuleGroup);
         }
 
-        private DependencyRuleSet(string fullRuleFilename,
+        public DependencyRuleSet(CheckerContext checkerContext, string fullRuleFilename,
                     IDictionary<string, string> defines,
                     IDictionary<string, Macro> macros)
-            : this() {
+            : this(checkerContext) {
             _defines = new SortedDictionary<string, string>(defines, new LengthComparer());
             _macros = new SortedDictionary<string, Macro>(macros, new LengthComparer());
             if (!LoadRules(fullRuleFilename)) {
                 throw new ApplicationException("Could not load rules from " + fullRuleFilename);
             }
-        }
-
-        public static DependencyRuleSet Create(DirectoryInfo relativeRoot,
-                string rulefilename) {
-            return Create(relativeRoot, rulefilename,
-            new Dictionary<string, string>(), new Dictionary<string, Macro>());
-        }
-
-
-        /// <summary>
-        /// Read rule set from file.
-        /// </summary>
-        /// <returns>Read rule set; or <c>null</c> if not poeeible to read it.</returns>
-        private static DependencyRuleSet Create(DirectoryInfo relativeRoot,
-                        string rulefilename,
-                        IDictionary<string, string> defines,
-                        IDictionary<string, Macro> macros) {
-            string fullRuleFilename = Path.Combine(relativeRoot.FullName, rulefilename);
-            DependencyRuleSet result;
-            if (!_fullFilename2RulesetCache.TryGetValue(fullRuleFilename, out result)) {
-                try {
-                    long start = Environment.TickCount;
-                    result = new DependencyRuleSet(fullRuleFilename, defines, macros);
-                    Log.WriteDebug("Completed reading " + fullRuleFilename + " in " +
-                                                            (Environment.TickCount - start) + " ms");
-                    _fullFilename2RulesetCache.Add(fullRuleFilename, result);
-                } catch (FileNotFoundException) {
-                    Log.WriteError("File " + fullRuleFilename + " not found");
-                    return null;
-                }
-            }
-            return result;
         }
 
         #region Loading
@@ -135,7 +103,7 @@ namespace NDepCheck {
                     // ignore;
                 } else if (line.StartsWith("+")) {
                     string includeFilename = line.Substring(1).Trim();
-                    DependencyRuleSet included = Create(new FileInfo(fullRuleFilename).Directory,
+                    DependencyRuleSet included = _checkerContext.Create(new FileInfo(fullRuleFilename).Directory,
                                                         includeFilename,
                                                         _defines,
                                                         _macros);
@@ -281,7 +249,7 @@ namespace NDepCheck {
 
         #region Nested type: Macro
 
-        private class Macro {
+        public class Macro {
             public readonly string MacroText;
             public readonly string RuleFileName;
             public readonly uint StartLineNo;
@@ -345,21 +313,6 @@ namespace NDepCheck {
             }
             return s;
         }
-
-        public static DependencyRuleSet Load(string dependencyFilename, List<DirectoryOption> directories) {
-            foreach (var d in directories) {
-                string fullName = d.GetFullNameFor(dependencyFilename);
-                if (fullName != null) {
-                    DependencyRuleSet result = Create(new DirectoryInfo("."), fullName);
-                    if (result != null) {
-                        return result;
-                    }
-                }
-            }
-            return null; // if nothing found
-        }
-
-
 
         internal void ExtractGraphAbstractions(List<GraphAbstraction> graphAbstractions) {
             ExtractGraphAbstractions(graphAbstractions, new List<DependencyRuleSet>());

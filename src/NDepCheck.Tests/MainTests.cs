@@ -131,7 +131,7 @@ NDepCheck.Tests ---> **
 
         [TestMethod]
         public void SmallGrapherTest() {
-            var rs = new DependencyRuleSet();
+            var rs = new DependencyRuleSet(new CheckerContext());
             rs.AddGraphAbstractions("<test>", 0, "% (**)");
 
             var options = new Options {
@@ -159,7 +159,7 @@ NDepCheck.Tests ---> **
 
         [TestMethod]
         public void TransitiveReductionGrapherTest() {
-            var rs = new DependencyRuleSet();
+            var rs = new DependencyRuleSet(new CheckerContext());
             rs.AddGraphAbstractions("<test>", 0, "% (**)");
 
             var options = new Options {

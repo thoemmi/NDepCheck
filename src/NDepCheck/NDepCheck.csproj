@@ -90,6 +90,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyOption.cs" />
+    <Compile Include="CheckerContext.cs" />
     <Compile Include="DependencyRuleGroup.cs" />
     <Compile Include="DependencyRuleRepresentation.cs" />
     <Compile Include="DependencyRuleSet.cs" />

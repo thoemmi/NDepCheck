@@ -38,7 +38,7 @@ namespace NDepCheck {
 
         public bool Debug { get; set; }
 
-        public DependencyRuleSet DefaultRuleSet { get; set; }
+        public string DefaultRuleSetFile { get; set; }
 
         public List<AssemblyOption> Assemblies {
             get { return _assemblies; }
@@ -71,13 +71,14 @@ namespace NDepCheck {
                     if (filename == null) {
                         return UsageAndExit("Missing =filename after " + arg);
                     }
-                    if (DefaultRuleSet != null) {
+                    if (!String.IsNullOrEmpty(DefaultRuleSetFile)) {
                         return UsageAndExit("Only one default rule set can be specified with " + arg);
                     }
-                    DefaultRuleSet = DependencyRuleSet.Create(new DirectoryInfo("."), filename);
-                    if (DefaultRuleSet == null) {
+                    if (!File.Exists(filename)) {
+                        UsageAndExit("Cannot find the default rule set file " + filename);
                         return 2;
                     }
+                    DefaultRuleSetFile = filename;
                 } else if (arg == "-v" || arg == "/v") {
                     Verbose = true;
                     WriteVersion();

@@ -28,13 +28,14 @@ namespace NDepCheck {
 
             int returnValue = 0;
 
+            var context = new CheckerContext();
             foreach (var filePattern in _options.Assemblies) {
                 foreach (var assemblyFilename in filePattern.ExpandFilename()) {
                     string extension = Path.GetExtension(assemblyFilename).ToLowerInvariant();
                     // Only DLLs and EXEs are checked - everything else is ignored (e.g. PDBs).
                     if (extension == ".dll" | extension == ".exe") {
                         // We remember just the highest error code - the specific errors are in the output.
-                        returnValue = Math.Max(returnValue, AnalyzeAssembly(assemblyFilename));
+                        returnValue = Math.Max(returnValue, AnalyzeAssembly(context, assemblyFilename));
                     }
                 }
             }
@@ -42,15 +43,16 @@ namespace NDepCheck {
             return returnValue;
         }
 
-        private int AnalyzeAssembly(string assemblyFilename) {
+        private int AnalyzeAssembly(CheckerContext checkerContext, string assemblyFilename) {
             var dependencyFilename = Path.GetFileName(assemblyFilename) + ".dep";
             try {
                 Log.WriteInfo("Analyzing " + assemblyFilename);
                 Log.StartProcessingAssembly(Path.GetFileName(assemblyFilename));
 
-                DependencyRuleSet ruleSetForAssembly =
-                    DependencyRuleSet.Load(dependencyFilename, _options.Directories)
-                    ?? _options.DefaultRuleSet;
+                DependencyRuleSet ruleSetForAssembly = checkerContext.Load(dependencyFilename, _options.Directories);
+                if (ruleSetForAssembly == null && !String.IsNullOrEmpty(_options.DefaultRuleSetFile)) {
+                    ruleSetForAssembly = checkerContext.Create(new DirectoryInfo("."), _options.DefaultRuleSetFile);
+                }
                 if (ruleSetForAssembly == null) {
                     Log.WriteError(dependencyFilename +
                                " not found in -d and -s directories, and no default rule set provided by -x");
