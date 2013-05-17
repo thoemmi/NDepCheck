@@ -12,6 +12,7 @@ namespace NDepCheck.MSBuild {
         public ITaskItem DefaultRuleSet { get; set; }
         public bool GenerateErrorHtml { get; set; }
         public bool LogWarnings { get; set; }
+        public int MaxCpuCount { get; set; }
 
         [Required]
         public ITaskItem[] Assemblies { get; set; }
@@ -37,6 +38,7 @@ namespace NDepCheck.MSBuild {
                 DotFilename = DotFilename,
                 ShowTransitiveEdges = ShowTransitiveEdges,
                 ShowUnusedQuestionableRules = ShowUnusedQuestionableRules,
+                MaxCpuCount = MaxCpuCount,
             };
             Assemblies
                 .Select(item => new AssemblyOption(item.ItemSpec, null))
