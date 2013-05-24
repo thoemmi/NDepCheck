@@ -13,6 +13,7 @@ namespace NDepCheck.MSBuild {
         public bool GenerateErrorHtml { get; set; }
         public bool LogWarnings { get; set; }
         public int MaxCpuCount { get; set; }
+        public bool Debug { get; set; }
 
         [Required]
         public ITaskItem[] Assemblies { get; set; }
@@ -30,7 +31,7 @@ namespace NDepCheck.MSBuild {
             var logger = new MSBuildLogger(Log, GenerateErrorHtml, LogWarnings);
             global::NDepCheck.Log.Logger = logger;
             global::NDepCheck.Log.IsVerboseEnabled = false;
-            global::NDepCheck.Log.IsDebugEnabled = true;
+            global::NDepCheck.Log.IsDebugEnabled = Debug;
 
             var options = new Options {
                 Debug = false,
