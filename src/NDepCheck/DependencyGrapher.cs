@@ -19,7 +19,6 @@ namespace NDepCheck {
             _options = options;
         }
 
-
         /// <summary>
         /// Create the graph for all dependencies passed in.
         /// </summary>
@@ -100,7 +99,7 @@ namespace NDepCheck {
             } else if (usingMatch == "" || usedMatch == "") {
                 // ignore this edge!
             } else {
-                bool isOk = _checker.Check(ruleSet, new List<Dependency> {d}, false);
+                bool isOk = _checker.Check(null, ruleSet, new List<Dependency> {d}, false);
 
                 // Filter out loops that are ok - they are not shown.
                 // All other edges (non-loops; and non-ok loops) are shown.

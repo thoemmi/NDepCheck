@@ -16,10 +16,10 @@ namespace NDepCheck {
         /// with <c>AddDependencyRules</c>.
         /// </summary>
         /// <returns>true if no dependencies is illegal according to our rules</returns>
-        public bool Check(IEnumerable<DependencyRuleGroup> groups, IEnumerable<Dependency> dependencies, bool showUnusedQuestionableRules) {
+        public bool Check(IAssemblyContext assemblyContext, IEnumerable<DependencyRuleGroup> groups, IEnumerable<Dependency> dependencies, bool showUnusedQuestionableRules) {
             bool result = true;
             foreach (var g in groups) {
-                result &= g.Check(dependencies);
+                result &= g.Check(assemblyContext, dependencies);
             }
             foreach (DependencyRuleRepresentation r in _representations) {
                 if (showUnusedQuestionableRules && r.IsQuestionableRule && !r.WasHit) {

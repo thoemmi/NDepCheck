@@ -123,7 +123,7 @@ namespace NDepCheck {
                     }
                 } else if (line.EndsWith("{")) {
                     if (currentGroup.Group != "") {
-                        Log.WriteError(fullRuleFilename + ": Nested '... {' not possible", fullRuleFilename, lineNo, 0, 0, 0);
+                        Log.WriteError(String.Format("{0}: Nested '... {{' not possible", fullRuleFilename), fullRuleFilename, lineNo);
                     } else {
                         currentGroup = new DependencyRuleGroup(line.TrimEnd('{').TrimEnd());
                         _ruleGroups.Add(currentGroup);
@@ -132,7 +132,7 @@ namespace NDepCheck {
                     if (currentGroup.Group != "") {
                         currentGroup = _mainRuleGroup;
                     } else {
-                        Log.WriteError(fullRuleFilename + ": '}' without corresponding '... {'", fullRuleFilename, lineNo, 0, 0, 0);
+                        Log.WriteError(String.Format("{0}: '}}' without corresponding '... {{'", fullRuleFilename), fullRuleFilename, lineNo);
                     }
                 } else if (ProcessMacroIfFound(line)) {
                     // macro is already processed as side effect in ProcessMacroIfFound()
@@ -152,7 +152,7 @@ namespace NDepCheck {
                         line = tr.ReadLine();
                         lineNo++;
                         if (line == null) {
-                            Log.WriteError(fullRuleFilename + ": Missing " + MACRO_END + " at end", fullRuleFilename, lineNo, 0, 0, 0);
+                            Log.WriteError(String.Format("{0}: Missing {1} at end", fullRuleFilename, MACRO_END), fullRuleFilename, lineNo);
                             textIsOk = false;
                             break;
                         }
@@ -171,8 +171,7 @@ namespace NDepCheck {
                 } else if (line.Contains(DEFINE)) {
                     AddDefine(fullRuleFilename, lineNo, line);
                 } else {
-                    Log.WriteError(fullRuleFilename + ": Cannot parse line " + lineNo + ": " + line, fullRuleFilename, lineNo, 0, 0,
-                               0);
+                    Log.WriteError(fullRuleFilename + ": Cannot parse line " + lineNo + ": " + line, fullRuleFilename, lineNo);
                     textIsOk = false;
                 }
             }
@@ -181,19 +180,14 @@ namespace NDepCheck {
 
         private bool CheckDefinedName(string macroName, string ruleFileName, uint lineNo) {
             if (macroName.Contains(" ")) {
-                Log.WriteError(
-                    ruleFileName + ", line " + lineNo + ": Macro name must not contain white space: " + macroName,
-                    ruleFileName,
-                    lineNo, 0, 0, 0);
+                Log.WriteError(String.Format("{0}, line {1}: Macro name must not contain white space: {2}", ruleFileName, lineNo, macroName), ruleFileName, lineNo);
                 return false;
             } else {
                 string compactedName = CompactedName(macroName);
                 foreach (string reservedName in _reservedNames) {
                     if (compactedName == CompactedName(reservedName)) {
                         Log.WriteError(
-                            ruleFileName + ", line " + lineNo + ": Macro name " + macroName +
-                            " is too similar to predefined name " +
-                            reservedName, ruleFileName, lineNo, 0, 0, 0);
+                            String.Format("{0}, line {1}: Macro name {2} is too similar to predefined name {3}", ruleFileName, lineNo, macroName, reservedName), ruleFileName, lineNo);
                         return false;
                     }
                 }
@@ -201,9 +195,7 @@ namespace NDepCheck {
                     if (macroName != definedMacroName
                         && compactedName == CompactedName(definedMacroName)) {
                             Log.WriteError(
-                            ruleFileName + ", line " + lineNo + ": Macro name " + macroName +
-                            " is too similar to already defined name " +
-                            definedMacroName, ruleFileName, lineNo, 0, 0, 0);
+                            String.Format("{0}, line {1}: Macro name {2} is too similar to already defined name {3}", ruleFileName, lineNo, macroName, definedMacroName), ruleFileName, lineNo);
                         return false;
                     }
                 }

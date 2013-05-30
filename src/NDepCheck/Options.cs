@@ -42,6 +42,8 @@ namespace NDepCheck {
 
         public int MaxCpuCount { get; set; }
 
+        public string XmlOutput { get; set; }
+
         public List<AssemblyOption> Assemblies {
             get { return _assemblies; }
         }
@@ -52,6 +54,7 @@ namespace NDepCheck {
 
         public Options() {
             ShowUnusedQuestionableRules = true;
+            MaxCpuCount = 1;
         }
 
         public int ParseCommandLine(string[] args) {
@@ -102,9 +105,12 @@ namespace NDepCheck {
                     StringLengthForIllegalEdges = lg == null ? 80 : Int32.Parse(lg);
                 } else if (arg == "-h" || arg == "/h") {
                     return UsageAndExit(null);
-                } else if (!arg.StartsWith("/") && !arg.StartsWith("-")) {
-                    // We are done with the options.
-                    break;
+                } else if (arg.StartsWith("/o") || arg.StartsWith("-o")) {
+                    string filename = ExtractOptionValue(arg);
+                    if (filename == null) {
+                        return UsageAndExit("Missing =filename after " + arg);
+                    }
+                    XmlOutput = filename;
                 } else if (arg.StartsWith("/m") || arg.StartsWith("-m")) {
                     string ms = ExtractOptionValue(arg);
                     int m;
@@ -113,6 +119,9 @@ namespace NDepCheck {
                     } else {
                         MaxCpuCount = Environment.ProcessorCount;
                     }
+                } else if (!arg.StartsWith("/") && !arg.StartsWith("-")) {
+                    // We are done with the options.
+                    break;
                 } else {
                     return UsageAndExit("Unexpected option " + arg);
                 }
