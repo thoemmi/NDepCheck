@@ -7,3 +7,5 @@ obj/
 *.user
 thumbs.db
 *.nupkg
+
+src/CommonAssemblyInfo.cs
