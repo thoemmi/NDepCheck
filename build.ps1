@@ -8,7 +8,7 @@ Invoke-Expression "$msbuild `"$solutionPath`" /p:Configuration=Release /t:Build"
 
 # get version
 $ass = Get-Content (Join-Path $srcdir "CommonAssemblyInfo.cs")
-$ass -match 'AssemblyInformationalVersion\("(\d+.\d+\.[\-a-z0-9]*)"\)'
+$ass -match 'AssemblyInformationalVersion\("(\d+.\d+\.[\.\-a-z0-9]*)"\)'
 $version = $matches[1]
 
 # nupack
