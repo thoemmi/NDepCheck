@@ -8,7 +8,7 @@
     <projectUrl>https://github.com/thoemmi/ndepcheck</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>NDepCheck is a tool that helps you to keep the (static) architecture of a .NET software clean.</description>
-    <copyright>Copyright 2007..2012</copyright>
+    <copyright>Copyright 2007..2013</copyright>
     <tags>dependency check tools</tags>
   </metadata>
   <files>

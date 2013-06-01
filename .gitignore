@@ -1,7 +1,6 @@
 TestResults/
 bin/
 obj/
-/src/packages
 
 *.suo
 *.user
