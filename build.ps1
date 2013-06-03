@@ -7,7 +7,7 @@ $solutionPath = Join-Path $srcdir "NDepCheck.sln"
 Invoke-Expression "$msbuild `"$solutionPath`" /p:Configuration=Release /t:Build"
 
 # get version
-$ass = Get-Content (Join-Path $srcdir "CommonAssemblyInfo.cs")
+$ass = Get-Content (Join-Path $srcdir "CommonAssemblyInfo.cs") -Raw
 $ass -match 'AssemblyInformationalVersion\("(\d+.\d+\.[\.\-a-z0-9]*)"\)'
 $version = $matches[1]
 
