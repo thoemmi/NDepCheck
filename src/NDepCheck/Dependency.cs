@@ -130,6 +130,15 @@ namespace NDepCheck {
         /// not allowed.
         /// </summary>
         /// <returns></returns>
+        public string QuestionableMessage() {
+            return "Questionable dependency " + _usingItem + " ---> " + _usedItem;
+        }
+
+        /// <summary>
+        /// A message presented to the user of this Dependency is
+        /// not allowed.
+        /// </summary>
+        /// <returns></returns>
         public string IllegalMessage() {
             return "Illegal dependency " + _usingItem + " ---> " + _usedItem;
         }

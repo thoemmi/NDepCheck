@@ -90,7 +90,7 @@ namespace NDepCheck {
                 _forbidden.Union(other._forbidden));
         }
 
-        public bool Check(IEnumerable<Dependency> dependencies) {
+        public bool Check(IEnumerable<Dependency> dependencies, bool emitQuestionableDependenciesToErrorLog) {
             bool result = true;
             int reorgCount = 0;
             int nextReorg = 200;
@@ -100,10 +100,7 @@ namespace NDepCheck {
                 // matches the group's pattern:
                 Dependency d1 = d;
                 if (_groupRegexes == null || _groupRegexes.Any(r => Regex.IsMatch(d1.UsingItem, r))) {
-                    if (_groupRegexes != null) {
-                        _groupRegexes.ToString();
-                    }
-                    result &= Check(d);
+                    result &= Check(d, emitQuestionableDependenciesToErrorLog);
                     if (++reorgCount > nextReorg) {
                         _forbidden.Sort(_sortOnDescendingHitCount);
                         _allowed.Sort(_sortOnDescendingHitCount);
@@ -116,7 +113,7 @@ namespace NDepCheck {
             return result;
         }
 
-        private bool Check(Dependency d) {
+        private bool Check(Dependency d, bool emitQuestionableDependenciesToErrorLog) {
             bool ok = false;
             if (Log.IsVerboseEnabled) {
                 Log.WriteInfo("Checking " + d);
@@ -129,9 +126,14 @@ namespace NDepCheck {
                 goto DONE;
             }
             if (_questionable.Any(r => r.Matches(d))) {
-                Log.WriteWarning("Dependency " + d + " is questionable", d.FileName, d.StartLine, d.StartColumn, d.EndLine, d.EndColumn);
+                Action<string, string, uint, uint, uint, uint> logWrite;
+                if (emitQuestionableDependenciesToErrorLog) {
+                    logWrite = Log.WriteError;
+                } else {
+                    logWrite = Log.WriteWarning;
+                }
+                logWrite(d.QuestionableMessage(), d.FileName, d.StartLine, d.StartColumn, d.EndLine, d.EndColumn);
                 ok = true;
-                goto DONE;
             }
         DONE:
             if (!ok) {

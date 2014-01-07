@@ -1,4 +1,4 @@
-// (c) HMMüller 2006...2010
+// (c) thoemmi, hmmueller 2006...2014
 
 using System;
 using System.Collections.Generic;
@@ -12,9 +12,11 @@ namespace NDepCheck.Tests {
     /// </remarks>
     [TestClass]
     public class MainTests {
-        private static readonly string TestAssemblyPath = Path.Combine(Path.GetDirectoryName(typeof (MainTests).Assembly.Location), "NDepCheck.TestAssembly.dll");
+        private static readonly string TestAssemblyPath = Path.Combine(Path.GetDirectoryName(typeof(MainTests).Assembly.Location), "NDepCheck.TestAssembly.dll");
 
+        // ReSharper disable UnusedParameter.Local This is an Assert method, therefore the use of s in an Assert is a real use.
         private static void AssertNotContains(string path, string s) {
+            // ReSharper restore UnusedParameter.Local
             using (TextReader tr = new StreamReader(path)) {
                 string all = tr.ReadToEnd();
                 Assert.IsFalse(all.Contains(s), all);
@@ -374,5 +376,23 @@ NDepCheck.Tests ---> **
                 File.Delete(depFile);
             }
         }
+
+        [TestMethod]
+        public void TestEmitQuestionableDependenciesToErrorLog() {
+            {
+                string depFile = Path.GetTempFileName();
+                using (TextWriter tw = new StreamWriter(depFile)) {
+                    tw.Write(@"
+                    NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
+                    NDepCheck.TestAssembly.** ---> System.**
+                    NDepCheck.TestAssembly.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForNDepCheck::I
+                    * ---? System.*
+                ");
+                }
+                Assert.AreEqual(0, Program.Main(new[] { "-x=" + depFile, "/e", TestAssemblyPath }));
+                File.Delete(depFile);
+            }
+        }
+
     }
 }
