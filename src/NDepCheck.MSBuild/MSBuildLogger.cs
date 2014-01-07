@@ -30,7 +30,7 @@ namespace NDepCheck.MSBuild {
                         (int) ruleViolation.Dependency.StartColumn,
                         (int) ruleViolation.Dependency.EndLine,
                         (int) ruleViolation.Dependency.EndColumn,
-                        ruleViolation.Dependency.IllegalMessage());
+                        ruleViolation.Dependency.QuestionableMessage());
                     break;
                 case ViolationType.Error:
                     _log.LogError(

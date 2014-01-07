@@ -147,7 +147,7 @@ namespace NDepCheck {
 
         private static void WriteVersion() {
             Log.WriteInfo("NDepCheck V." + typeof(Program).Assembly.GetName().Version.ToString(2) +
-                      " (c) HMMüller, Th.Freudenberg 2006...2010");
+                      "a (c) HMMüller, Th.Freudenberg 2006...2014");
         }
 
         private static int UsageAndExit(string message) {
