@@ -100,7 +100,7 @@ namespace NDepCheck {
             } else if (usingMatch == "" || usedMatch == "") {
                 // ignore this edge!
             } else {
-                bool isOk = _checker.Check(ruleSet, new List<Dependency> {d}, false);
+                bool isOk = _checker.Check(ruleSet, new List<Dependency> {d}, false, false);
 
                 // Filter out loops that are ok - they are not shown.
                 // All other edges (non-loops; and non-ok loops) are shown.

@@ -1,17 +1,16 @@
 ﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using NDepCheck;
 
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("NDepCheck 1.8")]
+[assembly: AssemblyTitle("NDepCheck 1.9")]
 [assembly: AssemblyDescription("Dependency Checker for .NET")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("NDepCheck")]
-[assembly: AssemblyCopyright("Copyright HMMüller & Th. Freudenberg ©  2007..2012")]
+[assembly: AssemblyCopyright("Copyright HMMüller & Th. Freudenberg ©  2007..2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -30,5 +29,5 @@ using NDepCheck;
 //      Build Number
 //      Revision
 //
-[assembly: AssemblyVersion("1.8.0.0")]
-[assembly: AssemblyFileVersion("1.8.0.0")]
+[assembly: AssemblyVersion("1.9.0.0")]
+[assembly: AssemblyFileVersion("1.9.0.0")]

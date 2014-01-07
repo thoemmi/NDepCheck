@@ -30,6 +30,8 @@ namespace NDepCheck {
 
         public bool ShowUnusedQuestionableRules { get; set; }
 
+        public bool EmitQuestionableDependenciesToErrorLog { get; set; }
+
         /// <value>
         /// Mark output of <c>DependencyGrapher</c>
         /// as verbose.
@@ -92,6 +94,8 @@ namespace NDepCheck {
                     DotFilename = filename;
                 } else if (arg == "-q" || arg == "/q") {
                     ShowUnusedQuestionableRules = false;
+                } else if (arg == "-e" || arg == "/e") {
+                    EmitQuestionableDependenciesToErrorLog = true;
                 } else if (arg == "-t" || arg == "/t") {
                     ShowTransitiveEdges = true;
                 } else if (arg.StartsWith("-i") || arg.StartsWith("/i")) {
@@ -127,7 +131,7 @@ namespace NDepCheck {
 
         private static void WriteVersion() {
             Log.WriteInfo("NDepCheck V." + typeof(Program).Assembly.GetName().Version.ToString(2) +
-                      " (c) HMMüller, Th.Freudenberg 2006...2010");
+                      " (c) HMMüller, Th.Freudenberg 2007...2014");
         }
 
         private static int UsageAndExit(string message) {
@@ -176,6 +180,10 @@ Options:
          dependency in the DOT graph. N is the maximum width of strings 
          used; the default is 80. Graphs can become quite cluttered 
          with this option.
+
+   /e    Write questionable dependencies as errors (instead of warnings).
+
+   /q    Suppress output of unused questionable (---?) rules.
 
    /v    Verbose. Shows regular expressions used for checking and 
          all checked dependencies. Attention: Place /v BEFORE any

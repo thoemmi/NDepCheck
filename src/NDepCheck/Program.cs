@@ -59,7 +59,7 @@ namespace NDepCheck {
                     try {
                        IEnumerable<Dependency> dependencies = DependencyReader.GetDependencies(assemblyFilename);
                         IEnumerable<DependencyRuleGroup> groups = ruleSetForAssembly.ExtractDependencyGroups();
-                        bool success = _checker.Check(groups, dependencies, _options.ShowUnusedQuestionableRules);
+                        bool success = _checker.Check(groups, dependencies, _options.ShowUnusedQuestionableRules, _options.EmitQuestionableDependenciesToErrorLog);
                         if (!success) {
                             return 3;
                         }
@@ -106,14 +106,15 @@ namespace NDepCheck {
             } finally {
                 DateTime end = DateTime.Now;
                 TimeSpan runtime = end.Subtract(start);
+                const string nDepCheckTook = "NDepCheck took ";
                 if (runtime < new TimeSpan(0, 0, 1)) {
-                    Log.WriteInfo("DC took " + runtime.Milliseconds + " ms.");
+                    Log.WriteInfo(nDepCheckTook + runtime.Milliseconds + " ms.");
                 } else if (runtime < new TimeSpan(0, 1, 0)) {
-                    Log.WriteInfo("DC took " + runtime.TotalSeconds + " s.");
+                    Log.WriteInfo(nDepCheckTook + runtime.TotalSeconds + " s.");
                 } else if (runtime < new TimeSpan(1, 0, 0)) {
-                    Log.WriteInfo("DC took " + runtime.Minutes + " min and " + runtime.Seconds + " s.");
+                    Log.WriteInfo(nDepCheckTook + runtime.Minutes + " min and " + runtime.Seconds + " s.");
                 } else {
-                    Log.WriteInfo("DC took " + runtime.TotalHours + " hours.");
+                    Log.WriteInfo(nDepCheckTook + runtime.TotalHours + " hours.");
                 }
             }
         }
