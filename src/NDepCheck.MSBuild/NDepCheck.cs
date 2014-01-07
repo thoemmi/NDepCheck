@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
@@ -11,8 +10,8 @@ namespace NDepCheck.MSBuild {
         public bool ShowTransitiveEdges { get; set; }
         public bool ShowUnusedQuestionableRules { get; set; }
         public ITaskItem DefaultRuleSet { get; set; }
-        public bool GenerateErrorHtml { get; set; }
-        public bool LogWarnings { get; set; }
+        public int MaxCpuCount { get; set; }
+        public bool Debug { get; set; }
 
         [Required]
         public ITaskItem[] Assemblies { get; set; }
@@ -20,17 +19,16 @@ namespace NDepCheck.MSBuild {
         public ITaskItem[] Directories { get; set; }
         public bool Verbose;
 
-        [Output]
-        public string ErrorHtml { get; set; }
+        public string XmlOutput { get; set; }
 
         [Output]
         public int ExitCode { get; set; }
 
         public override bool Execute() {
-            var logger = new MSBuildLogger(Log, GenerateErrorHtml, LogWarnings);
+            var logger = new MsBuildLogger(Log);
             global::NDepCheck.Log.Logger = logger;
             global::NDepCheck.Log.IsVerboseEnabled = false;
-            global::NDepCheck.Log.IsDebugEnabled = true;
+            global::NDepCheck.Log.IsDebugEnabled = Debug;
 
             var options = new Options {
                 Debug = false,
@@ -38,13 +36,15 @@ namespace NDepCheck.MSBuild {
                 DotFilename = DotFilename,
                 ShowTransitiveEdges = ShowTransitiveEdges,
                 ShowUnusedQuestionableRules = ShowUnusedQuestionableRules,
+                MaxCpuCount = MaxCpuCount == 0 || MaxCpuCount < -1 ? Environment.ProcessorCount : MaxCpuCount,
+                XmlOutput = XmlOutput,
             };
             Assemblies
                 .Select(item => new AssemblyOption(item.ItemSpec, null))
                 .AddTo(options.Assemblies);
 
             if (DefaultRuleSet != null) {
-                options.DefaultRuleSet = DependencyRuleSet.Create(new DirectoryInfo("."), DefaultRuleSet.ItemSpec);
+                options.DefaultRuleSetFile = DefaultRuleSet.ItemSpec;
             }
             if (Directories != null) {
                 Directories
@@ -54,10 +54,6 @@ namespace NDepCheck.MSBuild {
 
             var main = new Program(options);
             ExitCode = main.Run();
-
-            if (GenerateErrorHtml) {
-                ErrorHtml = logger.GetErrorHtml();
-            }
 
             return ExitCode == 0;
         }

@@ -1,8 +1,10 @@
 TestResults/
 bin/
 obj/
-/src/packages
 
 *.suo
 *.user
 thumbs.db
+*.nupkg
+
+src/CommonAssemblyInfo.cs

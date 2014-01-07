@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>NDepCheck</id>
+    <version>$version$</version>
+    <authors>thoemmi hmmueller</authors>
+    <owners>thoemmi hmmueller</owners>
+    <projectUrl>https://github.com/thoemmi/ndepcheck</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>NDepCheck is a tool that helps you to keep the (static) architecture of a .NET software clean.</description>
+    <copyright>Copyright 2007..2013</copyright>
+    <tags>dependency check tools</tags>
+  </metadata>
+  <files>
+    <file src="..\NDepCheck.MSBuild\bin\Release\*.exe" target="tools\" />
+    <file src="..\NDepCheck.MSBuild\bin\Release\*.dll" target="tools\" />
+    <file src="NDepCheck.targets" target="build\" />
+    <file src="Install.ps1" target="tools\" />
+  </files>
+</package>

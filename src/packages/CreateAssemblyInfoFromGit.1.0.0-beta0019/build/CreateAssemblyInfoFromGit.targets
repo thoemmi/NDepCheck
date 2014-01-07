@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <AssemblyInfoName Condition="'$(AssemblyInfoName)'==''">$(SolutionDir)CommonAssemblyInfo.cs</AssemblyInfoName>
+  </PropertyGroup>
+
+  <UsingTask
+    TaskName="CreateAssemblyInfoFromGit"
+    AssemblyFile="..\tools\CreateAssemblyInfoFromGit.dll"/>
+
+  <Target Name="CreateCommonVersionInfo" BeforeTargets="CoreCompile">
+    <Message Importance="High" Text="Creating $(AssemblyInfoName)"/>
+
+    <CreateAssemblyInfoFromGit
+      Repository="$(SolutionDir)"
+      AssemblyInfoPath="$(AssemblyInfoName)"/>
+  </Target>
+</Project>

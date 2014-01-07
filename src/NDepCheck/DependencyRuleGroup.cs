@@ -90,7 +90,7 @@ namespace NDepCheck {
                 _forbidden.Union(other._forbidden));
         }
 
-        public bool Check(IEnumerable<Dependency> dependencies) {
+        public bool Check(IAssemblyContext assemblyContext, IEnumerable<Dependency> dependencies) {
             bool result = true;
             int reorgCount = 0;
             int nextReorg = 200;
@@ -100,10 +100,10 @@ namespace NDepCheck {
                 // matches the group's pattern:
                 Dependency d1 = d;
                 if (_groupRegexes == null || _groupRegexes.Any(r => Regex.IsMatch(d1.UsingItem, r))) {
-                    if (_groupRegexes != null) {
-                        _groupRegexes.ToString();
-                    }
-                    result &= Check(d);
+                    //if (_groupRegexes != null) {
+                    //    _groupRegexes.ToString();
+                    //}
+                    result &= Check(assemblyContext, d);
                     if (++reorgCount > nextReorg) {
                         _forbidden.Sort(_sortOnDescendingHitCount);
                         _allowed.Sort(_sortOnDescendingHitCount);
@@ -116,7 +116,7 @@ namespace NDepCheck {
             return result;
         }
 
-        private bool Check(Dependency d) {
+        private bool Check(IAssemblyContext assemblyContext, Dependency d) {
             bool ok = false;
             if (Log.IsVerboseEnabled) {
                 Log.WriteInfo("Checking " + d);
@@ -129,13 +129,20 @@ namespace NDepCheck {
                 goto DONE;
             }
             if (_questionable.Any(r => r.Matches(d))) {
-                Log.WriteWarning("Dependency " + d + " is questionable", d.FileName, d.StartLine, d.StartColumn, d.EndLine, d.EndColumn);
+                var ruleViolation = new RuleViolation(d, ViolationType.Warning);
+                Log.WriteViolation(ruleViolation);
+                if (assemblyContext != null) {
+                    assemblyContext.Add(ruleViolation);
+                }
                 ok = true;
-                goto DONE;
             }
         DONE:
             if (!ok) {
-                Log.WriteError(d.IllegalMessage(), d.FileName, d.StartLine, d.StartColumn, d.EndLine, d.EndColumn);
+                var ruleViolation = new RuleViolation(d, ViolationType.Error);
+                Log.WriteViolation(ruleViolation);
+                if (assemblyContext != null) {
+                    assemblyContext.Add(ruleViolation);
+                }
             }
             return ok;
         }

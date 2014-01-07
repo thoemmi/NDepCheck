@@ -38,7 +38,11 @@ namespace NDepCheck {
 
         public bool Debug { get; set; }
 
-        public DependencyRuleSet DefaultRuleSet { get; set; }
+        public string DefaultRuleSetFile { get; set; }
+
+        public int MaxCpuCount { get; set; }
+
+        public string XmlOutput { get; set; }
 
         public List<AssemblyOption> Assemblies {
             get { return _assemblies; }
@@ -50,6 +54,7 @@ namespace NDepCheck {
 
         public Options() {
             ShowUnusedQuestionableRules = true;
+            MaxCpuCount = 1;
         }
 
         public int ParseCommandLine(string[] args) {
@@ -71,13 +76,14 @@ namespace NDepCheck {
                     if (filename == null) {
                         return UsageAndExit("Missing =filename after " + arg);
                     }
-                    if (DefaultRuleSet != null) {
+                    if (!String.IsNullOrEmpty(DefaultRuleSetFile)) {
                         return UsageAndExit("Only one default rule set can be specified with " + arg);
                     }
-                    DefaultRuleSet = DependencyRuleSet.Create(new DirectoryInfo("."), filename);
-                    if (DefaultRuleSet == null) {
+                    if (!File.Exists(filename)) {
+                        UsageAndExit("Cannot find the default rule set file " + filename);
                         return 2;
                     }
+                    DefaultRuleSetFile = filename;
                 } else if (arg == "-v" || arg == "/v") {
                     Verbose = true;
                     WriteVersion();
@@ -99,6 +105,20 @@ namespace NDepCheck {
                     StringLengthForIllegalEdges = lg == null ? 80 : Int32.Parse(lg);
                 } else if (arg == "-h" || arg == "/h") {
                     return UsageAndExit(null);
+                } else if (arg.StartsWith("/o") || arg.StartsWith("-o")) {
+                    string filename = ExtractOptionValue(arg);
+                    if (filename == null) {
+                        return UsageAndExit("Missing =filename after " + arg);
+                    }
+                    XmlOutput = filename;
+                } else if (arg.StartsWith("/m") || arg.StartsWith("-m")) {
+                    string ms = ExtractOptionValue(arg);
+                    int m;
+                    if (!String.IsNullOrEmpty(ms) && Int32.TryParse(ms, out m)) {
+                        MaxCpuCount = m;
+                    } else {
+                        MaxCpuCount = Environment.ProcessorCount;
+                    }
                 } else if (!arg.StartsWith("/") && !arg.StartsWith("-")) {
                     // We are done with the options.
                     break;
@@ -127,7 +147,7 @@ namespace NDepCheck {
 
         private static void WriteVersion() {
             Log.WriteInfo("NDepCheck V." + typeof(Program).Assembly.GetName().Version.ToString(2) +
-                      " (c) HMMüller, Th.Freudenberg 2006...2010");
+                      "a (c) HMMüller, Th.Freudenberg 2006...2014");
         }
 
         private static int UsageAndExit(string message) {
@@ -176,6 +196,11 @@ Options:
          dependency in the DOT graph. N is the maximum width of strings 
          used; the default is 80. Graphs can become quite cluttered 
          with this option.
+
+   /m[=N]   Specifies the maximum number of concurrent threads to use. 
+         If you don't include this switch, the default value is 1. If
+         you include this switch without specifying a value, NDepCheck
+         will use up to the number of processors in the computer.
 
    /v    Verbose. Shows regular expressions used for checking and 
          all checked dependencies. Attention: Place /v BEFORE any
@@ -405,7 +430,7 @@ using the wildcardpath syntax):
             string filename;
             if (arg.Length <= 2) {
                 return null;
-            } else if (arg[2] == '=') {
+            } else if (arg[2] == '=' || arg[2] == ':') {
                 filename = arg.Substring(3);
             } else {
                 filename = arg.Substring(2);
