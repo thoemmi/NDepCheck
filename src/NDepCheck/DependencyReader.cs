@@ -7,6 +7,8 @@ using Mono.Cecil.Pdb;
 
 namespace NDepCheck {
     public static class DependencyReader {
+        public const string ASSEMBLY_PREFIX = "assembly:";
+
         internal static void Init() {
 #pragma warning disable 168
             // the only purpose of this instruction is to create a reference to Mono.Cecil.Pdb.
@@ -52,12 +54,21 @@ namespace NDepCheck {
                     yield return dependency;
                 }
             }
+
+            foreach (AssemblyNameReference reference in assembly.MainModule.AssemblyReferences) {
+                // Repräsentationen der Assembly-Abhängigkeiten erzeugen
+                yield return new Dependency(
+                    new FullNameToken("", ASSEMBLY_PREFIX + assembly.Name.Name, null, null),
+                    new FullNameToken("", ASSEMBLY_PREFIX + reference.Name, null, null),
+                    filename, 0, 0, 0, 0);
+            }
+
             Log.WriteInfo(String.Format("Analyzing {0} took {1} ms", filename, (int)sw.Elapsed.TotalMilliseconds));
             sw.Stop();
         }
 
         private static IEnumerable<Dependency> AnalyzeType(TypeDefinition type) {
-            FullNameToken callingToken = GetFullnameToken(type);
+            FullNameToken callingToken = GetFullnameToken(type, null);
 
             if (type.BaseType != null && !IsLinked(type.BaseType, type.DeclaringType)) {
                 foreach (Dependency dependency in GetDependencies(callingToken, type.BaseType, null, null)) {
@@ -249,7 +260,7 @@ namespace NDepCheck {
             return ti;
         }
 
-        private static FullNameToken GetFullnameToken(TypeReference typeReference, string methodName = null) {
+        private static FullNameToken GetFullnameToken(TypeReference typeReference, string methodNameOrNull) {
             TypeInfo ti = GetTypeInfo(typeReference);
             string namespaceName = ti.NamespaceName;
             string className = ti.ClassName;
@@ -259,11 +270,11 @@ namespace NDepCheck {
                 namespaceName = namespaceName + ".";
             }
 
-            if (!String.IsNullOrEmpty(methodName)) {
-                methodName = "::" + methodName;
+            if (!String.IsNullOrEmpty(methodNameOrNull)) {
+                methodNameOrNull = "::" + methodNameOrNull;
             }
 
-            return new FullNameToken(namespaceName, className, nestedName, methodName);
+            return new FullNameToken(namespaceName, className, nestedName, methodNameOrNull);
         }
 
         private static string CleanClassName(string className) {
@@ -300,9 +311,9 @@ namespace NDepCheck {
                 if (sequencePoint != null) {
                     fileName = sequencePoint.Document.Url;
                     startLine = (uint)sequencePoint.StartLine;
-                    startColumn = (uint) sequencePoint.StartColumn;
-                    endLine = (uint) sequencePoint.EndLine;
-                    endColumn= (uint) sequencePoint.EndColumn;
+                    startColumn = (uint)sequencePoint.StartColumn;
+                    endLine = (uint)sequencePoint.EndLine;
+                    endColumn = (uint)sequencePoint.EndColumn;
                 }
                 yield return new Dependency(callingToken, calledToken, fileName, startLine, startColumn, endLine, endColumn);
             }

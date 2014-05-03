@@ -127,17 +127,16 @@ namespace NDepCheck {
                 }
             }
 
-            // remaining arguments are assemblies
+            // Remaining arguments are assemblies
             for (; i < args.Length; i++) {
                 string positive = args[i];
                 string negative =
-                    i + 2 < args.Length && (args[i+1] == "/e" | args[i+1] == "-e")
+                    i + 2 < args.Length && (args[i + 1] == "/e" | args[i + 1] == "-e")
                     ? args[i += 2]
                     : null;
                 Assemblies.Add(new AssemblyOption(positive, negative));
             }
 
-            // We are past the arguments - now, we process the input files.)
             if (Assemblies.Count == 0) {
                 return UsageAndExit("No assemblies specified");
             }
@@ -349,7 +348,11 @@ Rules files:
                After the wildcard replacemants, suffixes are added as for 
                ^regexp.
 
-
+           From version 2.2 onwards, also assembly references are mapped to
+           dependencies and hence can be checked. Such dependencies are of
+           the form 'assembly:<assemblyname> ---> assembly:<references assembly>'
+           and hence can be matched by patterns that start with ^assembly:.
+           
 Exit codes:
    0    All dependencies ok (including questionable rules).
    1    Usage error.

@@ -12,9 +12,11 @@ namespace NDepCheck.Tests {
     /// </remarks>
     [TestClass]
     public class MainTests {
-        private static readonly string TestAssemblyPath = Path.Combine(Path.GetDirectoryName(typeof (MainTests).Assembly.Location), "NDepCheck.TestAssembly.dll");
+        private static readonly string TestAssemblyPath = Path.Combine(Path.GetDirectoryName(typeof(MainTests).Assembly.Location), "NDepCheck.TestAssembly.dll");
 
+        // ReSharper disable UnusedParameter.Local - Das ist ein Assert, daher die "Nur-Verwendung" in Assert ok :-)
         private static void AssertNotContains(string path, string s) {
+            // ReSharper restore UnusedParameter.Local
             using (TextReader tr = new StreamReader(path)) {
                 string all = tr.ReadToEnd();
                 Assert.IsFalse(all.Contains(s), all);
