@@ -17,19 +17,19 @@ namespace NDepCheck {
 #pragma warning restore 168
         }
 
-        public static IEnumerable<Dependency> GetDependencies<T>() {
-            return GetDependencies(typeof(T));
+        public static IEnumerable<Dependency> GetDependencies<T>(bool ignoreAssemblyDependencies) {
+            return GetDependencies(typeof(T), ignoreAssemblyDependencies);
         }
 
-        public static IEnumerable<Dependency> GetDependencies(Type t) {
-            return GetDependencies(t.Assembly.Location, td => td.Name == t.Name && td.Namespace == t.Namespace);
+        public static IEnumerable<Dependency> GetDependencies(Type t, bool ignoreAssemblyDependencies) {
+            return GetDependencies(t.Assembly.Location, td => td.Name == t.Name && td.Namespace == t.Namespace, ignoreAssemblyDependencies);
         }
 
-        public static IEnumerable<Dependency> GetDependencies(string filename) {
-            return GetDependencies(filename, null);
+        public static IEnumerable<Dependency> GetDependencies(string filename, bool ignoreAssemblyDependencies) {
+            return GetDependencies(filename, null, ignoreAssemblyDependencies);
         }
 
-        public static IEnumerable<Dependency> GetDependencies(string filename, Predicate<TypeDefinition> typeFilter) {
+        public static IEnumerable<Dependency> GetDependencies(string filename, Predicate<TypeDefinition> typeFilter, bool ignoreAssemblyDependencies) {
             var sw = new Stopwatch();
             sw.Start();
             Log.WriteInfo("Reading " + filename);
@@ -55,16 +55,25 @@ namespace NDepCheck {
                 }
             }
 
-            foreach (AssemblyNameReference reference in assembly.MainModule.AssemblyReferences) {
-                // Repräsentationen der Assembly-Abhängigkeiten erzeugen
-                yield return new Dependency(
-                    new FullNameToken("", ASSEMBLY_PREFIX + assembly.Name.Name, null, null),
-                    new FullNameToken("", ASSEMBLY_PREFIX + reference.Name, null, null),
-                    filename, 0, 0, 0, 0);
+            if (!ignoreAssemblyDependencies) {
+                AssemblyNameDefinition currentAssembly = assembly.Name;
+
+
+                foreach (AssemblyNameReference reference in assembly.MainModule.AssemblyReferences) {
+                    // Repräsentationen der Assembly-Abhängigkeiten erzeugen
+                    yield return new Dependency(
+                        new FullNameToken("", ASSEMBLY_PREFIX + currentAssembly.Name, "/" + currentAssembly.Version, CultureWithPrefix(currentAssembly)),
+                        new FullNameToken("", ASSEMBLY_PREFIX + reference.Name, "/" + reference.Version, CultureWithPrefix(reference)),
+                        filename, 0, 0, 0, 0);
+                }
             }
 
             Log.WriteInfo(String.Format("Analyzing {0} took {1} ms", filename, (int)sw.Elapsed.TotalMilliseconds));
             sw.Stop();
+        }
+
+        private static string CultureWithPrefix(AssemblyNameReference r) {
+            return string.IsNullOrWhiteSpace(r.Culture) ? "" : "::" + r.Culture;
         }
 
         private static IEnumerable<Dependency> AnalyzeType(TypeDefinition type) {

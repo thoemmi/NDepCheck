@@ -26,9 +26,11 @@ namespace NDepCheck {
         /// If not null, show a concrete dependency 
         /// for each illegal edge.
         /// </value>
-        public int? StringLengthForIllegalEdges { get; set; }
+        public int? StringLengthForIllegalEdges { get; private set; }
 
         public bool ShowUnusedQuestionableRules { get; set; }
+
+        public bool IgnoreAssemblyDependencies { get; set; }
 
         /// <value>
         /// Mark output of <c>DependencyGrapher</c>
@@ -69,6 +71,8 @@ namespace NDepCheck {
                     Debugger.Launch();
                 } else if (arg.StartsWith("-d") || arg.StartsWith("/d")) {
                     CreateDirectoryOption(arg, false);
+                } else if (arg.StartsWith("-a") || arg.StartsWith("/a")) {
+                    IgnoreAssemblyDependencies = true;
                 } else if (arg.StartsWith("-s") || arg.StartsWith("/s")) {
                     CreateDirectoryOption(arg, true);
                 } else if (arg.StartsWith("-x") || arg.StartsWith("/x")) {
@@ -200,6 +204,9 @@ Options:
          If you don't include this switch, the default value is 1. If
          you include this switch without specifying a value, NDepCheck
          will use up to the number of processors in the computer.
+
+   /a    Do not check dependencies between assemblies ('assembly:'-
+         dependencies - see below).
 
    /v    Verbose. Shows regular expressions used for checking and 
          all checked dependencies. Attention: Place /v BEFORE any
