@@ -43,17 +43,17 @@ namespace NDepCheck {
         /// line.
         /// public for testability.
         /// </summary>
-        public void AddDependencyRules(DependencyRuleSet parent, string ruleFileName, uint lineNo, string line) {
+        public void AddDependencyRules(DependencyRuleSet parent, string ruleFileName, uint lineNo, string line, bool isAssemblyRule) {
             if (line.Contains(DependencyRuleSet.MAYUSE)) {
-                foreach (var rule in CreateDependencyRules(parent, ruleFileName, lineNo, line, DependencyRuleSet.MAYUSE, false)) {
+                foreach (var rule in CreateDependencyRules(parent, ruleFileName, lineNo, line, DependencyRuleSet.MAYUSE, false, isAssemblyRule)) {
                     Add(_allowed, rule);
                 }
             } else if (line.Contains(DependencyRuleSet.MAYUSE_WITH_WARNING)) {
-                foreach (var rule in CreateDependencyRules(parent, ruleFileName, lineNo, line, DependencyRuleSet.MAYUSE_WITH_WARNING, true)) {
+                foreach (var rule in CreateDependencyRules(parent, ruleFileName, lineNo, line, DependencyRuleSet.MAYUSE_WITH_WARNING, true, isAssemblyRule)) {
                     Add(_questionable, rule);
                 }
             } else if (line.Contains(DependencyRuleSet.MUSTNOTUSE)) {
-                foreach (var rule in CreateDependencyRules(parent, ruleFileName, lineNo, line, DependencyRuleSet.MUSTNOTUSE, false)) {
+                foreach (var rule in CreateDependencyRules(parent, ruleFileName, lineNo, line, DependencyRuleSet.MUSTNOTUSE, false, isAssemblyRule)) {
                     Add(_forbidden, rule);
                 }
             } else {
@@ -67,12 +67,12 @@ namespace NDepCheck {
             }
         }
 
-        private static IEnumerable<DependencyRule> CreateDependencyRules(DependencyRuleSet parent, string ruleFileName, uint lineNo, string line, string sep, bool questionableRule) {
+        private static IEnumerable<DependencyRule> CreateDependencyRules(DependencyRuleSet parent, string ruleFileName, uint lineNo, string line, string sep, bool questionableRule, bool isAssemblyRule) {
             DependencyRuleRepresentation rep = new DependencyRuleRepresentation(ruleFileName, lineNo, line, questionableRule);
             int i = line.IndexOf(sep);
             string usingPattern = parent.ExpandDefines(line.Substring(0, i).Trim());
             string usedPattern = parent.ExpandDefines(line.Substring(i + sep.Length).Trim());
-            List<DependencyRule> deps = DependencyRule.CreateDependencyRules(usingPattern, usedPattern, rep);
+            List<DependencyRule> deps = DependencyRule.CreateDependencyRules(usingPattern, usedPattern, rep, isAssemblyRule);
 
             if (Log.IsVerboseEnabled) {
                 Log.WriteInfo(String.Format("Rules used for checking {0} ({1}:{2})", line, ruleFileName, lineNo));

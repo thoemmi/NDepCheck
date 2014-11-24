@@ -12,14 +12,14 @@ namespace NDepCheck.MSBuild {
         public ITaskItem DefaultRuleSet { get; set; }
         public int MaxCpuCount { get; set; }
         public bool Debug { get; set; }
+        public bool Verbose { get; set; }
+        public string XmlOutput { get; set; }
+        public bool CheckOnlyAssemblyDependencies { get; set; }
 
         [Required]
         public ITaskItem[] Assemblies { get; set; }
 
         public ITaskItem[] Directories { get; set; }
-        public bool Verbose;
-
-        public string XmlOutput { get; set; }
 
         [Output]
         public int ExitCode { get; set; }
@@ -38,6 +38,7 @@ namespace NDepCheck.MSBuild {
                 ShowUnusedQuestionableRules = ShowUnusedQuestionableRules,
                 MaxCpuCount = MaxCpuCount == 0 || MaxCpuCount < -1 ? Environment.ProcessorCount : MaxCpuCount,
                 XmlOutput = XmlOutput,
+                CheckOnlyAssemblyDependencies = CheckOnlyAssemblyDependencies,
             };
             Assemblies
                 .Select(item => new AssemblyOption(item.ItemSpec, null))

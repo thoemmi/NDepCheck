@@ -64,11 +64,35 @@ namespace NDepCheck.Tests {
         }
 
         [TestMethod]
+        public void TestCheckSimpleAssemblyRules() {
+            const string rules = @"assembly:NDepCheck.Test* ---> assembly:mscorlib";
+            Write(@"d", "NDepCheck.TestAssembly.dll.dep", rules);
+            Write(@"d", "NDepCheck.TestAssemblyÄÖÜß.dll.dep", rules);
+            Assert.AreEqual(0, Run(@"-d=%%\d", "-a"));
+        }
+
+        [TestMethod]
+        public void TestDontCheckAssemblyRulesIfThereAreNone() {
+            const string rules = @"BliBlaBlubb ---> BliBlaBlubb";
+            Write(@"d", "NDepCheck.TestAssembly.dll.dep", rules);
+            Write(@"d", "NDepCheck.TestAssemblyÄÖÜß.dll.dep", rules);
+            Assert.AreEqual(0, Run(@"-d=%%\d", "-a"));
+        }
+
+        [TestMethod]
+        public void TestCheckAssemblyRulesIfThereAreAny() {
+            const string rules = @"assembly:BliBlaBlubb ---> assembly:BliBlaBlubb";
+            Write(@"d", "NDepCheck.TestAssembly.dll.dep", rules);
+            Write(@"d", "NDepCheck.TestAssemblyÄÖÜß.dll.dep", rules);
+            Assert.AreEqual(3, Run(@"-d=%%\d", "-a"));
+        }
+
+        [TestMethod]
         public void TestDDXOk() {
             WriteDep1To(@"a\b");
             WriteDep2To(@"a\c");
             WriteXTo(@"a\x");
-            Assert.AreEqual(0, Run(@"-x=%%\a\x\Defaults.dep", @"-d=%%\a\yy", @"-d=%%\a\xx", @"-d=%%\a\b"));
+            Assert.AreEqual(0, Run(@"-x=%%\a\x\Defaults.dep", @"-d=%%\a\yy", @"-d=%%\a\xx", @"-d=%%\a\b", "-y"));
         }
 
         [TestMethod]
@@ -124,7 +148,7 @@ namespace NDepCheck.Tests {
         public void TestExcept() {
             WriteDep1To(@"a\b");
 
-            int result = Program.Main(new List<string>() {
+            int result = Program.Main(new List<string> {
                     @"-s=" + _basePath + @"\a",
                     GetPath("NDepCheck.TestAssembly.dll"),
                     "NDepCheck.TestAssemblyÄÖÜß.*",
@@ -145,6 +169,9 @@ namespace NDepCheck.Tests {
             Write(directory, "NDepCheck.TestAssembly.dll.dep",
                 @"NDepCheck.TestAssembly.** ---> **
                   * ---? **
+
+                  // assembly:NDepCheck.TestAssembly** ---> assembly:mscorlib
+                  assembly:** ---> assembly:**
                 ");
         }
 
@@ -152,17 +179,22 @@ namespace NDepCheck.Tests {
             Write(directory, "NDepCheck.TestAssembly.dll.dep", @"+ Dep1Include\Dep1.dep");
             Write(directory + @"\Dep1Include", "Dep1.dep", @"NDepCheck.TestAssembly.** ---> **
                   * ---? **
+                  assembly:** ---? assembly:**
                 ");
         }
 
         private void WriteDep2To(string directory) {
-            Write(directory, "NDepCheck.TestAssemblyÄÖÜß.dll.dep", "NDepCheck.TestAssemblyÄÖÜß.** ---> **");
+            Write(directory, "NDepCheck.TestAssemblyÄÖÜß.dll.dep",
+                @"NDepCheck.TestAssemblyÄÖÜß.** ---> **
+
+                  assembly:** ---> assembly:**");
         }
 
         private void WriteDep2PlusTo(string directory) {
-            Write(directory,                   "NDepCheck.TestAssemblyÄÖÜß.dll.dep", @"+ Dep2Include\Dep2A.dep");
-            Write(directory + @"\Dep2Include", "Dep2A.dep",                          @"+ ..\Dep2B.dep");
-            Write(directory,                   "Dep2B.dep",                          @"NDepCheck.TestAssemblyÄÖÜß.** ---> **");
+            Write(directory, "NDepCheck.TestAssemblyÄÖÜß.dll.dep", @"+ Dep2Include\Dep2A.dep");
+            Write(directory + @"\Dep2Include", "Dep2A.dep", @"+ ..\Dep2B.dep");
+            Write(directory, "Dep2B.dep", @"NDepCheck.TestAssemblyÄÖÜß.** ---> **
+                                            assembly:** ---? assembly:**");
         }
 
         private void WriteXTo(string directory) {
@@ -177,7 +209,9 @@ namespace NDepCheck.Tests {
         }
 
         private string GetPath(string assembly) {
+            // ReSharper disable AssignNullToNotNullAttribute - always works in Test
             return Path.Combine(Path.GetDirectoryName(typeof(MainTests).Assembly.Location), assembly);
+            // ReSharper restore AssignNullToNotNullAttribute
         }
     }
 }

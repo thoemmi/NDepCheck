@@ -28,7 +28,6 @@ namespace NDepCheck {
             public int MaxErrorCode { get; set; }
         }
 
-        #region Main
         /// <summary>
         /// Main method. See <c>UsageAndExit</c> for the 
         /// accepted arguments. 
@@ -44,7 +43,7 @@ namespace NDepCheck {
                 new ParallelOptions { MaxDegreeOfParallelism = _options.MaxCpuCount },
                 () => new ThreadLoopData { Context = new CheckerContext(!String.IsNullOrWhiteSpace(_options.XmlOutput)), MaxErrorCode = 0 },
                 (assemblyFilename, state, loopData) => {
-                    var result = AnalyzeAssembly(loopData.Context, assemblyFilename);
+                    int result = AnalyzeAssembly(loopData.Context, assemblyFilename);
                     loopData.MaxErrorCode = Math.Max(loopData.MaxErrorCode, result);
                     return loopData;
                 },
@@ -64,7 +63,7 @@ namespace NDepCheck {
 
         private static void LogSummary(List<IAssemblyContext> contexts) {
             foreach (var context in contexts) {
-                var msg = String.Format("{0}: {1} errors, {2} warnings", context.Filename, context.ErrorCount, context.WarningCount);
+                string msg = String.Format("{0}: {1} errors, {2} warnings", context.Filename, context.ErrorCount, context.WarningCount);
                 if (context.ErrorCount > 0) {
                     Log.WriteError(msg);
                 } else if (context.WarningCount > 0) {
@@ -98,7 +97,7 @@ namespace NDepCheck {
                         )
                 ));
             var settings = new XmlWriterSettings {
-                Encoding = Encoding.UTF8, 
+                Encoding = Encoding.UTF8,
                 Indent = true
             };
             using (var xmlWriter = XmlWriter.Create(path, settings)) {
@@ -107,12 +106,12 @@ namespace NDepCheck {
         }
 
         private static bool IsAssembly(string filename) {
-            var extension = Path.GetExtension(filename).ToLowerInvariant();
+            string extension = Path.GetExtension(filename).ToLowerInvariant();
             return extension == ".dll" || extension == ".exe";
         }
 
         private int AnalyzeAssembly(CheckerContext checkerContext, string assemblyFilename) {
-            var dependencyFilename = Path.GetFileName(assemblyFilename) + ".dep";
+            string dependencyFilename = Path.GetFileName(assemblyFilename) + ".dep";
             try {
                 Log.WriteInfo("Analyzing " + assemblyFilename);
                 using (var assemblyContext = checkerContext.OpenAssemblyContext(Path.GetFileName(assemblyFilename))) {
@@ -126,7 +125,9 @@ namespace NDepCheck {
                         return 6;
                     } else {
                         try {
-                            IEnumerable<Dependency> dependencies = DependencyReader.GetDependencies(assemblyFilename);
+                            IEnumerable<Dependency> dependencies = DependencyReader.GetDependencies(assemblyFilename,
+                                createCodeDependencies: !_options.CheckOnlyAssemblyDependencies, 
+                                createAssemblyDependencies: ruleSetForAssembly.ContainsAssemblyRule);
                             IEnumerable<DependencyRuleGroup> groups = ruleSetForAssembly.ExtractDependencyGroups();
                             bool success = _checker.Check(assemblyContext, groups, dependencies, _options.ShowUnusedQuestionableRules);
                             if (!success) {
@@ -156,7 +157,7 @@ namespace NDepCheck {
 
             var options = new Options();
             DateTime start = DateTime.Now;
-            
+
             try {
                 int result = options.ParseCommandLine(args);
                 if (result != 0) {
@@ -187,7 +188,5 @@ namespace NDepCheck {
                 }
             }
         }
-
-        #endregion Main
     }
 }

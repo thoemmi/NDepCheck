@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace NDepCheck {
@@ -36,7 +37,6 @@ namespace NDepCheck {
             _reservedNames.Add(RIGHT_PARAM.Trim());
         }
 
-
         class LengthComparer : IComparer<string> {
             public int Compare(string s1, string s2) {
                 return s2.CompareTo(s1);
@@ -52,6 +52,7 @@ namespace NDepCheck {
 
         private readonly SortedDictionary<string, Macro> _macros = new SortedDictionary<string, Macro>(new LengthComparer());
         private readonly SortedDictionary<string, string> _defines = new SortedDictionary<string, string>(new LengthComparer());
+        private bool _containsAssemblyRule;
 
         /// <summary>
         /// Constructor for test cases.
@@ -71,6 +72,10 @@ namespace NDepCheck {
             if (!LoadRules(fullRuleFilename)) {
                 throw new ApplicationException("Could not load rules from " + fullRuleFilename);
             }
+        }
+
+        public bool ContainsAssemblyRule {
+            get { return _containsAssemblyRule || _includedRuleSets.Any(rs => rs.ContainsAssemblyRule); }
         }
 
         #region Loading
@@ -125,6 +130,10 @@ namespace NDepCheck {
                     if (currentGroup.Group != "") {
                         Log.WriteError(String.Format("{0}: Nested '... {{' not possible", fullRuleFilename), fullRuleFilename, lineNo);
                     } else {
+                        if (line.StartsWith(DependencyReader.ASSEMBLY_PREFIX)) {
+                            _containsAssemblyRule = true;
+                        }
+
                         currentGroup = new DependencyRuleGroup(line.TrimEnd('{').TrimEnd());
                         _ruleGroups.Add(currentGroup);
                     }
@@ -138,7 +147,10 @@ namespace NDepCheck {
                     // macro is already processed as side effect in ProcessMacroIfFound()
                 } else if (line.Contains(MAYUSE) || line.Contains(MUSTNOTUSE) ||
                            line.Contains(MAYUSE_WITH_WARNING)) {
-                    currentGroup.AddDependencyRules(this, fullRuleFilename, lineNo, line);
+                    bool isAssemblyRule = line.StartsWith(DependencyReader.ASSEMBLY_PREFIX);
+                    _containsAssemblyRule |= isAssemblyRule;
+
+                    currentGroup.AddDependencyRules(this, fullRuleFilename, lineNo, line, isAssemblyRule);
                 } else if (line.StartsWith(GRAPHIT)) {
                     AddGraphAbstractions(fullRuleFilename, lineNo, line);
                 } else if (line.EndsWith(MACRO_DEFINE)) {
@@ -267,6 +279,7 @@ namespace NDepCheck {
         }
 
         #endregion
+        
         /// <summary>
         /// Add one-line macro definition.
         /// </summary>

@@ -9,7 +9,9 @@ namespace NDepCheck {
     /// possibly empty - namespace name); or a nested class
     /// name (i.e. a class name like before and a list of
     /// names of nested classes); or a method name of a
-    /// class; or a method name of a nested class.
+    /// class; or a method name of a nested class;
+    /// or an assembly.
+    ///
     /// </remarks>
     internal class FullNameToken {
         private readonly string _className;
@@ -22,9 +24,6 @@ namespace NDepCheck {
             _className = className;
             _nestedName = nestedName;
             _methodName = methodName;
-            // Dont forget to set the type! Otherwise, it remains 0, which means "undefined"
-            // and will usually be mapped to EOF.
-            //Type = LexerTokenTypes.FULLNAME;
         }
 
         /// <summary>

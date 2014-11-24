@@ -12,9 +12,11 @@ namespace NDepCheck.Tests {
     /// </remarks>
     [TestClass]
     public class MainTests {
-        private static readonly string TestAssemblyPath = Path.Combine(Path.GetDirectoryName(typeof (MainTests).Assembly.Location), "NDepCheck.TestAssembly.dll");
+        private static readonly string TestAssemblyPath = Path.Combine(Path.GetDirectoryName(typeof(MainTests).Assembly.Location), "NDepCheck.TestAssembly.dll");
 
+        // ReSharper disable UnusedParameter.Local - Das ist ein Assert, daher die "Nur-Verwendung" in Assert ok :-)
         private static void AssertNotContains(string path, string s) {
+            // ReSharper restore UnusedParameter.Local
             using (TextReader tr = new StreamReader(path)) {
                 string all = tr.ReadToEnd();
                 Assert.IsFalse(all.Contains(s), all);
@@ -192,6 +194,8 @@ NDepCheck.Tests ---> **
                 string depFile = Path.GetTempFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(@"
+                    assembly:** ---> assembly:**
+
                     NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
                     NDepCheck.TestAssembly.** ---> System.**
                     NDepCheck.TestAssembly.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForNDepCheck::I
@@ -209,6 +213,8 @@ NDepCheck.Tests ---> **
                 string depFile = Path.GetTempFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(@"
+                    assembly:** ---> assembly:mscorlib*
+
                     ** ---> **
 
                     // Schlägt fehlt, weil eine SpecialMethod auch auf YetAnotherMethod zugreift!
@@ -236,7 +242,8 @@ NDepCheck.Tests ---> **
                     _B.** ---> System.**
                     _B.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForNDepCheck::I
                     * ---? System.*
-                ");
+
+                    assembly:** ---> assembly:**");
                 }
                 Assert.AreEqual(0, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
@@ -262,6 +269,8 @@ NDepCheck.Tests ---> **
                     _B.** ===> System.**
                     _B.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForNDepCheck::I
                     * ---? System.*
+
+                    assembly:** ---> assembly:**
                 ");
                 }
                 Assert.AreEqual(0, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));

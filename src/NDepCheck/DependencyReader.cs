@@ -7,6 +7,8 @@ using Mono.Cecil.Pdb;
 
 namespace NDepCheck {
     public static class DependencyReader {
+        public const string ASSEMBLY_PREFIX = "assembly:";
+
         internal static void Init() {
 #pragma warning disable 168
             // the only purpose of this instruction is to create a reference to Mono.Cecil.Pdb.
@@ -15,49 +17,70 @@ namespace NDepCheck {
 #pragma warning restore 168
         }
 
-        public static IEnumerable<Dependency> GetDependencies<T>() {
-            return GetDependencies(typeof(T));
+        public static IEnumerable<Dependency> GetDependencies<T>(bool createCodeDependencies, bool createAssemblyDependencies) {
+            return GetDependencies(typeof(T), createCodeDependencies, createAssemblyDependencies);
         }
 
-        public static IEnumerable<Dependency> GetDependencies(Type t) {
-            return GetDependencies(t.Assembly.Location, td => td.Name == t.Name && td.Namespace == t.Namespace);
+        public static IEnumerable<Dependency> GetDependencies(Type t, bool createCodeDependencies, bool createAssemblyDependencies) {
+            return GetDependencies(t.Assembly.Location, td => td.Name == t.Name && td.Namespace == t.Namespace, createCodeDependencies, createAssemblyDependencies);
         }
 
-        public static IEnumerable<Dependency> GetDependencies(string filename) {
-            return GetDependencies(filename, null);
+        public static IEnumerable<Dependency> GetDependencies(string filename,
+            bool createCodeDependencies, bool createAssemblyDependencies) {
+                return GetDependencies(filename, null, createCodeDependencies, createAssemblyDependencies);
         }
 
-        public static IEnumerable<Dependency> GetDependencies(string filename, Predicate<TypeDefinition> typeFilter) {
+        public static IEnumerable<Dependency> GetDependencies(string filename, Predicate<TypeDefinition> typeFilter, 
+            bool createCodeDependencies, bool createAssemblyDependencies) {
             var sw = new Stopwatch();
             sw.Start();
             Log.WriteInfo("Reading " + filename);
-
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(filename);
-            try {
-                assembly.MainModule.ReadSymbols();
-            } catch (Exception ex) {
-                Log.WriteWarning(String.Format("Loading symbols for assembly {0} failed - maybe .PDB file is missing. ({1})", filename, ex.Message), filename, 0);
+
+            if (createCodeDependencies) {
+                try {
+                    assembly.MainModule.ReadSymbols();
+                } catch (Exception ex) {
+                    Log.WriteWarning(String.Format("Loading symbols for assembly {0} failed - maybe .PDB file is missing. ({1})", filename, ex.Message), filename, 0);
+                }
+
+                foreach (TypeDefinition type in assembly.MainModule.Types) {
+                    if (type.Name == "<Module>") {
+                        continue;
+                    }
+
+                    if (typeFilter != null && !typeFilter(type)) {
+                        continue;
+                    }
+
+                    foreach (Dependency dependency in AnalyzeType(type)) {
+                        yield return dependency;
+                    }
+                }
             }
 
-            foreach (TypeDefinition type in assembly.MainModule.Types) {
-                if (type.Name == "<Module>") {
-                    continue;
-                }
+            if (createAssemblyDependencies) {
+                AssemblyNameDefinition currentAssembly = assembly.Name;
 
-                if (typeFilter != null && !typeFilter(type)) {
-                    continue;
-                }
-
-                foreach (Dependency dependency in AnalyzeType(type)) {
-                    yield return dependency;
+                foreach (AssemblyNameReference reference in assembly.MainModule.AssemblyReferences) {
+                    // Repräsentationen der Assembly-Abhängigkeiten erzeugen
+                    yield return new Dependency(
+                        new FullNameToken("", ASSEMBLY_PREFIX + currentAssembly.Name, "/" + currentAssembly.Version, CultureWithPrefix(currentAssembly)),
+                        new FullNameToken("", ASSEMBLY_PREFIX + reference.Name, "/" + reference.Version, CultureWithPrefix(reference)),
+                        filename, 0, 0, 0, 0);
                 }
             }
+
             Log.WriteInfo(String.Format("Analyzing {0} took {1} ms", filename, (int)sw.Elapsed.TotalMilliseconds));
             sw.Stop();
         }
 
+        private static string CultureWithPrefix(AssemblyNameReference r) {
+            return string.IsNullOrWhiteSpace(r.Culture) ? "" : "::" + r.Culture;
+        }
+
         private static IEnumerable<Dependency> AnalyzeType(TypeDefinition type) {
-            FullNameToken callingToken = GetFullnameToken(type);
+            FullNameToken callingToken = GetFullnameToken(type, null);
 
             if (type.BaseType != null && !IsLinked(type.BaseType, type.DeclaringType)) {
                 foreach (Dependency dependency in GetDependencies(callingToken, type.BaseType, null, null)) {
@@ -249,7 +272,7 @@ namespace NDepCheck {
             return ti;
         }
 
-        private static FullNameToken GetFullnameToken(TypeReference typeReference, string methodName = null) {
+        private static FullNameToken GetFullnameToken(TypeReference typeReference, string methodNameOrNull) {
             TypeInfo ti = GetTypeInfo(typeReference);
             string namespaceName = ti.NamespaceName;
             string className = ti.ClassName;
@@ -259,11 +282,11 @@ namespace NDepCheck {
                 namespaceName = namespaceName + ".";
             }
 
-            if (!String.IsNullOrEmpty(methodName)) {
-                methodName = "::" + methodName;
+            if (!String.IsNullOrEmpty(methodNameOrNull)) {
+                methodNameOrNull = "::" + methodNameOrNull;
             }
 
-            return new FullNameToken(namespaceName, className, nestedName, methodName);
+            return new FullNameToken(namespaceName, className, nestedName, methodNameOrNull);
         }
 
         private static string CleanClassName(string className) {
@@ -300,9 +323,9 @@ namespace NDepCheck {
                 if (sequencePoint != null) {
                     fileName = sequencePoint.Document.Url;
                     startLine = (uint)sequencePoint.StartLine;
-                    startColumn = (uint) sequencePoint.StartColumn;
-                    endLine = (uint) sequencePoint.EndLine;
-                    endColumn= (uint) sequencePoint.EndColumn;
+                    startColumn = (uint)sequencePoint.StartColumn;
+                    endLine = (uint)sequencePoint.EndLine;
+                    endColumn = (uint)sequencePoint.EndColumn;
                 }
                 yield return new Dependency(callingToken, calledToken, fileName, startLine, startColumn, endLine, endColumn);
             }

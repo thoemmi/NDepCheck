@@ -26,9 +26,11 @@ namespace NDepCheck {
         /// If not null, show a concrete dependency 
         /// for each illegal edge.
         /// </value>
-        public int? StringLengthForIllegalEdges { get; set; }
+        public int? StringLengthForIllegalEdges { get; private set; }
 
         public bool ShowUnusedQuestionableRules { get; set; }
+
+        public bool CheckOnlyAssemblyDependencies { get; set; }
 
         /// <value>
         /// Mark output of <c>DependencyGrapher</c>
@@ -69,6 +71,8 @@ namespace NDepCheck {
                     Debugger.Launch();
                 } else if (arg.StartsWith("-d") || arg.StartsWith("/d")) {
                     CreateDirectoryOption(arg, false);
+                } else if (arg.StartsWith("-a") || arg.StartsWith("/a")) {
+                    CheckOnlyAssemblyDependencies = true;
                 } else if (arg.StartsWith("-s") || arg.StartsWith("/s")) {
                     CreateDirectoryOption(arg, true);
                 } else if (arg.StartsWith("-x") || arg.StartsWith("/x")) {
@@ -127,17 +131,16 @@ namespace NDepCheck {
                 }
             }
 
-            // remaining arguments are assemblies
+            // Remaining arguments are assemblies
             for (; i < args.Length; i++) {
                 string positive = args[i];
                 string negative =
-                    i + 2 < args.Length && (args[i+1] == "/e" | args[i+1] == "-e")
+                    i + 2 < args.Length && (args[i + 1] == "/e" | args[i + 1] == "-e")
                     ? args[i += 2]
                     : null;
                 Assemblies.Add(new AssemblyOption(positive, negative));
             }
 
-            // We are past the arguments - now, we process the input files.)
             if (Assemblies.Count == 0) {
                 return UsageAndExit("No assemblies specified");
             }
@@ -201,6 +204,9 @@ Options:
          If you don't include this switch, the default value is 1. If
          you include this switch without specifying a value, NDepCheck
          will use up to the number of processors in the computer.
+
+   /a    Check only assembly dependencies (see below). This will create
+         an error if no rule starts with 'assembly:'.
 
    /v    Verbose. Shows regular expressions used for checking and 
          all checked dependencies. Attention: Place /v BEFORE any
@@ -349,7 +355,13 @@ Rules files:
                After the wildcard replacemants, suffixes are added as for 
                ^regexp.
 
-
+           From version 2.2 onwards, also assembly references are mapped to
+           dependencies and hence can be checked. Such dependencies are of
+           the form 'assembly:<assemblyname> ---> assembly:<references assembly>'
+           and hence can be matched by patterns that start with ^assembly:.
+           This checking is only done when at least one rule starting with
+           the string 'assembly:' is found, or when /a is specified.
+           
 Exit codes:
    0    All dependencies ok (including questionable rules).
    1    Usage error.
