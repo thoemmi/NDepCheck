@@ -125,7 +125,9 @@ namespace NDepCheck {
                         return 6;
                     } else {
                         try {
-                            IEnumerable<Dependency> dependencies = DependencyReader.GetDependencies(assemblyFilename, _options.IgnoreAssemblyDependencies);
+                            IEnumerable<Dependency> dependencies = DependencyReader.GetDependencies(assemblyFilename,
+                                createCodeDependencies: !_options.CheckOnlyAssemblyDependencies, 
+                                createAssemblyDependencies: ruleSetForAssembly.ContainsAssemblyRule);
                             IEnumerable<DependencyRuleGroup> groups = ruleSetForAssembly.ExtractDependencyGroups();
                             bool success = _checker.Check(assemblyContext, groups, dependencies, _options.ShowUnusedQuestionableRules);
                             if (!success) {

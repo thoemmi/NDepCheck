@@ -30,7 +30,7 @@ namespace NDepCheck {
 
         public bool ShowUnusedQuestionableRules { get; set; }
 
-        public bool IgnoreAssemblyDependencies { get; set; }
+        public bool CheckOnlyAssemblyDependencies { get; set; }
 
         /// <value>
         /// Mark output of <c>DependencyGrapher</c>
@@ -72,7 +72,7 @@ namespace NDepCheck {
                 } else if (arg.StartsWith("-d") || arg.StartsWith("/d")) {
                     CreateDirectoryOption(arg, false);
                 } else if (arg.StartsWith("-a") || arg.StartsWith("/a")) {
-                    IgnoreAssemblyDependencies = true;
+                    CheckOnlyAssemblyDependencies = true;
                 } else if (arg.StartsWith("-s") || arg.StartsWith("/s")) {
                     CreateDirectoryOption(arg, true);
                 } else if (arg.StartsWith("-x") || arg.StartsWith("/x")) {
@@ -205,8 +205,8 @@ Options:
          you include this switch without specifying a value, NDepCheck
          will use up to the number of processors in the computer.
 
-   /a    Do not check dependencies between assemblies ('assembly:'-
-         dependencies - see below).
+   /a    Check only assembly dependencies (see below). This will create
+         an error if no rule starts with 'assembly:'.
 
    /v    Verbose. Shows regular expressions used for checking and 
          all checked dependencies. Attention: Place /v BEFORE any
@@ -359,6 +359,8 @@ Rules files:
            dependencies and hence can be checked. Such dependencies are of
            the form 'assembly:<assemblyname> ---> assembly:<references assembly>'
            and hence can be matched by patterns that start with ^assembly:.
+           This checking is only done when at least one rule starting with
+           the string 'assembly:' is found, or when /a is specified.
            
 Exit codes:
    0    All dependencies ok (including questionable rules).

@@ -42,13 +42,18 @@ namespace NDepCheck {
         /// $).
         /// </summary>
         /// <param name="usingItemPattern">Pattern for the "user" side
-        ///   of a dependency.</param>
+        ///     of a dependency.</param>
         /// <param name="usedItemPattern">Pattern for the "used" side
-        ///   of a dependency.</param>
+        ///     of a dependency.</param>
         /// <param name="rep">Visible representation of this rule.</param>
-        public static List<DependencyRule> CreateDependencyRules(string usingItemPattern, string usedItemPattern, DependencyRuleRepresentation rep) {
+        /// <param name="isAssemblyRule"></param>
+        public static List<DependencyRule> CreateDependencyRules(string usingItemPattern, string usedItemPattern, DependencyRuleRepresentation rep, bool isAssemblyRule) {
             var result = new List<DependencyRule>();
-            if (SameNamespaceRule.Accepts(usingItemPattern, usedItemPattern)) {
+            if (AssemblyRule.Accepts(usingItemPattern, usedItemPattern)) {
+                string expandedUsingItemRegex = ExpandAsterisksForAssemblyRule(usingItemPattern);
+                string expandedUsedItemRegex = ExpandAsterisksForAssemblyRule(usedItemPattern);
+                result.Add(new DependencyRule(new AssemblyRule(expandedUsingItemRegex, usingItemPattern, expandedUsedItemRegex, usedItemPattern), rep));
+            }  else if (SameNamespaceRule.Accepts(usingItemPattern, usedItemPattern)) {
                 result.Add(new DependencyRule(new SameNamespaceRule(), rep));
             } else if (PrefixAnyRule.Accepts(usingItemPattern, usedItemPattern)) {
                 result.Add(new DependencyRule(new PrefixAnyRule(usingItemPattern), rep));
@@ -145,6 +150,24 @@ namespace NDepCheck {
             protected static bool IsClassPattern(string pattern) {
                 return !pattern.Contains("/")
                        && !pattern.Contains("::");
+            }
+        }
+
+        #endregion
+
+        #region Nested type: AssemblyRule
+
+        private class AssemblyRule : GeneralRule {
+            public AssemblyRule(string usingItemRegex, string usingItemPattern, string usedItemRegex, string usedItemPattern) 
+                : base(usingItemRegex, usingItemPattern, usedItemRegex, usedItemPattern) {}
+
+            public static bool Accepts(string usingItemPattern, string usedItemPattern) {
+                return usingItemPattern.StartsWith(DependencyReader.ASSEMBLY_PREFIX)
+                       && usedItemPattern.StartsWith(DependencyReader.ASSEMBLY_PREFIX);
+            }
+
+            public override string ToString() {
+                return base.ToString().Replace("GeneralRule", "AssemblyRule");
             }
         }
 

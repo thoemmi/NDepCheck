@@ -15,7 +15,7 @@ namespace NDepCheck {
     public abstract class Pattern {
 
         // The question mark at the end seems to be necessary when a mal-formed UTF8 file (emitted
-        // from  under Vista) is read.
+        // under Vista) is read.
         protected const string LETTER = @"\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}µ_?";
 
         protected const string INNER_LETTER_BASE = LETTER + @"\p{Nd}\p{Pc}\p{Mn}\p{Mc}\p{Cf}";
@@ -34,7 +34,7 @@ namespace NDepCheck {
         protected const string IDENT_INFIX_ESCAPED = "[" + INNER_LETTER + "]" + ASTERISK_ESCAPE;
 
         protected const string PATH_ESCAPED = IDENT_ESCAPED + "(?:[.]" + IDENT_ESCAPED + ")" + ASTERISK_ESCAPE;
-        protected const string INNER_PATH_ESCAPED = IDENT_ESCAPED + "(?:[/]" + IDENT_ESCAPED + ")" + ASTERISK_ESCAPE;
+        protected const string INNER_PATH_ESCAPED = IDENT_ESCAPED + "(?:[/.]" + IDENT_ESCAPED + ")" + ASTERISK_ESCAPE;
 
         protected static readonly string IDENT_NONESCAPED = IDENT_ESCAPED.Replace(ASTERISK_ESCAPE, "*");
         protected const string METHODNAME_NONESCAPED = "[<>." + LETTER + "_\\$][<>" + INNER_LETTER_BASE + ".\\$\\-,]" + "*";
@@ -71,10 +71,10 @@ namespace NDepCheck {
                 int indexOfPath = pattern.IndexOf("**");
                 int indexOfSlash = pattern.IndexOf('/');
                 if (indexOfSlash >= 0 && indexOfSlash < indexOfPath) {
-                    // ** is to the left of a / -> it is expanded to IDENT(/IDENT)*
+                    // ** is to the right of a / -> it is expanded to IDENT([/]IDENT)*
                     pattern = Interpolate2(pattern, indexOfPath, INNER_PATH_ESCAPED);
                 } else {
-                    // ** is not to the left of a / -> it is expanded to IDENT(.IDENT)*
+                    // ** is to the left of a / -> it is expanded to IDENT(.IDENT)*
                     pattern = Interpolate2(pattern, indexOfPath, PATH_ESCAPED);
                 }
             }
@@ -92,6 +92,34 @@ namespace NDepCheck {
             pattern = pattern.Replace(ASTERISK_ESCAPE, "*").Replace(ASTERISK_ABBREV, "*");
 
             return pattern;
+        }
+
+        protected static string ExpandAsterisksForAssemblyRule(string pattern) {
+            pattern = pattern.Replace(".", "[.]");
+            while (pattern.Contains("**")) {
+                int indexOfPath = pattern.IndexOf("**");
+                // ** is always expanded to IDENT(.IDENT)*
+                pattern = Interpolate2(pattern, indexOfPath, PATH_ESCAPED);
+            }
+            while (pattern.Contains("*")) {
+                int indexOfIdentPart = pattern.IndexOf("*");
+                if (indexOfIdentPart > 0 && Regex.IsMatch(pattern[indexOfIdentPart - 1].ToString(), "[" + INNER_LETTER + "]")) {
+                    pattern = Interpolate1(pattern, indexOfIdentPart, IDENT_INFIX_ESCAPED);
+                } else if (indexOfIdentPart < pattern.Length - 1 && Regex.IsMatch(pattern[indexOfIdentPart + 1].ToString(), "[" + INNER_LETTER + "]")) {
+                    pattern = Interpolate1(pattern, indexOfIdentPart, IDENT_PREFIX_ESCAPED);
+                } else {
+                    pattern = Interpolate1(pattern, indexOfIdentPart, IDENT_ESCAPED);
+                }
+            }
+
+            pattern = pattern.Replace(ASTERISK_ESCAPE, "*").Replace(ASTERISK_ABBREV, "*");
+
+            if (!pattern.Contains("/")) {
+                // Suffix /1.2.3.4 is matched by a sequence of slashes, periods and numbers
+                pattern += "(?:[/.][0-9]+)*";
+            }
+
+            return "^" + pattern + "$";
         }
 
         private static string Interpolate1(string pattern, int indexOfIdentPart, string value) {

@@ -17,47 +17,50 @@ namespace NDepCheck {
 #pragma warning restore 168
         }
 
-        public static IEnumerable<Dependency> GetDependencies<T>(bool ignoreAssemblyDependencies) {
-            return GetDependencies(typeof(T), ignoreAssemblyDependencies);
+        public static IEnumerable<Dependency> GetDependencies<T>(bool createCodeDependencies, bool createAssemblyDependencies) {
+            return GetDependencies(typeof(T), createCodeDependencies, createAssemblyDependencies);
         }
 
-        public static IEnumerable<Dependency> GetDependencies(Type t, bool ignoreAssemblyDependencies) {
-            return GetDependencies(t.Assembly.Location, td => td.Name == t.Name && td.Namespace == t.Namespace, ignoreAssemblyDependencies);
+        public static IEnumerable<Dependency> GetDependencies(Type t, bool createCodeDependencies, bool createAssemblyDependencies) {
+            return GetDependencies(t.Assembly.Location, td => td.Name == t.Name && td.Namespace == t.Namespace, createCodeDependencies, createAssemblyDependencies);
         }
 
-        public static IEnumerable<Dependency> GetDependencies(string filename, bool ignoreAssemblyDependencies) {
-            return GetDependencies(filename, null, ignoreAssemblyDependencies);
+        public static IEnumerable<Dependency> GetDependencies(string filename,
+            bool createCodeDependencies, bool createAssemblyDependencies) {
+                return GetDependencies(filename, null, createCodeDependencies, createAssemblyDependencies);
         }
 
-        public static IEnumerable<Dependency> GetDependencies(string filename, Predicate<TypeDefinition> typeFilter, bool ignoreAssemblyDependencies) {
+        public static IEnumerable<Dependency> GetDependencies(string filename, Predicate<TypeDefinition> typeFilter, 
+            bool createCodeDependencies, bool createAssemblyDependencies) {
             var sw = new Stopwatch();
             sw.Start();
             Log.WriteInfo("Reading " + filename);
-
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(filename);
-            try {
-                assembly.MainModule.ReadSymbols();
-            } catch (Exception ex) {
-                Log.WriteWarning(String.Format("Loading symbols for assembly {0} failed - maybe .PDB file is missing. ({1})", filename, ex.Message), filename, 0);
+
+            if (createCodeDependencies) {
+                try {
+                    assembly.MainModule.ReadSymbols();
+                } catch (Exception ex) {
+                    Log.WriteWarning(String.Format("Loading symbols for assembly {0} failed - maybe .PDB file is missing. ({1})", filename, ex.Message), filename, 0);
+                }
+
+                foreach (TypeDefinition type in assembly.MainModule.Types) {
+                    if (type.Name == "<Module>") {
+                        continue;
+                    }
+
+                    if (typeFilter != null && !typeFilter(type)) {
+                        continue;
+                    }
+
+                    foreach (Dependency dependency in AnalyzeType(type)) {
+                        yield return dependency;
+                    }
+                }
             }
 
-            foreach (TypeDefinition type in assembly.MainModule.Types) {
-                if (type.Name == "<Module>") {
-                    continue;
-                }
-
-                if (typeFilter != null && !typeFilter(type)) {
-                    continue;
-                }
-
-                foreach (Dependency dependency in AnalyzeType(type)) {
-                    yield return dependency;
-                }
-            }
-
-            if (!ignoreAssemblyDependencies) {
+            if (createAssemblyDependencies) {
                 AssemblyNameDefinition currentAssembly = assembly.Name;
-
 
                 foreach (AssemblyNameReference reference in assembly.MainModule.AssemblyReferences) {
                     // Repräsentationen der Assembly-Abhängigkeiten erzeugen

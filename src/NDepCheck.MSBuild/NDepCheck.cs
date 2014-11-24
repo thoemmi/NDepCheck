@@ -14,7 +14,7 @@ namespace NDepCheck.MSBuild {
         public bool Debug { get; set; }
         public bool Verbose { get; set; }
         public string XmlOutput { get; set; }
-        public bool IgnoreAssemblyDependencies { get; set; }
+        public bool CheckOnlyAssemblyDependencies { get; set; }
 
         [Required]
         public ITaskItem[] Assemblies { get; set; }
@@ -38,7 +38,7 @@ namespace NDepCheck.MSBuild {
                 ShowUnusedQuestionableRules = ShowUnusedQuestionableRules,
                 MaxCpuCount = MaxCpuCount == 0 || MaxCpuCount < -1 ? Environment.ProcessorCount : MaxCpuCount,
                 XmlOutput = XmlOutput,
-                IgnoreAssemblyDependencies = IgnoreAssemblyDependencies,
+                CheckOnlyAssemblyDependencies = CheckOnlyAssemblyDependencies,
             };
             Assemblies
                 .Select(item => new AssemblyOption(item.ItemSpec, null))

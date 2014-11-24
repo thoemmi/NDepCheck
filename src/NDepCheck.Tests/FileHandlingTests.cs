@@ -64,11 +64,35 @@ namespace NDepCheck.Tests {
         }
 
         [TestMethod]
+        public void TestCheckSimpleAssemblyRules() {
+            const string rules = @"assembly:NDepCheck.Test* ---> assembly:mscorlib";
+            Write(@"d", "NDepCheck.TestAssembly.dll.dep", rules);
+            Write(@"d", "NDepCheck.TestAssemblyÄÖÜß.dll.dep", rules);
+            Assert.AreEqual(0, Run(@"-d=%%\d", "-a"));
+        }
+
+        [TestMethod]
+        public void TestDontCheckAssemblyRulesIfThereAreNone() {
+            const string rules = @"BliBlaBlubb ---> BliBlaBlubb";
+            Write(@"d", "NDepCheck.TestAssembly.dll.dep", rules);
+            Write(@"d", "NDepCheck.TestAssemblyÄÖÜß.dll.dep", rules);
+            Assert.AreEqual(0, Run(@"-d=%%\d", "-a"));
+        }
+
+        [TestMethod]
+        public void TestCheckAssemblyRulesIfThereAreAny() {
+            const string rules = @"assembly:BliBlaBlubb ---> assembly:BliBlaBlubb";
+            Write(@"d", "NDepCheck.TestAssembly.dll.dep", rules);
+            Write(@"d", "NDepCheck.TestAssemblyÄÖÜß.dll.dep", rules);
+            Assert.AreEqual(3, Run(@"-d=%%\d", "-a"));
+        }
+
+        [TestMethod]
         public void TestDDXOk() {
             WriteDep1To(@"a\b");
             WriteDep2To(@"a\c");
             WriteXTo(@"a\x");
-            Assert.AreEqual(0, Run(@"-x=%%\a\x\Defaults.dep", @"-d=%%\a\yy", @"-d=%%\a\xx", @"-d=%%\a\b", "-a"));
+            Assert.AreEqual(0, Run(@"-x=%%\a\x\Defaults.dep", @"-d=%%\a\yy", @"-d=%%\a\xx", @"-d=%%\a\b", "-y"));
         }
 
         [TestMethod]
@@ -100,7 +124,7 @@ namespace NDepCheck.Tests {
                   * ---? **
                 ");
             WriteDep2To(@"a\b\c");
-            Assert.AreEqual(0, Run(@"-s=%%\a\b", "-a"));
+            Assert.AreEqual(0, Run(@"-s=%%\a\b"));
         }
 
         [TestMethod]
@@ -117,7 +141,7 @@ namespace NDepCheck.Tests {
                 @"+ ..\A.dep
                 ");
             WriteDep2To(@"a\b\c");
-            Assert.AreEqual(0, Run(@"-s=%%\a\b", "-a"));
+            Assert.AreEqual(0, Run(@"-s=%%\a\b"));
         }
 
         [TestMethod]
@@ -146,6 +170,7 @@ namespace NDepCheck.Tests {
                 @"NDepCheck.TestAssembly.** ---> **
                   * ---? **
 
+                  // assembly:NDepCheck.TestAssembly** ---> assembly:mscorlib
                   assembly:** ---> assembly:**
                 ");
         }
