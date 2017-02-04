@@ -1,6 +1,7 @@
 // (c) HMMüller 2006...2010
 
 using System;
+using JetBrains.Annotations;
 
 namespace NDepCheck {
     /// <remarks>Class <c>Dependency</c> stores
@@ -8,11 +9,14 @@ namespace NDepCheck {
     /// (one "using item" uses one "used item").
     /// </remarks>
     public class Dependency : IEdge {
+        [NotNull]
         private readonly Item _usingItem;
+        [NotNull]
         private readonly Item _usedItem;
 
         private int _ct;
         private int _notOkCt;
+        [CanBeNull]
         private Dependency _notOkExample;
 
         private readonly string _fileName;
@@ -36,9 +40,9 @@ namespace NDepCheck {
         /// <param name="ct"></param>
         /// <param name="notOkCt"></param>
         /// <param name="notOkExample"></param>
-        public Dependency(Item usingItem, Item usedItem,
+        public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem,
             string fileName, int startLine, int startColumn, int endLine, int endColumn,
-            int ct = 1, int notOkCt = 0, Dependency notOkExample = null) {
+            int ct = 1, int notOkCt = 0, [CanBeNull] Dependency notOkExample = null) {
             if (usingItem == null) {
                 throw new ArgumentNullException(nameof(usingItem));
             }
@@ -61,11 +65,13 @@ namespace NDepCheck {
         /// <summary>
         /// Coded name of using item.
         /// </summary>
+        [NotNull]
         public string UsingItemAsString => UsingItem.AsString();
 
         /// <value>
         /// Coded name of used item.
         /// </value>
+        [NotNull]
         public string UsedItemAsString => UsedItem.AsString();
 
         /// <value>
@@ -87,8 +93,10 @@ namespace NDepCheck {
 
         public int EndColumn => _endColumn;
 
+        [NotNull]
         public Item UsingItem => _usingItem;
 
+        [NotNull]
         public Item UsedItem => _usedItem;
 
         public int Ct => _ct;
@@ -174,7 +182,8 @@ namespace NDepCheck {
         }
 
         public IEdge CreateEdgeFromUsingTo(INode usedNode) {
-            return new Dependency(_usingItem, usedNode as Item, "associative edge", 0, 0, 0, 0);
+            // Brutal cast INode --> Item ... I'm not sure about this; but except for TestNode there is no other INode around ____
+            return new Dependency(_usingItem, (Item) usedNode, "associative edge", 0, 0, 0, 0);
         }
 
         public void MarkOkOrNotOk(bool ok) {

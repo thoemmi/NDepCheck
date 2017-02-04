@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
@@ -8,7 +9,7 @@ namespace NDepCheck {
     public class FullDotNetAssemblyDependencyReader : AbstractDotNetAssemblyDependencyReader {
         private IEnumerable<RawDependency> _rawDependencies;
 
-        private static readonly List<RawDependency> TEMP_ALL = new List<RawDependency>();
+        //private static readonly List<RawDependency> _tempAll = new List<RawDependency>();
 
         public FullDotNetAssemblyDependencyReader(DotNetAssemblyDependencyReaderFactory factory, string filename, Options options)
             : base(factory, filename, options) {
@@ -21,7 +22,7 @@ namespace NDepCheck {
         private IEnumerable<RawDependency> GetOrReadRawDependencies() {
             if (_rawDependencies == null) {
                 _rawDependencies = ReadRawDependencies().ToArray();
-                TEMP_ALL.AddRange(_rawDependencies); // -------------------------------------------
+                //_tempAll.AddRange(_rawDependencies); // -------------------------------------------
             }
             return _rawDependencies;
         }
@@ -65,7 +66,8 @@ namespace NDepCheck {
             //}
         }
 
-        private IEnumerable<RawDependency> AnalyzeType(TypeDefinition type, ItemTail parentCustomSections) {
+        [NotNull]
+        private IEnumerable<RawDependency> AnalyzeType([NotNull] TypeDefinition type, [CanBeNull] ItemTail parentCustomSections) {
             ItemTail typeCustomSections = GetCustomSections(type.CustomAttributes, parentCustomSections);
             {
                 RawUsingItem usingItem = GetClassItem(type, typeCustomSections);
@@ -107,7 +109,7 @@ namespace NDepCheck {
                     }
                 }
 
-                foreach (PropertyDefinition property in type.Properties) {
+                foreach (var property in type.Properties) {
                     //if (!IsLinked(property.PropertyType, type.DeclaringType)) {
                     foreach (var dependency_ in AnalyzeProperty(type, usingItem, property, typeCustomSections)) {
                         yield return dependency_;
@@ -135,7 +137,8 @@ namespace NDepCheck {
             }
         }
 
-        private IEnumerable<RawDependency> AnalyzeProperty(TypeDefinition owner, RawUsingItem usingItem, PropertyDefinition property, ItemTail typeCustomSections) {
+        private IEnumerable<RawDependency> AnalyzeProperty([NotNull] TypeDefinition owner, [NotNull] RawUsingItem usingItem, 
+                                                           [NotNull] PropertyDefinition property, [CanBeNull] ItemTail typeCustomSections) {
             ItemTail propertyCustomSections = GetCustomSections(property.CustomAttributes, typeCustomSections);
 
             foreach (var dependency_ in AnalyzeCustomAttributes(usingItem, property.CustomAttributes)) {
@@ -163,7 +166,8 @@ namespace NDepCheck {
             }
         }
 
-        private IEnumerable<RawDependency> AnalyzeCustomAttributes(RawUsingItem usingItem, IEnumerable<CustomAttribute> customAttributes) {
+        private IEnumerable<RawDependency> AnalyzeCustomAttributes([NotNull] RawUsingItem usingItem, 
+                                                                   [NotNull] IEnumerable<CustomAttribute> customAttributes) {
             foreach (CustomAttribute customAttribute in customAttributes) {
                 foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, customAttribute.Constructor.DeclaringType,
                     sequencePoint: null)) {
@@ -176,7 +180,9 @@ namespace NDepCheck {
             }
         }
 
-        private IEnumerable<RawDependency> AnalyzeGetterSetter(TypeDefinition owner, PropertyDefinition property, string sort, ItemTail propertyCustomSections, MethodDefinition getterSetter) {
+        private IEnumerable<RawDependency> AnalyzeGetterSetter([NotNull] TypeDefinition owner, [NotNull] PropertyDefinition property, 
+                                                               [NotNull] string sort, [CanBeNull] ItemTail propertyCustomSections, 
+                                                               [CanBeNull] MethodDefinition getterSetter) {
             if (getterSetter != null) {
                 RawUsingItem usingItem = GetFullnameItem(property.DeclaringType, property.Name, sort, propertyCustomSections);
                 yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
@@ -187,7 +193,8 @@ namespace NDepCheck {
             }
         }
 
-        private IEnumerable<RawDependency> AnalyzeMethod(TypeDefinition owner, RawUsingItem usingItem, MethodDefinition method) {
+        private IEnumerable<RawDependency> AnalyzeMethod([NotNull] TypeDefinition owner, [NotNull] RawUsingItem usingItem,
+                                                         [NotNull] MethodDefinition method) {
             foreach (var dependency_ in AnalyzeCustomAttributes(usingItem, method.CustomAttributes)) {
                 yield return dependency_;
             }
@@ -225,8 +232,8 @@ namespace NDepCheck {
             }
         }
 
-        private IEnumerable<RawDependency> AnalyzeInstruction(TypeDefinition owner, RawUsingItem usingItem,
-                                                                  Instruction instruction, SequencePoint sequencePoint) {
+        private IEnumerable<RawDependency> AnalyzeInstruction([NotNull] TypeDefinition owner, [NotNull] RawUsingItem usingItem,
+                                                              [NotNull] Instruction instruction, [CanBeNull] SequencePoint sequencePoint) {
             {
                 var methodReference = instruction.Operand as MethodReference;
                 // Durch die !IsLinked-Bedingung wird der Test MainTests.Exit0Aspects mit den Calls
@@ -282,7 +289,7 @@ namespace NDepCheck {
             }
         }
 
-        private static bool IsLinked(TypeReference referringType, TypeReference referrer) {
+        private static bool IsLinked([CanBeNull] TypeReference referringType, [CanBeNull] TypeReference referrer) {
             if (referrer == null || referringType == null) {
                 return false;
             }
@@ -298,19 +305,19 @@ namespace NDepCheck {
             ////return IsLinked(referringType, referrer.DeclaringType) || IsLinked(referringType.DeclaringType, referrer);
         }
 
-        private RawUsingItem GetClassItem(TypeReference typeReference, ItemTail customSections) {
+        private RawUsingItem GetClassItem([NotNull] TypeReference typeReference, [CanBeNull] ItemTail customSections) {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
             return new RawUsingItem(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, "", "", customSections);
         }
 
-        private RawUsedItem GetFullnameItem(TypeReference typeReference, string memberName, string memberSort) {
+        private RawUsedItem GetFullnameItem([NotNull] TypeReference typeReference, [NotNull] string memberName, string memberSort) {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
             return new RawUsedItem(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, memberSort);
         }
 
-        private RawUsingItem GetFullnameItem(TypeReference typeReference, string memberName, string memberSort, ItemTail customSections) {
+        private RawUsingItem GetFullnameItem([NotNull] TypeReference typeReference, [NotNull] string memberName, string memberSort, [CanBeNull] ItemTail customSections) {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
             return new RawUsingItem(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, memberSort, customSections);
@@ -320,8 +327,9 @@ namespace NDepCheck {
         /// Create a single dependency to the calledType or (if passed) calledType+method.
         /// Create additional dependencies for each generic parameter type of calledType.
         /// </summary>
-        private IEnumerable<RawDependency> CreateTypeAndMethodDependencies(RawUsingItem usingItem, TypeReference usedType,
-                                                               SequencePoint sequencePoint, string memberName = "", string memberSort = "") {
+        private IEnumerable<RawDependency> CreateTypeAndMethodDependencies([NotNull] RawUsingItem usingItem, [NotNull] TypeReference usedType,
+                                                               [CanBeNull] SequencePoint sequencePoint, [NotNull] string memberName = "",
+                                                               [NotNull] string memberSort = "") {
             if (usedType is TypeSpecification) {
                 // E.g. the reference type System.Int32&, which is used for out parameters.
                 // or an arraytype?!?

@@ -3,10 +3,11 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
+using JetBrains.Annotations;
 
 namespace NDepCheck {
     public static class XmlViolationsWriter {
-        public static void WriteXmlOutput(string path, IEnumerable<IInputContext> inputContexts) {
+        public static void WriteXmlOutput([NotNull]string path, [NotNull]IEnumerable<IInputContext> inputContexts) {
             var document = new XDocument(
                 new XElement("Assemblies", // Should become "input file"
                     from ctx in inputContexts

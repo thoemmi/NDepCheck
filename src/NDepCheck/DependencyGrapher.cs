@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace NDepCheck {
     /// <remarks>
@@ -175,7 +176,8 @@ namespace NDepCheck {
         ////}
 
         private static void ReduceEdge(IEnumerable<GraphAbstraction> orderedGraphAbstractions, 
-                 Dependency d, Dictionary<string, Item> nodes, Dictionary<Tuple<Item, Item>, Dependency> result /*,Dictionary<Tuple<string, int>, GraphAbstraction> skipCache*/) {
+                 Dependency d, Dictionary<string, Item> nodes, 
+                 Dictionary<FromTo, Dependency> result /*,Dictionary<Tuple<string, int>, GraphAbstraction> skipCache*/) {
             bool usingIsInner = false;
             bool usedIsInner = false;
 
@@ -201,11 +203,12 @@ namespace NDepCheck {
                 Item usingNode = GetOrCreateNode(nodes, usingMatch, usingIsInner);
                 Item usedNode = GetOrCreateNode(nodes, usedMatch, usedIsInner);
 
-                Tuple<Item, Item> key = Tuple.Create(usingNode, usedNode);
+                FromTo key = new FromTo(usingNode, usedNode);
 
                 Dependency reducedEdge;
                 if (!result.TryGetValue(key, out reducedEdge)) {
-                    reducedEdge = new Dependency(usingNode, usedNode, d.FileName, d.StartLine, d.StartColumn, d.EndLine, d.EndColumn, d.Ct, d.NotOkCt, d.NotOkExample);
+                    reducedEdge = new Dependency(usingNode, usedNode, d.FileName, d.StartLine, d.StartColumn, 
+                                                 d.EndLine, d.EndColumn, d.Ct, d.NotOkCt, d.NotOkExample);
                     result.Add(key, reducedEdge);
                 } else {
                     reducedEdge.AggregateCounts(d);
@@ -223,20 +226,46 @@ namespace NDepCheck {
             return result;
         }
 
+        public class FromTo {
+            [NotNull]
+            public readonly Item From;
+            public readonly Item To;
+            public FromTo([NotNull] Item @from, [NotNull] Item to) {
+                From = @from;
+                To = to;
+            }
+
+            public override bool Equals(object obj) {
+                var other = obj as FromTo;
+                return other != null && other.From == From && other.To == To;
+            }
+
+            public override int GetHashCode() {
+                return From.GetHashCode() ^ To.GetHashCode();
+            }
+        }
+
         public static IEnumerable<Dependency> ReduceGraph(GlobalContext checkerContext, Options options) {
             var nodes = new Dictionary<string, Item>();
-            var result = new Dictionary<Tuple<Item, Item>, Dependency>();
+            var result = new Dictionary<FromTo, Dependency>();
 
             foreach (var i in checkerContext.InputContexts) {
                 DependencyRuleSet ruleSet = i.GetOrCreateDependencyRuleSetMayBeCalledInParallel(checkerContext, options);
-                Log.WriteInfo("Reducing graph " + i.Filename);
-                ReduceGraph(options, ruleSet, i.Dependencies, nodes, result);
+                if (ruleSet != null) {
+                    Log.WriteInfo("Reducing graph " + i.Filename);
+                    ReduceGraph(options, ruleSet, i.Dependencies, nodes, result);
+                } else {
+                    Log.WriteWarning("No ruleset found for reducing " + i.Filename);
+                    foreach (var e in i.Dependencies) {
+                        result[new FromTo(e.UsingItem, e.UsedItem)] = e;
+                    }
+                }
             }
             return result.Values;
         }
 
-        public static void ReduceGraph(Options options, DependencyRuleSet ruleSet, IEnumerable<Dependency> dependencies,
-                                       Dictionary<string, Item> nodes, Dictionary<Tuple<Item, Item>, Dependency> edges) {
+        public static void ReduceGraph(Options options, [NotNull] DependencyRuleSet ruleSet, [NotNull] IEnumerable<Dependency> dependencies,
+                                       Dictionary<string, Item> nodes, Dictionary<FromTo, Dependency> edges) {
             List<GraphAbstraction> orderedGraphAbstractions = ruleSet.ExtractGraphAbstractions();
 
             // First pass: Compute all edges - i.e., 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 using Mono.Cecil;
 
 namespace NDepCheck {
@@ -70,14 +71,15 @@ namespace NDepCheck {
             yield return GetFullnameItem(property.DeclaringType, property.Name, "set", propertyCustomSections);
         }
 
+        [NotNull]
         private RawUsingItem GetClassItem(TypeReference typeReference, ItemTail customSections) {
-
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
 
             return new RawUsingItem(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, "", "", customSections);
         }
 
+        [NotNull]
         private RawUsingItem GetFullnameItem(TypeReference typeReference, string memberName, string memberSort, ItemTail customSections) {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);

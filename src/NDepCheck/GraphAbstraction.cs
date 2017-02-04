@@ -1,5 +1,7 @@
 // (c) HMMüller 2006...2015
 
+using JetBrains.Annotations;
+
 namespace NDepCheck {
     /// <remarks>
     /// This class knows how to "abstract" an item in a
@@ -11,15 +13,17 @@ namespace NDepCheck {
     /// to the assembly where they reside.
     /// </remarks>
     public class GraphAbstraction : Pattern {
+        [NotNull]
         private readonly ItemType _itemType;
         private readonly bool _isInner;
+        [NotNull]
         private readonly IMatcher[] _matchers;
         private int _matchCount;
  
         // GraphAbstractions are created (because of
         // extension rules) by the factory method
         // CreateGraphAbstractions().
-        public GraphAbstraction(ItemType itemType, string pattern, bool isInner, bool ignoreCase) {
+        public GraphAbstraction([NotNull]ItemType itemType, [NotNull]string pattern, bool isInner, bool ignoreCase) {
             _itemType = itemType;
             _isInner = isInner;
             _matchers = CreateMatchers(itemType, pattern, 0, ignoreCase);
@@ -35,7 +39,7 @@ namespace NDepCheck {
         /// <returns>Abstracted name; or <c>null</c> if name does not 
         /// match abstraction</returns>
         ///// <param name="skipCache"></param>
-        public string Match(Item item, out bool isInner/*, Dictionary<Tuple<string, int>, GraphAbstraction> skipCache = null*/) {
+        public string Match([NotNull]Item item, out bool isInner/*, Dictionary<Tuple<string, int>, GraphAbstraction> skipCache = null*/) {
             isInner = _isInner;
             
             string[] matchResult = Match(_itemType, _matchers, item);

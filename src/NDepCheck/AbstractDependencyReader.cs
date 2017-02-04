@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace NDepCheck {
     public interface IReaderFactory {
@@ -49,24 +50,29 @@ namespace NDepCheck {
             return null;
         }
 
+        [NotNull]
         public abstract IEnumerable<ItemType> GetDescriptors();
-        public abstract bool Accepts(string extension);
-        public abstract AbstractDependencyReader CreateReader(string filename, Options options, bool needsOnlyItemTails);
+        public abstract bool Accepts([NotNull]string extension);
+        [NotNull]
+        public abstract AbstractDependencyReader CreateReader([NotNull]string filename, [NotNull]Options options, bool needsOnlyItemTails);
     }
 
     public abstract class AbstractDependencyReader {
         private Dependency[] _dependencies;
+        [NotNull]
         protected readonly string _filename;
 
-        protected AbstractDependencyReader(string filename) {
+        protected AbstractDependencyReader([NotNull]string filename) {
             if (string.IsNullOrWhiteSpace(filename)) {
                 throw new ArgumentException("filename must be non-empty", nameof(filename));
             }
             _filename = filename;
         }
 
+        [NotNull]
         public string FileName => _filename;
 
+        [NotNull]
         protected abstract IEnumerable<Dependency> ReadDependencies();
 
         public Dependency[] ReadOrGetDependencies() {

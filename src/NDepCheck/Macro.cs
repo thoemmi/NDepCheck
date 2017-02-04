@@ -1,10 +1,22 @@
+using JetBrains.Annotations;
+
 namespace NDepCheck {
     public class Macro {
-        public readonly string MacroText;
-        public readonly string RuleFileName;
-        public readonly int StartLineNo;
+        [NotNull]
+        public string MacroText {
+            get;
+        }
 
-        internal Macro(string macroText, string ruleFileName, int startlineNo) {
+        [NotNull]
+        public string RuleFileName {
+            get;
+        }
+
+        public int StartLineNo {
+            get;
+        }
+
+        internal Macro([NotNull]string macroText, [NotNull]string ruleFileName, int startlineNo) {
             MacroText = macroText;
             RuleFileName = ruleFileName;
             StartLineNo = startlineNo;

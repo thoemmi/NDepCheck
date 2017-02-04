@@ -3,21 +3,25 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace NDepCheck {
     internal class InputContext : IInputContext {
+        [NotNull]
         private readonly string _filename;
+        [NotNull]
         private readonly Dependency[] _dependencies;
+
         private List<RuleViolation> _violations;
         private int _warningCt;
         private int _errorCt;
 
-        public InputContext(string filename, Dependency[] dependencies) {
+        public InputContext([NotNull]string filename, [NotNull]Dependency[] dependencies) {
             _filename = filename;
             _dependencies = dependencies;
         }
 
-        public int CheckDependencies(IGlobalContext checkerContext, Options options) {
+        public int CheckDependencies([NotNull]IGlobalContext checkerContext, [NotNull]Options options) {
             int result = 0;
             if (_violations == null) {
                 _violations = new List<RuleViolation>();
@@ -63,11 +67,7 @@ namespace NDepCheck {
 
         public DependencyRuleSet GetOrCreateDependencyRuleSetMayBeCalledInParallel(IGlobalContext checkerContext, Options options) {
             string dependencyFilename = Path.GetFileName(_filename) + ".dep";
-            DependencyRuleSet result = checkerContext.GetOrCreateDependencyRuleSet_MayBeCalledInParallel(options, dependencyFilename);
-            if (result == null) {
-                Log.WriteError(dependencyFilename + " not found in -d and -s directories, and no default rule set provided by -x");
-            }
-            return result;
+            return checkerContext.GetOrCreateDependencyRuleSet_MayBeCalledInParallel(options, dependencyFilename);
         }
 
         /// <summary>

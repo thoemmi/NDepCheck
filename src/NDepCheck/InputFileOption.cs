@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace NDepCheck {
     public class InputFileOption {
@@ -9,13 +10,14 @@ namespace NDepCheck {
         private readonly string _negativeOrNull;
         private IEnumerable<AbstractDependencyReader> _readers;
 
-        public InputFileOption(string extension, string positive, string negativeOrNull) {
+        public InputFileOption([NotNull]string extension, [NotNull]string positive, [CanBeNull]string negativeOrNull) {
             _extension = extension;
             _positive = positive;
             _negativeOrNull = negativeOrNull;
         }
 
-        internal IEnumerable<AbstractDependencyReader> CreateOrGetReaders(Options options, bool needsOnlyItemTails) {
+        [NotNull]
+        internal IEnumerable<AbstractDependencyReader> CreateOrGetReaders([NotNull]Options options, bool needsOnlyItemTails) {
             if (_readers == null) {
                 var filenames = new List<string>(ExpandFilename(_positive));
                 if (_negativeOrNull != null) {

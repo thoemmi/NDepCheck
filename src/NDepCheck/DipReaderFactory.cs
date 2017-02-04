@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using JetBrains.Annotations;
 
 namespace NDepCheck {
     internal class DipReaderFactory : AbstractReaderFactory {
@@ -8,6 +9,7 @@ namespace NDepCheck {
             return _registeredItemTypes.Values;
         }
 
+        [CanBeNull]
         public ItemType GetDescriptor(string name) {
             ItemType result;
             _registeredItemTypes.TryGetValue(name, out result);
@@ -22,7 +24,7 @@ namespace NDepCheck {
             return new DipReader(filename, this);
         }
 
-        public void AddItemType(ItemType itemType) {
+        public void AddItemType([NotNull]ItemType itemType) {
             _registeredItemTypes.Add(itemType.Name, itemType);
         }
     }

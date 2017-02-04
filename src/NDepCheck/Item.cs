@@ -4,14 +4,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using JetBrains.Annotations;
 
 namespace NDepCheck {
     public abstract class ItemSegment {
+        [NotNull]
         private readonly ItemType _type;
+        [NotNull]
         public readonly string[] Values;
+
         public static readonly Dictionary<string,string> CACHE = new Dictionary<string, string>(); 
 
-        protected ItemSegment(ItemType type, string[] values) {
+        protected ItemSegment([NotNull]ItemType type, [NotNull]string[] values) {
             _type = type;
             //Values = values.Select(v => v == null ? null : string.Intern(v)).ToArray();
             //Values = values.Select(v => v == null ? null : Intern(v)).ToArray();
@@ -30,7 +34,7 @@ namespace NDepCheck {
     }
 
     public class ItemTail : ItemSegment {
-        public ItemTail(ItemType type, string[] values) : base(type, values) {
+        public ItemTail([NotNull]ItemType type, [NotNull]string[] values) : base(type, values) {
         }
 
         public override string ToString() {
@@ -47,7 +51,7 @@ namespace NDepCheck {
         private string _asString;
         private string _asStringWithType;
 
-        public Item(ItemType type, string reducedName, bool isInner)
+        public Item([NotNull]ItemType type, [NotNull]string reducedName, bool isInner)
             : this(type, isInner, new[] { reducedName }) {
         }
 
@@ -91,6 +95,7 @@ namespace NDepCheck {
             return AsStringWithType();
         }
 
+        [NotNull]
         public string AsStringWithType() {
             if (_asStringWithType == null) {
                 _asStringWithType = Type.Name + ":" + AsString();
@@ -98,6 +103,7 @@ namespace NDepCheck {
             return _asStringWithType;
         }
 
+        [NotNull]
         public string AsString() {
             if (_asString == null) {
                 var sb = new StringBuilder();
@@ -116,7 +122,8 @@ namespace NDepCheck {
 
         public bool IsInner => _isInner;
 
-        public Item Append(ItemTail additionalValues) {
+        [NotNull]
+        public Item Append([CanBeNull] ItemTail additionalValues) {
             return additionalValues == null ? this : new Item(additionalValues.Type, _isInner, Values.Concat(additionalValues.Values).ToArray());
         }
     }

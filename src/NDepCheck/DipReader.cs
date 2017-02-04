@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using JetBrains.Annotations;
 
 namespace NDepCheck {
     internal class DipReader : AbstractDependencyReader {
@@ -14,7 +15,7 @@ namespace NDepCheck {
 
         private readonly DipReaderFactory _factory;
 
-        public DipReader(string filename, DipReaderFactory factory) : base (filename) {
+        public DipReader([NotNull] string filename, [NotNull] DipReaderFactory factory) : base (filename) {
             _factory = factory;
         }
 
@@ -70,11 +71,12 @@ namespace NDepCheck {
             }
         }
 
-        private void RegisterType(string name, IEnumerable<string[]> keySubKeyPairs) {
+        private void RegisterType([NotNull] string name, [NotNull] IEnumerable<string[]> keySubKeyPairs) {
             _factory.AddItemType(new ItemType(name, keySubKeyPairs.Select(pair => pair[0]).ToArray(), keySubKeyPairs.Select(pair => pair.Length > 1 ? pair[1] : "").ToArray()));
         }
 
-        private Item GetOrCreateItem(string part, Dictionary<Item, Item> items) {
+        [NotNull]
+        private Item GetOrCreateItem([NotNull] string part, [NotNull] Dictionary<Item, Item> items) {
             Item item = CreateItem(part);
             Item foundItem;
             if (!items.TryGetValue(item, out foundItem)) {
@@ -83,6 +85,7 @@ namespace NDepCheck {
             return foundItem;
         }
 
+        [NotNull]
         private Item CreateItem(string s) {
             string[] parts = s.Split(':', ';');
 

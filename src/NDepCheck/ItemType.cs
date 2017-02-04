@@ -1,12 +1,21 @@
 using System;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace NDepCheck {
     public class ItemType : IEquatable<ItemType> {
-        public readonly string Name;
-        public readonly string[] Keys, SubKeys;
+        internal static readonly ItemType DEFAULT = new ItemType("DEFAULT", new[] { "DATA "}, new [] {""}); // ??????
 
-        public ItemType(string name, string[] keys, string[] subKeys) {
+        [NotNull]
+        public readonly string Name;
+
+        [NotNull]
+        public readonly string[] Keys;
+
+        [NotNull]
+        public readonly string[] SubKeys;
+
+        public ItemType([NotNull]string name, [NotNull]string[] keys, [NotNull]string[] subKeys) {
             if (keys.Length != subKeys.Length) {
                 throw new ArgumentException("keys.Length != subKeys.Length", nameof(subKeys));
             }

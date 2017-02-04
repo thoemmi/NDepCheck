@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using JetBrains.Annotations;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Pdb;
@@ -35,13 +36,14 @@ namespace NDepCheck {
                 : new FullDotNetAssemblyDependencyReader(this, filename, options);
         }
 
+        [NotNull]
         public ItemType GetOrCreateDotNetType(string name, IEnumerable<string> keysAndSubKeys) {
-
             string[] keys = keysAndSubKeys.Select(k => k.Split('.')[0]).ToArray();
             string[] subkeys = keysAndSubKeys.Select(k => k.Split('.').Length > 1 ? "." + k.Split('.')[1] : "").ToArray();
             return GetOrCreateDotNetType(name, keys, subkeys);
         }
 
+        [NotNull]
         public ItemType GetOrCreateDotNetType(string name, string[] keys, string[] subkeys) {
             ItemType result = _types.FirstOrDefault(t => t.Name == name);
             if (result == null) {
@@ -133,10 +135,12 @@ namespace NDepCheck {
                 return _namespaceName + ":" + _className + ":" + AssemblyName + ";" + _assemblyVersion + ";" + _assemblyCulture + ":" + _memberName + ";" + _memberSort;
             }
 
+            [NotNull]
             public virtual Item ToItem(ItemType type) {
                 return new Item(type, _namespaceName, _className, AssemblyName, _assemblyVersion, _assemblyCulture, _memberName, _memberSort);
             }
 
+            [NotNull]
             protected RawUsedItem ToRawUsedItem() {
                 return new RawUsedItem(_namespaceName, _className, AssemblyName, _assemblyVersion, _assemblyCulture, _memberName, _memberSort);
             }
@@ -208,8 +212,10 @@ namespace NDepCheck {
             }
         }
 
+        [NotNull]
         protected abstract IEnumerable<RawUsingItem> ReadUsingItems();
 
+        [NotNull]
         protected Item GetFullItemFor(RawUsedItem rawUsedItem) {
             if (_rawItems2Items == null) {
                 _rawItems2Items = new Dictionary<RawUsedItem, Item>();
@@ -237,6 +243,7 @@ namespace NDepCheck {
                 return "RawDep " + UsingItem + "=>" + UsedItem;
             }
 
+            [NotNull]
             private Dependency ToDependency(Item usedItem) {
                 return _sequencePoint == null
                     ? new Dependency(UsingItem.ToItem(_type), usedItem, null, 0, 0, 0, 0)
@@ -244,13 +251,15 @@ namespace NDepCheck {
                         _sequencePoint.Document.Url, _sequencePoint.StartLine, _sequencePoint.StartColumn, _sequencePoint.EndLine, _sequencePoint.EndColumn);
             }
 
+            [NotNull]
             public Dependency ToDependencyWithTail(Options options) {
                 AbstractDotNetAssemblyDependencyReader reader = options.GetDotNetAssemblyReaderFor(UsedItem.AssemblyName);
                 return ToDependency(reader == null ? UsedItem.ToItem(_type) : UsedItem.ToItemWithTail(_type, reader));
             }
         }
 
-        protected ItemTail GetCustomSections(Collection<CustomAttribute> customAttributes, ItemTail customSections) {
+        [CanBeNull]
+        protected ItemTail GetCustomSections(Collection<CustomAttribute> customAttributes, [CanBeNull] ItemTail customSections) {
             ItemTail result = customSections;
             foreach (var customAttribute in customAttributes) {
                 result = ExtractCustomSections(customAttribute, null) ?? result;

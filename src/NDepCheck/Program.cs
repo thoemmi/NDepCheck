@@ -43,7 +43,7 @@ namespace NDepCheck {
                     if (string.IsNullOrWhiteSpace(filename)) {
                         return UsageAndExit("Missing filename after " + arg);
                     }
-                    state.ReadAll(options).ReduceGraph(options).WriteDipFile(options, filename);
+                    state.ReadAll(options).ReduceGraph(options, false).WriteDipFile(options, filename);
                 } else if (arg == "-debug" || arg == "/debug") {
                     // -debug    Do start .Net debugger
                     Debugger.Launch();
@@ -64,7 +64,7 @@ namespace NDepCheck {
                     if (string.IsNullOrWhiteSpace(filename)) {
                         return UsageAndExit("Missing filename after " + arg);
                     }
-                    state.ReadAll(options).ReduceGraph(options).WriteDotFile(options, filename);
+                    state.ReadAll(options).ReduceGraph(options, false).WriteDotFile(options, filename);
                 } else if (arg == "-h" || arg == "/h") {
                     // -h        Do write extensive help
                     return UsageAndExit(null, completeHelp: true);
@@ -109,7 +109,7 @@ namespace NDepCheck {
                     if (string.IsNullOrWhiteSpace(filename)) {
                         return UsageAndExit("Missing filename after " + arg);
                     }
-                    state.ReadAll(options).ReduceGraph(options).WriteMatrixFile(options, format, filename);
+                    state.ReadAll(options).ReduceGraph(options, false).WriteMatrixFile(options, format, filename);
                 } else if (arg.StartsWith("/n") || arg.StartsWith("-n")) {
                     // -n #|all  Set cpu count (currently no-op)
                     string ms = ExtractOptionValue(args, ref i);
@@ -142,7 +142,7 @@ namespace NDepCheck {
                 } else if (arg.StartsWith("-r") || arg.StartsWith("/r")) {
                     // -r *      Do graph transformation (after lazy reading; after lazy depcheck; and lazy dep->graph run)
                     string transformationOption = ExtractOptionValue(args, ref i);
-                    state.ReadAll(options).ReduceGraph(options).TransformGraph(transformationOption);
+                    state.ReadAll(options).ReduceGraph(options, true).TransformGraph(transformationOption);
                 } else if (arg.StartsWith("-s") || arg.StartsWith("/s")) {
                     // -s &      Set directory tree search location for .dep files
                     string path = ExtractOptionValue(args, ref i);
@@ -267,7 +267,7 @@ Options overview:
 
     -?        Do write help
     -@ &      Do read options from file
-    -c &      Write dip output (after lazy reading; after lazy dep->graph run)
+    -c &      Write dependencies to .dip file (after lazy reading; after lazy dep->graph run)
     -d &      Set directory search locations for .dep files
     -debug    Do start .Net debugger
     -e $ &    Set file location with defined reader $ (currently supported: dip, dll, exe)

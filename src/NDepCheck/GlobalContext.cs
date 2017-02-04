@@ -3,22 +3,29 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using JetBrains.Annotations;
 using NDepCheck.GraphTransformations;
 
 namespace NDepCheck {
     public class GlobalContext : IGlobalContext {
+        [NotNull]
         private readonly ConcurrentDictionary<string, DependencyRuleSet> _fullFilename2RulesetCache = new ConcurrentDictionary<string, DependencyRuleSet>();
+        [NotNull]
         private readonly List<InputContext> _inputContexts = new List<InputContext>();
+        [CanBeNull]
         private IEnumerable<Dependency> _reducedGraph;
+        [NotNull]
         private readonly Program _program;
 
-        public GlobalContext(Program program) {
+        public GlobalContext([NotNull] Program program) {
             _program = program;
         }
 
+        [NotNull]
         public IEnumerable<IInputContext> InputContexts => _inputContexts;
 
-        public GlobalContext ReadAll(Options options) {
+        [NotNull]
+        public GlobalContext ReadAll([NotNull] Options options) {
             foreach (var i in options.InputFiles) {
                 foreach (AbstractDependencyReader r in i.CreateOrGetReaders(options, false)) {
                     Dependency[] dependencies = r.ReadOrGetDependencies();
@@ -34,10 +41,13 @@ namespace NDepCheck {
             return this;
         }
 
-        public GlobalContext ReduceGraph(Options options) {
-            int checkResult = ComputeViolations(options);
-            if (checkResult != 0) {
-                Log.WriteInfo("Checking before reduction yielded return code " + checkResult);
+        [NotNull]
+        public GlobalContext ReduceGraph([NotNull] Options options, bool alsoComputeViolations) {
+            if (alsoComputeViolations) {
+                int checkResult = ComputeViolations(options);
+                if (checkResult != 0) {
+                    Log.WriteInfo("Checking before reduction yielded return code " + checkResult);
+                }
             }
 
             if (_reducedGraph == null) {
@@ -46,7 +56,8 @@ namespace NDepCheck {
             return this;
         }
 
-        public GlobalContext WriteDotFile(Options options, string filename) {
+        [NotNull]
+        public GlobalContext WriteDotFile([NotNull] Options options, [NotNull] string filename) {
             options.GraphingDone = true;
             using (var output = new StreamWriter(filename)) {
                 Log.WriteInfo("Writing dot file " + filename);
@@ -55,7 +66,8 @@ namespace NDepCheck {
             return this;
         }
 
-        public GlobalContext WriteMatrixFile(Options options, char format, string filename) {
+        [NotNull]
+        public GlobalContext WriteMatrixFile([NotNull] Options options, char format, [NotNull] string filename) {
             using (var output = new StreamWriter(filename)) {
                 Log.WriteInfo("Sorting graph and writing to " + filename);
 
@@ -66,7 +78,7 @@ namespace NDepCheck {
             return this;
         }
 
-        public int ComputeViolations(Options options) {
+        public int ComputeViolations([NotNull] Options options) {
             options.CheckingDone = true;
             int result = 0;
             foreach (var g in _inputContexts) {
@@ -80,8 +92,9 @@ namespace NDepCheck {
             return result;
         }
 
-        public GlobalContext WriteViolations(string xmlfile) {
-            if (xmlfile == null) {
+        [NotNull]
+        public GlobalContext WriteViolations([CanBeNull] string xmlfileOrNullForLog) {
+            if (xmlfileOrNullForLog == null) {
                 foreach (var c in InputContexts) {
                     foreach (var v in c.RuleViolations) {
                         Log.WriteViolation(v);
@@ -89,13 +102,14 @@ namespace NDepCheck {
                 }
             } else {
                 // Write to XML file
-                XmlViolationsWriter.WriteXmlOutput(xmlfile, InputContexts);
+                XmlViolationsWriter.WriteXmlOutput(xmlfileOrNullForLog, InputContexts);
             }
             LogSummary(InputContexts);
             return this;
         }
 
-        public GlobalContext TransformGraph(string transformationOption) {
+        [NotNull]
+        public GlobalContext TransformGraph([NotNull] string transformationOption) {
             IGraphTransformation<Dependency> transformation = CreateGraphTransformation(transformationOption);
 
             Log.WriteInfo(transformation.GetInfo());
@@ -104,6 +118,7 @@ namespace NDepCheck {
             return this;
         }
 
+        [NotNull]
         private static IGraphTransformation<Dependency> CreateGraphTransformation(string arg) {
             string[] args = arg.Split(',', '/', '-').Select(s => s.Trim()).ToArray();
             switch (args[0].ToLowerInvariant()) {
@@ -118,8 +133,8 @@ namespace NDepCheck {
                 case "uc":
                     return new UnhideCycles<Dependency>(args.Skip(1));
                 case "ah":
-                    return new AssociativeHull<Dependency>(args.Skip(1), 
-                        (e1,e2) => new Dependency(e1.UsingItem, e2.UsedItem, e2.FileName, e2.StartLine, e2.StartColumn, e2.EndLine, e2.EndColumn)
+                    return new AssociativeHull<Dependency>(args.Skip(1),
+                        (e1, e2) => new Dependency(e1.UsingItem, e2.UsedItem, e2.FileName, e2.StartLine, e2.StartColumn, e2.EndLine, e2.EndColumn)
                         );
                 default:
                     throw new ArgumentException("Graph transformation '" + args[0] + "' not implemented");
@@ -132,13 +147,14 @@ namespace NDepCheck {
             _reducedGraph = null;
         }
 
-        public GlobalContext WriteDipFile(Options options, string filename) {
+        [NotNull]
+        public GlobalContext WriteDipFile([NotNull]Options options, [NotNull]string filename) {
             DipWriter.Write(_reducedGraph, filename);
             options.GraphingDone = true;
             return this;
         }
 
-        private static void LogSummary(IEnumerable<IInputContext> contexts) {
+        private static void LogSummary([NotNull]IEnumerable<IInputContext> contexts) {
             foreach (var context in contexts) {
                 string msg = $"{context.Filename}: {context.ErrorCount} errors, {context.WarningCount} warnings";
                 if (context.ErrorCount > 0) {
@@ -150,14 +166,16 @@ namespace NDepCheck {
             Log.WriteInfo($"{contexts.Count(ctx => ctx.ErrorCount == 0 && ctx.WarningCount == 0)} input files are without violations.");
         }
 
-        private DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel(DirectoryInfo relativeRoot, string rulefilename, 
-                Options options, bool ignoreCase) {
-            return GetOrCreateDependencyRuleSet_MayBeCalledInParallel(relativeRoot, rulefilename, options, 
+        [CanBeNull]
+        private DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel([NotNull]DirectoryInfo relativeRoot,
+                [NotNull]string rulefilename, [NotNull]Options options, bool ignoreCase) {
+            return GetOrCreateDependencyRuleSet_MayBeCalledInParallel(relativeRoot, rulefilename, options,
                             new Dictionary<string, string>(), new Dictionary<string, Macro>(), ignoreCase);
         }
 
-        public DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel(DirectoryInfo relativeRoot, string rulefilename, 
-                Options options, IDictionary<string, string> defines, IDictionary<string, Macro> macros, bool ignoreCase) {
+        public DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel(DirectoryInfo relativeRoot,
+                string rulefilename, Options options, IDictionary<string, string> defines,
+                IDictionary<string, Macro> macros, bool ignoreCase) {
             string fullRuleFilename = Path.Combine(relativeRoot.FullName, rulefilename);
             DependencyRuleSet result;
             if (!_fullFilename2RulesetCache.TryGetValue(fullRuleFilename, out result)) {
@@ -191,10 +209,12 @@ namespace NDepCheck {
             }
             return ruleSetForAssembly;
         }
+
         /// <summary>
         /// Read rule set from file.
         /// </summary>
         /// <returns>Read rule set; or <c>null</c> if not poeeible to read it.</returns>
+        [CanBeNull]
         public DependencyRuleSet Load(string dependencyFilename, List<DirectoryOption> directories, Options options, bool ignoreCase) {
             foreach (var d in directories) {
                 string fullName = d.GetFullNameFor(dependencyFilename);

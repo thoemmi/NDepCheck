@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 
 namespace NDepCheck {
+    /// <summary>
+    /// Writer for dependencies ("Edges") in standard "DIP" format
+    /// </summary>
     internal static class DipWriter {
         public static void Write(IEnumerable<IEdge> edges, string filename) {
             var _writtenTypes = new HashSet<ItemType>();

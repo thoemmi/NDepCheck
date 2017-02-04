@@ -2,6 +2,7 @@
 
 using System;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace NDepCheck {
     /// <remarks>Class <c>DependencyRule_</c> knows enough 
@@ -13,18 +14,23 @@ namespace NDepCheck {
     /// (like \1) between the using and the used
     /// item.</remarks>
     public class DependencyRule : Pattern {
+        [NotNull]
         private readonly ItemType _usingItemType;
+        [NotNull]
         private readonly ItemType _usedItemType;
+        [NotNull]
         private readonly DependencyRuleRepresentation _rep;
+        [NotNull]
         private readonly IMatcher[] _using;
+        [NotNull]
         private readonly IMatcher[] _used;
         private int _hitCount;
 
         // Dependency_ rules are created from lines with
         // a specific extension algorithm (see CreateDependencyRules()
         // below. Hence, the constructor is private.
-        public DependencyRule(ItemType usingItemType, string usingItemPattern, ItemType usedItemType, string usedItemPattern,
-                              DependencyRuleRepresentation rep, bool ignoreCase) {
+        public DependencyRule([NotNull] ItemType usingItemType, string usingItemPattern, [NotNull] ItemType usedItemType, string usedItemPattern,
+                              [NotNull] DependencyRuleRepresentation rep, bool ignoreCase) {
             if (usingItemType == null) {
                 throw new ArgumentNullException(nameof(usingItemType));
             }
@@ -43,6 +49,7 @@ namespace NDepCheck {
 
         public int HitCount => _hitCount;
 
+        [NotNull]
         public DependencyRuleRepresentation Representation => _rep;
 
         public bool IsMatch(Dependency dependency) {

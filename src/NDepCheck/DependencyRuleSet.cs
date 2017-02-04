@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using JetBrains.Annotations;
 
 namespace NDepCheck {
     public class DependencyRuleSet {
@@ -42,26 +43,32 @@ namespace NDepCheck {
             }
         }
 
+        [NotNull]
         private readonly List<DependencyRuleGroup> _ruleGroups = new List<DependencyRuleGroup>();
+        [NotNull]
         private readonly DependencyRuleGroup _mainRuleGroup;
 
+        [NotNull]
         private readonly List<GraphAbstraction> _orderedGraphAbstractions = new List<GraphAbstraction>();
 
+        [NotNull]
         private readonly List<DependencyRuleSet> _includedRuleSets = new List<DependencyRuleSet>();
 
+        [NotNull]
         private readonly SortedDictionary<string, Macro> _macros = new SortedDictionary<string, Macro>(new LengthComparer());
+        [NotNull]
         private readonly SortedDictionary<string, string> _defines = new SortedDictionary<string, string>(new LengthComparer());
 
         /// <summary>
         /// Constructor public only for test cases.
         /// </summary>
         public DependencyRuleSet(bool ignoreCase) {
-            _mainRuleGroup = new DependencyRuleGroup(null, "", ignoreCase);
+            _mainRuleGroup = new DependencyRuleGroup(ItemType.DEFAULT, group: "", ignoreCase: ignoreCase);
             _ruleGroups.Add(_mainRuleGroup);
         }
 
-        public DependencyRuleSet(IGlobalContext globalContext, Options options, string fullRuleFilename, 
-                                 IDictionary<string, string> defines, IDictionary<string, Macro> macros, bool ignoreCase)
+        public DependencyRuleSet([NotNull] IGlobalContext globalContext, [NotNull] Options options, [NotNull] string fullRuleFilename,
+                                 [NotNull] IDictionary<string, string> defines, [NotNull] IDictionary<string, Macro> macros, bool ignoreCase)
             : this(ignoreCase) {
             _defines = new SortedDictionary<string, string>(defines, new LengthComparer());
             _macros = new SortedDictionary<string, Macro>(macros, new LengthComparer());
@@ -87,7 +94,7 @@ namespace NDepCheck {
             DependencyRuleGroup currentGroup = _mainRuleGroup;
             ItemType usingItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename);
             ItemType usedItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename);
-            for (; ; ) {
+            for (;;) {
                 string line = tr.ReadLine();
 
                 if (line == null) {
@@ -205,7 +212,7 @@ namespace NDepCheck {
             return textIsOk;
         }
 
-        private bool CheckDefinedName(string macroName, string ruleFileName, int lineNo) {
+        private bool CheckDefinedName([NotNull] string macroName, [NotNull] string ruleFileName, int lineNo) {
             if (macroName.Contains(" ")) {
                 Log.WriteError($"{ruleFileName}, line {lineNo}: Macro name must not contain white space: {macroName}", ruleFileName, lineNo);
                 return false;
@@ -230,7 +237,7 @@ namespace NDepCheck {
             }
         }
 
-        private static string CompactedName(IEnumerable<char> name) {
+        private static string CompactedName([NotNull] IEnumerable<char> name) {
             // Replace sequences of equal chars with a single char here
             // Reason: ===> can be confused with ====> - so I allow only
             // one of these to be defined.
@@ -245,7 +252,7 @@ namespace NDepCheck {
             return result.ToUpperInvariant();
         }
 
-        private bool ProcessMacroIfFound(IGlobalContext globalContext, string line, bool ignoreCase) {
+        private bool ProcessMacroIfFound([NotNull] IGlobalContext globalContext, [NotNull] string line, bool ignoreCase) {
             string foundMacroName;
             foreach (string macroName in _macros.Keys) {
                 if (line.Contains(macroName) && !line.StartsWith(macroName) && !line.Contains(MACRO_DEFINE)) {
@@ -255,7 +262,7 @@ namespace NDepCheck {
             }
             return false;
 
-        PROCESS_MACRO:
+            PROCESS_MACRO:
             Macro macro = _macros[foundMacroName];
             int macroPos = line.IndexOf(foundMacroName, StringComparison.Ordinal);
             string leftParam = line.Substring(0, macroPos).Trim();
@@ -273,7 +280,7 @@ namespace NDepCheck {
         /// <param name="ruleFileName"></param>
         /// <param name="lineNo"></param>
         /// <param name="line"></param>
-        private void AddDefine(string ruleFileName, int lineNo, string line) {
+        private void AddDefine([NotNull] string ruleFileName, int lineNo, [NotNull] string line) {
             int i = line.IndexOf(DEFINE, StringComparison.Ordinal);
             string key = line.Substring(0, i).Trim();
             string value = line.Substring(i + DEFINE.Length).Trim();
@@ -292,7 +299,7 @@ namespace NDepCheck {
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
-        internal string ExpandDefines(string s) {
+        internal string ExpandDefines([CanBeNull] string s) {
             if (string.IsNullOrEmpty(s)) {
                 s = "**";
             }
@@ -306,13 +313,14 @@ namespace NDepCheck {
             return s;
         }
 
+        [NotNull]
         internal List<GraphAbstraction> ExtractGraphAbstractions() {
             var result = new List<GraphAbstraction>();
             ExtractGraphAbstractions(result, new List<DependencyRuleSet>());
             return result;
         }
 
-        private void ExtractGraphAbstractions(List<GraphAbstraction> orderedGraphAbstractions, List<DependencyRuleSet> visited) {
+        private void ExtractGraphAbstractions([NotNull]List<GraphAbstraction> orderedGraphAbstractions, [NotNull]List<DependencyRuleSet> visited) {
             if (visited.Contains(this)) {
                 return;
             }
@@ -328,7 +336,8 @@ namespace NDepCheck {
         /// line (with leading %).
         /// public for testability.
         /// </summary>
-        public void AddGraphAbstractions(ItemType usingItemType, ItemType usedItemType, bool isInner, string ruleFileName, int lineNo, string line, bool ignoreCase) {
+        public void AddGraphAbstractions([CanBeNull] ItemType usingItemType, [CanBeNull]ItemType usedItemType, bool isInner,
+                                         [NotNull] string ruleFileName, int lineNo, [NotNull] string line, bool ignoreCase) {
             if (usingItemType == null || usedItemType == null) {
                 Log.WriteError("Itemtypes not defined - $ line is missing in this file, graph rules are ignored", ruleFileName, lineNo);
             } else {
@@ -340,7 +349,8 @@ namespace NDepCheck {
             }
         }
 
-        private void CreateGraphAbstraction(ItemType usingItemType, bool isInner, string ruleFileName, int lineNo, string line, bool ignoreCase) {
+        private void CreateGraphAbstraction([NotNull] ItemType usingItemType, bool isInner, [NotNull] string ruleFileName, int lineNo,
+                                            [NotNull] string line, bool ignoreCase) {
             GraphAbstraction ga = new GraphAbstraction(usingItemType, line, isInner, ignoreCase);
             _orderedGraphAbstractions.Add(ga);
             if (Log.IsChattyEnabled) {
@@ -355,7 +365,7 @@ namespace NDepCheck {
             return result.Values;
         }
 
-        private void CombineGroupsFromChildren(Dictionary<string, DependencyRuleGroup> result, List<DependencyRuleSet> visited, bool ignoreCase) {
+        private void CombineGroupsFromChildren([NotNull] Dictionary<string, DependencyRuleGroup> result, [NotNull] List<DependencyRuleSet> visited, bool ignoreCase) {
             if (visited.Contains(this)) {
                 return;
             }

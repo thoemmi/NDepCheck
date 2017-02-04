@@ -152,7 +152,7 @@ NDepCheck:Tests ---> **
             };
 
             var nodes = new Dictionary<string, Item>();
-            var edges = new Dictionary<Tuple<Item, Item>, Dependency>();
+            var edges = new Dictionary<DependencyGrapher.FromTo, Dependency>();
 
             DependencyGrapher.ReduceGraph(new Options { IgnoreCase = _ignoreCase }, rs, deps, nodes, edges);
 
@@ -192,7 +192,7 @@ NDepCheck:Tests ---> **
             };
 
             var nodes = new Dictionary<string, Item>();
-            var edges = new Dictionary<Tuple<Item, Item>, Dependency>();
+            var edges = new Dictionary<DependencyGrapher.FromTo, Dependency>();
 
             DependencyGrapher.ReduceGraph(new Options { IgnoreCase = _ignoreCase }, rs, deps, nodes, edges);
 

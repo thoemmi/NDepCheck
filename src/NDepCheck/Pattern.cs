@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using JetBrains.Annotations;
 
 namespace NDepCheck {
     /// <remarks>
@@ -43,7 +44,8 @@ namespace NDepCheck {
 
         public const char GROUPSEP = '#'; // TODO: Durch nbsp o.ä. ersetzen
 
-        protected static string ExpandAsterisks(string pattern, bool ignoreCase) {
+        [NotNull]
+        protected static string ExpandAsterisks([NotNull] string pattern, bool ignoreCase) {
             // . and \ must be replaced after loops so that looking for separators works!
             RegexOptions regexOptions = ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None;
 
@@ -71,11 +73,13 @@ namespace NDepCheck {
             return UnescapePattern(pattern);
         }
 
-        private static string Interpolate(string pattern, int indexOfIdentPart, int replacedLength, string replacement) {
+        [NotNull]
+        private static string Interpolate([NotNull] string pattern, int indexOfIdentPart, int replacedLength, [NotNull] string replacement) {
             return pattern.Substring(0, indexOfIdentPart) + replacement + pattern.Substring(indexOfIdentPart + replacedLength);
         }
 
-        protected static IMatcher[] CreateMatchers(ItemType type, string itemPattern, int estimatedGroupCount, bool ignoreCase) {
+        [NotNull]
+        protected static IMatcher[] CreateMatchers([NotNull] ItemType type, [NotNull] string itemPattern, int estimatedGroupCount, bool ignoreCase) {
             var result = new List<IMatcher>(); 
 
             const string UNCOLLECTED_GROUP = "(?:";
@@ -108,7 +112,8 @@ namespace NDepCheck {
             return result.Take(type.Keys.Length).ToArray();
         }
 
-        private static IMatcher CreateMatcher(string segment, int estimatedGroupCount, bool ignoreCase) {
+        [NotNull]
+        private static IMatcher CreateMatcher([NotNull] string segment, int estimatedGroupCount, bool ignoreCase) {
             string groupPrefix = string.Join("", Enumerable.Repeat("([^" + GROUPSEP + "]*)" + GROUPSEP, estimatedGroupCount));
             if (segment == "-") {
                 return new EmptyStringMatcher();
@@ -132,16 +137,15 @@ namespace NDepCheck {
             }
         }
 
-
-        private static bool IsPrefixAndSuffixAsterisksPattern(string segment) {
+        private static bool IsPrefixAndSuffixAsterisksPattern([NotNull] string segment) {
             return segment.StartsWith("**") && segment.EndsWith("**") && HasNoRegexCharsExceptPeriod(segment.Trim('*'));
         }
 
-        private static bool IsPrefixAsterisksPattern(string segment) {
+        private static bool IsPrefixAsterisksPattern([NotNull] string segment) {
             return segment.StartsWith("**") && HasNoRegexCharsExceptPeriod(segment.TrimStart('*'));
         }
 
-        private static bool IsSuffixAsterisksPattern(string segment) {
+        private static bool IsSuffixAsterisksPattern([NotNull] string segment) {
             return segment.EndsWith("**") && HasNoRegexCharsExceptPeriod(segment.TrimEnd('*'));
         }
 
@@ -151,7 +155,8 @@ namespace NDepCheck {
 
         internal static readonly string[] NO_GROUPS = new string[0];
 
-        protected static string[] Match(ItemType type, IMatcher[] matchers, Item item) {
+        [CanBeNull]
+        protected static string[] Match([NotNull] ItemType type, [NotNull] IMatcher[] matchers, [NotNull] Item item) {
             if (item.Type != type) {
                 return null;
             }
@@ -212,8 +217,10 @@ namespace NDepCheck {
     }
 
     public interface IMatcher {
-        bool IsMatch(string value, string[] groupsInUsing);
-        string[] Match(string value);
+        bool IsMatch([NotNull]string value, [NotNull]string[] groupsInUsing);
+
+        [CanBeNull]
+        string[] Match([NotNull]string value);
     }
 
     public abstract class AbstractRememberingMatcher {
@@ -261,7 +268,7 @@ namespace NDepCheck {
         private readonly int _estimatedGroupCount;
         private readonly Regex _regex;
 
-        public RegexMatcher(string pattern, bool ignoreCase, int estimatedGroupCount) {
+        public RegexMatcher([NotNull]string pattern, bool ignoreCase, int estimatedGroupCount) {
             _estimatedGroupCount = estimatedGroupCount;
             _regex = new Regex(pattern, ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
         }

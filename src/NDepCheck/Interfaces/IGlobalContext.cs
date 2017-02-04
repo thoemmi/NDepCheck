@@ -1,14 +1,16 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using JetBrains.Annotations;
 
 namespace NDepCheck {
     public interface IGlobalContext {
-        DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel(Options options, string dependencyFilename);
-        DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel(DirectoryInfo relativeRoot, string rulefilename,
-            Options options, IDictionary<string, string> defines, IDictionary<string, Macro> macros, bool ignoreCase);
+        [CanBeNull]
+        DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel([NotNull]Options options, [NotNull]string dependencyFilename);
 
+        [CanBeNull]
+        DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel([NotNull]DirectoryInfo relativeRoot, [NotNull]string rulefilename,
+            [NotNull]Options options, [NotNull]IDictionary<string, string> defines, [NotNull]IDictionary<string, Macro> macros, bool ignoreCase);
 
-
-        int Run(string[] args);
+        int Run([NotNull] string[] args);
     }
 }

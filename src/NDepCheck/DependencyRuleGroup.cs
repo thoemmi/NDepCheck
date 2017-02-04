@@ -1,24 +1,31 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace NDepCheck {
     public class DependencyRuleGroup : Pattern {
         private static readonly Comparison<DependencyRule> _sortOnDescendingHitCount = (r1, r2) => r2.HitCount - r1.HitCount;
 
+        [NotNull]
         private readonly List<DependencyRule> _allowed;
+        [NotNull]
         private readonly List<DependencyRule> _questionable;
+        [NotNull]
         private readonly List<DependencyRule> _forbidden;
 
+        [NotNull]
         private readonly string _group;
+        [CanBeNull]
         private readonly IMatcher[] _groupMatchersOrNullForGlobalRules;
+        [NotNull]
         private readonly ItemType _groupType;
 
-        private DependencyRuleGroup(ItemType groupType, string group, IEnumerable<DependencyRule> allowed,
-                IEnumerable<DependencyRule> questionable, IEnumerable<DependencyRule> forbidden,
+        private DependencyRuleGroup([NotNull] ItemType groupType, [NotNull] string group, [NotNull] IEnumerable<DependencyRule> allowed,
+                [NotNull] IEnumerable<DependencyRule> questionable, [NotNull] IEnumerable<DependencyRule> forbidden,
                 bool ignoreCase) {
             if (groupType == null && group != "") {
-                throw new ArgumentException("groupType is null, but group is not not empty", nameof(groupType));
+                throw new ArgumentException("groupType is null, but group is not empty", nameof(groupType));
             }
 
             _groupType = groupType;
@@ -29,7 +36,7 @@ namespace NDepCheck {
             _forbidden = forbidden.ToList();
         }
 
-        public DependencyRuleGroup(ItemType groupType, string group, bool ignoreCase)
+        public DependencyRuleGroup([NotNull] ItemType groupType, [NotNull] string group, bool ignoreCase)
             : this(groupType, group,
                 Enumerable.Empty<DependencyRule>(),
                 Enumerable.Empty<DependencyRule>(),
@@ -37,16 +44,17 @@ namespace NDepCheck {
             // empty
         }
 
+        [NotNull]
         public string Group => _group;
 
         public bool IsNotEmpty => _allowed.Any() || _questionable.Any() || _forbidden.Any();
 
         /// <summary>
-        /// Add one or more <c>DependencyRules</c>s from a single input
-        /// line.
+        /// Add one or more <c>DependencyRules</c>s from a single input line.
         /// public for testability.
         /// </summary>
-        public void AddDependencyRules(DependencyRuleSet parent, ItemType usingItemType, ItemType usedItemType, string ruleFileName, int lineNo, string line, bool ignoreCase) {
+        public void AddDependencyRules([NotNull] DependencyRuleSet parent, [CanBeNull] ItemType usingItemType, [CanBeNull] ItemType usedItemType, 
+                                       [NotNull] string ruleFileName, int lineNo, [NotNull] string line, bool ignoreCase) {
             if (usingItemType == null || usedItemType == null) {
                 Log.WriteError("Itemtypes not defined - $ line is missing in this file, dependency rules are ignored", ruleFileName, lineNo);
             } else if (line.Contains(DependencyRuleSet.MAYUSE)) {
@@ -72,7 +80,10 @@ namespace NDepCheck {
             //}
         }
 
-        private static IEnumerable<DependencyRule> CreateDependencyRules(DependencyRuleSet parent, ItemType usingItemType, ItemType usedItemType, string ruleFileName, int lineNo, string line, string sep, bool questionableRule, bool ignoreCase) {
+        private static IEnumerable<DependencyRule> CreateDependencyRules([NotNull] DependencyRuleSet parent, 
+            [NotNull] ItemType usingItemType, [NotNull] ItemType usedItemType, [NotNull] string ruleFileName, int lineNo, 
+            [NotNull] string line, [NotNull] string sep, bool questionableRule, bool ignoreCase) {
+
             DependencyRuleRepresentation rep = new DependencyRuleRepresentation(ruleFileName, lineNo, line, questionableRule);
             int i = line.IndexOf(sep, StringComparison.Ordinal);
             string usingPattern = parent.ExpandDefines(line.Substring(0, i).Trim());
@@ -86,14 +97,14 @@ namespace NDepCheck {
             return new[] { rule };
         }
 
-        public DependencyRuleGroup Combine(DependencyRuleGroup other, bool ignoreCase) {
+        public DependencyRuleGroup Combine([NotNull] DependencyRuleGroup other, bool ignoreCase) {
             return new DependencyRuleGroup(_groupType, _group,
                 _allowed.Union(other._allowed),
                 _questionable.Union(other._questionable),
                 _forbidden.Union(other._forbidden), ignoreCase);
         }
 
-        public bool Check(IInputContext inputContext, IEnumerable<Dependency> dependencies) {
+        public bool Check([CanBeNull] IInputContext inputContext, [NotNull] IEnumerable<Dependency> dependencies) {
             bool result = true;
             int reorgCount = 0;
             int nextReorg = 200;
@@ -113,7 +124,7 @@ namespace NDepCheck {
             return result;
         }
 
-        private bool Check(IInputContext inputContext, Dependency d) {
+        private bool Check([CanBeNull] IInputContext inputContext, [NotNull] Dependency d) {
             bool ok = false;
             if (Log.IsChattyEnabled) {
                 Log.WriteInfo("Checking " + d);
@@ -143,6 +154,7 @@ namespace NDepCheck {
             return ok;
         }
 
+        [NotNull]
         public IEnumerable<DependencyRule> AllRules => _allowed.Concat(_forbidden).Concat(_questionable);
     }
 }
