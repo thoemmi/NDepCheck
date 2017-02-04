@@ -69,10 +69,21 @@
   <ItemGroup>
     <Compile Include="EnumerableComparer.cs" />
     <Compile Include="FileHandlingTests.cs" />
+    <Compile Include="AttributeTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="MainTests.cs" />
+    <Compile Include="TestEdge.cs" />
+    <Compile Include="TestHideTransitiveEdges.cs" />
+    <Compile Include="TestUnhideCycles.cs" />
+    <Compile Include="TestNode.cs" />
+    <Compile Include="TestPatternsAndItems.cs" />
+    <Compile Include="TestWriteMatrixFile.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\NDepCheck.TestAssemblyForAttributes\NDepCheck.TestAssemblyForAttributes.csproj">
+      <Project>{0aa9e414-b449-4582-adea-332d18c2be23}</Project>
+      <Name>NDepCheck.TestAssemblyForAttributes</Name>
+    </ProjectReference>
     <ProjectReference Include="..\NDepCheck.TestAssembly\NDepCheck.TestAssembly.csproj">
       <Project>{12182557-4A79-4950-BEC5-735AA73FC3FF}</Project>
       <Name>NDepCheck.TestAssembly</Name>

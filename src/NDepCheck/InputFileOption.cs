@@ -1,22 +1,30 @@
 ﻿using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace NDepCheck {
-    public class AssemblyOption {
+    public class InputFileOption {
+        private readonly string _extension;
         private readonly string _positive;
         private readonly string _negativeOrNull;
-        public AssemblyOption(string positive, string negativeOrNull) {
+        private IEnumerable<AbstractDependencyReader> _readers;
+
+        public InputFileOption(string extension, string positive, string negativeOrNull) {
+            _extension = extension;
             _positive = positive;
             _negativeOrNull = negativeOrNull;
         }
 
-        internal IEnumerable<string> ExpandFilename() {
-            var result = new List<string>(ExpandFilename(_positive));
-            if (_negativeOrNull != null) {
-                var negative = new List<string>(ExpandFilename(_negativeOrNull)).ConvertAll(Path.GetFullPath);
-                result.RemoveAll(f => negative.Contains(Path.GetFullPath(f)));
+        internal IEnumerable<AbstractDependencyReader> CreateOrGetReaders(Options options, bool needsOnlyItemTails) {
+            if (_readers == null) {
+                var filenames = new List<string>(ExpandFilename(_positive));
+                if (_negativeOrNull != null) {
+                    var negative = new List<string>(ExpandFilename(_negativeOrNull)).ConvertAll(Path.GetFullPath);
+                    filenames.RemoveAll(f => negative.Contains(Path.GetFullPath(f)));
+                }
+                _readers = filenames.Select(filename => AbstractReaderFactory.CreateReader(filename, _extension, options, needsOnlyItemTails)).ToArray();
             }
-            return result;
+            return _readers;
         }
 
         private IEnumerable<string> ExpandFilename(string pattern) {
@@ -52,6 +60,5 @@ namespace NDepCheck {
                 yield return pattern;
             }
         }
-
     }
 }

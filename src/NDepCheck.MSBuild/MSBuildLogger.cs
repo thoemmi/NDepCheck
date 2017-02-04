@@ -14,8 +14,8 @@ namespace NDepCheck.MSBuild {
             _log.LogError(msg);
         }
 
-        public void WriteError(string msg, string fileName, uint startLine) {
-            _log.LogError(null, null, null, fileName, (int) startLine, 0, 0, 0, msg);
+        public void WriteError(string msg, string fileName, int startLine) {
+            _log.LogError(null, null, null, fileName, startLine, 0, 0, 0, msg);
         }
 
         public void WriteViolation(RuleViolation ruleViolation) {
@@ -26,10 +26,10 @@ namespace NDepCheck.MSBuild {
                         null,
                         null,
                         ruleViolation.Dependency.FileName,
-                        (int) ruleViolation.Dependency.StartLine,
-                        (int) ruleViolation.Dependency.StartColumn,
-                        (int) ruleViolation.Dependency.EndLine,
-                        (int) ruleViolation.Dependency.EndColumn,
+                        ruleViolation.Dependency.StartLine,
+                        ruleViolation.Dependency.StartColumn,
+                        ruleViolation.Dependency.EndLine,
+                        ruleViolation.Dependency.EndColumn,
                         ruleViolation.Dependency.QuestionableMessage());
                     break;
                 case ViolationType.Error:
@@ -38,10 +38,10 @@ namespace NDepCheck.MSBuild {
                         null,
                         null,
                         ruleViolation.Dependency.FileName,
-                        (int) ruleViolation.Dependency.StartLine,
-                        (int) ruleViolation.Dependency.StartColumn,
-                        (int) ruleViolation.Dependency.EndLine,
-                        (int) ruleViolation.Dependency.EndColumn,
+                        ruleViolation.Dependency.StartLine,
+                        ruleViolation.Dependency.StartColumn,
+                        ruleViolation.Dependency.EndLine,
+                        ruleViolation.Dependency.EndColumn,
                         ruleViolation.Dependency.IllegalMessage());
                     break;
                 default:
@@ -53,8 +53,8 @@ namespace NDepCheck.MSBuild {
             _log.LogWarning(msg);
         }
 
-        public void WriteWarning(string msg, string fileName, uint startLine) {
-            _log.LogWarning(null, null, null, fileName, (int) startLine, 0, 0, 0, msg);
+        public void WriteWarning(string msg, string fileName, int startLine) {
+            _log.LogWarning(null, null, null, fileName, startLine, 0, 0, 0, msg);
         }
 
         public void WriteInfo(string msg) {

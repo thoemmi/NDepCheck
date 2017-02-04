@@ -50,20 +50,12 @@ namespace NDepCheck.TestAssembly {
             }
         }
 
-        public List<T> ItemsInANotInB {
-            get { return _itemsInANotInB; }
-        }
+        public List<T> ItemsInANotInB => _itemsInANotInB;
 
-        public List<T> ItemsInBNotInA {
-            get { return _itemsInBNotInA; }
-        }
+        public List<T> ItemsInBNotInA => _itemsInBNotInA;
 
-        public List<T> ItemsMatchingPerfectly {
-            get { return _itemsMatchingPerfectly; }
-        }
+        public List<T> ItemsMatchingPerfectly => _itemsMatchingPerfectly;
 
-        public List<T> ItemsMatchingAlmost {
-            get { return _itemsMatchingAlmost; }
-        }
+        public List<T> ItemsMatchingAlmost => _itemsMatchingAlmost;
     }
 }

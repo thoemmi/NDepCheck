@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace NDepCheck {
     public class DependencyRuleGroup : Pattern {
@@ -12,48 +11,54 @@ namespace NDepCheck {
         private readonly List<DependencyRule> _forbidden;
 
         private readonly string _group;
-        private readonly List<string> _groupRegexes;
+        private readonly IMatcher[] _groupMatchersOrNullForGlobalRules;
+        private readonly ItemType _groupType;
 
-        private DependencyRuleGroup(string group,
-                    IEnumerable<DependencyRule> allowed,
-                    IEnumerable<DependencyRule> questionable,
-                    IEnumerable<DependencyRule> forbidden) {
+        private DependencyRuleGroup(ItemType groupType, string group, IEnumerable<DependencyRule> allowed,
+                IEnumerable<DependencyRule> questionable, IEnumerable<DependencyRule> forbidden,
+                bool ignoreCase) {
+            if (groupType == null && group != "") {
+                throw new ArgumentException("groupType is null, but group is not not empty", nameof(groupType));
+            }
+
+            _groupType = groupType;
             _group = group;
-            _groupRegexes = group == "" ? null : Expand(group);
+            _groupMatchersOrNullForGlobalRules = group == "" ? null : CreateMatchers(groupType, group, 0, ignoreCase);
             _allowed = allowed.ToList();
             _questionable = questionable.ToList();
             _forbidden = forbidden.ToList();
         }
 
-        public DependencyRuleGroup(string group)
-            : this(group,
+        public DependencyRuleGroup(ItemType groupType, string group, bool ignoreCase)
+            : this(groupType, group,
                 Enumerable.Empty<DependencyRule>(),
                 Enumerable.Empty<DependencyRule>(),
-                Enumerable.Empty<DependencyRule>()) {
+                Enumerable.Empty<DependencyRule>(), ignoreCase) {
             // empty
         }
 
-        public string Group {
-            get {
-                return _group;
-            }
-        }
+        public string Group => _group;
+
+        public bool IsNotEmpty => _allowed.Any() || _questionable.Any() || _forbidden.Any();
+
         /// <summary>
         /// Add one or more <c>DependencyRules</c>s from a single input
         /// line.
         /// public for testability.
         /// </summary>
-        public void AddDependencyRules(DependencyRuleSet parent, string ruleFileName, uint lineNo, string line, bool isAssemblyRule) {
-            if (line.Contains(DependencyRuleSet.MAYUSE)) {
-                foreach (var rule in CreateDependencyRules(parent, ruleFileName, lineNo, line, DependencyRuleSet.MAYUSE, false, isAssemblyRule)) {
+        public void AddDependencyRules(DependencyRuleSet parent, ItemType usingItemType, ItemType usedItemType, string ruleFileName, int lineNo, string line, bool ignoreCase) {
+            if (usingItemType == null || usedItemType == null) {
+                Log.WriteError("Itemtypes not defined - $ line is missing in this file, dependency rules are ignored", ruleFileName, lineNo);
+            } else if (line.Contains(DependencyRuleSet.MAYUSE)) {
+                foreach (var rule in CreateDependencyRules(parent, usingItemType, usedItemType, ruleFileName, lineNo, line, DependencyRuleSet.MAYUSE, false, ignoreCase)) {
                     Add(_allowed, rule);
                 }
             } else if (line.Contains(DependencyRuleSet.MAYUSE_WITH_WARNING)) {
-                foreach (var rule in CreateDependencyRules(parent, ruleFileName, lineNo, line, DependencyRuleSet.MAYUSE_WITH_WARNING, true, isAssemblyRule)) {
+                foreach (var rule in CreateDependencyRules(parent, usingItemType, usedItemType, ruleFileName, lineNo, line, DependencyRuleSet.MAYUSE_WITH_WARNING, true, ignoreCase)) {
                     Add(_questionable, rule);
                 }
             } else if (line.Contains(DependencyRuleSet.MUSTNOTUSE)) {
-                foreach (var rule in CreateDependencyRules(parent, ruleFileName, lineNo, line, DependencyRuleSet.MUSTNOTUSE, false, isAssemblyRule)) {
+                foreach (var rule in CreateDependencyRules(parent, usingItemType, usedItemType, ruleFileName, lineNo, line, DependencyRuleSet.MUSTNOTUSE, false, ignoreCase)) {
                     Add(_forbidden, rule);
                 }
             } else {
@@ -62,48 +67,40 @@ namespace NDepCheck {
         }
 
         private static void Add(List<DependencyRule> ruleList, DependencyRule rule) {
-            if (!ruleList.Any(r => r.IsSameAs(rule))) {
-                ruleList.Add(rule);
-            }
+            //if (!ruleList.Any(r => r.IsSameAs(rule))) {
+            ruleList.Add(rule);
+            //}
         }
 
-        private static IEnumerable<DependencyRule> CreateDependencyRules(DependencyRuleSet parent, string ruleFileName, uint lineNo, string line, string sep, bool questionableRule, bool isAssemblyRule) {
+        private static IEnumerable<DependencyRule> CreateDependencyRules(DependencyRuleSet parent, ItemType usingItemType, ItemType usedItemType, string ruleFileName, int lineNo, string line, string sep, bool questionableRule, bool ignoreCase) {
             DependencyRuleRepresentation rep = new DependencyRuleRepresentation(ruleFileName, lineNo, line, questionableRule);
-            int i = line.IndexOf(sep);
+            int i = line.IndexOf(sep, StringComparison.Ordinal);
             string usingPattern = parent.ExpandDefines(line.Substring(0, i).Trim());
             string usedPattern = parent.ExpandDefines(line.Substring(i + sep.Length).Trim());
-            List<DependencyRule> deps = DependencyRule.CreateDependencyRules(usingPattern, usedPattern, rep, isAssemblyRule);
+            var rule = new DependencyRule(usingItemType, usingPattern, usedItemType, usedPattern, rep, ignoreCase);
 
-            if (Log.IsVerboseEnabled) {
-                Log.WriteInfo(String.Format("Rules used for checking {0} ({1}:{2})", line, ruleFileName, lineNo));
-                foreach (DependencyRule d in deps) {
-                    Log.WriteInfo("  " + d);
-                }
+            if (Log.IsChattyEnabled) {
+                Log.WriteInfo($"Rules used for checking {line} ({ruleFileName}:{lineNo})");
+                Log.WriteInfo("  " + rule);
             }
-            return deps;
+            return new[] { rule };
         }
 
-        public DependencyRuleGroup Combine(DependencyRuleGroup other) {
-            return new DependencyRuleGroup(_group,
+        public DependencyRuleGroup Combine(DependencyRuleGroup other, bool ignoreCase) {
+            return new DependencyRuleGroup(_groupType, _group,
                 _allowed.Union(other._allowed),
                 _questionable.Union(other._questionable),
-                _forbidden.Union(other._forbidden));
+                _forbidden.Union(other._forbidden), ignoreCase);
         }
 
-        public bool Check(IAssemblyContext assemblyContext, IEnumerable<Dependency> dependencies) {
+        public bool Check(IInputContext inputContext, IEnumerable<Dependency> dependencies) {
             bool result = true;
             int reorgCount = 0;
             int nextReorg = 200;
 
             foreach (Dependency d in dependencies) {
-                // The group is the globale one (""); or the dependency's left side
-                // matches the group's pattern:
-                Dependency d1 = d;
-                if (_groupRegexes == null || _groupRegexes.Any(r => Regex.IsMatch(d1.UsingItem, r))) {
-                    //if (_groupRegexes != null) {
-                    //    _groupRegexes.ToString();
-                    //}
-                    result &= Check(assemblyContext, d);
+                if (_groupMatchersOrNullForGlobalRules == null || Match(_groupType, _groupMatchersOrNullForGlobalRules, d.UsingItem) != null) {
+                    result &= Check(inputContext, d);
                     if (++reorgCount > nextReorg) {
                         _forbidden.Sort(_sortOnDescendingHitCount);
                         _allowed.Sort(_sortOnDescendingHitCount);
@@ -116,35 +113,36 @@ namespace NDepCheck {
             return result;
         }
 
-        private bool Check(IAssemblyContext assemblyContext, Dependency d) {
+        private bool Check(IInputContext inputContext, Dependency d) {
             bool ok = false;
-            if (Log.IsVerboseEnabled) {
+            if (Log.IsChattyEnabled) {
                 Log.WriteInfo("Checking " + d);
             }
-            if (_forbidden.Any(r => r.Matches(d))) {
+            if (_forbidden.Any(r => r.IsMatch(d))) {
                 goto DONE;
             }
-            if (_allowed.Any(r => r.Matches(d))) {
+            if (_allowed.Any(r => r.IsMatch(d))) {
                 ok = true;
                 goto DONE;
             }
-            if (_questionable.Any(r => r.Matches(d))) {
+            if (_questionable.Any(r => r.IsMatch(d))) {
                 var ruleViolation = new RuleViolation(d, ViolationType.Warning);
-                Log.WriteViolation(ruleViolation);
-                if (assemblyContext != null) {
-                    assemblyContext.Add(ruleViolation);
-                }
+                //Log.WriteViolation(ruleViolation);
+                inputContext?.Add(ruleViolation);
                 ok = true;
             }
         DONE:
             if (!ok) {
                 var ruleViolation = new RuleViolation(d, ViolationType.Error);
-                Log.WriteViolation(ruleViolation);
-                if (assemblyContext != null) {
-                    assemblyContext.Add(ruleViolation);
-                }
+                //Log.WriteViolation(ruleViolation);
+                inputContext?.Add(ruleViolation);
             }
+
+            d.MarkOkOrNotOk(ok);
+
             return ok;
         }
+
+        public IEnumerable<DependencyRule> AllRules => _allowed.Concat(_forbidden).Concat(_questionable);
     }
 }

@@ -33,7 +33,7 @@ namespace NDepCheck.TestAssembly.dir1.dir3 {
         public decimal M;
 
         public Class13C() {
-            M = 1.5m*new Random().Next();
+            M = 1.5m * new Random().Next();
         }
     }
 
@@ -145,9 +145,7 @@ namespace NDepCheck.TestAssembly.dir1.dir2 {
 
         public void InvokeSomeEvent(EventArgs e) {
             EventHandler<EventArgs> handler = SomeEvent;
-            if (handler != null) {
-                handler(this, e);
-            }
+            handler?.Invoke(this, e);
         }
 
         protected static void OtherMethod(Class13D[] d) {
@@ -158,6 +156,7 @@ namespace NDepCheck.TestAssembly.dir1.dir2 {
         }
 
         protected internal static int AnotherMethod(Class13D d) {
+            // ReSharper disable once ObjectCreationAsStatement
             new Class13A("NDepCheck.TestAssembly.dir1.dir3.SomeClass");
             return NamespacelessTestClassForNDepCheck.I;
         }

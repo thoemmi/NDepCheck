@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 
 namespace NDepCheck {
     public class DependencyRuleSet {
-        private readonly CheckerContext _checkerContext;
         private const string LEFT_PARAM = "\\L";
         private const string MACRO_DEFINE = ":=";
         private const string MACRO_END = "=:";
@@ -17,6 +15,7 @@ namespace NDepCheck {
         internal const string MUSTNOTUSE = "---!";
 
         internal const string GRAPHIT = "%";
+        internal const string GRAPHITINNER = "!";
 
         /// <summary>
         /// Constant for one-line defines.
@@ -37,45 +36,38 @@ namespace NDepCheck {
             _reservedNames.Add(RIGHT_PARAM.Trim());
         }
 
-        class LengthComparer : IComparer<string> {
+        private class LengthComparer : IComparer<string> {
             public int Compare(string s1, string s2) {
-                return s2.CompareTo(s1);
+                return string.Compare(s2, s1, StringComparison.Ordinal);
             }
         }
 
         private readonly List<DependencyRuleGroup> _ruleGroups = new List<DependencyRuleGroup>();
         private readonly DependencyRuleGroup _mainRuleGroup;
 
-        private readonly List<GraphAbstraction> _graphAbstractions = new List<GraphAbstraction>();
+        private readonly List<GraphAbstraction> _orderedGraphAbstractions = new List<GraphAbstraction>();
 
         private readonly List<DependencyRuleSet> _includedRuleSets = new List<DependencyRuleSet>();
 
         private readonly SortedDictionary<string, Macro> _macros = new SortedDictionary<string, Macro>(new LengthComparer());
         private readonly SortedDictionary<string, string> _defines = new SortedDictionary<string, string>(new LengthComparer());
-        private bool _containsAssemblyRule;
 
         /// <summary>
-        /// Constructor for test cases.
+        /// Constructor public only for test cases.
         /// </summary>
-        public DependencyRuleSet(CheckerContext checkerContext) {
-            _checkerContext = checkerContext;
-            _mainRuleGroup = new DependencyRuleGroup("");
+        public DependencyRuleSet(bool ignoreCase) {
+            _mainRuleGroup = new DependencyRuleGroup(null, "", ignoreCase);
             _ruleGroups.Add(_mainRuleGroup);
         }
 
-        public DependencyRuleSet(CheckerContext checkerContext, string fullRuleFilename,
-                    IDictionary<string, string> defines,
-                    IDictionary<string, Macro> macros)
-            : this(checkerContext) {
+        public DependencyRuleSet(IGlobalContext globalContext, Options options, string fullRuleFilename, 
+                                 IDictionary<string, string> defines, IDictionary<string, Macro> macros, bool ignoreCase)
+            : this(ignoreCase) {
             _defines = new SortedDictionary<string, string>(defines, new LengthComparer());
             _macros = new SortedDictionary<string, Macro>(macros, new LengthComparer());
-            if (!LoadRules(fullRuleFilename)) {
+            if (!LoadRules(globalContext, fullRuleFilename, options, ignoreCase)) {
                 throw new ApplicationException("Could not load rules from " + fullRuleFilename);
             }
-        }
-
-        public bool ContainsAssemblyRule {
-            get { return _containsAssemblyRule || _includedRuleSets.Any(rs => rs.ContainsAssemblyRule); }
         }
 
         #region Loading
@@ -83,17 +75,18 @@ namespace NDepCheck {
         /// <summary>
         /// Load a rule file.
         /// </summary>
-        private bool LoadRules(string fullRuleFilename) {
+        private bool LoadRules(IGlobalContext globalContext, string fullRuleFilename, Options options, bool ignoreCase) {
             using (TextReader tr = new StreamReader(fullRuleFilename, Encoding.Default)) {
-                return ProcessText(fullRuleFilename, 0, tr, LEFT_PARAM, RIGHT_PARAM);
+                return ProcessText(globalContext, fullRuleFilename, 0, tr, options, LEFT_PARAM, RIGHT_PARAM, ignoreCase);
             }
         }
 
-        private bool ProcessText(string fullRuleFilename, uint startLineNo, TextReader tr, string leftParam,
-                                 string rightParam) {
-            uint lineNo = startLineNo;
+        private bool ProcessText(IGlobalContext globalContext, string fullRuleFilename, int startLineNo, TextReader tr, Options options, string leftParam, string rightParam, bool ignoreCase) {
+            int lineNo = startLineNo;
             bool textIsOk = true;
             DependencyRuleGroup currentGroup = _mainRuleGroup;
+            ItemType usingItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename);
+            ItemType usedItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename);
             for (; ; ) {
                 string line = tr.ReadLine();
 
@@ -104,110 +97,132 @@ namespace NDepCheck {
                 line = line.Trim().Replace(LEFT_PARAM, leftParam).Replace(RIGHT_PARAM, rightParam);
                 lineNo++;
 
-                if (line == "" || line.StartsWith("#") || line.StartsWith("//")) {
-                    // ignore;
-                } else if (line.StartsWith("+")) {
-                    string includeFilename = line.Substring(1).Trim();
-                    DependencyRuleSet included = _checkerContext.Create(new FileInfo(fullRuleFilename).Directory,
-                                                        includeFilename,
-                                                        _defines,
-                                                        _macros);
-                    if (included != null) {
-                        // Error message when == null has been output by Create.
-                        _includedRuleSets.Add(included);
+                try {
+                    if (line == "" || line.StartsWith("#") || line.StartsWith("//")) {
+                        // ignore;
+                    } else if (line.StartsWith("@")) {
+                        if (options == null) {
+                            Log.WriteError(
+                                    $"{fullRuleFilename}: @-line encountered while processing macro - this is not allowed", fullRuleFilename, lineNo);
+                        } else {
+                            string[] args = line.Substring(1).Trim().Split(' ', '\t');
 
-                        // We copy the defines down into the ruleset so that the selection
-                        // of the longest name works (_defines implements this by using
-                        // a SortedDictionary with a LengthComparer).
-                        foreach (var kvp in included._defines) {
-                            _defines[kvp.Key] = kvp.Value;
+                            int exitCode = globalContext.Run(args);
+
+                            if (exitCode != 0) {
+                                textIsOk = false;
+                            }
                         }
-                        foreach (var kvp in included._macros) {
-                            _macros[kvp.Key] = kvp.Value;
+                    } else if (line.StartsWith("$")) {
+                        string typeLine = line.Substring(1).Trim();
+                        int i = typeLine.IndexOf(MAYUSE, StringComparison.Ordinal);
+                        if (i < 0) {
+                            Log.WriteError($"{line}: $-line must contain " + MAYUSE, fullRuleFilename, lineNo);
                         }
-                    }
-                } else if (line.EndsWith("{")) {
-                    if (currentGroup.Group != "") {
-                        Log.WriteError(String.Format("{0}: Nested '... {{' not possible", fullRuleFilename), fullRuleFilename, lineNo);
+                        usingItemType = AbstractReaderFactory.GetItemType(ExpandDefines(typeLine.Substring(0, i).Trim()));
+                        usedItemType = AbstractReaderFactory.GetItemType(ExpandDefines(typeLine.Substring(i + MAYUSE.Length).Trim()));
+                    } else if (line.StartsWith("+")) {
+                        string includeFilename = line.Substring(1).Trim();
+                        DependencyRuleSet included = globalContext.
+                            GetOrCreateDependencyRuleSet_MayBeCalledInParallel(new FileInfo(fullRuleFilename).Directory,
+                                includeFilename, options, _defines, _macros, ignoreCase);
+                        if (included != null) {
+                            // Error message when == null has been output by Create.
+                            _includedRuleSets.Add(included);
+
+                            // We copy the defines down into the ruleset so that the selection
+                            // of the longest name works (_defines implements this by using
+                            // a SortedDictionary with a LengthComparer).
+                            foreach (var kvp in included._defines) {
+                                _defines[kvp.Key] = kvp.Value;
+                            }
+                            foreach (var kvp in included._macros) {
+                                _macros[kvp.Key] = kvp.Value;
+                            }
+                        }
+                    } else if (line.EndsWith("{")) {
+                        if (currentGroup.Group != "") {
+                            Log.WriteError($"{fullRuleFilename}: Nested '... {{' not possible", fullRuleFilename, lineNo);
+                            textIsOk = false;
+                        } else {
+                            currentGroup = new DependencyRuleGroup(usingItemType, line.TrimEnd('{').TrimEnd(), ignoreCase);
+                            _ruleGroups.Add(currentGroup);
+                        }
+                    } else if (line == "}") {
+                        if (currentGroup.Group != "") {
+                            currentGroup = _mainRuleGroup;
+                        } else {
+                            Log.WriteError($"{fullRuleFilename}: '}}' without corresponding '... {{'", fullRuleFilename, lineNo);
+                            textIsOk = false;
+                        }
+                    } else if (ProcessMacroIfFound(globalContext, line, ignoreCase)) {
+                        // macro is already processed as side effect in ProcessMacroIfFound()
+                    } else if (line.StartsWith(GRAPHIT)) {
+                        AddGraphAbstractions(usingItemType, usedItemType, false, fullRuleFilename, lineNo, line, ignoreCase);
+                    } else if (line.StartsWith(GRAPHITINNER)) {
+                        AddGraphAbstractions(usingItemType, usedItemType, true, fullRuleFilename, lineNo, line, ignoreCase);
+                    } else if (line.Contains(MAYUSE) || line.Contains(MUSTNOTUSE) ||
+                               line.Contains(MAYUSE_WITH_WARNING)) {
+                        currentGroup.AddDependencyRules(this, usingItemType, usedItemType, fullRuleFilename, lineNo, line, ignoreCase);
+                    } else if (line.EndsWith(MACRO_DEFINE)) {
+                        string macroName = line.Substring(0, line.Length - MACRO_DEFINE.Length).Trim();
+                        if (!CheckDefinedName(macroName, fullRuleFilename, lineNo)) {
+                            textIsOk = false;
+                        }
+                        string macroText = "";
+                        int macroStartLineNo = lineNo;
+                        for (;;) {
+                            line = tr.ReadLine();
+                            lineNo++;
+                            if (line == null) {
+                                Log.WriteError($"{fullRuleFilename}: Missing {MACRO_END} at end", fullRuleFilename, lineNo);
+                                textIsOk = false;
+                                break;
+                            }
+                            line = line.Trim();
+                            if (line == MACRO_END) {
+                                var macro = new Macro(macroText, fullRuleFilename, macroStartLineNo);
+                                if (_macros.ContainsKey(macroName) && !_macros[macroName].Equals(macro)) {
+                                    throw new ApplicationException("Macro '" + macroName + "' cannot be redefined differently at " + fullRuleFilename + ":" + lineNo);
+                                }
+                                _macros[macroName] = macro;
+                                break;
+                            } else {
+                                macroText += line + "\n";
+                            }
+                        }
+                    } else if (line.Contains(DEFINE)) {
+                        AddDefine(fullRuleFilename, lineNo, line);
                     } else {
-                        if (line.StartsWith(DependencyReader.ASSEMBLY_PREFIX)) {
-                            _containsAssemblyRule = true;
-                        }
-
-                        currentGroup = new DependencyRuleGroup(line.TrimEnd('{').TrimEnd());
-                        _ruleGroups.Add(currentGroup);
-                    }
-                } else if (line == "}") {
-                    if (currentGroup.Group != "") {
-                        currentGroup = _mainRuleGroup;
-                    } else {
-                        Log.WriteError(String.Format("{0}: '}}' without corresponding '... {{'", fullRuleFilename), fullRuleFilename, lineNo);
-                    }
-                } else if (ProcessMacroIfFound(line)) {
-                    // macro is already processed as side effect in ProcessMacroIfFound()
-                } else if (line.Contains(MAYUSE) || line.Contains(MUSTNOTUSE) ||
-                           line.Contains(MAYUSE_WITH_WARNING)) {
-                    bool isAssemblyRule = line.StartsWith(DependencyReader.ASSEMBLY_PREFIX);
-                    _containsAssemblyRule |= isAssemblyRule;
-
-                    currentGroup.AddDependencyRules(this, fullRuleFilename, lineNo, line, isAssemblyRule);
-                } else if (line.StartsWith(GRAPHIT)) {
-                    AddGraphAbstractions(fullRuleFilename, lineNo, line);
-                } else if (line.EndsWith(MACRO_DEFINE)) {
-                    string macroName = line.Substring(0, line.Length - MACRO_DEFINE.Length).Trim();
-                    if (!CheckDefinedName(macroName, fullRuleFilename, lineNo)) {
+                        Log.WriteError(fullRuleFilename + ": Cannot parse line " + lineNo + ": " + line, fullRuleFilename, lineNo);
                         textIsOk = false;
                     }
-                    string macroText = "";
-                    uint macroStartLineNo = lineNo;
-                    for (; ; ) {
-                        line = tr.ReadLine();
-                        lineNo++;
-                        if (line == null) {
-                            Log.WriteError(String.Format("{0}: Missing {1} at end", fullRuleFilename, MACRO_END), fullRuleFilename, lineNo);
-                            textIsOk = false;
-                            break;
-                        }
-                        line = line.Trim();
-                        if (line == MACRO_END) {
-                            var macro = new Macro(macroText, fullRuleFilename, macroStartLineNo);
-                            if (_macros.ContainsKey(macroName) && !_macros[macroName].Equals(macro)) {
-                                throw new ApplicationException("Macro '" + macroName + "' cannot be redefined differently at " + fullRuleFilename + ":" + lineNo);
-                            }
-                            _macros[macroName] = macro;
-                            break;
-                        } else {
-                            macroText += line + "\n";
-                        }
-                    }
-                } else if (line.Contains(DEFINE)) {
-                    AddDefine(fullRuleFilename, lineNo, line);
-                } else {
-                    Log.WriteError(fullRuleFilename + ": Cannot parse line " + lineNo + ": " + line, fullRuleFilename, lineNo);
+                } catch (Exception ex) {
+                    Log.WriteError($"{fullRuleFilename}: {ex.Message}", fullRuleFilename, lineNo);
                     textIsOk = false;
                 }
             }
             return textIsOk;
         }
 
-        private bool CheckDefinedName(string macroName, string ruleFileName, uint lineNo) {
+        private bool CheckDefinedName(string macroName, string ruleFileName, int lineNo) {
             if (macroName.Contains(" ")) {
-                Log.WriteError(String.Format("{0}, line {1}: Macro name must not contain white space: {2}", ruleFileName, lineNo, macroName), ruleFileName, lineNo);
+                Log.WriteError($"{ruleFileName}, line {lineNo}: Macro name must not contain white space: {macroName}", ruleFileName, lineNo);
                 return false;
             } else {
                 string compactedName = CompactedName(macroName);
                 foreach (string reservedName in _reservedNames) {
                     if (compactedName == CompactedName(reservedName)) {
                         Log.WriteError(
-                            String.Format("{0}, line {1}: Macro name {2} is too similar to predefined name {3}", ruleFileName, lineNo, macroName, reservedName), ruleFileName, lineNo);
+                                $"{ruleFileName}, line {lineNo}: Macro name {macroName} is too similar to predefined name {reservedName}", ruleFileName, lineNo);
                         return false;
                     }
                 }
                 foreach (string definedMacroName in _macros.Keys) {
                     if (macroName != definedMacroName
                         && compactedName == CompactedName(definedMacroName)) {
-                            Log.WriteError(
-                            String.Format("{0}, line {1}: Macro name {2} is too similar to already defined name {3}", ruleFileName, lineNo, macroName, definedMacroName), ruleFileName, lineNo);
+                        Log.WriteError(
+                                $"{ruleFileName}, line {lineNo}: Macro name {macroName} is too similar to already defined name {definedMacroName}", ruleFileName, lineNo);
                         return false;
                     }
                 }
@@ -230,7 +245,7 @@ namespace NDepCheck {
             return result.ToUpperInvariant();
         }
 
-        private bool ProcessMacroIfFound(string line) {
+        private bool ProcessMacroIfFound(IGlobalContext globalContext, string line, bool ignoreCase) {
             string foundMacroName;
             foreach (string macroName in _macros.Keys) {
                 if (line.Contains(macroName) && !line.StartsWith(macroName) && !line.Contains(MACRO_DEFINE)) {
@@ -242,52 +257,24 @@ namespace NDepCheck {
 
         PROCESS_MACRO:
             Macro macro = _macros[foundMacroName];
-            int macroPos = line.IndexOf(foundMacroName);
+            int macroPos = line.IndexOf(foundMacroName, StringComparison.Ordinal);
             string leftParam = line.Substring(0, macroPos).Trim();
             string rightParam = line.Substring(macroPos + foundMacroName.Length).Trim();
-            ProcessText(macro.RuleFileName, macro.StartLineNo, new StringReader(macro.MacroText), leftParam, rightParam);
+            ProcessText(globalContext, macro.RuleFileName, macro.StartLineNo, new StringReader(macro.MacroText), null, leftParam, rightParam, ignoreCase);
             return true;
         }
 
         #endregion Loading
 
-        #region Nested type: Macro
 
-        public class Macro {
-            public readonly string MacroText;
-            public readonly string RuleFileName;
-            public readonly uint StartLineNo;
-
-            internal Macro(string macroText, string ruleFileName, uint startlineNo) {
-                MacroText = macroText;
-                RuleFileName = ruleFileName;
-                StartLineNo = startlineNo;
-            }
-
-            public override bool Equals(object obj) {
-                var other = obj as Macro;
-                if (other == null) {
-                    return false;
-                } else {
-                    return other.MacroText == MacroText;
-                }
-            }
-
-            public override int GetHashCode() {
-                return MacroText.GetHashCode();
-            }
-        }
-
-        #endregion
-        
         /// <summary>
         /// Add one-line macro definition.
         /// </summary>
         /// <param name="ruleFileName"></param>
         /// <param name="lineNo"></param>
         /// <param name="line"></param>
-        private void AddDefine(string ruleFileName, uint lineNo, string line) {
-            int i = line.IndexOf(DEFINE);
+        private void AddDefine(string ruleFileName, int lineNo, string line) {
+            int i = line.IndexOf(DEFINE, StringComparison.Ordinal);
             string key = line.Substring(0, i).Trim();
             string value = line.Substring(i + DEFINE.Length).Trim();
             if (key != key.ToUpper()) {
@@ -319,60 +306,69 @@ namespace NDepCheck {
             return s;
         }
 
-        internal void ExtractGraphAbstractions(List<GraphAbstraction> graphAbstractions) {
-            ExtractGraphAbstractions(graphAbstractions, new List<DependencyRuleSet>());
+        internal List<GraphAbstraction> ExtractGraphAbstractions() {
+            var result = new List<GraphAbstraction>();
+            ExtractGraphAbstractions(result, new List<DependencyRuleSet>());
+            return result;
         }
 
-        private void ExtractGraphAbstractions(List<GraphAbstraction> graphAbstractions, List<DependencyRuleSet> visited) {
+        private void ExtractGraphAbstractions(List<GraphAbstraction> orderedGraphAbstractions, List<DependencyRuleSet> visited) {
             if (visited.Contains(this)) {
                 return;
             }
             visited.Add(this);
-            graphAbstractions.AddRange(_graphAbstractions);
+            orderedGraphAbstractions.AddRange(_orderedGraphAbstractions);
             foreach (var includedRuleSet in _includedRuleSets) {
-                includedRuleSet.ExtractGraphAbstractions(graphAbstractions, visited);
+                includedRuleSet.ExtractGraphAbstractions(orderedGraphAbstractions, visited);
             }
         }
 
-
-
         /// <summary>
-        /// Add one or more <c>GraphAbstraction</c>s from a single input
+        /// Add one or more <c>GraphAbstraction_</c>s from a single input
         /// line (with leading %).
         /// public for testability.
         /// </summary>
-        public void AddGraphAbstractions(string ruleFileName, uint lineNo, string line) {
-            line = ExpandDefines(line.Substring(GRAPHIT.Length).Trim());
-            List<GraphAbstraction> a = GraphAbstraction.CreateGraphAbstractions(line);
-            _graphAbstractions.AddRange(a);
-            if (Log.IsVerboseEnabled) {
-                Log.WriteInfo("Reg.exps used for drawing " + line + " (" + ruleFileName + ":" + lineNo + ")");
-                foreach (GraphAbstraction ga in a) {
-                    Log.WriteInfo(ga.ToString());
+        public void AddGraphAbstractions(ItemType usingItemType, ItemType usedItemType, bool isInner, string ruleFileName, int lineNo, string line, bool ignoreCase) {
+            if (usingItemType == null || usedItemType == null) {
+                Log.WriteError("Itemtypes not defined - $ line is missing in this file, graph rules are ignored", ruleFileName, lineNo);
+            } else {
+                line = ExpandDefines(line.Substring(GRAPHIT.Length).Trim());
+                CreateGraphAbstraction(usingItemType, isInner, ruleFileName, lineNo, line, ignoreCase);
+                if (usingItemType != usedItemType) {
+                    CreateGraphAbstraction(usedItemType, isInner, ruleFileName, lineNo, line, ignoreCase);
                 }
             }
         }
 
-        internal IEnumerable<DependencyRuleGroup> ExtractDependencyGroups() {
+        private void CreateGraphAbstraction(ItemType usingItemType, bool isInner, string ruleFileName, int lineNo, string line, bool ignoreCase) {
+            GraphAbstraction ga = new GraphAbstraction(usingItemType, line, isInner, ignoreCase);
+            _orderedGraphAbstractions.Add(ga);
+            if (Log.IsChattyEnabled) {
+                Log.WriteInfo("Reg.exps used for drawing " + line + " (" + ruleFileName + ":" + lineNo + ")");
+                Log.WriteInfo(ga.ToString());
+            }
+        }
+
+        internal IEnumerable<DependencyRuleGroup> ExtractDependencyGroups(bool ignoreCase) {
             var result = new Dictionary<string, DependencyRuleGroup>();
-            CombineGroupsFromChildren(result, new List<DependencyRuleSet>());
+            CombineGroupsFromChildren(result, new List<DependencyRuleSet>(), ignoreCase);
             return result.Values;
         }
 
-        private void CombineGroupsFromChildren(Dictionary<string, DependencyRuleGroup> result, List<DependencyRuleSet> visited) {
+        private void CombineGroupsFromChildren(Dictionary<string, DependencyRuleGroup> result, List<DependencyRuleSet> visited, bool ignoreCase) {
             if (visited.Contains(this)) {
                 return;
             }
             visited.Add(this);
             foreach (var g in _ruleGroups) {
                 if (result.ContainsKey(g.Group)) {
-                    result[g.Group] = result[g.Group].Combine(g);
+                    result[g.Group] = result[g.Group].Combine(g, ignoreCase);
                 } else {
                     result[g.Group] = g;
                 }
             }
             foreach (var includedRuleSet in _includedRuleSets) {
-                includedRuleSet.CombineGroupsFromChildren(result, visited);
+                includedRuleSet.CombineGroupsFromChildren(result, visited, ignoreCase);
             }
         }
     }

@@ -27,22 +27,21 @@ namespace NDepCheck.MSBuild {
         public override bool Execute() {
             var logger = new MsBuildLogger(Log);
             global::NDepCheck.Log.Logger = logger;
-            global::NDepCheck.Log.IsVerboseEnabled = false;
+            global::NDepCheck.Log.IsChattyEnabled = false;
             global::NDepCheck.Log.IsDebugEnabled = Debug;
 
+            var args = new List<string>();
+
             var options = new Options {
-                Debug = false,
+                Chatty = false,
                 Verbose = Verbose,
-                DotFilename = DotFilename,
-                ShowTransitiveEdges = ShowTransitiveEdges,
+                ////ShowTransitiveEdges = ShowTransitiveEdges, TODO: Replace with transformation ___
                 ShowUnusedQuestionableRules = ShowUnusedQuestionableRules,
-                MaxCpuCount = MaxCpuCount == 0 || MaxCpuCount < -1 ? Environment.ProcessorCount : MaxCpuCount,
-                XmlOutput = XmlOutput,
-                CheckOnlyAssemblyDependencies = CheckOnlyAssemblyDependencies,
+                MaxCpuCount = MaxCpuCount == 0 || MaxCpuCount < -1 ? Environment.ProcessorCount : MaxCpuCount
             };
-            Assemblies
-                .Select(item => new AssemblyOption(item.ItemSpec, null))
-                .AddTo(options.Assemblies);
+            //////Assemblies
+            //////    .Select(item => new InputFileOption(item.ItemSpec, null))
+            //////    .AddTo(options.InputFiles);
 
             if (DefaultRuleSet != null) {
                 options.DefaultRuleSetFile = DefaultRuleSet.ItemSpec;
@@ -53,8 +52,8 @@ namespace NDepCheck.MSBuild {
                     .AddTo(options.Directories);
             }
 
-            var main = new Program(options);
-            ExitCode = main.Run();
+
+            ExitCode = new Program().Run(args.ToArray());
 
             return ExitCode == 0;
         }

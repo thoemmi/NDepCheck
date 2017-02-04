@@ -1,9 +1,4 @@
-// (c) HMMüller 2006...2010
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
+// (c) HMMüller 2006...2015
 
 namespace NDepCheck {
     /// <remarks>
@@ -12,54 +7,56 @@ namespace NDepCheck {
     /// much shorter - name used in the graph output. For 
     /// example, most of the time classes are abstracted
     /// to their namespace, or to a higher namespace,
-    /// probably without a common project prefix.
+    /// probably without a common project prefix; or
+    /// to the assembly where they reside.
     /// </remarks>
-    internal class GraphAbstraction : Pattern {
-        private readonly Regex _rex;
+    public class GraphAbstraction : Pattern {
+        private readonly ItemType _itemType;
+        private readonly bool _isInner;
+        private readonly IMatcher[] _matchers;
+        private int _matchCount;
+ 
         // GraphAbstractions are created (because of
-        // extension rules) by factory method
+        // extension rules) by the factory method
         // CreateGraphAbstractions().
-        private GraphAbstraction(string pattern) {
-            _rex = new Regex(pattern);
+        public GraphAbstraction(ItemType itemType, string pattern, bool isInner, bool ignoreCase) {
+            _itemType = itemType;
+            _isInner = isInner;
+            _matchers = CreateMatchers(itemType, pattern, 0, ignoreCase);
         }
 
-        /// <summary>
-        /// Create <c>GraphAbstraction</c>s from a pattern
-        /// (part of graph line without the %).
-        /// </summary>
-        public static List<GraphAbstraction> CreateGraphAbstractions(string pattern) {
-            List<string> expandedUsedItemPattern = Expand(pattern);
-            return expandedUsedItemPattern.Select(ed => new GraphAbstraction(ed)).ToList();
-        }
+        public int MatchCount => _matchCount;
 
         /// <summary>
         /// Return abstracted string for some item.
         /// </summary>
-        /// <param name="itemName">Name of item to be abstracted.</param>
+        /// <param name="item">Name of item to be abstracted.</param>
+        /// <param name="isInner"><c>true</c> if GraphAbstraction_ has IsInner (i.e., was declared with !)</param>
         /// <returns>Abstracted name; or <c>null</c> if name does not 
         /// match abstraction</returns>
-        public string Match(string itemName) {
-            Match m = _rex.Match(itemName);
-            if (m.Success) {
-                if (m.Groups.Count < 2) {
-                    throw new ApplicationException("Graph definition " + _rex + " does not find a matching group for input '" +
-                                                   itemName + "'");
-                }
-                return m.Groups[1].Value;
-            } else {
+        ///// <param name="skipCache"></param>
+        public string Match(Item item, out bool isInner/*, Dictionary<Tuple<string, int>, GraphAbstraction> skipCache = null*/) {
+            isInner = _isInner;
+            
+            string[] matchResult = Match(_itemType, _matchers, item);
+
+            if (matchResult == null) {
                 return null;
+            } else {
+                _matchCount++;
+                return string.Join(":", matchResult);
             }
         }
 
-        /// <summary>
-        /// Show <c>GraphAbstraction</c> as regular 
-        /// expression in verbose mode (the user needs
-        /// this to find problems when the graph output
-        /// is not as expected).
-        /// </summary>
-        /// <returns></returns>
-        public override string ToString() {
-            return _rex.ToString();
-        }
+        /////// <summary>
+        /////// Show <c>GraphAbstraction_</c> as regular 
+        /////// expression in verbose mode (the user needs
+        /////// this to find problems when the graph output
+        /////// is not as expected).
+        /////// </summary>
+        /////// <returns></returns>
+        ////public override string ToString() {
+        ////    return _rex.ToString();
+        ////}
     }
 }

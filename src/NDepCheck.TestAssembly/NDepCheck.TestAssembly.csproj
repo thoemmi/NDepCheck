@@ -61,7 +61,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DotNetArchitectureCheckerTests.cs" />
+    <Compile Include="TestClasses.cs" />
     <Compile Include="ISomeInterface.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

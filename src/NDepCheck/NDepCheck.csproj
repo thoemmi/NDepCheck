@@ -93,32 +93,54 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>CommonAssemblyInfo.cs</Link>
     </Compile>
-    <Compile Include="AssemblyOption.cs" />
-    <Compile Include="CheckerContext.cs" />
-    <Compile Include="DependencyRuleGroup.cs" />
-    <Compile Include="DependencyRuleRepresentation.cs" />
-    <Compile Include="DependencyRuleSet.cs" />
-    <Compile Include="ConsoleLogger.cs" />
-    <Compile Include="Dependency.cs" />
-    <Compile Include="DependencyChecker.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="DipReaderFactory.cs" />
+    <Compile Include="FullDotNetAssemblyDependencyReader.cs" />
+    <Compile Include="GraphTransformations\HideOuterGraph.cs" />
+    <Compile Include="GraphTransformations\AssociativeHull.cs" />
+    <Compile Include="IgnoreReader.cs" />
+    <Compile Include="AbstractDotNetAssemblyDependencyReader.cs" />
+    <Compile Include="GraphTransformations\IGraphTransformation.cs" />
+    <Compile Include="InputContext.cs" />
+    <Compile Include="InputFileOption.cs" />
+    <Compile Include="GlobalContext.cs" />
     <Compile Include="DependencyGrapher.cs" />
-    <Compile Include="DependencyReader.cs" />
+    <Compile Include="AbstractDependencyReader.cs" />
+    <Compile Include="DependencyRuleGroup.cs" />
+    <Compile Include="DependencyRuleSet.cs" />
     <Compile Include="DependencyRule.cs" />
-    <Compile Include="DirectoryOption.cs" />
-    <Compile Include="FullNameToken.cs" />
+    <Compile Include="Dependency.cs" />
+    <Compile Include="DependencyRuleRepresentation.cs" />
+    <Compile Include="ConsoleLogger.cs" />
+    <Compile Include="DipReader.cs" />
+    <Compile Include="DipWriter.cs" />
     <Compile Include="GraphAbstraction.cs" />
+    <Compile Include="GraphTransformations\HidePureSinks.cs" />
+    <Compile Include="GraphTransformations\HidePureSources.cs" />
+    <Compile Include="Interfaces\IGlobalContext.cs" />
+    <Compile Include="Interfaces\IInputContext.cs" />
+    <Compile Include="IEdge.cs" />
+    <Compile Include="INode.cs" />
+    <Compile Include="Item.cs" />
+    <Compile Include="ItemsOnlyDotNetAssemblyDependencyReader.cs" />
+    <Compile Include="ItemType.cs" />
+    <Compile Include="Macro.cs" />
+    <Compile Include="Pattern.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="DirectoryOption.cs" />
     <Compile Include="ILogger.cs" />
     <Compile Include="Options.cs" />
-    <Compile Include="Pattern.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="GraphTransformations\UnhideCycles.cs" />
+    <Compile Include="GraphTransformations\HideTransitiveEdges.cs" />
     <Compile Include="RuleViolation.cs" />
+    <Compile Include="XmlViolationsWriter.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config">
       <SubType>Designer</SubType>
     </None>
     <None Include="EverythingAllowed.dep" />
+    <None Include="NDepCheck.cd" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

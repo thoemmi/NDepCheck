@@ -1,17 +1,14 @@
 // Test dependencies for NDepCheck
 
     // Every class may use all classes from its own namespace.
-(**).* ---> \1.*
+(**):* ---> \1:*
 
-    // Special dependency for classes from global namespace
-    // (the pattern above will not work, because it contains a
-    // period): A class from the global namespace may use
-    // all classes from that namespace.
-* ---> *
+    // Special dependency for classes from global namespace (pattern above also works!)
+-:* ---> -:*
 
     // Every class may use all classes from child namespaces
     // of its own namespace.
-(**).* ---> \1.**.*
+(**):* ---> \1.**:*
 
     // Every class may use all of System.
 ** ---> System.**
@@ -41,7 +38,7 @@ _TESTS.dir1.* ---> _TESTS.dir1.dir3.*
     
     // SomeClass::AnotherMethod may use NamespacelessTestClassForNDepCheck -
     // but this is questionable.
-_TESTS.dir1.dir2.SomeClass::AnotherMethod ---? NamespacelessTestClassForNDepCheck
+_TESTS.dir1.dir2:SomeClass::AnotherMethod ---? :NamespacelessTestClassForNDepCheck
 
     // A questionable rule that never fires - it should be output.
 asdlkfj.* ---? askdjf.*;
@@ -56,7 +53,7 @@ _TESTS.dirUEmlAEut.** ---> _TESTS.dirUEmlAEutSZ.**
 
     // Test case for ""open item 5""
     // Methods called InnerClassMethod may call each other
-**/**::InnerClassMethod ---> **/**::InnerClassMethod 
+**::InnerClassMethod ---> **::InnerClassMethod 
 
     // Tests must be able to see tested classes
 _TESTS.** ---> NDepCheck.**
@@ -80,14 +77,14 @@ NDepCheck.Tests ---> **
 % ()System.**
 
     // Classes in DotNetArchitectureCheckerTests are shown separately, without the namespace
-% NDepCheck.Tests.(**)
+% NDepCheck.Tests.(**):(**)
 
     // Classes in DotNetArchitectureChecker are also shown separately, but with the namespace
-% (NDepCheck).*
+% (NDepCheck)
 
     // antlr classes are shown by namespace
-% (antlr).*
-% (antlr.**).*
+% (antlr)
+% (antlr.**)
 
     // Top level classes are shown as their class name
-% (*)
+% :(**)

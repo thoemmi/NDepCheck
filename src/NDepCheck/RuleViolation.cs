@@ -8,13 +8,9 @@
             _violationType = violationType;
         }
 
-        public Dependency Dependency {
-            get { return _dependency; }
-        }
+        public Dependency Dependency => _dependency;
 
-        public ViolationType ViolationType {
-            get { return _violationType; }
-        }
+        public ViolationType ViolationType => _violationType;
     }
 
     public enum ViolationType {

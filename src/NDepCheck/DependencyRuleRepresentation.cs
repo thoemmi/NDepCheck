@@ -1,12 +1,12 @@
 namespace NDepCheck {
-    internal class DependencyRuleRepresentation {
+    public class DependencyRuleRepresentation {
         private readonly bool _isQuestionableRule;
         private readonly string _line;
-        private readonly uint _lineNo;
+        private readonly int _lineNo;
         private readonly string _ruleFileName;
         private int _hitCount;
 
-        internal DependencyRuleRepresentation(string ruleFileName, uint lineNo, string line, bool isQuestionableRule) {
+        public DependencyRuleRepresentation(string ruleFileName, int lineNo, string line, bool isQuestionableRule) {
             _ruleFileName = ruleFileName;
             _lineNo = lineNo;
             _line = line;
@@ -17,24 +17,22 @@ namespace NDepCheck {
         /// <summary>
         /// Was a rule represented by this representation ever matched with a true result?
         /// </summary>
-        public bool WasHit {
-            get { return _hitCount > 0; }
-        }
+        public bool WasHit => _hitCount > 0;
 
-        public int HitCount {
-            get { return _hitCount; }
-        }
+        public int HitCount => _hitCount;
 
-        public bool IsQuestionableRule {
-            get { return _isQuestionableRule; }
-        }
+        public bool IsQuestionableRule => _isQuestionableRule;
+
+        public string RuleFileName => _ruleFileName;
+
+        public int LineNo => _lineNo;
 
         internal void MarkHit() {
             _hitCount++;
         }
 
         public override string ToString() {
-            return _line + " (at " + _ruleFileName + ":" + _lineNo + ")";
+            return _line + " (at " + RuleFileName + ":" + LineNo + ")";
         }
     }
 }

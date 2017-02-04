@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NDepCheck.GraphTransformations;
 
 namespace NDepCheck.Tests {
     /// <remarks>
@@ -12,6 +13,7 @@ namespace NDepCheck.Tests {
     /// </remarks>
     [TestClass]
     public class MainTests {
+        // ReSharper disable once AssignNullToNotNullAttribute - certainly ok in this test
         private static readonly string TestAssemblyPath = Path.Combine(Path.GetDirectoryName(typeof(MainTests).Assembly.Location), "NDepCheck.TestAssembly.dll");
 
         // ReSharper disable UnusedParameter.Local - Das ist ein Assert, daher die "Nur-Verwendung" in Assert ok :-)
@@ -25,27 +27,26 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void GeneralSucceedingTest() {
-            string depFile = Path.GetTempFileName();
+            string depFile = CreateTempDotNetDepFileName();
             using (TextWriter tw = new StreamWriter(depFile, false, Encoding.Default)) {
                 tw.Write(
                     @"
 // Test dependencies for NDepCheck
 
     // Every class may use all classes from its own namespace.
-(**).* ---> \1.*
+(**): ---> \1:
 
     // Special dependency for classes from global namespace
-    // (the pattern above will not work, because it contains a
-    // period): A class from the global namespace may use
+    // A class from the global namespace may use
     // all classes from that namespace.
-* ---> *
+-:** ---> -:**
 
     // Every class may use all classes from child namespaces
     // of its own namespace.
-(**).* ---> \1.**.*
+(**): ---> \1.**:
 
     // Every class may use all of System.
-** ---> System.**
+** ---> System.**:
 
 ====> :=
     \L.** ---> \R.**
@@ -65,14 +66,14 @@ _TEST_OTHERS := xxxxxxxxxxxxx
 _TEST := asdasdasdasdasdasd
 
     // Test declarations from dir1.dir2 may use declarations from dir1.dir3.
-_TESTS.dir1.dir2.* ---> _TESTS.dir1.dir3.*
+_TESTS.dir1.dir2:* ---> _TESTS.dir1.dir3:*
 
 
-_TESTS.dir1.* ---> _TESTS.dir1.dir3.*
+_TESTS.dir1:* ---> _TESTS.dir1.dir3:*
     
-    // SomeClass::AnotherMethod may use NamespacelessTestClassForNDepCheck -
+    // ...SomeClass.AnotherMethod may use -:NamespacelessTestClassForNDepCheck -
     // but this is questionable.
-_TESTS.dir1.dir2.SomeClass::AnotherMethod ---? NamespacelessTestClassForNDepCheck
+_TESTS.dir1.dir2:SomeClass::AnotherMethod ---? -:NamespacelessTestClassForNDepCheck
 
     // A questionable rule that never fires - it should be output.
 asdlkfj.* ---? askdjf.*;
@@ -84,7 +85,7 @@ _TESTS.dirumlaut.** ---> _TESTS.dirumlauts.**
 
     // Test case for ""open item 5""
     // Methods called InnerClassMethod may call each other
-**/**::InnerClassMethod ---> **/**::InnerClassMethod 
+:::InnerClassMethod ---> :::InnerClassMethod 
 
     // Tests must be able to see tested classes
 _TESTS.** ---> NDepCheck.**
@@ -96,7 +97,7 @@ _TESTS.** ---> Microsoft.VisualStudio.TestTools.**
 
     // In these tests, we ignore everything in the
     // current test class.
-NDepCheck.Tests ---> **
+NDepCheck:Tests ---> **
 
 // ------------------
 
@@ -107,14 +108,14 @@ NDepCheck.Tests ---> **
 % NDepCheck.Tests.(**)
 
     // Classes in NDepCheck are also shown separately, but with the namespace
-% (NDepCheck).*
+% (NDepCheck)
 
     // antlr classes are shown by namespace
-% (antlr).*
-% (antlr.**).*
+% (antlr)
+% (antlr.**)
 
     // Top level classes are shown as their class name
-% (*)
+% -:(*)
                 ");
             }
             string outFile = Path.GetTempFileName();
@@ -122,7 +123,7 @@ NDepCheck.Tests ---> **
             using (TextWriter tw = new StreamWriter(outFile)) {
                 TextWriter oldOut = Console.Out;
                 Console.SetOut(tw);
-                string[] args = { "/v", "/x", "/f=" + depFile, TestAssemblyPath };
+                string[] args = { "/v", "/x", depFile, "/f", TestAssemblyPath };
                 Program.Main(args);
                 Console.SetOut(oldOut);
             }
@@ -133,73 +134,91 @@ NDepCheck.Tests ---> **
 
         [TestMethod]
         public void SmallGrapherTest() {
-            var rs = new DependencyRuleSet(new CheckerContext(false));
-            rs.AddGraphAbstractions("<test>", 0, "% (**)");
+            var rs = new DependencyRuleSet(_ignoreCase);
+            rs.AddGraphAbstractions(ITEMTYPE, ITEMTYPE, false, "<test>", 0, "% (**)", _ignoreCase);
 
-            var options = new Options {
-                DotFilename = Path.Combine(Path.GetTempPath(), "test.dot")
-            };
-            var dg = new DependencyGrapher(new DependencyChecker(), options);
             var deps = new List<Dependency> {
-                                                new Dependency("a1", "a1", "a2", "a2", null, 0, 0, 0, 0),
-                                                new Dependency("a1", "a1", "a4", "a4", null, 0, 0, 0, 0),
-                                                new Dependency("a2", "a2", "a3", "a3", null, 0, 0, 0, 0),
-                                                new Dependency("a2", "a2", "a4", "a4", null, 0, 0, 0, 0),
-                                                new Dependency("a3", "a3", "a4", "a4", null, 0, 0, 0, 0),
-                                                new Dependency("b1", "b1", "b2", "b2", null, 0, 0, 0, 0),
-                                                new Dependency("b1", "b1", "b4", "b4", null, 0, 0, 0, 0),
-                                                new Dependency("b2", "b2", "b3", "b3", null, 0, 0, 0, 0),
-                                                new Dependency("b2", "b2", "b4", "b4", null, 0, 0, 0, 0),
-                                                new Dependency("b3", "b3", "b2", "b2", null, 0, 0, 0, 0),
-                                                new Dependency("b3", "b3", "b4", "b4", null, 0, 0, 0, 0)
-                                            };
+                NewDependency("A", "a1", "a1", "A", "a2", "a2"),
+                NewDependency("A", "a1", "a1", "A", "a4", "a4"),
+                NewDependency("A", "a2", "a2", "A", "a3", "a3"),
+                NewDependency("A", "a2", "a2", "A", "a4", "a4"),
+                NewDependency("A", "a3", "a3", "A", "a4", "a4"),
+                NewDependency("B", "b1", "b1", "B", "b2", "b2"),
+                NewDependency("B", "b1", "b1", "B", "b4", "b4"),
+                NewDependency("B", "b2", "b2", "B", "b3", "b3"),
+                NewDependency("B", "b2", "b2", "B", "b4", "b4"),
+                NewDependency("B", "b3", "b3", "B", "b2", "b2"),
+                NewDependency("B", "b3", "b3", "B", "b4", "b4")
+            };
 
-            dg.Graph(rs, deps);
+            var nodes = new Dictionary<string, Item>();
+            var edges = new Dictionary<Tuple<Item, Item>, Dependency>();
 
-            // what to assert??
+            DependencyGrapher.ReduceGraph(new Options { IgnoreCase = _ignoreCase }, rs, deps, nodes, edges);
+
+            new HideTransitiveEdges<Dependency>(new[] { "a" }).Run(edges.Values);
+
+            using (var sw = new StringWriter()) {
+                DependencyGrapher.WriteDotFile(edges.Values, sw, null);
+
+                // what to assert??
+            }
+        }
+
+        private readonly ItemType ITEMTYPE = new ItemType("TEST", new[] { "AS", "NS", "CL" }, new string[] { null, null, null });
+        private const bool _ignoreCase = false;
+
+        private Dependency NewDependency(string usingA, string usingN, string usingC, string usedA, string usedN, string usedC) {
+            return new Dependency(new Item(ITEMTYPE, usingA, usingN, usingC), new Item(ITEMTYPE, usedA, usedN, usedC), null, 0, 0, 0, 0);
         }
 
         [TestMethod]
         public void TransitiveReductionGrapherTest() {
-            var rs = new DependencyRuleSet(new CheckerContext(false));
-            rs.AddGraphAbstractions("<test>", 0, "% (**)");
+            var rs = new DependencyRuleSet(_ignoreCase);
+            rs.AddGraphAbstractions(ITEMTYPE, ITEMTYPE, true, "<test>", 0, "% (**)", _ignoreCase);
 
-            var options = new Options {
-                DotFilename = Path.Combine(Path.GetTempPath(), "test.dot"),
-                ShowTransitiveEdges = true
-            };
-            var dg = new DependencyGrapher(new DependencyChecker(), options);
             var deps = new List<Dependency> {
-                                                new Dependency("a1", "a1", "a2", "a2", null, 0, 0, 0, 0),
-                                                new Dependency("a1", "a1", "a4", "a4", null, 0, 0, 0, 0),
-                                                new Dependency("a2", "a2", "a3", "a3", null, 0, 0, 0, 0),
-                                                new Dependency("a2", "a2", "a4", "a4", null, 0, 0, 0, 0),
-                                                new Dependency("a3", "a3", "a4", "a4", null, 0, 0, 0, 0),
-                                                new Dependency("b1", "b1", "b2", "b2", null, 0, 0, 0, 0),
-                                                new Dependency("b1", "b1", "b4", "b4", null, 0, 0, 0, 0),
-                                                new Dependency("b2", "b2", "b3", "b3", null, 0, 0, 0, 0),
-                                                new Dependency("b2", "b2", "b4", "b4", null, 0, 0, 0, 0),
-                                                new Dependency("b3", "b3", "b2", "b2", null, 0, 0, 0, 0),
-                                                new Dependency("b3", "b3", "b4", "b4", null, 0, 0, 0, 0)
-                                            };
+                NewDependency("A", "a1", "a1", "A", "a2", "a2"),
+                NewDependency("A", "a1", "a1", "A", "a4", "a4"),
+                NewDependency("A", "a2", "a2", "A", "a3", "a3"),
+                NewDependency("A", "a2", "a2", "A", "a4", "a4"),
+                NewDependency("A", "a3", "a3", "A", "a4", "a4"),
+                NewDependency("B", "b1", "b1", "B", "b2", "b2"),
+                NewDependency("B", "b1", "b1", "B", "b4", "b4"),
+                NewDependency("B", "b2", "b2", "B", "b3", "b3"),
+                NewDependency("B", "b2", "b2", "B", "b4", "b4"),
+                NewDependency("B", "b3", "b3", "B", "b2", "b2"),
+                NewDependency("B", "b3", "b3", "B", "b4", "b4")
+            };
 
-            dg.Graph(rs, deps);
+            var nodes = new Dictionary<string, Item>();
+            var edges = new Dictionary<Tuple<Item, Item>, Dependency>();
 
-            // what to assert??
+            DependencyGrapher.ReduceGraph(new Options { IgnoreCase = _ignoreCase }, rs, deps, nodes, edges);
+
+            new HideTransitiveEdges<Dependency>(new[] { "a" }).Run(edges.Values);
+
+            using (var sw = new StringWriter()) {
+                DependencyGrapher.WriteDotFile(edges.Values, sw, null);
+
+                // what to assert??
+            }
         }
 
         [TestMethod]
         public void Exit0() {
             {
-                string depFile = Path.GetTempFileName();
+                string depFile = CreateTempDotNetDepFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(@"
-                    assembly:** ---> assembly:**
-
                     NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
-                    NDepCheck.TestAssembly.** ---> System.**
-                    NDepCheck.TestAssembly.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForNDepCheck::I
-                    * ---? System.*
+                    NDepCheck.TestAssembly.**::NDepCheck.TestAssembly ---> System.**::mscorlib
+                    NDepCheck.TestAssembly.dir1.dir2:SomeClass ---? -:NamespacelessTestClassForNDepCheck::I
+                    -:* ---? System:*
+                    NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
+
+                    $ DOTNETREF ---> DOTNETREF
+                    * ---> *
                 ");
                 }
                 Assert.AreEqual(0, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
@@ -207,22 +226,29 @@ NDepCheck.Tests ---> **
             }
         }
 
+        private static string CreateTempDotNetDepFileName() {
+            return Path.GetTempFileName() + ".dll.dep";
+        }
+
         [TestMethod]
         public void Exit0Aspects() {
             {
-                string depFile = Path.GetTempFileName();
+                string depFile = CreateTempDotNetDepFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(@"
-                    assembly:** ---> assembly:mscorlib*
+                    ::* ---> ::mscorlib
 
                     ** ---> **
 
                     // Schlägt fehlt, weil eine SpecialMethod auch auf YetAnotherMethod zugreift!
                     **::*SpecialMethod* {
-                        ---> System.*
+                        ---> System:*
                         ---> **::*SpecialMethod*
                         ---> **::*ExtraordinaryMethod*
                     }
+
+                    $ DOTNETREF ---> DOTNETREF
+                    * ---> *
                     ");
                 }
                 Assert.AreEqual(0, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
@@ -233,17 +259,18 @@ NDepCheck.Tests ---> **
         [TestMethod]
         public void NestedMacroTest1() {
             {
-                string depFile = Path.GetTempFileName();
+                string depFile = CreateTempDotNetDepFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(@"
                     _A := NDepCheck.TestAssembly
                     _B := _A
                     _B.** ---> _B.**
                     _B.** ---> System.**
-                    _B.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForNDepCheck::I
-                    * ---? System.*
+                    _B.dir1.dir2:SomeClass ---? -:NamespacelessTestClassForNDepCheck::I
+                    -:* ---? System:*
 
-                    assembly:** ---> assembly:**");
+                    $ DOTNETREF ---> DOTNETREF
+                    * ---> *");
                 }
                 Assert.AreEqual(0, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
@@ -254,7 +281,7 @@ NDepCheck.Tests ---> **
         [TestMethod]
         public void MacroRedefinitionTest() {
             {
-                string depFile = Path.GetTempFileName();
+                string depFile = CreateTempDotNetDepFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(@"
                     ===> :=
@@ -267,10 +294,11 @@ NDepCheck.Tests ---> **
                     _B := _A
                     _B.** ===> _B.**
                     _B.** ===> System.**
-                    _B.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForNDepCheck::I
-                    * ---? System.*
+                    _B.dir1.dir2:SomeClass ---? -:NamespacelessTestClassForNDepCheck::I
+                    -:* ---? System:*
 
-                    assembly:** ---> assembly:**
+                    $ DOTNETREF ---> DOTNETREF
+                    * ---> *
                 ");
                 }
                 Assert.AreEqual(0, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
@@ -296,55 +324,56 @@ NDepCheck.Tests ---> **
 
         [TestMethod]
         public void Exit3() {
-            {
-                string depFile = Path.GetTempFileName();
-                using (TextWriter tw = new StreamWriter(depFile)) {
-                    tw.Write(@"
+            string depFile = CreateTempDotNetDepFileName();
+            using (TextWriter tw = new StreamWriter(depFile)) {
+                tw.Write(@"
                     ** ---> blabla
                 ");
-                }
-                Assert.AreEqual(3, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
-                File.Delete(depFile);
             }
-            {
-                string depFile = Path.GetTempFileName();
-                using (TextWriter tw = new StreamWriter(depFile)) {
-                    tw.Write("");
-                }
-                Assert.AreEqual(3, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
-                File.Delete(depFile);
-            }
+            Assert.AreEqual(3, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
+            File.Delete(depFile);
         }
+
+        [TestMethod]
+        public void Exit0ForEmptyDepFile() {
+            string depFile = CreateTempDotNetDepFileName();
+            using (TextWriter tw = new StreamWriter(depFile)) {
+                tw.Write("");
+            }
+            Assert.AreEqual(0, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
+            File.Delete(depFile);
+        }
+
 
         [TestMethod]
         public void Exit3Aspects() {
             {
-                string depFile = Path.GetTempFileName();
+                string depFile = CreateTempDotNetDepFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(@"
                     NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
                     NDepCheck.TestAssembly.** ---> System.**
-                    NDepCheck.TestAssembly.dir1.dir2.SomeClass::* ---? NamespacelessTestClassForNDepCheck::I
-                    * ---? System.*
+                    NDepCheck.TestAssembly.dir1.dir2:SomeClass ---? -:NamespacelessTestClassForNDepCheck::I
+                    -:* ---? System:*
 
                     // Schlägt fehlt, weil eine SpecialMethod auch auf ExtraordinaryMethod zugreift!
-                    **::*SpecialMethod* {
-                        ---> System.*
-                        ---> **::*SpecialMethod*
+                    :::*SpecialMethod* {
+                        ---> System:*
+                        ---> :::*SpecialMethod*
                     }
                     ");
                 }
-                Assert.AreEqual(3, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
+                Assert.AreEqual(3, Program.Main(new[] { "-y", "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
         }
 
         [TestMethod]
         public void Exit4() {
-            string depFile = Path.GetTempFileName();
+            string depFile = CreateTempDotNetDepFileName();
             using (TextWriter tw = new StreamWriter(depFile)) {
                 tw.Write(@"
-                    ** ---> blabla
+                    : ---> blabla
                 ");
             }
             Assert.AreEqual(4, Program.Main(new[] { "/x=" + depFile, "nonexistingfile.dll" }));
@@ -354,12 +383,12 @@ NDepCheck.Tests ---> **
         [TestMethod]
         public void Exit5() {
             {
-                string depFile = Path.GetTempFileName();
+                string depFile = CreateTempDotNetDepFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(
                         @"
                     ====> :=    
-                       ** ---> blabla
+                       : ---> blabla
                     =:
                     ===>> :=    
                        ** ---> blabla
@@ -370,7 +399,7 @@ NDepCheck.Tests ---> **
                 File.Delete(depFile);
             }
             {
-                string depFile = Path.GetTempFileName();
+                string depFile = CreateTempDotNetDepFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(
                         @"

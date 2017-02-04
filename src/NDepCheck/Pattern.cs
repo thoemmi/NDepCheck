@@ -1,6 +1,8 @@
-// (c) HMMüller 2006...2010
+// (c) HMMüller 2006...2015
 
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace NDepCheck {
@@ -13,158 +15,318 @@ namespace NDepCheck {
     /// inner classes, methods, and methods of inner classes).
     /// </remarks>
     public abstract class Pattern {
+        // needed so that we can work distinguish user's ("meta") *, . and \ from the ones in replacements ("regex").
+        protected const string ASTERISK_ESCAPE = "@#@";
+        protected const string DOT_ESCAPE = "@&@";
+        protected const string BACKSLASH_ESCAPE = "@$@";
 
-        // The question mark at the end seems to be necessary when a mal-formed UTF8 file (emitted
-        // under Vista) is read.
-        protected const string LETTER = @"\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}µ_?";
-
-        protected const string INNER_LETTER_BASE = LETTER + @"\p{Nd}\p{Pc}\p{Mn}\p{Mc}\p{Cf}";
-
-        // <> is for generic inner classes like XTPlus.Framework.Common.BidirectionalCollections.BiList/<>c__DisplayClass2
-        // {}=- is for <PrivateImplementationDetails>{935F4626-4085-4FB6-8006-FFE32E60A3DA}/__StaticArrayInitTypeSize=12
-        private const string INNER_LETTER_AFTER_LT = INNER_LETTER_BASE + "={}\\-\\$.<>";
-        private const string INNER_LETTER = ">" + INNER_LETTER_BASE + "={}\\-\\$";
-        private const string FIRST_LETTER = "{" + INNER_LETTER_BASE + "\\$";
-
-        protected const string ASTERISK_ESCAPE = "@#@"; // needed so that we can do a few replacements with *
-        protected const string ASTERISK_ABBREV = "...";
-
-        protected const string IDENT_ESCAPED = "(?:<[" + INNER_LETTER_AFTER_LT + "]" + ASTERISK_ESCAPE + "|[" + FIRST_LETTER + "][" + INNER_LETTER + "]" + ASTERISK_ESCAPE + ")";
-        protected const string IDENT_PREFIX_ESCAPED = IDENT_ESCAPED + "?";
-        protected const string IDENT_INFIX_ESCAPED = "[" + INNER_LETTER + "]" + ASTERISK_ESCAPE;
-
-        protected const string PATH_ESCAPED = IDENT_ESCAPED + "(?:[.]" + IDENT_ESCAPED + ")" + ASTERISK_ESCAPE;
-        protected const string INNER_PATH_ESCAPED = IDENT_ESCAPED + "(?:[/.]" + IDENT_ESCAPED + ")" + ASTERISK_ESCAPE;
-
-        protected static readonly string IDENT_NONESCAPED = IDENT_ESCAPED.Replace(ASTERISK_ESCAPE, "*");
-        protected const string METHODNAME_NONESCAPED = "[<>." + LETTER + "_\\$][<>" + INNER_LETTER_BASE + ".\\$\\-,]" + "*";
-        protected static readonly string OPTIONAL_NESTED_CLASSES = "(?:/" + IDENT_NONESCAPED + ")*";
-
-        // leading . is for ::.ctor
-        // inner . and $ are e.g. for antlr.CommonHiddenStreamToken::IToken.getColumn$PST060001A3
-        // <> is for generic delegate methods like ::<>9__CachedAnonymousMethodDelegate1
-        // - is for ::$$method0x600004a-1
-        // , is for ::System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<TKey,TValue>>.get_Current
-
-        /// <summary>
-        /// Create the possible expansions for a pattern.
-        /// </summary>
-        /// <returns>1, 2, or 4 regular expressions
-        /// to be used for matching a class name, a
-        /// method on a class, a nested class name, and/or 
-        /// a method on a nested class.</returns>
-        protected static List<string> Expand(string pattern) {
-            if (pattern.StartsWith("^")) {
-                if (pattern.EndsWith("$")) {
-                    return new List<string> { pattern };
-                } else {
-                    return ExpandWithSuffixes(pattern);
-                }
-            } else {
-                return ExpandWithSuffixes(ExpandAsterisks(pattern));
-            }
+        private static string EscapePattern(string pattern) {
+            return pattern.Replace("*", ASTERISK_ESCAPE).Replace(".", DOT_ESCAPE).Replace(@"\", BACKSLASH_ESCAPE);
         }
 
-        protected static string ExpandAsterisks(string pattern) {
-            pattern = pattern.Replace(".", "[.]");
+        private static string UnescapePattern(string pattern) {
+            return pattern.Replace(ASTERISK_ESCAPE, "*").Replace(DOT_ESCAPE, ".").Replace(BACKSLASH_ESCAPE, @"\");
+        }
+
+        private const string SEPARATORS_REGEX = @"[./\\]";
+        private const string NON_SEPARATORS_REGEX = @"[^./\\]";
+
+        private static readonly string CHARACTER_REGEX = EscapePattern(@"[^./:;+""'\\^$%&()*]");
+        private static readonly string ASTERISK_NEAR_LETTER_PATTERN = EscapePattern(CHARACTER_REGEX + "*");
+        private static readonly string ASTERISK_ALONE_PATTERN = EscapePattern(CHARACTER_REGEX + "+");
+
+        private static readonly string ASTERISKS_AFTER_LETTER_PATTERN =
+            EscapePattern(@"(?:" + ASTERISK_NEAR_LETTER_PATTERN + @"(?:" + SEPARATORS_REGEX + ASTERISK_ALONE_PATTERN + ")*)?");
+
+        private static readonly string ASTERISKS_PATTERN = EscapePattern(@"(?:" + ASTERISK_ALONE_PATTERN + @"(?:" + SEPARATORS_REGEX + ASTERISK_ALONE_PATTERN + ")*)?");
+        private static readonly string SEPARATOR_AND_ASTERISKS_PATTERN = EscapePattern(@"(?:" + SEPARATORS_REGEX + ASTERISK_ALONE_PATTERN + ")*");
+
+        public const char GROUPSEP = '#'; // TODO: Durch nbsp o.ä. ersetzen
+
+        protected static string ExpandAsterisks(string pattern, bool ignoreCase) {
+            // . and \ must be replaced after loops so that looking for separators works!
+            RegexOptions regexOptions = ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None;
+
             while (pattern.Contains("**")) {
-                int indexOfPath = pattern.IndexOf("**");
-                int indexOfSlash = pattern.IndexOf('/');
-                if (indexOfSlash >= 0 && indexOfSlash < indexOfPath) {
-                    // ** is to the right of a / -> it is expanded to IDENT([/]IDENT)*
-                    pattern = Interpolate2(pattern, indexOfPath, INNER_PATH_ESCAPED);
+                int indexOfPath = pattern.IndexOf("**", StringComparison.Ordinal);
+                bool incorporateSeparatorOnLeft = indexOfPath > 0 && Regex.IsMatch(pattern.Substring(indexOfPath - 1, 1), SEPARATORS_REGEX);
+
+                if (incorporateSeparatorOnLeft) {
+                    pattern = Interpolate(pattern, indexOfPath - 1, 3, SEPARATOR_AND_ASTERISKS_PATTERN);
                 } else {
-                    // ** is to the left of a / -> it is expanded to IDENT(.IDENT)*
-                    pattern = Interpolate2(pattern, indexOfPath, PATH_ESCAPED);
+                    bool matchNonSeparatorOnLeft = Regex.IsMatch(pattern.Substring(0, indexOfPath), ".*" + NON_SEPARATORS_REGEX + @"[\)]*$", regexOptions);
+                    pattern = Interpolate(pattern, indexOfPath, 2, matchNonSeparatorOnLeft ? ASTERISKS_AFTER_LETTER_PATTERN : ASTERISKS_PATTERN);
                 }
             }
+
             while (pattern.Contains("*")) {
-                int indexOfIdentPart = pattern.IndexOf("*");
-                if (indexOfIdentPart > 0 && Regex.IsMatch(pattern[indexOfIdentPart - 1].ToString(), "[" + INNER_LETTER + "]")) {
-                    pattern = Interpolate1(pattern, indexOfIdentPart, IDENT_INFIX_ESCAPED);
-                } else if (indexOfIdentPart < pattern.Length - 1 && Regex.IsMatch(pattern[indexOfIdentPart + 1].ToString(), "[" + INNER_LETTER + "]")) {
-                    pattern = Interpolate1(pattern, indexOfIdentPart, IDENT_PREFIX_ESCAPED);
-                } else {
-                    pattern = Interpolate1(pattern, indexOfIdentPart, IDENT_ESCAPED);
-                }
+                int indexOfPath = pattern.IndexOf("*", StringComparison.Ordinal);
+                bool matchNonSeparatorOnLeft = Regex.IsMatch(pattern.Substring(0, indexOfPath), NON_SEPARATORS_REGEX + @"[\)]*$", regexOptions);
+                bool matchNonSeparatorOnRight = Regex.IsMatch(pattern.Substring(indexOfPath + 1), @"^[\(]*" + NON_SEPARATORS_REGEX, regexOptions);
+                pattern = Interpolate(pattern, indexOfPath, 1, matchNonSeparatorOnLeft || matchNonSeparatorOnRight ? ASTERISK_NEAR_LETTER_PATTERN : ASTERISK_ALONE_PATTERN);
             }
 
-            pattern = pattern.Replace(ASTERISK_ESCAPE, "*").Replace(ASTERISK_ABBREV, "*");
-
-            return pattern;
-        }
-
-        protected static string ExpandAsterisksForAssemblyRule(string pattern) {
             pattern = pattern.Replace(".", "[.]");
-            while (pattern.Contains("**")) {
-                int indexOfPath = pattern.IndexOf("**");
-                // ** is always expanded to IDENT(.IDENT)*
-                pattern = Interpolate2(pattern, indexOfPath, PATH_ESCAPED);
+
+            return UnescapePattern(pattern);
+        }
+
+        private static string Interpolate(string pattern, int indexOfIdentPart, int replacedLength, string replacement) {
+            return pattern.Substring(0, indexOfIdentPart) + replacement + pattern.Substring(indexOfIdentPart + replacedLength);
+        }
+
+        protected static IMatcher[] CreateMatchers(ItemType type, string itemPattern, int estimatedGroupCount, bool ignoreCase) {
+            var result = new List<IMatcher>(); 
+
+            const string UNCOLLECTED_GROUP = "(?:";
+            const string UNCOLLECTED_GROUP_MASK = "(?#@#";
+            IEnumerable<string> parts = itemPattern.Replace(UNCOLLECTED_GROUP, UNCOLLECTED_GROUP_MASK)
+                .Split(':')
+                .Select(p => p.Replace(UNCOLLECTED_GROUP_MASK, UNCOLLECTED_GROUP))
+                .ToArray();
+
+            if (parts.First() == type.Name) {
+                // Rules may optionally start with the correct type name (when they are copied from e.g. from a violation textfile).
+                parts = parts.Skip(1);
             }
-            while (pattern.Contains("*")) {
-                int indexOfIdentPart = pattern.IndexOf("*");
-                if (indexOfIdentPart > 0 && Regex.IsMatch(pattern[indexOfIdentPart - 1].ToString(), "[" + INNER_LETTER + "]")) {
-                    pattern = Interpolate1(pattern, indexOfIdentPart, IDENT_INFIX_ESCAPED);
-                } else if (indexOfIdentPart < pattern.Length - 1 && Regex.IsMatch(pattern[indexOfIdentPart + 1].ToString(), "[" + INNER_LETTER + "]")) {
-                    pattern = Interpolate1(pattern, indexOfIdentPart, IDENT_PREFIX_ESCAPED);
-                } else {
-                    pattern = Interpolate1(pattern, indexOfIdentPart, IDENT_ESCAPED);
+
+            int j = 0;
+            foreach (var p in parts) {
+                foreach (var s in p.Split(';')) {
+                    result.Add(CreateMatcher(s, estimatedGroupCount, ignoreCase));
+                    j++;
+                }
+                while (j > 0 && j < type.Keys.Length && type.Keys[j - 1] == type.Keys[j]) {
+                    result.Add(new AlwaysMatcher());
+                    j++;
                 }
             }
-
-            pattern = pattern.Replace(ASTERISK_ESCAPE, "*").Replace(ASTERISK_ABBREV, "*");
-
-            if (!pattern.Contains("/")) {
-                // Suffix /1.2.3.4 is matched by a sequence of slashes, periods and numbers
-                pattern += "(?:[/.][0-9]+)*";
+            while (j < type.Keys.Length) {
+                result.Add(new AlwaysMatcher());
+                j++;
             }
-
-            return "^" + pattern + "$";
+            return result.Take(type.Keys.Length).ToArray();
         }
 
-        private static string Interpolate1(string pattern, int indexOfIdentPart, string value) {
-            return pattern.Substring(0, indexOfIdentPart) + value + pattern.Substring(indexOfIdentPart + 1);
-        }
-
-        private static string Interpolate2(string pattern, int indexOfPath, string value) {
-            return pattern.Substring(0, indexOfPath) + value + pattern.Substring(indexOfPath + 2);
-        }
-
-        /// <summary>
-        /// Add suffixes to a regular expression prefix so that
-        /// they can be used to match a class name, a
-        /// method on a class, a nested class name, and/or 
-        /// a method on a nested class.
-        /// </summary>
-        private static List<string> ExpandWithSuffixes(string pattern) {
-            List<string> expanded = new List<string>();
-            pattern = "^" + pattern;
-            if (!pattern.Contains("::")) {
-                // No :: --> add all possible methods.
-                if (!pattern.Contains("/")) {
-                    // If there is no slash, the class pattern part (before the ::) also includes
-                    // all nested classes of the given class. Saying "only in top-level class"
-                    // is currently not possible.
-                    pattern = pattern + OPTIONAL_NESTED_CLASSES;
-                }
-                expanded.Add(pattern + "::" + METHODNAME_NONESCAPED + "$");
+        private static IMatcher CreateMatcher(string segment, int estimatedGroupCount, bool ignoreCase) {
+            string groupPrefix = string.Join("", Enumerable.Repeat("([^" + GROUPSEP + "]*)" + GROUPSEP, estimatedGroupCount));
+            if (segment == "-") {
+                return new EmptyStringMatcher();
+            } else if (string.IsNullOrWhiteSpace(segment) || segment.Trim('*') == "") {
+                return new AlwaysMatcher();
+            } else if (segment.StartsWith("^")) {
+                string pattern = segment.TrimStart('^');
+                return new RegexMatcher("^" + groupPrefix + pattern, ignoreCase, estimatedGroupCount);
+            } else if (segment.EndsWith("$")) {
+                string pattern = segment;
+                return new RegexMatcher("^" + groupPrefix + ".*" + pattern, ignoreCase, estimatedGroupCount);
+            } else if (IsPrefixAndSuffixAsterisksPattern(segment)) {
+                return new ContainsMatcher(segment, ignoreCase);
+            } else if (IsSuffixAsterisksPattern(segment)) {
+                return new StartsWithMatcher(segment, ignoreCase);
+            } else if (IsPrefixAsterisksPattern(segment)) {
+                return new EndsWithMatcher(segment, ignoreCase);
             } else {
-                // :: --> method pattern.
-                if (!pattern.Contains("/")) {
-                    // If there is no slash, the class pattern part (before the ::) also includes
-                    // all nested classes of the given class. Saying "only in top-level class"
-                    // is currently not possible.
-                    pattern = pattern.Replace("::", OPTIONAL_NESTED_CLASSES + "::");
-                }
+                string pattern = ExpandAsterisks(segment, ignoreCase);
+                return new RegexMatcher("^" + groupPrefix + pattern + "$", ignoreCase, estimatedGroupCount);
             }
-            expanded.Add(pattern + "$");
-            return expanded;
         }
 
-        protected static string DebugContract(string regex) {
-            return regex.Replace(FIRST_LETTER, "F")
-                .Replace(INNER_LETTER, "I")
-                .Replace(INNER_LETTER_AFTER_LT, "J");
+
+        private static bool IsPrefixAndSuffixAsterisksPattern(string segment) {
+            return segment.StartsWith("**") && segment.EndsWith("**") && HasNoRegexCharsExceptPeriod(segment.Trim('*'));
+        }
+
+        private static bool IsPrefixAsterisksPattern(string segment) {
+            return segment.StartsWith("**") && HasNoRegexCharsExceptPeriod(segment.TrimStart('*'));
+        }
+
+        private static bool IsSuffixAsterisksPattern(string segment) {
+            return segment.EndsWith("**") && HasNoRegexCharsExceptPeriod(segment.TrimEnd('*'));
+        }
+
+        private static bool HasNoRegexCharsExceptPeriod(string segment) {
+            return !Regex.IsMatch(segment, @"[\\*()+?]");
+        }
+
+        internal static readonly string[] NO_GROUPS = new string[0];
+
+        protected static string[] Match(ItemType type, IMatcher[] matchers, Item item) {
+            if (item.Type != type) {
+                return null;
+            }
+
+            string[] groupsInItem = NO_GROUPS;
+
+            for (int i = 0; i < matchers.Length; i++) {
+                IMatcher matcher = matchers[i];
+                string value = item.Values[i];
+                string[] groups = matcher.Match(value);
+                if (groups == null) {
+                    return null;
+                }
+                if (groups.Length > 0) {
+                    var newGroupsInItem = new string[groupsInItem.Length + groups.Length];
+                    Array.Copy(groupsInItem, newGroupsInItem, groupsInItem.Length);
+                    Array.Copy(groups, 0, newGroupsInItem, groupsInItem.Length, groups.Length);
+                    groupsInItem = newGroupsInItem;
+                }
+            }
+            return groupsInItem ?? NO_GROUPS;
+        }
+    }
+
+    internal class AlwaysMatcher : IMatcher {
+        public bool IsMatch(string value, string[] groupsInUsing) {
+            return true;
+        }
+
+        public string[] Match(string value) {
+            return Pattern.NO_GROUPS;
+        }
+    }
+
+    internal class EmptyStringMatcher : IMatcher {
+        public bool IsMatch(string value, string[] groupsInUsing) {
+            return value == "";
+        }
+
+        public string[] Match(string value) {
+            return value == "" ? Pattern.NO_GROUPS : null;
+        }
+    }
+
+    internal class ContainsMatcher : AbstractDelegateMatcher {
+        public ContainsMatcher(string segment, bool ignoreCase)
+            : base(segment.Trim('*').Trim('.'), (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) >= 0) { }
+    }
+
+    internal class StartsWithMatcher : AbstractDelegateMatcher {
+        public StartsWithMatcher(string segment, bool ignoreCase)
+            : base(segment.TrimEnd('*').TrimEnd('.'), (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) == 0) { }
+    }
+
+    internal class EndsWithMatcher : AbstractDelegateMatcher {
+        public EndsWithMatcher(string segment, bool ignoreCase)
+            : base(segment.TrimStart('*').TrimStart('.'), (value, seg) => value.LastIndexOf(seg, GetComparisonType(ignoreCase)) >= value.Length - segment.Length) { }
+    }
+
+    public interface IMatcher {
+        bool IsMatch(string value, string[] groupsInUsing);
+        string[] Match(string value);
+    }
+
+    public abstract class AbstractRememberingMatcher {
+        private readonly Dictionary<string, string[]> _seenStrings = new Dictionary<string, string[]>();
+
+        protected bool Check(string s, out string[] entry) {
+            return _seenStrings.TryGetValue(s, out entry);
+        }
+
+        protected string[] Remember(string s, string[] groupsOrNullForNonMatch) {
+            _seenStrings.Add(s, groupsOrNullForNonMatch);
+            // TODO: Limit size
+            return groupsOrNullForNonMatch;
+        }
+    }
+
+    internal abstract class AbstractDelegateMatcher : AbstractRememberingMatcher, IMatcher {
+        private readonly string _segment;
+        private readonly Func<string, string, bool> _isMatch;
+
+        protected static StringComparison GetComparisonType(bool ignoreCase) {
+            return ignoreCase ? StringComparison.InvariantCulture : StringComparison.InvariantCultureIgnoreCase;
+        }
+
+        protected AbstractDelegateMatcher(string segment, Func<string, string, bool> isMatch) {
+            _segment = segment;
+            _isMatch = isMatch;
+        }
+
+        public bool IsMatch(string value, string[] groupsInUsing) {
+            return Match(value) != null;
+        }
+
+        public string[] Match(string value) {
+            string[] result;
+            if (Check(value, out result)) {
+                return result;
+            } else {
+                return Remember(value, _isMatch(value, _segment) ? Pattern.NO_GROUPS : null);
+            }
+        }
+    }
+
+    internal class RegexMatcher : AbstractRememberingMatcher, IMatcher {
+        private readonly int _estimatedGroupCount;
+        private readonly Regex _regex;
+
+        public RegexMatcher(string pattern, bool ignoreCase, int estimatedGroupCount) {
+            _estimatedGroupCount = estimatedGroupCount;
+            _regex = new Regex(pattern, ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
+        }
+
+        public bool IsMatch(string value, string[] groupsInUsing) {
+            int fillupWithArbitraryStringsCount = EstimatedGroupCount() - groupsInUsing.Length;
+            IEnumerable<string> groupsWithFillUps = groupsInUsing.Concat(Enumerable.Range(0, fillupWithArbitraryStringsCount).Select(_ => "IGNORE"));
+            string joinedGroupsWithFillUps = string.Join("", groupsWithFillUps.Select(g => g + Pattern.GROUPSEP));
+
+            bool isMatch = _regex.IsMatch(joinedGroupsWithFillUps + value);
+            return isMatch;
+        }
+
+        public string[] Match(string value) {
+            Match m = _regex.Match(value);
+            if (m.Success) {
+                string[] groups = new string[m.Groups.Count - 1];
+                for (int i = 1; i < m.Groups.Count; i++) {
+                    groups[i - 1] = m.Groups[i].Value;
+                }
+                return groups;
+            } else {
+                return null;
+            }
+        }
+
+        public int EstimatedGroupCount() {
+            return _estimatedGroupCount;
+        }
+
+        // TODO: NOCH NICHT IN BETRIEB ...
+        internal class RegexMatcherWithBackReferences : IMatcher {
+            private readonly int _estimatedGroupCount;
+            private readonly Regex _regex;
+
+            public RegexMatcherWithBackReferences(string pattern, bool ignoreCase, int estimatedGroupCount) {
+                _estimatedGroupCount = estimatedGroupCount;
+                _regex = new Regex(pattern, ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
+            }
+
+            public bool IsMatch(string value, string[] groupsInUsing) {
+                int fillupWithArbitraryStringsCount = EstimatedGroupCount() - groupsInUsing.Length;
+                IEnumerable<string> groupsWithFillUps = groupsInUsing.Concat(Enumerable.Range(0, fillupWithArbitraryStringsCount).Select(_ => "IGNORE"));
+                string joinedGroupsWithFillUps = string.Join("", groupsWithFillUps.Select(g => g + Pattern.GROUPSEP));
+
+                bool isMatch = _regex.IsMatch(joinedGroupsWithFillUps + value);
+                return isMatch;
+            }
+
+            public string[] Match(string value) {
+                Match m = _regex.Match(value);
+                if (m.Success) {
+                    string[] groups = new string[m.Groups.Count - 1];
+                    for (int i = 1; i < m.Groups.Count; i++) {
+                        groups[i - 1] = m.Groups[i].Value;
+                    }
+                    return groups;
+                } else {
+                    return null;
+                }
+            }
+
+            public int EstimatedGroupCount() {
+                return _estimatedGroupCount;
+            }
         }
     }
 }

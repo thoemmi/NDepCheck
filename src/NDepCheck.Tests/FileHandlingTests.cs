@@ -64,30 +64,6 @@ namespace NDepCheck.Tests {
         }
 
         [TestMethod]
-        public void TestCheckSimpleAssemblyRules() {
-            const string rules = @"assembly:NDepCheck.Test* ---> assembly:mscorlib";
-            Write(@"d", "NDepCheck.TestAssembly.dll.dep", rules);
-            Write(@"d", "NDepCheck.TestAssemblyÄÖÜß.dll.dep", rules);
-            Assert.AreEqual(0, Run(@"-d=%%\d", "-a"));
-        }
-
-        [TestMethod]
-        public void TestDontCheckAssemblyRulesIfThereAreNone() {
-            const string rules = @"BliBlaBlubb ---> BliBlaBlubb";
-            Write(@"d", "NDepCheck.TestAssembly.dll.dep", rules);
-            Write(@"d", "NDepCheck.TestAssemblyÄÖÜß.dll.dep", rules);
-            Assert.AreEqual(0, Run(@"-d=%%\d", "-a"));
-        }
-
-        [TestMethod]
-        public void TestCheckAssemblyRulesIfThereAreAny() {
-            const string rules = @"assembly:BliBlaBlubb ---> assembly:BliBlaBlubb";
-            Write(@"d", "NDepCheck.TestAssembly.dll.dep", rules);
-            Write(@"d", "NDepCheck.TestAssemblyÄÖÜß.dll.dep", rules);
-            Assert.AreEqual(3, Run(@"-d=%%\d", "-a"));
-        }
-
-        [TestMethod]
         public void TestDDXOk() {
             WriteDep1To(@"a\b");
             WriteDep2To(@"a\c");
@@ -121,7 +97,10 @@ namespace NDepCheck.Tests {
             Write(@"a\b\c", "NDepCheck.TestAssembly.dll.dep",
                 @"+ ..\B.dep
                   _B.** ---> **
-                  * ---? **
+                  :* ---? **
+
+                  $ DOTNETREF ---> DOTNETREF 
+                  * ---> *
                 ");
             WriteDep2To(@"a\b\c");
             Assert.AreEqual(0, Run(@"-s=%%\a\b"));
@@ -135,7 +114,7 @@ namespace NDepCheck.Tests {
                 ");
             Write(@"a\b", "B.dep",
                 @"_A.** ---> **
-                  * ---? **
+                  :* ---? **
                 ");
             Write(@"a\b\c", "NDepCheck.TestAssembly.dll.dep",
                 @"+ ..\A.dep
@@ -147,13 +126,12 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestExcept() {
             WriteDep1To(@"a\b");
+            WriteXTo(@"a\c");
 
             int result = Program.Main(new List<string> {
                     @"-s=" + _basePath + @"\a",
-                    GetPath("NDepCheck.TestAssembly.dll"),
-                    "NDepCheck.TestAssemblyÄÖÜß.*",
-                    "/e",
-                    "NDepCheck.TestAssemblyÄÖÜß.dll",
+                    @"-f=" + GetPath("NDepCheck.TestAssembly.dll"),
+                    @"-f=" + "NDepCheck.TestAssemblyÄÖÜß.*", "-", "NDepCheck.TestAssemblyÄÖÜß.dll",
                 }.ToArray());
             Assert.AreEqual(0, result);
         }
@@ -167,38 +145,51 @@ namespace NDepCheck.Tests {
 
         private void WriteDep1To(string directory) {
             Write(directory, "NDepCheck.TestAssembly.dll.dep",
-                @"NDepCheck.TestAssembly.** ---> **
-                  * ---? **
+                @"
+                  $ DOTNETCALL ---> DOTNETCALL
+                  NDepCheck.TestAssembly.** ---> **
+                  :* ---? **
 
-                  // assembly:NDepCheck.TestAssembly** ---> assembly:mscorlib
-                  assembly:** ---> assembly:**
+                  $ DOTNETREF ---> DOTNETREF
+                  ** ---? **
                 ");
         }
 
         private void WriteDep1PlusTo(string directory) {
             Write(directory, "NDepCheck.TestAssembly.dll.dep", @"+ Dep1Include\Dep1.dep");
             Write(directory + @"\Dep1Include", "Dep1.dep", @"NDepCheck.TestAssembly.** ---> **
-                  * ---? **
-                  assembly:** ---? assembly:**
+                  $ DOTNETCALL ---> DOTNETCALL
+                  :* ---? **
+
+                  $ DOTNETREF ---> DOTNETREF
+                  ** ---? **
                 ");
         }
 
         private void WriteDep2To(string directory) {
             Write(directory, "NDepCheck.TestAssemblyÄÖÜß.dll.dep",
-                @"NDepCheck.TestAssemblyÄÖÜß.** ---> **
+                @"$ DOTNETCALL ---> DOTNETCALL
+                  NDepCheck.TestAssemblyÄÖÜß.** ---> **
 
-                  assembly:** ---> assembly:**");
+                  $ DOTNETREF ---> DOTNETREF
+                  ** ---? **
+                ");
         }
 
         private void WriteDep2PlusTo(string directory) {
             Write(directory, "NDepCheck.TestAssemblyÄÖÜß.dll.dep", @"+ Dep2Include\Dep2A.dep");
             Write(directory + @"\Dep2Include", "Dep2A.dep", @"+ ..\Dep2B.dep");
             Write(directory, "Dep2B.dep", @"NDepCheck.TestAssemblyÄÖÜß.** ---> **
-                                            assembly:** ---? assembly:**");
+                                            ASSEMBLY.NAME=** ---> ASSEMBLY.NAME=**");
         }
 
         private void WriteXTo(string directory) {
-            Write(directory, "Defaults.dep", "** ---? **");
+            Write(directory, "Defaults.dep", @"
+                $ DOTNETCALL ---> DOTNETCALL
+                ** ---? **
+
+                $ DOTNETREF ---> DOTNETREF
+                * ---> *");
         }
 
         private void Write(string directory, string depFileName, string data) {

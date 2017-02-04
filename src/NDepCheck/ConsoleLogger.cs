@@ -9,11 +9,11 @@ namespace NDepCheck {
             Console.ResetColor();
         }
 
-        public void WriteError(string msg, string filename, uint lineNumber) {
+        public void WriteError(string msg, string filename, int lineNumber) {
             if (string.IsNullOrEmpty(filename)) {
                 WriteError(msg);
             } else {
-                WriteError(msg + String.Format(" ({0}:{1})", filename, lineNumber));
+                WriteError(msg + $" ({filename}:{lineNumber})");
             }
         }
 
@@ -29,11 +29,11 @@ namespace NDepCheck {
             Console.ResetColor();
         }
 
-        public void WriteWarning(string msg, string filename, uint lineNumber) {
+        public void WriteWarning(string msg, string filename, int lineNumber) {
             if (string.IsNullOrEmpty(filename)) {
                 WriteWarning(msg);
             } else {
-                WriteWarning(msg + String.Format(" ({0}:{1})", filename, lineNumber));
+                WriteWarning(msg + $" ({filename}:{lineNumber})");
             }
         }
 
