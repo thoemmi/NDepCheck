@@ -24,7 +24,7 @@ namespace JetBrains.Annotations {
     [AttributeUsage(
       AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
       AttributeTargets.Delegate | AttributeTargets.Field | AttributeTargets.Event)]
-    public sealed partial class CanBeNullAttribute : Attribute {
+    public sealed class CanBeNullAttribute : Attribute {
     }
 
     /// <summary>
