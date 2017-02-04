@@ -9,11 +9,11 @@ namespace NDepCheck {
             Console.ResetColor();
         }
 
-        public void WriteError(string msg, string filename, int lineNumber) {
-            if (string.IsNullOrEmpty(filename)) {
+        public void WriteError(string msg, string nestedFilenames, int lineNumber) {
+            if (string.IsNullOrEmpty(nestedFilenames)) {
                 WriteError(msg);
             } else {
-                WriteError(msg + $" ({filename}:{lineNumber})");
+                WriteError(msg + $" ({nestedFilenames}:{lineNumber})");
             }
         }
 
@@ -29,11 +29,11 @@ namespace NDepCheck {
             Console.ResetColor();
         }
 
-        public void WriteWarning(string msg, string filename, int lineNumber) {
-            if (string.IsNullOrEmpty(filename)) {
+        public void WriteWarning(string msg, string nestedFilenames, int lineNumber) {
+            if (string.IsNullOrEmpty(nestedFilenames)) {
                 WriteWarning(msg);
             } else {
-                WriteWarning(msg + $" ({filename}:{lineNumber})");
+                WriteWarning(msg + $" ({nestedFilenames}:{lineNumber})");
             }
         }
 

@@ -134,7 +134,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void SmallGrapherTest() {
-            var rs = new DependencyRuleSet(_ignoreCase);
+            var rs = new DependencyRuleSet(_ignoreCase, "in test");
             rs.AddGraphAbstractions(ITEMTYPE, ITEMTYPE, false, "<test>", 0, "% (**)", _ignoreCase);
 
             var deps = new List<Dependency> {
@@ -174,7 +174,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TransitiveReductionGrapherTest() {
-            var rs = new DependencyRuleSet(_ignoreCase);
+            var rs = new DependencyRuleSet(_ignoreCase, "in test");
             rs.AddGraphAbstractions(ITEMTYPE, ITEMTYPE, true, "<test>", 0, "% (**)", _ignoreCase);
 
             var deps = new List<Dependency> {

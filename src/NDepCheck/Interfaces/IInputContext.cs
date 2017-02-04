@@ -8,7 +8,7 @@ namespace NDepCheck {
         IEnumerable<Dependency> Dependencies { get; }
 
         [CanBeNull]
-        DependencyRuleSet GetOrCreateDependencyRuleSetMayBeCalledInParallel([NotNull]IGlobalContext checkerContext, [NotNull]Options options);
+        DependencyRuleSet GetOrCreateDependencyRuleSetMayBeCalledInParallel([NotNull] IGlobalContext checkerContext, [NotNull] Options options, string includeRecursion);
 
         // Actions
         void Add(RuleViolation ruleViolation);

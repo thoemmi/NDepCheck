@@ -178,7 +178,8 @@ namespace NDepCheck {
         }
 
         public string AsStringWithTypes() {
-            return _usingItem.AsStringWithType() + " -> " + _ct + ";" + _notOkCt + ";" + _notOkExample + " -> " + _usedItem.AsStringWithType();
+            string notOk = _notOkExample == null ? null : $"({_notOkExample})";
+            return $"{_usingItem.AsStringWithType()} -> {_ct};{_notOkCt};{notOk} -> {_usedItem.AsStringWithType()}";
         }
 
         public IEdge CreateEdgeFromUsingTo(INode usedNode) {

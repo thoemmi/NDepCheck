@@ -14,8 +14,8 @@ namespace NDepCheck.MSBuild {
             _log.LogError(msg);
         }
 
-        public void WriteError(string msg, string fileName, int startLine) {
-            _log.LogError(null, null, null, fileName, startLine, 0, 0, 0, msg);
+        public void WriteError(string msg, string nestedFilenames, int startLine) {
+            _log.LogError(null, null, null, nestedFilenames, startLine, 0, 0, 0, msg);
         }
 
         public void WriteViolation(RuleViolation ruleViolation) {
@@ -53,8 +53,8 @@ namespace NDepCheck.MSBuild {
             _log.LogWarning(msg);
         }
 
-        public void WriteWarning(string msg, string fileName, int startLine) {
-            _log.LogWarning(null, null, null, fileName, startLine, 0, 0, 0, msg);
+        public void WriteWarning(string msg, string nestedFilenames, int startLine) {
+            _log.LogWarning(null, null, null, nestedFilenames, startLine, 0, 0, 0, msg);
         }
 
         public void WriteInfo(string msg) {

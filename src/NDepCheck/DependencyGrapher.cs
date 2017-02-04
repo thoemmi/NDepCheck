@@ -250,7 +250,7 @@ namespace NDepCheck {
             var result = new Dictionary<FromTo, Dependency>();
 
             foreach (var i in checkerContext.InputContexts) {
-                DependencyRuleSet ruleSet = i.GetOrCreateDependencyRuleSetMayBeCalledInParallel(checkerContext, options);
+                DependencyRuleSet ruleSet = i.GetOrCreateDependencyRuleSetMayBeCalledInParallel(checkerContext, options, "REDUCEGRAPH??");
                 if (ruleSet != null) {
                     Log.WriteInfo("Reducing graph " + i.Filename);
                     ReduceGraph(options, ruleSet, i.Dependencies, nodes, result);

@@ -27,7 +27,7 @@ namespace NDepCheck {
                 _violations = new List<RuleViolation>();
 
                 try {
-                    DependencyRuleSet ruleSetForAssembly = GetOrCreateDependencyRuleSetMayBeCalledInParallel(checkerContext, options);
+                    DependencyRuleSet ruleSetForAssembly = GetOrCreateDependencyRuleSetMayBeCalledInParallel(checkerContext, options, "" /*???*/);
                     if (ruleSetForAssembly == null) {
                         Log.WriteError("No rule set found for file " + _filename);
                         result = 6;
@@ -65,9 +65,9 @@ namespace NDepCheck {
             return result;
         }
 
-        public DependencyRuleSet GetOrCreateDependencyRuleSetMayBeCalledInParallel(IGlobalContext checkerContext, Options options) {
+        public DependencyRuleSet GetOrCreateDependencyRuleSetMayBeCalledInParallel(IGlobalContext checkerContext, Options options, string includeRecursion) {
             string dependencyFilename = Path.GetFileName(_filename) + ".dep";
-            return checkerContext.GetOrCreateDependencyRuleSet_MayBeCalledInParallel(options, dependencyFilename);
+            return checkerContext.GetOrCreateDependencyRuleSet_MayBeCalledInParallel(options, dependencyFilename, includeRecursion);
         }
 
         /// <summary>

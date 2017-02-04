@@ -59,36 +59,50 @@ namespace NDepCheck {
         [NotNull]
         private readonly SortedDictionary<string, string> _defines = new SortedDictionary<string, string>(new LengthComparer());
 
+        [CanBeNull]
+        private readonly string _fullSourceFilename;
+
+        [NotNull]
+        private readonly string _includeRecursion;
+
         /// <summary>
         /// Constructor public only for test cases.
         /// </summary>
-        public DependencyRuleSet(bool ignoreCase) {
+        public DependencyRuleSet(bool ignoreCase, string includeRecursion) {
             _mainRuleGroup = new DependencyRuleGroup(ItemType.DEFAULT, group: "", ignoreCase: ignoreCase);
             _ruleGroups.Add(_mainRuleGroup);
+            _includeRecursion = includeRecursion;
         }
 
         public DependencyRuleSet([NotNull] IGlobalContext globalContext, [NotNull] Options options, [NotNull] string fullRuleFilename,
-                                 [NotNull] IDictionary<string, string> defines, [NotNull] IDictionary<string, Macro> macros, bool ignoreCase)
-            : this(ignoreCase) {
+                                 [NotNull] IDictionary<string, string> defines, [NotNull] IDictionary<string, Macro> macros, bool ignoreCase,
+                                 [NotNull] string includeRecursion)
+            : this(ignoreCase, includeRecursion) {
+            _fullSourceFilename = fullRuleFilename;
             _defines = new SortedDictionary<string, string>(defines, new LengthComparer());
             _macros = new SortedDictionary<string, Macro>(macros, new LengthComparer());
-            if (!LoadRules(globalContext, fullRuleFilename, options, ignoreCase)) {
-                throw new ApplicationException("Could not load rules from " + fullRuleFilename);
+            if (!LoadRules(globalContext, fullRuleFilename, options, ignoreCase, includeRecursion)) {
+                throw new ApplicationException("Could not load rules from " + fullRuleFilename + " (in " + includeRecursion + ")");
             }
         }
+
+        public string FullSourceFilename => _fullSourceFilename;
+
+        public string IncludeRecursion => _includeRecursion;
 
         #region Loading
 
         /// <summary>
         /// Load a rule file.
         /// </summary>
-        private bool LoadRules(IGlobalContext globalContext, string fullRuleFilename, Options options, bool ignoreCase) {
+        private bool LoadRules(IGlobalContext globalContext, string fullRuleFilename, Options options, bool ignoreCase, string includeRecursion) {
             using (TextReader tr = new StreamReader(fullRuleFilename, Encoding.Default)) {
-                return ProcessText(globalContext, fullRuleFilename, 0, tr, options, LEFT_PARAM, RIGHT_PARAM, ignoreCase);
+                return ProcessText(globalContext, fullRuleFilename, 0, tr, options, LEFT_PARAM, RIGHT_PARAM, ignoreCase, includeRecursion);
             }
         }
 
-        private bool ProcessText(IGlobalContext globalContext, string fullRuleFilename, int startLineNo, TextReader tr, Options options, string leftParam, string rightParam, bool ignoreCase) {
+        private bool ProcessText(IGlobalContext globalContext, string fullRuleFilename, int startLineNo, TextReader tr,
+            Options options, string leftParam, string rightParam, bool ignoreCase, string includeRecursion) {
             int lineNo = startLineNo;
             bool textIsOk = true;
             DependencyRuleGroup currentGroup = _mainRuleGroup;
@@ -131,8 +145,10 @@ namespace NDepCheck {
                     } else if (line.StartsWith("+")) {
                         string includeFilename = line.Substring(1).Trim();
                         DependencyRuleSet included = globalContext.
-                            GetOrCreateDependencyRuleSet_MayBeCalledInParallel(new FileInfo(fullRuleFilename).Directory,
-                                includeFilename, options, _defines, _macros, ignoreCase);
+                            GetOrCreateDependencyRuleSet_MayBeCalledInParallel(
+                                new FileInfo(fullRuleFilename).Directory,
+                                includeFilename, options, _defines, _macros, ignoreCase,
+                                includeRecursion: includeRecursion);
                         if (included != null) {
                             // Error message when == null has been output by Create.
                             _includedRuleSets.Add(included);
@@ -165,9 +181,9 @@ namespace NDepCheck {
                     } else if (ProcessMacroIfFound(globalContext, line, ignoreCase)) {
                         // macro is already processed as side effect in ProcessMacroIfFound()
                     } else if (line.StartsWith(GRAPHIT)) {
-                        AddGraphAbstractions(usingItemType, usedItemType, false, fullRuleFilename, lineNo, line, ignoreCase);
+                        AddGraphAbstractions(usingItemType, usedItemType, isInner: false, ruleFileName:fullRuleFilename, lineNo: lineNo, line:line, ignoreCase: ignoreCase);
                     } else if (line.StartsWith(GRAPHITINNER)) {
-                        AddGraphAbstractions(usingItemType, usedItemType, true, fullRuleFilename, lineNo, line, ignoreCase);
+                        AddGraphAbstractions(usingItemType, usedItemType, isInner: true, ruleFileName: fullRuleFilename, lineNo:lineNo, line: line, ignoreCase:ignoreCase);
                     } else if (line.Contains(MAYUSE) || line.Contains(MUSTNOTUSE) ||
                                line.Contains(MAYUSE_WITH_WARNING)) {
                         currentGroup.AddDependencyRules(this, usingItemType, usedItemType, fullRuleFilename, lineNo, line, ignoreCase);
@@ -267,7 +283,7 @@ namespace NDepCheck {
             int macroPos = line.IndexOf(foundMacroName, StringComparison.Ordinal);
             string leftParam = line.Substring(0, macroPos).Trim();
             string rightParam = line.Substring(macroPos + foundMacroName.Length).Trim();
-            ProcessText(globalContext, macro.RuleFileName, macro.StartLineNo, new StringReader(macro.MacroText), null, leftParam, rightParam, ignoreCase);
+            ProcessText(globalContext, macro.RuleFileName, macro.StartLineNo, new StringReader(macro.MacroText), null, leftParam, rightParam, ignoreCase, "???PROCESSMACRO???");
             return true;
         }
 

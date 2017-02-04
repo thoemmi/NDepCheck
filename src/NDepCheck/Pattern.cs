@@ -32,7 +32,7 @@ namespace NDepCheck {
         private const string SEPARATORS_REGEX = @"[./\\]";
         private const string NON_SEPARATORS_REGEX = @"[^./\\]";
 
-        private static readonly string CHARACTER_REGEX = EscapePattern(@"[^./:;+""'\\^$%&()*]");
+        private static readonly string CHARACTER_REGEX = EscapePattern(@"[^./:;+""'\\^$%()*]");
         private static readonly string ASTERISK_NEAR_LETTER_PATTERN = EscapePattern(CHARACTER_REGEX + "*");
         private static readonly string ASTERISK_ALONE_PATTERN = EscapePattern(CHARACTER_REGEX + "+");
 

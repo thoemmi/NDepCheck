@@ -56,7 +56,7 @@ namespace NDepCheck {
         public void AddDependencyRules([NotNull] DependencyRuleSet parent, [CanBeNull] ItemType usingItemType, [CanBeNull] ItemType usedItemType, 
                                        [NotNull] string ruleFileName, int lineNo, [NotNull] string line, bool ignoreCase) {
             if (usingItemType == null || usedItemType == null) {
-                Log.WriteError("Itemtypes not defined - $ line is missing in this file, dependency rules are ignored", ruleFileName, lineNo);
+                Log.WriteError("Itemtypes not defined - $ line is missing in this file, dependency rules are ignored", parent.IncludeRecursion + " => + " + ruleFileName, lineNo);
             } else if (line.Contains(DependencyRuleSet.MAYUSE)) {
                 foreach (var rule in CreateDependencyRules(parent, usingItemType, usedItemType, ruleFileName, lineNo, line, DependencyRuleSet.MAYUSE, false, ignoreCase)) {
                     Add(_allowed, rule);

@@ -309,5 +309,20 @@ namespace NDepCheck.Tests {
             var r = new DependencyRule(itemType, "NDepCheck.TestAssembly.dir1.dir2:SomeClass:**", itemType, "-:NamespacelessTestClassForNDepCheck::I", new DependencyRuleRepresentation("rules.dep", 0, "...", false), IGNORECASE);
             Assert.IsTrue(r.IsMatch(d));
         }
+
+
+        [TestMethod]
+        public void TestAmpersand() {
+            ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
+
+            var ga = new GraphAbstraction(itemType, "(**):(**):(**)", false, false);
+
+            var used = new Item(itemType, "System", "Byte&", "mscorlib", "4.0.0.0", "", "", "");
+
+            bool isInner;
+            string result = ga.Match(used, out isInner);
+
+            Assert.AreEqual("System:Byte&:mscorlib", result);
+        }
     }
 }
