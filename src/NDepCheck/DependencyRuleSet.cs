@@ -141,8 +141,7 @@ namespace NDepCheck {
                         usedItemType = AbstractReaderFactory.GetItemType(ExpandDefines(typeLine.Substring(i + MAYUSE.Length).Trim()));
                     } else if (line.StartsWith("+")) {
                         string includeFilename = line.Substring(1).Trim();
-                        DependencyRuleSet included = globalContext.
-                            GetOrCreateDependencyRuleSet_MayBeCalledInParallel(
+                        DependencyRuleSet included = globalContext.GetOrCreateDependencyRuleSet_MayBeCalledInParallel(
                                 new FileInfo(fullRuleFilename).Directory,
                                 includeFilename, options, _defines, _macros, ignoreCase,
                                 fileIncludeStack: fileIncludeStack);
@@ -159,6 +158,8 @@ namespace NDepCheck {
                             foreach (var kvp in included._macros) {
                                 _macros[kvp.Key] = kvp.Value;
                             }
+                        } else {
+                            textIsOk = false;
                         }
                     } else if (line.EndsWith("{")) {
                         if (currentGroup.Group != "") {
