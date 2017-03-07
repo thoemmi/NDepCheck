@@ -18,8 +18,7 @@ namespace NDepCheck {
         private readonly ItemType _usingItemType;
         [NotNull]
         private readonly ItemType _usedItemType;
-        [NotNull]
-        private readonly DependencyRuleRepresentation _rep;
+
         [NotNull]
         private readonly IMatcher[] _using;
         [NotNull]
@@ -29,8 +28,14 @@ namespace NDepCheck {
         // Dependency_ rules are created from lines with
         // a specific extension algorithm (see CreateDependencyRules()
         // below. Hence, the constructor is private.
-        public DependencyRule([NotNull] ItemType usingItemType, string usingItemPattern, [NotNull] ItemType usedItemType, string usedItemPattern,
-                              [NotNull] DependencyRuleRepresentation rep, bool ignoreCase) {
+        public DependencyRule([NotNull] ItemType usingItemType, string usingItemPattern, [NotNull] ItemType usedItemType,
+            string usedItemPattern, [NotNull] DependencyRuleRepresentation rep, bool ignoreCase)
+            : this(usingItemType: usingItemType, @using : CreateMatchers(usingItemType, usingItemPattern, 0, ignoreCase), usedItemType: usedItemType, 
+                  used: CreateMatchers(usedItemType, usedItemPattern, usingItemPattern.Count(c => c == '('), ignoreCase), rep: rep) {
+        }
+
+        public DependencyRule([NotNull] ItemType usingItemType, IMatcher[] @using, [NotNull] ItemType usedItemType, IMatcher[] used,
+                              [NotNull] DependencyRuleRepresentation rep) {
             if (usingItemType == null) {
                 throw new ArgumentNullException(nameof(usingItemType));
             }
@@ -40,17 +45,21 @@ namespace NDepCheck {
             if (rep == null) {
                 throw new ArgumentNullException(nameof(rep));
             }
-            _using = CreateMatchers(usingItemType, usingItemPattern, 0, ignoreCase);
-            _used = CreateMatchers(usedItemType, usedItemPattern, usingItemPattern.Count(c => c == '('), ignoreCase);
+            _using = @using;
+            _used = used;
             _usingItemType = usingItemType;
             _usedItemType = usedItemType;
-            _rep = rep;
+            Representation = rep;
         }
 
         public int HitCount => _hitCount;
 
         [NotNull]
-        public DependencyRuleRepresentation Representation => _rep;
+        public DependencyRuleRepresentation Representation { get; }
+
+        public IMatcher[] Using => _using;
+
+        public IMatcher[] Used => _used;
 
         public bool IsMatch(Dependency dependency) {
             // We check the types immediately, so that no unnecessary Match is run.
@@ -79,6 +88,15 @@ namespace NDepCheck {
 
                 return true;
             }
+        }
+
+        public bool MatchesUsingPattern(IMatcher[] matchers) {
+            for (int i = 0; i < Math.Min(_using.Length, matchers.Length); i++) {
+                if (!_using[i].MatchesAlike(matchers[i])) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }

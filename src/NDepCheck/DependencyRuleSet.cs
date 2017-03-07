@@ -12,6 +12,7 @@ namespace NDepCheck {
         private const string RIGHT_PARAM = "\\R";
 
         internal const string MAYUSE = "--->";
+        internal const string MAYUSE_RECURSIVE = "===>";
         internal const string MAYUSE_WITH_WARNING = "---?";
         internal const string MUSTNOTUSE = "---!";
 
@@ -112,6 +113,11 @@ namespace NDepCheck {
                     break;
                 }
 
+                int commentStart = line.IndexOf("//", StringComparison.InvariantCulture);
+                if (commentStart >= 0) {
+                    line = line.Substring(0, commentStart);
+                }
+
                 line = line.Trim().Replace(LEFT_PARAM, leftParam).Replace(RIGHT_PARAM, rightParam);
                 lineNo++;
 
@@ -183,7 +189,7 @@ namespace NDepCheck {
                     } else if (line.StartsWith(GRAPHITINNER)) {
                         AddGraphAbstractions(usingItemType, usedItemType, isInner: true, ruleFileName: fullRuleFilename, lineNo:lineNo, line: line, ignoreCase:ignoreCase);
                     } else if (line.Contains(MAYUSE) || line.Contains(MUSTNOTUSE) ||
-                               line.Contains(MAYUSE_WITH_WARNING)) {
+                               line.Contains(MAYUSE_WITH_WARNING) || line.Contains(MAYUSE_RECURSIVE)) {
                         string currentRawUsingPattern;
                         bool ok = currentGroup.AddDependencyRules(this, usingItemType, usedItemType, fullRuleFilename, lineNo, line, ignoreCase, previousRawUsingPattern, out currentRawUsingPattern);
                         if (!ok) {

@@ -1,4 +1,4 @@
-// (c) HMMüller 2006...2015
+// (c) HMMüller 2006...2017
 
 using System;
 using System.Collections.Generic;
@@ -7,6 +7,15 @@ using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 
 namespace NDepCheck {
+    public interface IMatcher {
+        bool IsMatch([NotNull]string value, [NotNull]string[] groupsInUsing);
+
+        [CanBeNull]
+        string[] Match([NotNull]string value);
+
+        bool MatchesAlike(IMatcher other);
+    }
+
     /// <remarks>
     /// Parent class for pattern objects (currently,
     /// <see>DependencyRule</see> and <see>GraphAbstraction</see>).
@@ -80,7 +89,7 @@ namespace NDepCheck {
 
         [NotNull]
         protected static IMatcher[] CreateMatchers([NotNull] ItemType type, [NotNull] string itemPattern, int estimatedGroupCount, bool ignoreCase) {
-            var result = new List<IMatcher>(); 
+            var result = new List<IMatcher>();
 
             const string UNCOLLECTED_GROUP = "(?:";
             const string UNCOLLECTED_GROUP_MASK = "(?#@#";
@@ -123,8 +132,9 @@ namespace NDepCheck {
                 string pattern = segment.TrimStart('^');
                 return new RegexMatcher("^" + groupPrefix + pattern, ignoreCase, estimatedGroupCount);
             } else if (segment.EndsWith("$")) {
-                string pattern = segment;
-                return new RegexMatcher("^" + groupPrefix + ".*" + pattern, ignoreCase, estimatedGroupCount);
+                return new RegexMatcher("^" + groupPrefix + ".*" + segment, ignoreCase, estimatedGroupCount);
+            } else if (estimatedGroupCount == 0 && HasNoRegexCharsExceptPeriod(segment)) {
+                return new EqualsMatcher(segment, ignoreCase);
             } else if (IsPrefixAndSuffixAsterisksPattern(segment)) {
                 return new ContainsMatcher(segment, ignoreCase);
             } else if (IsSuffixAsterisksPattern(segment)) {
@@ -181,7 +191,7 @@ namespace NDepCheck {
         }
     }
 
-    internal class AlwaysMatcher : IMatcher {
+    internal sealed class AlwaysMatcher : IMatcher {
         public bool IsMatch(string value, string[] groupsInUsing) {
             return true;
         }
@@ -189,9 +199,13 @@ namespace NDepCheck {
         public string[] Match(string value) {
             return Pattern.NO_GROUPS;
         }
+
+        public bool MatchesAlike(IMatcher other) {
+            return other is AlwaysMatcher;
+        }
     }
 
-    internal class EmptyStringMatcher : IMatcher {
+    internal sealed class EmptyStringMatcher : IMatcher {
         public bool IsMatch(string value, string[] groupsInUsing) {
             return value == "";
         }
@@ -199,28 +213,10 @@ namespace NDepCheck {
         public string[] Match(string value) {
             return value == "" ? Pattern.NO_GROUPS : null;
         }
-    }
 
-    internal class ContainsMatcher : AbstractDelegateMatcher {
-        public ContainsMatcher(string segment, bool ignoreCase)
-            : base(segment.Trim('*').Trim('.'), (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) >= 0) { }
-    }
-
-    internal class StartsWithMatcher : AbstractDelegateMatcher {
-        public StartsWithMatcher(string segment, bool ignoreCase)
-            : base(segment.TrimEnd('*').TrimEnd('.'), (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) == 0) { }
-    }
-
-    internal class EndsWithMatcher : AbstractDelegateMatcher {
-        public EndsWithMatcher(string segment, bool ignoreCase)
-            : base(segment.TrimStart('*').TrimStart('.'), (value, seg) => value.LastIndexOf(seg, GetComparisonType(ignoreCase)) >= value.Length - segment.Length) { }
-    }
-
-    public interface IMatcher {
-        bool IsMatch([NotNull]string value, [NotNull]string[] groupsInUsing);
-
-        [CanBeNull]
-        string[] Match([NotNull]string value);
+        public bool MatchesAlike(IMatcher other) {
+            return other is EmptyStringMatcher;
+        }
     }
 
     public abstract class AbstractRememberingMatcher {
@@ -238,16 +234,18 @@ namespace NDepCheck {
     }
 
     internal abstract class AbstractDelegateMatcher : AbstractRememberingMatcher, IMatcher {
-        private readonly string _segment;
+        protected readonly string _segment;
         private readonly Func<string, string, bool> _isMatch;
+        private readonly bool _ignoreCase;
 
         protected static StringComparison GetComparisonType(bool ignoreCase) {
             return ignoreCase ? StringComparison.InvariantCulture : StringComparison.InvariantCultureIgnoreCase;
         }
 
-        protected AbstractDelegateMatcher(string segment, Func<string, string, bool> isMatch) {
+        protected AbstractDelegateMatcher(string segment, Func<string, string, bool> isMatch, bool ignoreCase) {
             _segment = segment;
             _isMatch = isMatch;
+            _ignoreCase = ignoreCase;
         }
 
         public bool IsMatch(string value, string[] groupsInUsing) {
@@ -262,9 +260,37 @@ namespace NDepCheck {
                 return Remember(value, _isMatch(value, _segment) ? Pattern.NO_GROUPS : null);
             }
         }
+
+        public virtual bool MatchesAlike(IMatcher other) {
+            return other.GetType() == GetType() && string.Compare((other as AbstractDelegateMatcher)?._segment, _segment, _ignoreCase) == 0;
+        }
     }
 
-    internal class RegexMatcher : AbstractRememberingMatcher, IMatcher {
+    internal sealed class ContainsMatcher : AbstractDelegateMatcher {
+        public ContainsMatcher(string segment, bool ignoreCase)
+            : base(segment.Trim('*').Trim('.'), (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) >= 0, ignoreCase) {
+        }
+    }
+
+    internal sealed class EqualsMatcher : AbstractDelegateMatcher {
+        public EqualsMatcher(string segment, bool ignoreCase)
+            : base(segment, (value, seg) => string.Compare(value, seg, ignoreCase) == 0, ignoreCase) {
+        }
+    }
+
+    internal sealed class StartsWithMatcher : AbstractDelegateMatcher {
+        public StartsWithMatcher(string segment, bool ignoreCase)
+            : base(segment.TrimEnd('*').TrimEnd('.'), (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) == 0, ignoreCase) {
+        }
+    }
+
+    internal sealed class EndsWithMatcher : AbstractDelegateMatcher {
+        public EndsWithMatcher(string segment, bool ignoreCase)
+            : base(segment.TrimStart('*').TrimStart('.'), (value, seg) => value.LastIndexOf(seg, GetComparisonType(ignoreCase)) >= value.Length - segment.Length, ignoreCase) {
+        }
+    }
+
+    internal sealed class RegexMatcher : AbstractRememberingMatcher, IMatcher {
         private readonly int _estimatedGroupCount;
         private readonly Regex _regex;
 
@@ -293,6 +319,10 @@ namespace NDepCheck {
             } else {
                 return null;
             }
+        }
+
+        public bool MatchesAlike(IMatcher other) {
+            return (other as RegexMatcher)?._regex.Equals(_regex) ?? false;
         }
 
         public int EstimatedGroupCount() {
@@ -333,6 +363,11 @@ namespace NDepCheck {
 
             public int EstimatedGroupCount() {
                 return _estimatedGroupCount;
+            }
+
+
+            public bool MatchesAlike(IMatcher other) {
+                throw new NotImplementedException();
             }
         }
     }
