@@ -168,21 +168,22 @@ namespace NDepCheck {
 
         [CanBeNull]
         private DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel([NotNull]DirectoryInfo relativeRoot,
-                [NotNull]string rulefilename, [NotNull]Options options, bool ignoreCase, string includeRecursion) {
+                [NotNull]string rulefilename, [NotNull]Options options, bool ignoreCase, string fileIncludeStack) {
             return GetOrCreateDependencyRuleSet_MayBeCalledInParallel(relativeRoot, rulefilename, options,
-                            new Dictionary<string, string>(), new Dictionary<string, Macro>(), ignoreCase, includeRecursion);
+                            new Dictionary<string, string>(), new Dictionary<string, Macro>(), ignoreCase, fileIncludeStack);
         }
 
         public DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel(DirectoryInfo relativeRoot,
                 string rulefilename, Options options, IDictionary<string, string> defines,
                 IDictionary<string, Macro> macros, bool ignoreCase,
-                string includeRecursion) {
+                string fileIncludeStack) {
             string fullRuleFilename = Path.Combine(relativeRoot.FullName, rulefilename);
             DependencyRuleSet result;
             if (!_fullFilename2RulesetCache.TryGetValue(fullRuleFilename, out result)) {
                 try {
                     long start = Environment.TickCount;
-                    result = new DependencyRuleSet(this, options, fullRuleFilename, defines, macros, ignoreCase, includeRecursion + " => + " + fullRuleFilename);
+                    result = new DependencyRuleSet(this, options, fullRuleFilename, defines, macros, ignoreCase,
+                        (string.IsNullOrEmpty(fileIncludeStack) ? "" : fileIncludeStack + " + ") + fullRuleFilename);
                     Log.WriteDebug("Completed reading " + fullRuleFilename + " in " + (Environment.TickCount - start) + " ms");
 
                     if (!_fullFilename2RulesetCache.ContainsKey(fullRuleFilename)) {
@@ -203,11 +204,11 @@ namespace NDepCheck {
         }
 
         public DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel(Options options, string dependencyFilename, 
-                                                                                    string includeRecursion) {
-            DependencyRuleSet ruleSetForAssembly = Load(dependencyFilename, options.Directories, options, options.IgnoreCase, includeRecursion);
+                                                                                    string fileIncludeStack) {
+            DependencyRuleSet ruleSetForAssembly = Load(dependencyFilename, options.Directories, options, options.IgnoreCase, fileIncludeStack);
             if (ruleSetForAssembly == null && !string.IsNullOrEmpty(options.DefaultRuleSetFile)) {
                 ruleSetForAssembly = GetOrCreateDependencyRuleSet_MayBeCalledInParallel(
-                                            new DirectoryInfo("."), options.DefaultRuleSetFile, options, options.IgnoreCase, includeRecursion);
+                                            new DirectoryInfo("."), options.DefaultRuleSetFile, options, options.IgnoreCase, fileIncludeStack);
             }
             return ruleSetForAssembly;
         }
@@ -217,11 +218,11 @@ namespace NDepCheck {
         /// </summary>
         /// <returns>Read rule set; or <c>null</c> if not poeeible to read it.</returns>
         [CanBeNull]
-        public DependencyRuleSet Load(string dependencyFilename, List<DirectoryOption> directories, Options options, bool ignoreCase, [NotNull] string includeRecursion) {
+        public DependencyRuleSet Load(string dependencyFilename, List<DirectoryOption> directories, Options options, bool ignoreCase, [NotNull] string fileIncludeStack) {
             foreach (var d in directories) {
                 string fullName = d.GetFullNameFor(dependencyFilename);
                 if (fullName != null) {
-                    DependencyRuleSet result = GetOrCreateDependencyRuleSet_MayBeCalledInParallel(new DirectoryInfo("."), fullName, options, ignoreCase, includeRecursion);
+                    DependencyRuleSet result = GetOrCreateDependencyRuleSet_MayBeCalledInParallel(new DirectoryInfo("."), fullName, options, ignoreCase, fileIncludeStack);
                     if (result != null) {
                         return result;
                     }

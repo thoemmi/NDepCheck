@@ -59,55 +59,52 @@ namespace NDepCheck {
         [NotNull]
         private readonly SortedDictionary<string, string> _defines = new SortedDictionary<string, string>(new LengthComparer());
 
-        [CanBeNull]
-        private readonly string _fullSourceFilename;
-
-        [NotNull]
-        private readonly string _includeRecursion;
-
         /// <summary>
         /// Constructor public only for test cases.
         /// </summary>
-        public DependencyRuleSet(bool ignoreCase, string includeRecursion) {
+        public DependencyRuleSet(bool ignoreCase, string fileIncludeStack) {
             _mainRuleGroup = new DependencyRuleGroup(ItemType.DEFAULT, group: "", ignoreCase: ignoreCase);
             _ruleGroups.Add(_mainRuleGroup);
-            _includeRecursion = includeRecursion;
+            FileIncludeStack = fileIncludeStack;
         }
 
         public DependencyRuleSet([NotNull] IGlobalContext globalContext, [NotNull] Options options, [NotNull] string fullRuleFilename,
                                  [NotNull] IDictionary<string, string> defines, [NotNull] IDictionary<string, Macro> macros, bool ignoreCase,
-                                 [NotNull] string includeRecursion)
-            : this(ignoreCase, includeRecursion) {
-            _fullSourceFilename = fullRuleFilename;
+                                 [NotNull] string fileIncludeStack)
+            : this(ignoreCase, fileIncludeStack) {
+            FullSourceFilename = fullRuleFilename;
             _defines = new SortedDictionary<string, string>(defines, new LengthComparer());
             _macros = new SortedDictionary<string, Macro>(macros, new LengthComparer());
-            if (!LoadRules(globalContext, fullRuleFilename, options, ignoreCase, includeRecursion)) {
-                throw new ApplicationException("Could not load rules from " + fullRuleFilename + " (in " + includeRecursion + ")");
+            if (!LoadRules(globalContext, fullRuleFilename, options, ignoreCase, fileIncludeStack)) {
+                throw new ApplicationException("Could not load rules from " + fullRuleFilename + " (in " + fileIncludeStack + ")");
             }
         }
 
-        public string FullSourceFilename => _fullSourceFilename;
+        [CanBeNull]
+        public string FullSourceFilename { get; }
 
-        public string IncludeRecursion => _includeRecursion;
+        [NotNull]
+        public string FileIncludeStack { get; }
 
         #region Loading
 
         /// <summary>
         /// Load a rule file.
         /// </summary>
-        private bool LoadRules(IGlobalContext globalContext, string fullRuleFilename, Options options, bool ignoreCase, string includeRecursion) {
+        private bool LoadRules(IGlobalContext globalContext, string fullRuleFilename, Options options, bool ignoreCase, string fileIncludeStack) {
             using (TextReader tr = new StreamReader(fullRuleFilename, Encoding.Default)) {
-                return ProcessText(globalContext, fullRuleFilename, 0, tr, options, LEFT_PARAM, RIGHT_PARAM, ignoreCase, includeRecursion);
+                return ProcessText(globalContext, fullRuleFilename, 0, tr, options, LEFT_PARAM, RIGHT_PARAM, ignoreCase, fileIncludeStack);
             }
         }
 
         private bool ProcessText(IGlobalContext globalContext, string fullRuleFilename, int startLineNo, TextReader tr,
-            Options options, string leftParam, string rightParam, bool ignoreCase, string includeRecursion) {
+            Options options, string leftParam, string rightParam, bool ignoreCase, string fileIncludeStack) {
             int lineNo = startLineNo;
             bool textIsOk = true;
             DependencyRuleGroup currentGroup = _mainRuleGroup;
-            ItemType usingItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename);
-            ItemType usedItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename);
+            ItemType usingItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename, options.RuleFileExtension);
+            ItemType usedItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename, options.RuleFileExtension);
+            string previousRawUsingPattern = null;
             for (;;) {
                 string line = tr.ReadLine();
 
@@ -148,7 +145,7 @@ namespace NDepCheck {
                             GetOrCreateDependencyRuleSet_MayBeCalledInParallel(
                                 new FileInfo(fullRuleFilename).Directory,
                                 includeFilename, options, _defines, _macros, ignoreCase,
-                                includeRecursion: includeRecursion);
+                                fileIncludeStack: fileIncludeStack);
                         if (included != null) {
                             // Error message when == null has been output by Create.
                             _includedRuleSets.Add(included);
@@ -186,7 +183,13 @@ namespace NDepCheck {
                         AddGraphAbstractions(usingItemType, usedItemType, isInner: true, ruleFileName: fullRuleFilename, lineNo:lineNo, line: line, ignoreCase:ignoreCase);
                     } else if (line.Contains(MAYUSE) || line.Contains(MUSTNOTUSE) ||
                                line.Contains(MAYUSE_WITH_WARNING)) {
-                        currentGroup.AddDependencyRules(this, usingItemType, usedItemType, fullRuleFilename, lineNo, line, ignoreCase);
+                        string currentRawUsingPattern;
+                        bool ok = currentGroup.AddDependencyRules(this, usingItemType, usedItemType, fullRuleFilename, lineNo, line, ignoreCase, previousRawUsingPattern, out currentRawUsingPattern);
+                        if (!ok) {
+                            textIsOk = false;
+                        } else {
+                            previousRawUsingPattern = currentRawUsingPattern;
+                        }
                     } else if (line.EndsWith(MACRO_DEFINE)) {
                         string macroName = line.Substring(0, line.Length - MACRO_DEFINE.Length).Trim();
                         if (!CheckDefinedName(macroName, fullRuleFilename, lineNo)) {
@@ -355,7 +358,7 @@ namespace NDepCheck {
         public void AddGraphAbstractions([CanBeNull] ItemType usingItemType, [CanBeNull]ItemType usedItemType, bool isInner,
                                          [NotNull] string ruleFileName, int lineNo, [NotNull] string line, bool ignoreCase) {
             if (usingItemType == null || usedItemType == null) {
-                Log.WriteError("Itemtypes not defined - $ line is missing in this file, graph rules are ignored", ruleFileName, lineNo);
+                Log.WriteError($"Itemtypes not defined - $ line is missing in {ruleFileName}, graph rules are ignored", ruleFileName, lineNo);
             } else {
                 line = ExpandDefines(line.Substring(GRAPHIT.Length).Trim());
                 CreateGraphAbstraction(usingItemType, isInner, ruleFileName, lineNo, line, ignoreCase);

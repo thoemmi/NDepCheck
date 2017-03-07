@@ -65,7 +65,7 @@ namespace NDepCheck.MSBuild {
             if (!string.IsNullOrEmpty(recursiveString) && Boolean.TryParse(recursiveString, out tmp)) {
                 recursive = tmp;
             }
-            return new DirectoryOption(taskItem.ItemSpec, recursive);
+            return new DirectoryOption(taskItem.ItemSpec, recursive, ".dep");
         }
     }
 

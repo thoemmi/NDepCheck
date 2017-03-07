@@ -7,10 +7,10 @@ namespace NDepCheck {
     public class DirectoryOption {
         private readonly IDictionary<string, string> _smallToFullMap = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
 
-        public DirectoryOption([NotNull] string path, bool recurse) {
+        public DirectoryOption([NotNull] string path, bool recurse, string ruleFileExtension) {
             SearchOption o = recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-            Add(path, "*.dll.dep", o);
-            Add(path, "*.exe.dep", o);
+            Add(path, "*.dll" + ruleFileExtension, o);
+            Add(path, "*.exe" + ruleFileExtension, o);
         }
 
         private void Add([NotNull] string path, [NotNull] string pattern, SearchOption o) {

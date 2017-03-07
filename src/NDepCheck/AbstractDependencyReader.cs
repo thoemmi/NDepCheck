@@ -40,14 +40,12 @@ namespace NDepCheck {
             return (extensionOrNull ?? Path.GetExtension(filename) ?? "").TrimStart('.');
         }
 
-        public static ItemType GetDefaultDescriptor(string rulefilename) {
-            string extension = GetExtensionForItemType(rulefilename.Replace(".dep", ""), null);
-            foreach (var f in ALL_READER_FACTORIES) {
-                if (f.Accepts(extension)) {
-                    return f.GetDescriptors().FirstOrDefault();
-                }
-            }
-            return null;
+        public static ItemType GetDefaultDescriptor(string rulefilename, string ruleFileExtension) {
+            string extension = GetExtensionForItemType(rulefilename.Replace(ruleFileExtension, ""), null);
+            return ALL_READER_FACTORIES
+                .Where(f => f.Accepts(extension))
+                .Select(f => f.GetDescriptors().FirstOrDefault())
+                .FirstOrDefault();
         }
 
         [NotNull]

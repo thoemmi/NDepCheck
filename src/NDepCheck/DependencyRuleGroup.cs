@@ -53,22 +53,28 @@ namespace NDepCheck {
         /// Add one or more <c>DependencyRules</c>s from a single input line.
         /// public for testability.
         /// </summary>
-        public void AddDependencyRules([NotNull] DependencyRuleSet parent, [CanBeNull] ItemType usingItemType, [CanBeNull] ItemType usedItemType, 
-                                       [NotNull] string ruleFileName, int lineNo, [NotNull] string line, bool ignoreCase) {
+        public bool AddDependencyRules([NotNull] DependencyRuleSet parent, [CanBeNull] ItemType usingItemType, [CanBeNull] ItemType usedItemType, 
+                                       [NotNull] string ruleFileName, int lineNo, [NotNull] string line, bool ignoreCase, string previousRawUsingPattern, out string currentRawUsingPattern) {
             if (usingItemType == null || usedItemType == null) {
-                Log.WriteError("Itemtypes not defined - $ line is missing in this file, dependency rules are ignored", parent.IncludeRecursion + " => + " + ruleFileName, lineNo);
+                Log.WriteError($"Itemtypes not defined - $ line is missing in {ruleFileName}, dependency rules are ignored", parent.FileIncludeStack, lineNo);
+                currentRawUsingPattern = null;
+                return false;
             } else if (line.Contains(DependencyRuleSet.MAYUSE)) {
-                foreach (var rule in CreateDependencyRules(parent, usingItemType, usedItemType, ruleFileName, lineNo, line, DependencyRuleSet.MAYUSE, false, ignoreCase)) {
+                foreach (var rule in CreateDependencyRules(parent, usingItemType, usedItemType, ruleFileName, lineNo, line, DependencyRuleSet.MAYUSE, false, ignoreCase, previousRawUsingPattern, out currentRawUsingPattern)) {
                     Add(_allowed, rule);
                 }
+                return true;
             } else if (line.Contains(DependencyRuleSet.MAYUSE_WITH_WARNING)) {
-                foreach (var rule in CreateDependencyRules(parent, usingItemType, usedItemType, ruleFileName, lineNo, line, DependencyRuleSet.MAYUSE_WITH_WARNING, true, ignoreCase)) {
+                foreach (var rule in CreateDependencyRules(parent, usingItemType, usedItemType, ruleFileName, lineNo, line, DependencyRuleSet.MAYUSE_WITH_WARNING, true, ignoreCase, previousRawUsingPattern, out currentRawUsingPattern)) {
                     Add(_questionable, rule);
                 }
+                return true;
             } else if (line.Contains(DependencyRuleSet.MUSTNOTUSE)) {
-                foreach (var rule in CreateDependencyRules(parent, usingItemType, usedItemType, ruleFileName, lineNo, line, DependencyRuleSet.MUSTNOTUSE, false, ignoreCase)) {
+                foreach (var rule in CreateDependencyRules(parent, usingItemType, usedItemType, ruleFileName, lineNo, line, DependencyRuleSet.MUSTNOTUSE, false, 
+                    ignoreCase, previousRawUsingPattern, out currentRawUsingPattern)) {
                     Add(_forbidden, rule);
                 }
+                return true;
             } else {
                 throw new ApplicationException("Unexpected rule at " + ruleFileName + ":" + lineNo);
             }
@@ -82,11 +88,19 @@ namespace NDepCheck {
 
         private static IEnumerable<DependencyRule> CreateDependencyRules([NotNull] DependencyRuleSet parent, 
             [NotNull] ItemType usingItemType, [NotNull] ItemType usedItemType, [NotNull] string ruleFileName, int lineNo, 
-            [NotNull] string line, [NotNull] string sep, bool questionableRule, bool ignoreCase) {
+            [NotNull] string line, [NotNull] string sep, bool questionableRule, bool ignoreCase, string previousRawUsingPattern, out string currentRawUsingPattern) {
 
             DependencyRuleRepresentation rep = new DependencyRuleRepresentation(ruleFileName, lineNo, line, questionableRule);
             int i = line.IndexOf(sep, StringComparison.Ordinal);
-            string usingPattern = parent.ExpandDefines(line.Substring(0, i).Trim());
+
+            string rawUsingpattern = line.Substring(0, i).Trim();
+            if (rawUsingpattern == "") {
+                rawUsingpattern = previousRawUsingPattern;
+            }
+            currentRawUsingPattern = rawUsingpattern;
+
+            string usingPattern = parent.ExpandDefines(rawUsingpattern);
+
             string usedPattern = parent.ExpandDefines(line.Substring(i + sep.Length).Trim());
             var rule = new DependencyRule(usingItemType, usingPattern, usedItemType, usedPattern, rep, ignoreCase);
 

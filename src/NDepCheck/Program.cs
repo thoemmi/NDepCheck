@@ -9,7 +9,7 @@ namespace NDepCheck {
     /// All static methods may run in parallel.
     /// </remarks>
     public class Program {
-        private const string VERSION = "V.3.0";
+        private const string VERSION = "V.3.0a";
 
         ////private class ThreadLoopData_ {
         ////    public CheckerContext Context { get; set; }
@@ -48,7 +48,7 @@ namespace NDepCheck {
                     // -debug    Do start .Net debugger
                     Debugger.Launch();
                 } else if (arg.StartsWith("-d") || arg.StartsWith("/d")) {
-                    // -d &      Set directory search locations for .dep files
+                    // -d &      Set directory search locations for rule files
                     string path = ExtractOptionValue(args, ref i);
                     options.CreateDirectoryOption(path, recurse: false);
                 } else if (arg.StartsWith("-e") || arg.StartsWith("/e")) {
@@ -144,9 +144,12 @@ namespace NDepCheck {
                     string transformationOption = ExtractOptionValue(args, ref i);
                     state.ReadAll(options).ReduceGraph(options, true).TransformGraph(transformationOption);
                 } else if (arg.StartsWith("-s") || arg.StartsWith("/s")) {
-                    // -s &      Set directory tree search location for .dep files
+                    // -s &      Set directory tree search location for rule files
                     string path = ExtractOptionValue(args, ref i);
                     options.CreateDirectoryOption(path, recurse: true);
+                } else if (arg.StartsWith("-t") || arg.StartsWith("/t")) {
+                    // -t &      Set rule file extension (default .dep)
+                    options.RuleFileExtension = "." + ExtractOptionValue(args, ref i).TrimStart('.');
                 } else if (arg.StartsWith("-u") || arg.StartsWith("/u")) {
                     // -u        Set option to show unused rules
                     options.ShowUnusedRules = true;
@@ -156,7 +159,7 @@ namespace NDepCheck {
                     Log.IsChattyEnabled = true;
                     WriteVersion();
                 } else if (arg.StartsWith("-x") || arg.StartsWith("/x")) {
-                    // -x &      Set search location for default .dep file
+                    // -x &      Set search location for default rule file
                     string filename = ExtractOptionValue(args, ref i);
                     if (!string.IsNullOrEmpty(options.DefaultRuleSetFile)) {
                         return UsageAndExit("Only one default rule set can be specified with " + arg);
@@ -268,7 +271,7 @@ Options overview:
     -?        Do write help
     -@ &      Do read options from file
     -c &      Write dependencies to .dip file (after lazy reading; after lazy dep->graph run)
-    -d &      Set directory search locations for .dep files
+    -d &      Set directory search locations for rule files
     -debug    Do start .Net debugger
     -e $ &    Set file location with defined reader $ (currently supported: dip, dll, exe)
     -f &      Set file location with reader defined by file extension
@@ -282,10 +285,11 @@ Options overview:
     -p        Do write standard depcheck output (after lazy reading; after lazy depcheck)
     -q        Set option to show unused questionable rules
     -r *      Do graph transformation (after lazy reading; after lazy depcheck; and lazy dep->graph run)
-    -s &      Set directory tree search location for .dep files
+    -s &      Set directory tree search location for rule files
+    -t &      Set rule file extension (default .dep; specify before -s!)
     -u        Set option to show unused rules
     -v        Set verbose option
-    -x &      Set search location for default .dep file
+    -x &      Set search location for default rule file
     -y        Set chatty option
     -z        Remove all dependencies and graphs, clear search options (-d, -s, -x)
     &         If & ends with .dll, .exe, or. dip, or contains *: Remember 
@@ -296,7 +300,7 @@ Options overview:
             if (completeHelp) {
                 Console.Out.WriteLine(@"
 
-
+############# NOT YET UPDATED ##################
 
    /d=<directory>    For each assembly file A.dll, look for corresponding 
          rule file A.dll.dep in this directory (multiple /d options are 
@@ -309,14 +313,6 @@ Options overview:
          via /s and /d  This is also useful if no /s and /d options
          are specified.
 
-   /g=<dot file>   Create output of dependencies in AT&T DOT format.
-         By default, NDepCheck tries to remove transitive
-         edges - i.e., if a uses b, b uses c, but also a uses c, then
-         the last edge is not shown. The algorithm for this will
-         sometimes choose funny edges for removal ...
-
-   /t    Show also transitive edges in DOT graph.
-
    /i[=<N>]        For each illegal edge (i.e., edge not allowed by 
          the dependency file), show an example of a concrete illegal 
          dependency in the DOT graph. N is the maximum width of strings 
@@ -328,10 +324,9 @@ Options overview:
          you include this switch without specifying a value, NDepCheck
          will use up to the number of processors in the computer.
 
-   /a    Check only assembly dependencies (see below). This will create
-         an error if no rule starts with 'assembly:'.
+############# UPDATED ##################
 
-   /v    Verbose. Shows regular expressions used for checking and 
+/v    Verbose. Shows regular expressions used for checking and 
          all checked dependencies. Attention: Place /v BEFORE any
          /d, /s, or /x option to see the regular expressions.
          Produces lots of output.
@@ -359,9 +354,40 @@ Assemblyspecs - one of the following:
                         The files after the /e are excluded from checking.
                         e.g. MyProject.*.dll /e *.vshost.*
 
+Dependecies:_
+
+A dependency describes that some 'using item' uses another 'used item'.
+
+Standard .Net dependencies:
+
+    A standard dependency as read from a .Net assembly has the following
+    format:
+
+namespace:class:assembly_name;assembly_version;assembly_culture:member_name;member_sort
+
+    where member_sort is usually empty; but for properties, it is either
+    'get' or 'set' on the using side.
+
 Rules files:
-         Rule files contain rule definition commands.
-         The following commands are supported:
+    Rule files contain rule definition commands. Here is a simple example
+
+        $ DOTNETCALL   ---> DOTNETCALL 
+
+        // Each assembly can use .Net
+        ::**           --->  ::mscorlib
+        ::**           --->  ::(System|Microsoft).**
+
+        // Each assembly can use everything in itself (a coarse architecture)
+        ::(Module*)**  --->  ::\1
+
+        // Module2 can use Module1
+        ::Module2**    --->  ::Module1**
+
+        // Test assemblies can use anything
+        ::*Test*.dll   --->  ::**
+
+
+    The following commands are supported in rule files:
 
            empty line            ... ignored
            // comment            ... ignored
@@ -469,6 +495,7 @@ Exit codes:
         directories, and /x not specified.
 
 ############# REST NOT YET UPDATED ##################
+
 Example of a dependency file with some important dependencies (all
 using the wildcardpath syntax):
 
@@ -524,7 +551,7 @@ using the wildcardpath syntax):
         }
 
         private static void WriteVersion() {
-            Log.WriteInfo("NDepCheck " + VERSION + " (c) HMMüller, Th.Freudenberg 2006...2015");
+            Log.WriteInfo("NDepCheck " + VERSION + " (c) HMMüller, Th.Freudenberg 2006...2017");
         }
 
         /// <summary>

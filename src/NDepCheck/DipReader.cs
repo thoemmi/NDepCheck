@@ -20,7 +20,7 @@ namespace NDepCheck {
         }
 
         protected override IEnumerable<Dependency> ReadDependencies() {
-            Regex ARROW = new Regex(@"\s*->\s*");
+            Regex arrow = new Regex(@"\s*->\s*");
 
             var result = new List<Dependency>(10000);
             using (var sr = new StreamReader(_filename)) {
@@ -36,11 +36,11 @@ namespace NDepCheck {
                     if (line == "") {
                         continue;
                     }
-                    if (!ARROW.IsMatch(line)) {
+                    if (!arrow.IsMatch(line)) {
                         string[] parts = line.Split(' ', '\t', ':');
                         RegisterType(parts[0], parts.Skip(1).Select(p => p.Split('.')));
                     } else {
-                        string[] parts = ARROW.Split(line);
+                        string[] parts = arrow.Split(line);
 
                         if (parts.Length != 3) {
                             WriteError(_filename, lineNo, "Line is not ... -> #;#;... -> ..., but " + parts.Length, line);

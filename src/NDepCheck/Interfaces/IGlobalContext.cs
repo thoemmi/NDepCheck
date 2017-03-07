@@ -5,12 +5,11 @@ using JetBrains.Annotations;
 namespace NDepCheck {
     public interface IGlobalContext {
         [CanBeNull]
-        DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel([NotNull]Options options, [NotNull]string dependencyFilename, [NotNull] string includeRecursion);
+        DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel([NotNull]Options options, [NotNull]string dependencyFilename, [NotNull] string fileIncludeStack);
 
         [CanBeNull]
         DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel([NotNull]DirectoryInfo relativeRoot, [NotNull]string rulefilename,
-            [NotNull]Options options, [NotNull]IDictionary<string, string> defines, [NotNull]IDictionary<string, Macro> macros, bool ignoreCase,
-            [NotNull] string includeRecursion);
+            [NotNull]Options options, [NotNull]IDictionary<string, string> defines, [NotNull]IDictionary<string, Macro> macros, bool ignoreCase, [NotNull] string fileIncludeStack);
 
         int Run([NotNull] string[] args);
     }

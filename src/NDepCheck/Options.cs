@@ -40,6 +40,8 @@ namespace NDepCheck {
 
         public string DefaultRuleSetFile { get; set; }
 
+        public string RuleFileExtension = ".dep";
+
         public int MaxCpuCount { get; set; }
 
         public List<InputFileOption> InputFiles => _inputFiles;
@@ -58,7 +60,7 @@ namespace NDepCheck {
 
         public void CreateDirectoryOption(string path, bool recurse) {
             if (Directory.Exists(path)) {
-                _directories.Add(new DirectoryOption(path, recurse));
+                _directories.Add(new DirectoryOption(path, recurse, RuleFileExtension));
             } else {
                 Log.WriteWarning("Directory " + path + " not found - ignored in dep-File");
             }
