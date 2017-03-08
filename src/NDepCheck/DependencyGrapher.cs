@@ -175,20 +175,20 @@ namespace NDepCheck {
         ////    return s;
         ////}
 
-        private static void ReduceEdge(IEnumerable<GraphAbstraction> orderedGraphAbstractions, 
-                 Dependency d, Dictionary<string, Item> nodes, 
+        private static void ReduceEdge(IEnumerable<GraphAbstraction> orderedGraphAbstractions,
+                 Dependency d, Dictionary<string, Item> nodes,
                  Dictionary<FromTo, Dependency> result /*,Dictionary<Tuple<string, int>, GraphAbstraction> skipCache*/) {
             bool usingIsInner = false;
             bool usedIsInner = false;
 
             string usingMatch = orderedGraphAbstractions
-                //.Skip(GuaranteedNonMatching(d.UsingItem))
-                //.SkipWhile(ga => ga != FirstPossibleAbstractionInCache(d.UsingItem, skipCache))
+                                    //.Skip(GuaranteedNonMatching(d.UsingItem))
+                                    //.SkipWhile(ga => ga != FirstPossibleAbstractionInCache(d.UsingItem, skipCache))
                                     .Select(ga => ga.Match(d.UsingItem, out usingIsInner/*, skipCache*/))
                                     .FirstOrDefault(m => m != null);
             string usedMatch = orderedGraphAbstractions
-                //.Skip(GuaranteedNonMatching(d.UsedItem))
-                //.SkipWhile(ga => ga != FirstPossibleAbstractionInCache(d.UsedItem, skipCache))
+                                    //.Skip(GuaranteedNonMatching(d.UsedItem))
+                                    //.SkipWhile(ga => ga != FirstPossibleAbstractionInCache(d.UsedItem, skipCache))
                                     .Select(ga => ga.Match(d.UsedItem, out usedIsInner/*, skipCache*/))
                                     .FirstOrDefault(n => n != null);
 
@@ -207,7 +207,7 @@ namespace NDepCheck {
 
                 Dependency reducedEdge;
                 if (!result.TryGetValue(key, out reducedEdge)) {
-                    reducedEdge = new Dependency(usingNode, usedNode, d.FileName, d.StartLine, d.StartColumn, 
+                    reducedEdge = new Dependency(usingNode, usedNode, d.FileName, d.StartLine, d.StartColumn,
                                                  d.EndLine, d.EndColumn, d.Ct, d.NotOkCt, d.NotOkExample);
                     result.Add(key, reducedEdge);
                 } else {
@@ -216,11 +216,11 @@ namespace NDepCheck {
             }
         }
 
-        private static readonly ItemType REDUCED = new ItemType("REDUCED", new[] { "Name" }, new string[] { null });
+        private static readonly ItemType REDUCED = ItemType.New("REDUCED", new[] { "Name" }, new string[] { null });
 
         private static Item GetOrCreateNode(Dictionary<string, Item> nodes, string name, bool isInner) {
             if (!nodes.ContainsKey(name)) {
-                nodes[name] = new Item(REDUCED, name, isInner);
+                nodes[name] = Item.New(REDUCED, name, isInner);
             }
             Item result = nodes[name];
             return result;
@@ -300,7 +300,7 @@ namespace NDepCheck {
             output.WriteLine("}");
         }
 
-        private static INode GetOrCreateNode<T>(Dictionary<INode, INode> canonicalNodes, Dictionary<INode, List<T>> nodesAndEdges, INode node) where T: IEdge {
+        private static INode GetOrCreateNode<T>(Dictionary<INode, INode> canonicalNodes, Dictionary<INode, List<T>> nodesAndEdges, INode node) where T : IEdge {
             INode result;
             if (!canonicalNodes.TryGetValue(node, out result)) {
                 canonicalNodes.Add(node, result = node);
@@ -316,7 +316,7 @@ namespace NDepCheck {
             return result.ToDictionary<KeyValuePair<INode, List<T>>, INode, IEnumerable<T>>(kvp => kvp.Key, kvp => kvp.Value);
         }
 
-        private static Dictionary<INode, List<T>> Edges2NodesAndEdgesList<T>(IEnumerable<T> edges) where T: IEdge{
+        private static Dictionary<INode, List<T>> Edges2NodesAndEdgesList<T>(IEnumerable<T> edges) where T : IEdge {
             var canonicalNodes = new Dictionary<INode, INode>();
             var result = new Dictionary<INode, List<T>>();
             foreach (var e in edges) {
@@ -352,39 +352,39 @@ namespace NDepCheck {
 
                 switch (format) {
                     case '1': {
-                        WriteFormat1Line(output, Limit("Id", colWidth), Limit("Name", labelWidth),
-                            topNodes.Select(n => NodeId(n, nodeFormat, node2Index) + (withNotOkCt ? ";" + Repeat(' ', colWidth) : "")));
+                            WriteFormat1Line(output, Limit("Id", colWidth), Limit("Name", labelWidth),
+                                topNodes.Select(n => NodeId(n, nodeFormat, node2Index) + (withNotOkCt ? ";" + Repeat(' ', colWidth) : "")));
 
-                        IWithCt ZERO_EDGE = new ZeroEdge();
-                        foreach (var used in sortedNodes) {
-                            INode used1 = used;
-                            WriteFormat1Line(output, NodeId(used, nodeFormat, node2Index), Limit(used.Name, labelWidth),
-                                topNodes.Select(@using => FormatCt(withNotOkCt, ctFormat,
-                                    node2Index[@using] > node2Index[used1],
-                                    nodesAndEdges[@using].FirstOrDefault(e => !e.Hidden && e.UsedNode.Equals(used1)) ?? ZERO_EDGE)));
-                        }
-                        break;
-                    }
-                    case '2': {
-                        var emptyCtCols = Repeat(' ', colWidth) + (withNotOkCt ? ";" + Repeat(' ', colWidth) : "");
-                        WriteFormat2Line(output, Limit("Id", colWidth), Limit("Name", labelWidth), Limit("Id", colWidth), Limit("Name", labelWidth), emptyCtCols);
-                        foreach (var @using in topNodes) {
-                            WriteFormat2Line(output, NodeId(@using, nodeFormat, node2Index), Limit(@using.Name, labelWidth), Limit("", colWidth), Limit("", labelWidth), emptyCtCols);
+                            IWithCt ZERO_EDGE = new ZeroEdge();
                             foreach (var used in sortedNodes) {
-                                var edge = nodesAndEdges[@using].FirstOrDefault(e => !e.Hidden && e.UsedNode.Equals(used));
-                                if (edge != null) {
-                                    WriteFormat2Line(output, NodeId(@using, nodeFormat, node2Index), Limit(@using.Name, labelWidth), NodeId(used, nodeFormat, node2Index),
-                                        Limit(used.Name, labelWidth),
-                                        FormatCt(withNotOkCt, ctFormat, node2Index[@using] > node2Index[used], edge));
+                                INode used1 = used;
+                                WriteFormat1Line(output, NodeId(used, nodeFormat, node2Index), Limit(used.Name, labelWidth),
+                                    topNodes.Select(@using => FormatCt(withNotOkCt, ctFormat,
+                                        node2Index[@using] > node2Index[used1],
+                                        nodesAndEdges[@using].FirstOrDefault(e => !e.Hidden && e.UsedNode.Equals(used1)) ?? ZERO_EDGE)));
+                            }
+                            break;
+                        }
+                    case '2': {
+                            var emptyCtCols = Repeat(' ', colWidth) + (withNotOkCt ? ";" + Repeat(' ', colWidth) : "");
+                            WriteFormat2Line(output, Limit("Id", colWidth), Limit("Name", labelWidth), Limit("Id", colWidth), Limit("Name", labelWidth), emptyCtCols);
+                            foreach (var @using in topNodes) {
+                                WriteFormat2Line(output, NodeId(@using, nodeFormat, node2Index), Limit(@using.Name, labelWidth), Limit("", colWidth), Limit("", labelWidth), emptyCtCols);
+                                foreach (var used in sortedNodes) {
+                                    var edge = nodesAndEdges[@using].FirstOrDefault(e => !e.Hidden && e.UsedNode.Equals(used));
+                                    if (edge != null) {
+                                        WriteFormat2Line(output, NodeId(@using, nodeFormat, node2Index), Limit(@using.Name, labelWidth), NodeId(used, nodeFormat, node2Index),
+                                            Limit(used.Name, labelWidth),
+                                            FormatCt(withNotOkCt, ctFormat, node2Index[@using] > node2Index[used], edge));
+                                    }
                                 }
                             }
+                            break;
                         }
-                        break;
-                    }
                     default: {
-                        Log.WriteError("Matrix format option /m" + format + " not supported");
-                        break;
-                    }
+                            Log.WriteError("Matrix format option /m" + format + " not supported");
+                            break;
+                        }
                 }
             } else {
                 Log.WriteError("No visible nodes and edges found for output");

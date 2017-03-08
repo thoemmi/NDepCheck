@@ -8,7 +8,7 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestSimpleDependencyRuleMatches() {
             DependencyRuleRepresentation rep = new DependencyRuleRepresentation("FILE", 0, "...", false);
-            ItemType ITEMTYPE = new ItemType("TEST", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" });
+            ItemType ITEMTYPE = ItemType.New("TEST", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" });
             var r1 = new DependencyRule(ITEMTYPE, ":", ITEMTYPE, ":", rep, IGNORECASE);
 
             var rn1 = new DependencyRule(ITEMTYPE, "n*", ITEMTYPE, ":", rep, IGNORECASE);
@@ -28,7 +28,7 @@ namespace NDepCheck.Tests {
             var rnc1 = new DependencyRule(ITEMTYPE, "n*:c*", ITEMTYPE, ":", rep, IGNORECASE);
             var rnc2 = new DependencyRule(ITEMTYPE, "n**:c**", ITEMTYPE, ":", rep, IGNORECASE);
 
-            Dependency dep = new Dependency(new Item(ITEMTYPE, "n1", "c1"), new Item(ITEMTYPE, "n2", "c2"), null, 0, 0, 0, 0);
+            Dependency dep = new Dependency(Item.New(ITEMTYPE, "n1", "c1"), Item.New(ITEMTYPE, "n2", "c2"), null, 0, 0, 0, 0);
             Assert.IsTrue(r1.IsMatch(dep));
 
             Assert.IsTrue(rn1.IsMatch(dep));
@@ -52,14 +52,14 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestBackReferenceDependencyRuleMatches() {
             DependencyRuleRepresentation rep = new DependencyRuleRepresentation("FILE", 0, "...", false);
-            ItemType ITEMTYPE = new ItemType("TEST", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" });
+            ItemType ITEMTYPE = ItemType.New("TEST", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" });
             var rn1 = new DependencyRule(ITEMTYPE, "(s)*", ITEMTYPE, @"\1*", rep, IGNORECASE);
             var rn2 = new DependencyRule(ITEMTYPE, "(s)*:(t)*", ITEMTYPE, @"\1*:\2*", rep, IGNORECASE);
             var rn3 = new DependencyRule(ITEMTYPE, "(s)**:(t)**", ITEMTYPE, @"\1*:\2*", rep, IGNORECASE);
             var rn4 = new DependencyRule(ITEMTYPE, "s(*):t(*)", ITEMTYPE, @"s\1:t\2", rep, IGNORECASE);
             var rn5 = new DependencyRule(ITEMTYPE, "s(**):t(**)", ITEMTYPE, @"s\1:t\2", rep, IGNORECASE);
 
-            Dependency dep = new Dependency(new Item(ITEMTYPE, "s1", "t1"), new Item(ITEMTYPE, "s2", "t2"), null, 0, 0, 0, 0);
+            Dependency dep = new Dependency(Item.New(ITEMTYPE, "s1", "t1"), Item.New(ITEMTYPE, "s2", "t2"), null, 0, 0, 0, 0);
             Assert.IsTrue(rn1.IsMatch(dep));
             Assert.IsTrue(rn2.IsMatch(dep));
             Assert.IsTrue(rn3.IsMatch(dep));
@@ -70,7 +70,7 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestMoreBackReferenceDependencyRuleMatches() {
             DependencyRuleRepresentation rep = new DependencyRuleRepresentation("FILE", 0, "...", false);
-            ItemType ITEMTYPE = new ItemType("TEST", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" });
+            ItemType ITEMTYPE = ItemType.New("TEST", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" });
             var rn1 = new DependencyRule(ITEMTYPE, "(s)*", ITEMTYPE, @"\1*", rep, IGNORECASE);
             var rn2 = new DependencyRule(ITEMTYPE, "(s*)", ITEMTYPE, @"\1", rep, IGNORECASE);
             var rn3 = new DependencyRule(ITEMTYPE, "s(*)", ITEMTYPE, @"s\1", rep, IGNORECASE);
@@ -79,7 +79,7 @@ namespace NDepCheck.Tests {
 
             var rn6 = new DependencyRule(ITEMTYPE, "s*:(t*)", ITEMTYPE, @"s\1:t*", rep, IGNORECASE);
 
-            Dependency dep = new Dependency(new Item(ITEMTYPE, "s1", "t1"), new Item(ITEMTYPE, "s1", "t2"), null, 0, 0, 0, 0);
+            Dependency dep = new Dependency(Item.New(ITEMTYPE, "s1", "t1"), Item.New(ITEMTYPE, "s1", "t2"), null, 0, 0, 0, 0);
             Assert.IsTrue(rn1.IsMatch(dep));
             Assert.IsTrue(rn2.IsMatch(dep));
             Assert.IsTrue(rn3.IsMatch(dep));
@@ -90,7 +90,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestSimpleGraphAbstractionMatches() {
-            ItemType ITEMTYPE = new ItemType("TEST", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" });
+            ItemType ITEMTYPE = ItemType.New("TEST", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" });
             var g1 = new GraphAbstraction(ITEMTYPE, "**():", false, IGNORECASE);
 
             var gn1 = new GraphAbstraction(ITEMTYPE, "(n)*", false, IGNORECASE);
@@ -124,7 +124,7 @@ namespace NDepCheck.Tests {
             var gnc1 = new GraphAbstraction(ITEMTYPE, "n(*):(c)*", false, IGNORECASE);
             var gnc2 = new GraphAbstraction(ITEMTYPE, "n(**):(c)**", false, IGNORECASE);
 
-            Item i = new Item(ITEMTYPE, "n1", "c1");
+            Item i = Item.New(ITEMTYPE, "n1", "c1");
 
             bool isInner;
             Assert.AreEqual("", g1.Match(i, out isInner));
@@ -163,7 +163,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestRegexGraphAbstractionMatches() {
-            ItemType ITEMTYPE = new ItemType("TEST", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" });
+            ItemType ITEMTYPE = ItemType.New("TEST", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" });
             var g1 = new GraphAbstraction(ITEMTYPE, "^.*()$:", false, IGNORECASE);
 
             var gn1a = new GraphAbstraction(ITEMTYPE, "^(n).*", false, IGNORECASE);
@@ -213,7 +213,7 @@ namespace NDepCheck.Tests {
             //var gnc1 = new GraphAbstraction_("n(*):(c)*", false);
             //var gnc2 = new GraphAbstraction_("n(**):(c)**", false);
 
-            Item i = new Item(ITEMTYPE, "n1", "c1");
+            Item i = Item.New(ITEMTYPE, "n1", "c1");
 
             bool isInner;
             Assert.AreEqual("", g1.Match(i, out isInner));
@@ -268,30 +268,30 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestAsterisks() {
-            ItemType ITEMTYPE = new ItemType("TEST", new[] { "NAME", }, new[] { "" });
+            ItemType ITEMTYPE = ItemType.New("TEST", new[] { "NAME", }, new[] { "" });
             var g1 = new GraphAbstraction(ITEMTYPE, "(**)", false, IGNORECASE);
 
             bool isInner;
-            Assert.AreEqual("n1", g1.Match(new Item(ITEMTYPE, "n1"), out isInner));
-            Assert.AreEqual("n1.n2", g1.Match(new Item(ITEMTYPE, "n1.n2"), out isInner));
-            Assert.AreEqual("n1.n2.n3", g1.Match(new Item(ITEMTYPE, "n1.n2.n3"), out isInner));
+            Assert.AreEqual("n1", g1.Match(Item.New(ITEMTYPE, "n1"), out isInner));
+            Assert.AreEqual("n1.n2", g1.Match(Item.New(ITEMTYPE, "n1.n2"), out isInner));
+            Assert.AreEqual("n1.n2.n3", g1.Match(Item.New(ITEMTYPE, "n1.n2.n3"), out isInner));
         }
         //
 
         [TestMethod]
         public void TestProblemWithTests() {
-            ItemType ITEMTYPE = new ItemType("TEST", new[] { "ASSEMBLY", }, new[] { "NAME" });
+            ItemType ITEMTYPE = ItemType.New("TEST", new[] { "ASSEMBLY", }, new[] { "NAME" });
             var g1 = new GraphAbstraction(ITEMTYPE, "**Tests**", false, IGNORECASE);
 
             bool isInner;
-            Assert.AreEqual("", g1.Match(new Item(ITEMTYPE, "Framework.Core.NunitTests.IBOL"), out isInner));
+            Assert.AreEqual("", g1.Match(Item.New(ITEMTYPE, "Framework.Core.NunitTests.IBOL"), out isInner));
         }
 
         [TestMethod]
         public void TestProblemWithEmptyNamespace() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
-            var @using = new Item(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "", "");
-            var used = new Item(itemType, "System", "Object", "mscorlib", "", "", "", "");
+            var @using = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "", "");
+            var used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "", "");
             var d = new Dependency(@using, used, null, 0, 0, 0, 0);
 
             var r = new DependencyRule(itemType, "**", itemType, "System.**", new DependencyRuleRepresentation("rules.dep", 0, "...", false), IGNORECASE);
@@ -302,8 +302,8 @@ namespace NDepCheck.Tests {
         public void TestEmptyNamespaceInRule() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
 
-            var @using = new Item(itemType, "NDepCheck.TestAssembly.dir1.dir2", "SomeClass", "NDepCheck.TestAssembly", "1.0.0.0", "", "AnotherMethod", "");
-            var used = new Item(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "I", "");
+            var @using = Item.New(itemType, "NDepCheck.TestAssembly.dir1.dir2", "SomeClass", "NDepCheck.TestAssembly", "1.0.0.0", "", "AnotherMethod", "");
+            var used = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "I", "");
             var d = new Dependency(@using, used, null, 0, 0, 0, 0);
 
             var r = new DependencyRule(itemType, "NDepCheck.TestAssembly.dir1.dir2:SomeClass:**", itemType, "-:NamespacelessTestClassForNDepCheck::I", new DependencyRuleRepresentation("rules.dep", 0, "...", false), IGNORECASE);
@@ -317,7 +317,7 @@ namespace NDepCheck.Tests {
 
             var ga = new GraphAbstraction(itemType, "(**):(**):(**)", false, false);
 
-            var used = new Item(itemType, "System", "Byte&", "mscorlib", "4.0.0.0", "", "", "");
+            var used = Item.New(itemType, "System", "Byte&", "mscorlib", "4.0.0.0", "", "", "");
 
             bool isInner;
             string result = ga.Match(used, out isInner);

@@ -96,6 +96,7 @@ namespace NDepCheck.Tests {
                 ");
             Write(@"a\b\c", "NDepCheck.TestAssembly.dll.dep",
                 @"+ ..\B.dep
+                  $ DOTNETCALL ---> DOTNETCALL
                   _B.** ---> **
                   :* ---? **
 
@@ -113,7 +114,8 @@ namespace NDepCheck.Tests {
                   + B.dep
                 ");
             Write(@"a\b", "B.dep",
-                @"_A.** ---> **
+                @"$ DOTNETCALL ---> DOTNETCALL
+                  _A.** ---> **
                   :* ---? **
                 ");
             Write(@"a\b\c", "NDepCheck.TestAssembly.dll.dep",
@@ -157,8 +159,9 @@ namespace NDepCheck.Tests {
 
         private void WriteDep1PlusTo(string directory) {
             Write(directory, "NDepCheck.TestAssembly.dll.dep", @"+ Dep1Include\Dep1.dep");
-            Write(directory + @"\Dep1Include", "Dep1.dep", @"NDepCheck.TestAssembly.** ---> **
+            Write(directory + @"\Dep1Include", "Dep1.dep", @"
                   $ DOTNETCALL ---> DOTNETCALL
+                  NDepCheck.TestAssembly.** ---> **
                   :* ---? **
 
                   $ DOTNETREF ---> DOTNETREF
@@ -179,8 +182,11 @@ namespace NDepCheck.Tests {
         private void WriteDep2PlusTo(string directory) {
             Write(directory, "NDepCheck.TestAssemblyÄÖÜß.dll.dep", @"+ Dep2Include\Dep2A.dep");
             Write(directory + @"\Dep2Include", "Dep2A.dep", @"+ ..\Dep2B.dep");
-            Write(directory, "Dep2B.dep", @"NDepCheck.TestAssemblyÄÖÜß.** ---> **
-                                            ASSEMBLY.NAME=** ---> ASSEMBLY.NAME=**");
+            Write(directory, "Dep2B.dep",
+                @"$ DOTNETCALL ---> DOTNETCALL
+
+                NDepCheck.TestAssemblyÄÖÜß.** ---> **
+                ASSEMBLY.NAME=** ---> ASSEMBLY.NAME=**");
         }
 
         private void WriteXTo(string directory) {

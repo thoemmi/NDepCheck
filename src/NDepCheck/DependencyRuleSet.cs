@@ -82,10 +82,14 @@ namespace NDepCheck {
         }
 
         [CanBeNull]
-        public string FullSourceFilename { get; }
+        public string FullSourceFilename {
+            get;
+        }
 
         [NotNull]
-        public string FileIncludeStack { get; }
+        public string FileIncludeStack {
+            get;
+        }
 
         #region Loading
 
@@ -99,12 +103,21 @@ namespace NDepCheck {
         }
 
         private bool ProcessText(IGlobalContext globalContext, string fullRuleFilename, int startLineNo, TextReader tr,
-            Options options, string leftParam, string rightParam, bool ignoreCase, string fileIncludeStack) {
+            [CanBeNull] Options options, string leftParam, string rightParam, bool ignoreCase, string fileIncludeStack) {
+            ItemType usingItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename, options?.RuleFileExtension);
+            ItemType usedItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename, options?.RuleFileExtension);
+
+            return ProcessText(globalContext, fullRuleFilename, startLineNo, tr, options, leftParam, rightParam,
+                               ignoreCase, fileIncludeStack, usingItemType, usedItemType);
+        }
+
+        private bool ProcessText(IGlobalContext globalContext, string fullRuleFilename, int startLineNo, TextReader tr,
+            [CanBeNull] Options options, string leftParam, string rightParam, bool ignoreCase, string fileIncludeStack,
+            ItemType usingItemType, ItemType usedItemType) {
+
             int lineNo = startLineNo;
             bool textIsOk = true;
             DependencyRuleGroup currentGroup = _mainRuleGroup;
-            ItemType usingItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename, options.RuleFileExtension);
-            ItemType usedItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename, options.RuleFileExtension);
             string previousRawUsingPattern = null;
             for (;;) {
                 string line = tr.ReadLine();
@@ -186,9 +199,9 @@ namespace NDepCheck {
                     } else if (ProcessMacroIfFound(globalContext, line, ignoreCase)) {
                         // macro is already processed as side effect in ProcessMacroIfFound()
                     } else if (line.StartsWith(GRAPHIT)) {
-                        AddGraphAbstractions(usingItemType, usedItemType, isInner: false, ruleFileName:fullRuleFilename, lineNo: lineNo, line:line, ignoreCase: ignoreCase);
+                        AddGraphAbstractions(usingItemType, usedItemType, isInner: false, ruleFileName: fullRuleFilename, lineNo: lineNo, line: line, ignoreCase: ignoreCase);
                     } else if (line.StartsWith(GRAPHITINNER)) {
-                        AddGraphAbstractions(usingItemType, usedItemType, isInner: true, ruleFileName: fullRuleFilename, lineNo:lineNo, line: line, ignoreCase:ignoreCase);
+                        AddGraphAbstractions(usingItemType, usedItemType, isInner: true, ruleFileName: fullRuleFilename, lineNo: lineNo, line: line, ignoreCase: ignoreCase);
                     } else if (line.Contains(MAYUSE) || line.Contains(MUSTNOTUSE) ||
                                line.Contains(MAYUSE_WITH_WARNING) || line.Contains(MAYUSE_RECURSIVE)) {
                         string currentRawUsingPattern;
@@ -215,7 +228,7 @@ namespace NDepCheck {
                             }
                             line = line.Trim();
                             if (line == MACRO_END) {
-                                var macro = new Macro(macroText, fullRuleFilename, macroStartLineNo);
+                                var macro = new Macro(macroText, fullRuleFilename, macroStartLineNo, usingItemType, usedItemType);
                                 if (_macros.ContainsKey(macroName) && !_macros[macroName].Equals(macro)) {
                                     throw new ApplicationException("Macro '" + macroName + "' cannot be redefined differently at " + fullRuleFilename + ":" + lineNo);
                                 }
@@ -294,7 +307,8 @@ namespace NDepCheck {
             int macroPos = line.IndexOf(foundMacroName, StringComparison.Ordinal);
             string leftParam = line.Substring(0, macroPos).Trim();
             string rightParam = line.Substring(macroPos + foundMacroName.Length).Trim();
-            ProcessText(globalContext, macro.RuleFileName, macro.StartLineNo, new StringReader(macro.MacroText), null, leftParam, rightParam, ignoreCase, "???PROCESSMACRO???");
+            ProcessText(globalContext, macro.RuleFileName, macro.StartLineNo, new StringReader(macro.MacroText),
+                null, leftParam, rightParam, ignoreCase, "???PROCESSMACRO???", macro.UsingItemType, macro.UsedItemType);
             return true;
         }
 
@@ -370,7 +384,7 @@ namespace NDepCheck {
             } else {
                 line = ExpandDefines(line.Substring(GRAPHIT.Length).Trim());
                 CreateGraphAbstraction(usingItemType, isInner, ruleFileName, lineNo, line, ignoreCase);
-                if (usingItemType != usedItemType) {
+                if (!usingItemType.Equals(usedItemType)) {
                     CreateGraphAbstraction(usedItemType, isInner, ruleFileName, lineNo, line, ignoreCase);
                 }
             }

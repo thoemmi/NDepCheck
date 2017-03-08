@@ -21,7 +21,7 @@ namespace NDepCheck {
         public IgnoreReader(string filename) : base(filename) {
         }
 
-        protected override IEnumerable<Dependency> ReadDependencies() {
+        protected override IEnumerable<Dependency> ReadDependencies(int depth) {
             return Enumerable.Empty<Dependency>();
         }
     }

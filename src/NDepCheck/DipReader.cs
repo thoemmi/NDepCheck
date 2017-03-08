@@ -15,11 +15,11 @@ namespace NDepCheck {
 
         private readonly DipReaderFactory _factory;
 
-        public DipReader([NotNull] string filename, [NotNull] DipReaderFactory factory) : base (filename) {
+        public DipReader([NotNull] string filename, [NotNull] DipReaderFactory factory) : base(filename) {
             _factory = factory;
         }
 
-        protected override IEnumerable<Dependency> ReadDependencies() {
+        protected override IEnumerable<Dependency> ReadDependencies(int depth) {
             Regex arrow = new Regex(@"\s*->\s*");
 
             var result = new List<Dependency>(10000);
@@ -72,7 +72,7 @@ namespace NDepCheck {
         }
 
         private void RegisterType([NotNull] string name, [NotNull] IEnumerable<string[]> keySubKeyPairs) {
-            _factory.AddItemType(new ItemType(name, keySubKeyPairs.Select(pair => pair[0]).ToArray(), keySubKeyPairs.Select(pair => pair.Length > 1 ? pair[1] : "").ToArray()));
+            _factory.AddItemType(ItemType.New(name, keySubKeyPairs.Select(pair => pair[0]).ToArray(), keySubKeyPairs.Select(pair => pair.Length > 1 ? pair[1] : "").ToArray()));
         }
 
         [NotNull]
@@ -95,7 +95,7 @@ namespace NDepCheck {
             if (foundType == null) {
                 throw new DipReaderException("Descriptor '" + descriptorName + "' has not been defined in this file previously");
             } else {
-                return new Item(foundType, parts.Skip(1).ToArray());
+                return Item.New(foundType, parts.Skip(1).ToArray());
             }
         }
 

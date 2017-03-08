@@ -6,7 +6,7 @@ using NDepCheck.GraphTransformations;
 namespace NDepCheck.Tests {
     [TestClass]
     public class TestUnhideCycles {
-        private static readonly ItemType TEST = new ItemType("TEST", new[] { "NAME" }, new[] { "" });
+        private static readonly ItemType TEST = ItemType.New("TEST", new[] { "NAME" }, new[] { "" });
 
         [TestMethod]
         public void TestSimpleUnhideCycles() {

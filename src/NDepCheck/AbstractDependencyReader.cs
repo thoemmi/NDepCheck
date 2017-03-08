@@ -40,8 +40,8 @@ namespace NDepCheck {
             return (extensionOrNull ?? Path.GetExtension(filename) ?? "").TrimStart('.');
         }
 
-        public static ItemType GetDefaultDescriptor(string rulefilename, string ruleFileExtension) {
-            string extension = GetExtensionForItemType(rulefilename.Replace(ruleFileExtension, ""), null);
+        public static ItemType GetDefaultDescriptor(string rulefilename, [CanBeNull] string ruleFileExtension) {
+            string extension = GetExtensionForItemType(string.IsNullOrWhiteSpace(ruleFileExtension) ? rulefilename : rulefilename.Replace(ruleFileExtension, ""), null);
             return ALL_READER_FACTORIES
                 .Where(f => f.Accepts(extension))
                 .Select(f => f.GetDescriptors().FirstOrDefault())
@@ -71,11 +71,11 @@ namespace NDepCheck {
         public string FileName => _filename;
 
         [NotNull]
-        protected abstract IEnumerable<Dependency> ReadDependencies();
+        protected abstract IEnumerable<Dependency> ReadDependencies(int depth);
 
-        public Dependency[] ReadOrGetDependencies() {
+        public Dependency[] ReadOrGetDependencies(int depth) {
             if (_dependencies == null) {
-                _dependencies = ReadDependencies().ToArray();
+                _dependencies = ReadDependencies(depth).ToArray();
             }
             return _dependencies;
         }

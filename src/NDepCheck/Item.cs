@@ -1,9 +1,9 @@
-// (c) HMMüller 2006...2015
+// (c) HMMüller 2006...2017
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Gibraltar;
 using JetBrains.Annotations;
 
 namespace NDepCheck {
@@ -13,63 +13,21 @@ namespace NDepCheck {
         [NotNull]
         public readonly string[] Values;
 
-        public static readonly Dictionary<string,string> CACHE = new Dictionary<string, string>(); 
-
         protected ItemSegment([NotNull]ItemType type, [NotNull]string[] values) {
             _type = type;
-            //Values = values.Select(v => v == null ? null : string.Intern(v)).ToArray();
-            //Values = values.Select(v => v == null ? null : Intern(v)).ToArray();
-            Values = values;
-        }
-
-        private string Intern(string s) {
-            string result;
-            if (!CACHE.TryGetValue(s, out result)) {
-                CACHE.Add(s, result = s);
-            }
-            return result;
+            //Values = _debugSingleton;
+            //Values = values;
+            Values = values.Select(v => v == null ? null : string.Intern(v)).ToArray();
+            //Values = values.Select(v => v == null ? null : StringReference.GetReference(v)).ToArray();
+            //Values = values.Select(v => v == null ? null : MyIntern(v)).ToArray();
         }
 
         public ItemType Type => _type;
-    }
 
-    public class ItemTail : ItemSegment {
-        public ItemTail([NotNull]ItemType type, [NotNull]string[] values) : base(type, values) {
-        }
-
-        public override string ToString() {
-            return "ItemTail(" + Type + ":" + string.Join(":", Values) + ")";
-        }
-    }
-
-    /// <remarks>
-    /// A token representing a complex name. 
-    /// </remarks>
-    public class Item : ItemSegment, INode {
-        private readonly bool _isInner;
-
-        private string _asString;
-        private string _asStringWithType;
-
-        public Item([NotNull]ItemType type, [NotNull]string reducedName, bool isInner)
-            : this(type, isInner, new[] { reducedName }) {
-        }
-
-        private Item(ItemType type, bool isInner, string[] values)
-            : base(type, values) {
-            if (type.Length != values.Length) {
-                throw new ArgumentException("keys.Length != values.Length", nameof(values));
-            }
-            _isInner = isInner;
-        }
-
-        public Item(ItemType type, params string[] values)
-            : this(type, false, values) {
-        }
-
-        public override bool Equals(object obj) {
-            Item other = obj as Item;
-            if (other == null) {
+        protected bool EqualsSegment(ItemSegment other) {
+            if (other == this) {
+                return true;
+            } else if (other == null) {
                 return false;
             } else {
                 if (!Type.Equals(other.Type)) {
@@ -87,8 +45,76 @@ namespace NDepCheck {
             }
         }
 
+        protected int SegmentHashCode() {
+            int h = _type.GetHashCode();
+
+            foreach (string t in Values) {
+                h ^= t.GetHashCode();
+            }
+            return h;
+        }
+    }
+
+    public sealed class ItemTail : ItemSegment {
+        private ItemTail([NotNull]ItemType type, [NotNull]string[] values) : base(type, values) {
+        }
+
+        public static ItemTail New([NotNull] ItemType type, [NotNull] string[] values) {
+            return Intern<ItemTail>.GetReference(new ItemTail(type, values));
+        }
+
+        public override string ToString() {
+            return "ItemTail(" + Type + ":" + string.Join(":", Values) + ")";
+        }
+
+        public override bool Equals(object other) {
+            return EqualsSegment(other as ItemTail);
+        }
+
         public override int GetHashCode() {
-            return Values.Aggregate(Type.GetHashCode(), (current, sum) => unchecked(current + sum.GetHashCode()));
+            return SegmentHashCode();
+        }
+    }
+
+    /// <remarks>
+    /// A token representing a complex name. 
+    /// </remarks>
+    public sealed class Item : ItemSegment, INode {
+        private readonly bool _isInner;
+
+        private string _asString;
+        private string _asStringWithType;
+
+        private Item([NotNull]ItemType type, bool isInner, string[] values)
+            : base(type, values) {
+            if (type.Length != values.Length) {
+                throw new ArgumentException("keys.Length != values.Length", nameof(values));
+            }
+            _isInner = isInner;
+        }
+
+        public static Item New([NotNull]ItemType type, bool isInner, string[] values) {
+            return Intern<Item>.GetReference(new Item(type, isInner, values));
+        }
+
+        public static Item New([NotNull]ItemType type, [NotNull]string reducedName, bool isInner) {
+            return New(type, isInner, new[] { reducedName });
+        }
+
+        public static Item New([NotNull]ItemType type, params string[] values) {
+            return New(type, false, values);
+        }
+
+        public override bool Equals(object obj) {
+            var other = obj as Item;
+            return this == obj
+                || other != null 
+                    && other._isInner == _isInner 
+                    && EqualsSegment(other);
+        }
+
+        public override int GetHashCode() {
+            return SegmentHashCode();
         }
 
         public override string ToString() {

@@ -96,6 +96,7 @@
     <Compile Include="Annotations.cs" />
     <Compile Include="DipReaderFactory.cs" />
     <Compile Include="FullDotNetAssemblyDependencyReader.cs" />
+    <Compile Include="Gibraltar_StringReference.cs" />
     <Compile Include="GraphTransformations\HideOuterGraph.cs" />
     <Compile Include="GraphTransformations\AssociativeHull.cs" />
     <Compile Include="IgnoreReader.cs" />

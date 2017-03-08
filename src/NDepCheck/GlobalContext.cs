@@ -26,17 +26,16 @@ namespace NDepCheck {
 
         [NotNull]
         public GlobalContext ReadAll([NotNull] Options options) {
-            foreach (var i in options.InputFiles) {
-                foreach (AbstractDependencyReader r in i.CreateOrGetReaders(options, false)) {
-                    Dependency[] dependencies = r.ReadOrGetDependencies();
-                    if (dependencies.Any()) {
-                        _inputContexts.Add(new InputContext(r.FileName, dependencies));
-                    } else {
-                        Log.WriteWarning("No dependencies found in " + r.FileName);
-                    }
-                    // edges in input have changed - we need to re-reduce the graph!
-                    _reducedGraph = null;
+            IEnumerable<AbstractDependencyReader> allReaders = options.InputFiles.SelectMany(i => i.CreateOrGetReaders(options, false)).OrderBy(r => r.FileName);
+            foreach (var r in allReaders) {
+                Dependency[] dependencies = r.ReadOrGetDependencies(0);
+                if (dependencies.Any()) {
+                    _inputContexts.Add(new InputContext(r.FileName, dependencies));
+                } else {
+                    Log.WriteWarning("No dependencies found in " + r.FileName);
                 }
+                // edges in input have changed - we need to re-reduce the graph!
+                _reducedGraph = null;
             }
             return this;
         }
@@ -222,7 +221,7 @@ namespace NDepCheck {
             return _program.Run(args);
         }
 
-        public DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel(Options options, string dependencyFilename, 
+        public DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel(Options options, string dependencyFilename,
                                                                                     string fileIncludeStack) {
             DependencyRuleSet ruleSetForAssembly = Load(dependencyFilename, options.Directories, options, options.IgnoreCase, fileIncludeStack);
             if (ruleSetForAssembly == null && !string.IsNullOrEmpty(options.DefaultRuleSetFile)) {

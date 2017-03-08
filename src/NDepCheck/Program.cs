@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -17,6 +18,8 @@ namespace NDepCheck {
         ////}
 
         public int Run(string[] args) {
+            Log.SetLevel(Log.Level.Standard);
+
             Options options = new Options();
             GlobalContext state = new GlobalContext(this);
 
@@ -110,7 +113,7 @@ namespace NDepCheck {
                         return UsageAndExit("Missing filename after " + arg);
                     }
                     state.ReadAll(options).ReduceGraph(options, false).WriteMatrixFile(options, format, filename);
-                } else if (arg.StartsWith("/n") || arg.StartsWith("-n")) {
+                } else if (arg.StartsWith("-n") || arg.StartsWith("/n")) {
                     // -n #|all  Set cpu count (currently no-op)
                     string ms = ExtractOptionValue(args, ref i);
                     if (ms == "all" || ms == "*") {
@@ -123,7 +126,7 @@ namespace NDepCheck {
                             return UsageAndExit("/n value " + ms + " is neither * nor a number", completeHelp: false);
                         }
                     }
-                } else if (arg.StartsWith("/o") || arg.StartsWith("-o")) {
+                } else if (arg.StartsWith("-o") || arg.StartsWith("/o")) {
                     // -o &      Do write xml depcheck output (after lazy reading; after lazy depcheck)
                     string xmlfile = ExtractOptionValue(args, ref i);
                     if (xmlfile == null) {
@@ -207,8 +210,9 @@ namespace NDepCheck {
         private int RunFrom(string filename) {
             int lineNo = 0;
             try {
+                var args = new List<string>();
                 using (var sr = new StreamReader(filename)) {
-                    for (; ; ) {
+                    for (;;) {
                         lineNo++;
                         string line = sr.ReadLine();
                         if (line == null) {
@@ -218,14 +222,10 @@ namespace NDepCheck {
                         if (line == "") {
                             continue;
                         }
-                        string[] args = line.Split(' ', '\t');
-                        int result = Run(args);
-                        if (result != 0) {
-                            return result;
-                        }
+                        args.AddRange(line.Split(' ', '\t'));
                     }
                 }
-                return 0;
+                return Run(args.ToArray());
             } catch (Exception ex) {
                 Log.WriteError("Cannot run commands in " + filename + " (" + ex.Message + ")", filename, lineNo);
                 return 7;

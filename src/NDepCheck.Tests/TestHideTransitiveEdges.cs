@@ -7,7 +7,7 @@ using NDepCheck.GraphTransformations;
 namespace NDepCheck.Tests {
     [TestClass]
     public class TestHideTransitiveEdges {
-        private static readonly ItemType TEST = new ItemType("TEST", new[] { "NAME" }, new[] { "" });
+        private static readonly ItemType TEST = ItemType.New("TEST", new[] { "NAME" }, new[] { "" });
 
         private void CreateEdge(Dictionary<string, TestNode> nodes, string from, string to) {
             TestNode fromNode = GetOrCreate(nodes, "\"" + from + "\"");

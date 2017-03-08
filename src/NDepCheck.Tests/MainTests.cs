@@ -33,6 +33,8 @@ namespace NDepCheck.Tests {
                     @"
 // Test dependencies for NDepCheck
 
+$ DOTNETCALL ---> DOTNETCALL
+                  
     // Every class may use all classes from its own namespace.
 (**): ---> \1:
 
@@ -48,14 +50,14 @@ namespace NDepCheck.Tests {
     // Every class may use all of System.
 ** ---> System.**:
 
-====> :=
+=---> :=
     \L.** ---> \R.**
     \L.** ---> \L.**
 =:
 
 
     // NDepCheck may use antlr and itself.
-NDepCheck ====> antlr
+NDepCheck =---> antlr
 
     // NDepCheck must not use Windows Forms.
 NDepCheck.** ---! System.Windows.Forms.**
@@ -165,11 +167,11 @@ NDepCheck:Tests ---> **
             }
         }
 
-        private readonly ItemType ITEMTYPE = new ItemType("TEST", new[] { "AS", "NS", "CL" }, new string[] { null, null, null });
+        private readonly ItemType ITEMTYPE = ItemType.New("TEST", new[] { "AS", "NS", "CL" }, new string[] { null, null, null });
         private const bool _ignoreCase = false;
 
         private Dependency NewDependency(string usingA, string usingN, string usingC, string usedA, string usedN, string usedC) {
-            return new Dependency(new Item(ITEMTYPE, usingA, usingN, usingC), new Item(ITEMTYPE, usedA, usedN, usedC), null, 0, 0, 0, 0);
+            return new Dependency(Item.New(ITEMTYPE, usingA, usingN, usingC), Item.New(ITEMTYPE, usedA, usedN, usedC), null, 0, 0, 0, 0);
         }
 
         [TestMethod]
@@ -211,6 +213,8 @@ NDepCheck:Tests ---> **
                 string depFile = CreateTempDotNetDepFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(@"
+                    $ DOTNETCALL ---> DOTNETCALL
+                  
                     NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
                     NDepCheck.TestAssembly.**::NDepCheck.TestAssembly ---> System.**::mscorlib
                     NDepCheck.TestAssembly.dir1.dir2:SomeClass ---? -:NamespacelessTestClassForNDepCheck::I
@@ -236,6 +240,8 @@ NDepCheck:Tests ---> **
                 string depFile = CreateTempDotNetDepFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(@"
+                    $ DOTNETCALL ---> DOTNETCALL
+                  
                     ::* ---> ::mscorlib
 
                     ** ---> **
@@ -262,6 +268,8 @@ NDepCheck:Tests ---> **
                 string depFile = CreateTempDotNetDepFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(@"
+                    $ DOTNETCALL ---> DOTNETCALL
+                  
                     _A := NDepCheck.TestAssembly
                     _B := _A
                     _B.** ---> _B.**
@@ -284,16 +292,21 @@ NDepCheck:Tests ---> **
                 string depFile = CreateTempDotNetDepFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(@"
-                    ===> :=
+                    -!-> :=
                         \L ---> \R
                     =:
-                    ===> :=
+
+                    -!-> :=
                         \L ---> \R
                     =:
+
+                    $ DOTNETCALL ---> DOTNETCALL
+                    
                     _A := NDepCheck.TestAssembly
                     _B := _A
-                    _B.** ===> _B.**
-                    _B.** ===> System.**
+                    _B.** -!-> _B.**
+                    _B.** -!-> System.**
+
                     _B.dir1.dir2:SomeClass ---? -:NamespacelessTestClassForNDepCheck::I
                     -:* ---? System:*
 
@@ -327,7 +340,9 @@ NDepCheck:Tests ---> **
             string depFile = CreateTempDotNetDepFileName();
             using (TextWriter tw = new StreamWriter(depFile)) {
                 tw.Write(@"
-                    ** ---> blabla
+                   $ DOTNETCALL ---> DOTNETCALL
+                  
+                   ** ---> blabla
                 ");
             }
             Assert.AreEqual(3, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
@@ -350,7 +365,8 @@ NDepCheck:Tests ---> **
             {
                 string depFile = CreateTempDotNetDepFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
-                    tw.Write(@"
+                    tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
+
                     NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
                     NDepCheck.TestAssembly.** ---> System.**
                     NDepCheck.TestAssembly.dir1.dir2:SomeClass ---? -:NamespacelessTestClassForNDepCheck::I
@@ -372,7 +388,8 @@ NDepCheck:Tests ---> **
         public void Exit4() {
             string depFile = CreateTempDotNetDepFileName();
             using (TextWriter tw = new StreamWriter(depFile)) {
-                tw.Write(@"
+                tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
+
                     : ---> blabla
                 ");
             }
@@ -386,11 +403,12 @@ NDepCheck:Tests ---> **
                 string depFile = CreateTempDotNetDepFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(
-                        @"
-                    ====> :=    
+                        @"$ DOTNETCALL ---> DOTNETCALL
+
+                    =---> :=    
                        : ---> blabla
                     =:
-                    ===>> :=    
+                    --->> :=    
                        ** ---> blabla
                     =:
                 ");
@@ -402,7 +420,8 @@ NDepCheck:Tests ---> **
                 string depFile = CreateTempDotNetDepFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
                     tw.Write(
-                        @"
+                        @"$ DOTNETCALL ---> DOTNETCALL
+
                     --> :=    
                        ** ---> blabla
                     =:

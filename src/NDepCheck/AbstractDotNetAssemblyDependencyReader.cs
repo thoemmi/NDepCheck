@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
+using Gibraltar;
 using JetBrains.Annotations;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -10,12 +12,12 @@ using Mono.Collections.Generic;
 
 namespace NDepCheck {
     public class DotNetAssemblyDependencyReaderFactory : AbstractReaderFactory {
-        public static readonly ItemType DOTNETREF = new ItemType(
+        public static readonly ItemType DOTNETREF = ItemType.New(
             "DOTNETREF",
             new[] { "ASSEMBLY", "ASSEMBLY", "ASSEMBLY" },
             new[] { ".NAME", ".VERSION", ".CULTURE" });
 
-        public static readonly ItemType DOTNETCALL = new ItemType(
+        public static readonly ItemType DOTNETCALL = ItemType.New(
             "DOTNETCALL",
             new[] { "NAMESPACE", "CLASS", "ASSEMBLY", "ASSEMBLY", "ASSEMBLY", "MEMBER", "MEMBER" },
             new[] { null, null, ".NAME", ".VERSION", ".CULTURE", ".NAME", ".SORT" });
@@ -32,7 +34,7 @@ namespace NDepCheck {
 
         public override AbstractDependencyReader CreateReader(string filename, Options options, bool needsOnlyItemTails) {
             return needsOnlyItemTails
-                ? (AbstractDependencyReader)new ItemsOnlyDotNetAssemblyDependencyReader(this, filename, options)
+                ? (AbstractDependencyReader) new ItemsOnlyDotNetAssemblyDependencyReader(this, filename, options)
                 : new FullDotNetAssemblyDependencyReader(this, filename, options);
         }
 
@@ -47,7 +49,7 @@ namespace NDepCheck {
         public ItemType GetOrCreateDotNetType(string name, string[] keys, string[] subkeys) {
             ItemType result = _types.FirstOrDefault(t => t.Name == name);
             if (result == null) {
-                _types.Add(result = new ItemType(name, keys, subkeys));
+                _types.Add(result = ItemType.New(name, keys, subkeys));
             } else {
                 // TODO: Check that existing declaration = new one - for the moment, we "believe" that ...
             }
@@ -57,20 +59,20 @@ namespace NDepCheck {
         public static void GetTypeAssemblyInfo(TypeReference reference, out string assemblyName, out string assemblyVersion, out string assemblyCulture) {
             switch (reference.Scope.MetadataScopeType) {
                 case MetadataScopeType.AssemblyNameReference:
-                    AssemblyNameReference r = (AssemblyNameReference)reference.Scope;
+                    AssemblyNameReference r = (AssemblyNameReference) reference.Scope;
                     assemblyName = reference.Scope.Name;
                     assemblyVersion = r.Version.ToString();
                     assemblyCulture = r.Culture;
                     break;
                 case MetadataScopeType.ModuleReference:
-                    assemblyName = ((ModuleReference)reference.Scope).Name;
+                    assemblyName = ((ModuleReference) reference.Scope).Name;
                     assemblyVersion = null;
                     assemblyCulture = null;
                     break;
                 case MetadataScopeType.ModuleDefinition:
-                    assemblyName = ((ModuleDefinition)reference.Scope).Assembly.Name.Name;
-                    assemblyVersion = ((ModuleDefinition)reference.Scope).Assembly.Name.Version.ToString();
-                    assemblyCulture = ((ModuleDefinition)reference.Scope).Assembly.Name.Culture;
+                    assemblyName = ((ModuleDefinition) reference.Scope).Assembly.Name.Name;
+                    assemblyVersion = ((ModuleDefinition) reference.Scope).Assembly.Name.Version.ToString();
+                    assemblyCulture = ((ModuleDefinition) reference.Scope).Assembly.Name.Culture;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -105,7 +107,7 @@ namespace NDepCheck {
 
         protected abstract class RawAbstractItem {
             private readonly string _namespaceName;
-            private readonly string _className;
+            public readonly string ClassName;
             public readonly string AssemblyName;
             private readonly string _assemblyVersion;
             private readonly string _assemblyCulture;
@@ -122,33 +124,34 @@ namespace NDepCheck {
                 if (assemblyName == null) {
                     throw new ArgumentNullException(nameof(assemblyName));
                 }
-                _namespaceName = namespaceName;
-                _className = className;
-                AssemblyName = assemblyName;
-                _assemblyVersion = assemblyVersion ?? "";
-                _assemblyCulture = assemblyCulture ?? "";
-                _memberName = memberName ?? "";
-                _memberSort = memberSort ?? "";
+                _namespaceName = string.Intern(namespaceName);
+                ClassName = string.Intern(className);
+                AssemblyName = string.Intern(assemblyName);
+                _assemblyVersion = string.Intern(assemblyVersion ?? "");
+                _assemblyCulture = string.Intern(assemblyCulture ?? "");
+                _memberName = string.Intern(memberName ?? "");
+                _memberSort = string.Intern(memberSort ?? "");
             }
 
             public override string ToString() {
-                return _namespaceName + ":" + _className + ":" + AssemblyName + ";" + _assemblyVersion + ";" + _assemblyCulture + ":" + _memberName + ";" + _memberSort;
+                return _namespaceName + ":" + ClassName + ":" + AssemblyName + ";" + _assemblyVersion + ";" + _assemblyCulture + ":" + _memberName + ";" + _memberSort;
             }
 
             [NotNull]
             public virtual Item ToItem(ItemType type) {
-                return new Item(type, _namespaceName, _className, AssemblyName, _assemblyVersion, _assemblyCulture, _memberName, _memberSort);
+                return Item.New(type, _namespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, _memberName, _memberSort);
             }
 
             [NotNull]
             protected RawUsedItem ToRawUsedItem() {
-                return new RawUsedItem(_namespaceName, _className, AssemblyName, _assemblyVersion, _assemblyCulture, _memberName, _memberSort);
+                return RawUsedItem.New(_namespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, _memberName, _memberSort);
             }
 
             protected bool EqualsRawAbstractItem(RawAbstractItem other) {
-                return other != null
+                return this == other
+                    || other != null
                        && other._namespaceName == _namespaceName
-                       && other._className == _className
+                       && other.ClassName == ClassName
                        && other.AssemblyName == AssemblyName
                        && other._assemblyVersion == _assemblyVersion
                        && other._assemblyCulture == _assemblyCulture
@@ -157,22 +160,36 @@ namespace NDepCheck {
             }
 
             protected int GetRawAbstractItemHashCode() {
-                return unchecked(_namespaceName.GetHashCode() + _className.GetHashCode() + AssemblyName.GetHashCode() + (_memberName ?? "").GetHashCode());
+                return unchecked(_namespaceName.GetHashCode() + ClassName.GetHashCode() + AssemblyName.GetHashCode() + (_memberName ?? "").GetHashCode());
             }
         }
 
-        protected class RawUsingItem : RawAbstractItem {
+        protected sealed class RawUsingItem : RawAbstractItem {
             private readonly ItemTail _tail;
             private Item _item;
             private RawUsedItem _usedItem;
 
-            public RawUsingItem(string namespaceName, string className, string assemblyName, string assemblyVersion, string assemblyCulture, string memberName, string memberSort, ItemTail tail)
+            private RawUsingItem(string namespaceName, string className, string assemblyName, string assemblyVersion, string assemblyCulture, string memberName, string memberSort, ItemTail tail)
                 : base(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, memberSort) {
                 _tail = tail;
             }
 
+            public static RawUsingItem New(string namespaceName, string className, string assemblyName,
+                string assemblyVersion, string assemblyCulture, string memberName, string memberSort, ItemTail tail) {
+                return Intern<RawUsingItem>.GetReference(new RawUsingItem(namespaceName, className, assemblyName,
+                        assemblyVersion, assemblyCulture, memberName, memberSort, tail));
+            }
+
             public override string ToString() {
                 return "RawUsingItem(" + base.ToString() + ":" + _tail + ")";
+            }
+
+            public override bool Equals(object obj) {
+                return EqualsRawAbstractItem(obj as RawUsingItem);
+            }
+
+            public override int GetHashCode() {
+                return GetRawAbstractItemHashCode();
             }
 
             public override Item ToItem(ItemType type) {
@@ -190,17 +207,24 @@ namespace NDepCheck {
             }
         }
 
-        protected class RawUsedItem : RawAbstractItem {
-            public RawUsedItem(string namespaceName, string className, string assemblyName, string assemblyVersion, string assemblyCulture, string memberName, string memberSort)
+        protected sealed class RawUsedItem : RawAbstractItem {
+            private RawUsedItem(string namespaceName, string className, string assemblyName, string assemblyVersion, string assemblyCulture, string memberName, string memberSort)
                 : base(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, memberSort) {
+            }
+
+            public static RawUsedItem New(string namespaceName, string className, string assemblyName,
+                string assemblyVersion, string assemblyCulture, string memberName, string memberSort) {
+                return Intern<RawUsedItem>.GetReference(new RawUsedItem(namespaceName, className, assemblyName,
+                        assemblyVersion, assemblyCulture, memberName, memberSort));
             }
 
             public override string ToString() {
                 return "RawUsedItem(" + base.ToString() + ")";
             }
 
-            public Item ToItemWithTail(ItemType type, AbstractDotNetAssemblyDependencyReader reader) {
-                return reader.GetFullItemFor(this);
+            [CanBeNull] // null (I think) if assemblies do not match (different compiles) and hence a used item is not found in target reader.
+            public Item ToItemWithTail(ItemType type, AbstractDotNetAssemblyDependencyReader reader, int depth) {
+                return reader.GetFullItemFor(this, depth);
             }
 
             public override bool Equals(object obj) {
@@ -213,30 +237,51 @@ namespace NDepCheck {
         }
 
         [NotNull]
-        protected abstract IEnumerable<RawUsingItem> ReadUsingItems();
+        protected abstract IEnumerable<RawUsingItem> ReadUsingItems(int depth);
 
-        [NotNull]
-        protected Item GetFullItemFor(RawUsedItem rawUsedItem) {
+        [CanBeNull] // null (I think) if assemblies do not match (different compiles) and hence a used item is not found in target reader.
+        protected Item GetFullItemFor(RawUsedItem rawUsedItem, int depth) {
             if (_rawItems2Items == null) {
                 _rawItems2Items = new Dictionary<RawUsedItem, Item>();
-                foreach (var u in ReadUsingItems()) {
-                    _rawItems2Items[u.ToRawUsedItem()] = u.ToItem(DotNetAssemblyDependencyReaderFactory.DOTNETCALL);
+                foreach (var u in ReadUsingItems(depth + 1)) {
+                    RawUsedItem usedItem = u.ToRawUsedItem();
+                    _rawItems2Items[usedItem] = u.ToItem(DotNetAssemblyDependencyReaderFactory.DOTNETCALL);
                 }
             }
-            return _rawItems2Items[rawUsedItem];
+            Item result;
+            _rawItems2Items.TryGetValue(rawUsedItem, out result);
+            return result;
         }
 
-        protected class RawDependency {
+        protected sealed class RawDependency {
             private readonly ItemType _type;
             public readonly RawUsingItem UsingItem;
             public readonly RawUsedItem UsedItem;
             private readonly SequencePoint _sequencePoint;
 
-            public RawDependency(ItemType type, RawUsingItem usingItem, RawUsedItem usedItem, SequencePoint sequencePoint) {
+            private RawDependency([NotNull] ItemType type, [NotNull] RawUsingItem usingItem, [NotNull] RawUsedItem usedItem, [CanBeNull] SequencePoint sequencePoint) {
                 UsingItem = usingItem;
                 UsedItem = usedItem;
                 _sequencePoint = sequencePoint;
                 _type = type;
+            }
+
+            public static RawDependency New(ItemType type, RawUsingItem usingItem, RawUsedItem usedItem, SequencePoint sequencePoint) {
+                return Intern<RawDependency>.GetReference(new RawDependency(type, usingItem, usedItem, sequencePoint));
+            }
+
+            public override bool Equals(object obj) {
+                var other = obj as RawDependency;
+                return this == obj
+                    || other != null 
+                        && Equals(other.UsedItem, UsedItem)
+                        && Equals(other.UsingItem, UsingItem)
+                        && Equals(other._type, _type)
+                        && Equals(other._sequencePoint, _sequencePoint);
+            }
+
+            public override int GetHashCode() {
+                return UsedItem.GetHashCode() ^ UsingItem.GetHashCode();
             }
 
             public override string ToString() {
@@ -252,9 +297,11 @@ namespace NDepCheck {
             }
 
             [NotNull]
-            public Dependency ToDependencyWithTail(Options options) {
+            public Dependency ToDependencyWithTail(Options options, int depth) {
                 AbstractDotNetAssemblyDependencyReader reader = options.GetDotNetAssemblyReaderFor(UsedItem.AssemblyName);
-                return ToDependency(reader == null ? UsedItem.ToItem(_type) : UsedItem.ToItemWithTail(_type, reader));
+                // ?? fires if reader == null (i.e., target assembly is not read in), or if assemblies do not match (different compiles) and hence a used item is not found in target reader.
+                Item usedItem = (reader == null ? null : UsedItem.ToItemWithTail(_type, reader, depth)) ?? UsedItem.ToItem(_type);
+                return ToDependency(usedItem);
             }
         }
 
@@ -269,18 +316,18 @@ namespace NDepCheck {
 
         private readonly ISet<string> _loggedInfos = new HashSet<string>();
 
-        private readonly HashSet<TypeReference> _unresolvableTypeReferences = new HashSet<TypeReference>();
+        private static readonly HashSet<string> _unresolvableTypeReferences = new HashSet<string>();
 
         private ItemTail ExtractCustomSections(CustomAttribute customAttribute, ItemTail parent) {
             TypeDefinition attributeType;
             TypeReference customAttributeTypeReference = customAttribute.AttributeType;
-            if (_unresolvableTypeReferences.Contains(customAttributeTypeReference)) {
+            if (_unresolvableTypeReferences.Contains(customAttributeTypeReference.FullName)) {
                 attributeType = null;
             } else {
                 try {
                     attributeType = customAttributeTypeReference.Resolve();
                 } catch (Exception ex) {
-                    _unresolvableTypeReferences.Add(customAttributeTypeReference);
+                    _unresolvableTypeReferences.Add(customAttributeTypeReference.FullName);
                     attributeType = null;
                     string msg = "Cannot resolve " + customAttributeTypeReference + " - reason: " + ex.Message;
                     if (_loggedInfos.Add(msg)) {
@@ -306,7 +353,7 @@ namespace NDepCheck {
                     string[] values = args.Select(a => a.Property.Name == null
                         ? parent?.Values[a.Index]
                         : "" + a.Property.Argument.Value).ToArray();
-                    return new ItemTail(itemType, values);
+                    return ItemTail.New(itemType, values);
                 }
             } else {
                 return parent;
@@ -343,6 +390,5 @@ namespace NDepCheck {
             }
             return className;
         }
-
     }
 }
