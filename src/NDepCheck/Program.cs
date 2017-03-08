@@ -155,8 +155,7 @@ namespace NDepCheck {
                     options.ShowUnusedRules = true;
                 } else if (arg == "-v" || arg == "/v") {
                     // -v        Set verbose option
-                    options.Verbose = true;
-                    Log.IsChattyEnabled = true;
+                    Log.SetLevel(Log.Level.Verbose);
                     WriteVersion();
                 } else if (arg.StartsWith("-x") || arg.StartsWith("/x")) {
                     // -x &      Set search location for default rule file
@@ -170,8 +169,7 @@ namespace NDepCheck {
                     options.DefaultRuleSetFile = filename;
                 } else if (arg == "-y" || arg == "/y") {
                     // -y        Set chatty option
-                    options.Chatty = true;
-                    Log.IsDebugEnabled = true;
+                    Log.SetLevel(Log.Level.Chatty);
                     WriteVersion();
                 } else if (arg == "-z" || arg == "/z") {
                     // -z        Remove all dependencies and graphs, clear search options (-d, -s, -x) and some more
@@ -197,6 +195,10 @@ namespace NDepCheck {
 
             if (!options.InputFilesSpecified) {
                 return UsageAndExit("No input files specified");
+            }
+
+            if (Log.IsVerboseEnabled) {
+                Log.WriteInfo("Completed with exitcode " + result);
             }
 
             return result;

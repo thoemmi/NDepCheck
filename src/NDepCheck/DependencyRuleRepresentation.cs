@@ -2,17 +2,14 @@ using JetBrains.Annotations;
 
 namespace NDepCheck {
     public class DependencyRuleRepresentation {
-        private readonly bool _isQuestionableRule;
         private readonly string _line;
-        private readonly int _lineNo;
-        private readonly string _ruleFileName;
         private int _hitCount;
 
         public DependencyRuleRepresentation([NotNull] string ruleFileName, int lineNo, [NotNull] string line, bool isQuestionableRule) {
-            _ruleFileName = ruleFileName;
-            _lineNo = lineNo;
+            RuleFileName = ruleFileName;
+            LineNo = lineNo;
             _line = line;
-            _isQuestionableRule = isQuestionableRule;
+            IsQuestionableRule = isQuestionableRule;
             _hitCount = 0;
         }
 
@@ -23,12 +20,12 @@ namespace NDepCheck {
 
         public int HitCount => _hitCount;
 
-        public bool IsQuestionableRule => _isQuestionableRule;
+        public bool IsQuestionableRule { get; }
 
         [NotNull]
-        public string RuleFileName => _ruleFileName;
+        public string RuleFileName { get; }
 
-        public int LineNo => _lineNo;
+        public int LineNo { get; }
 
         internal void MarkHit() {
             _hitCount++;

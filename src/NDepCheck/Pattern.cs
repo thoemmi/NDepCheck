@@ -203,6 +203,10 @@ namespace NDepCheck {
         public bool MatchesAlike(IMatcher other) {
             return other is AlwaysMatcher;
         }
+
+        public override string ToString() {
+            return "[**]";
+        }
     }
 
     internal sealed class EmptyStringMatcher : IMatcher {
@@ -216,6 +220,10 @@ namespace NDepCheck {
 
         public bool MatchesAlike(IMatcher other) {
             return other is EmptyStringMatcher;
+        }
+
+        public override string ToString() {
+            return "[\"\"]";
         }
     }
 
@@ -270,11 +278,19 @@ namespace NDepCheck {
         public ContainsMatcher(string segment, bool ignoreCase)
             : base(segment.Trim('*').Trim('.'), (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) >= 0, ignoreCase) {
         }
+
+        public override string ToString() {
+            return "[*" + _segment + "*]";
+        }
     }
 
     internal sealed class EqualsMatcher : AbstractDelegateMatcher {
         public EqualsMatcher(string segment, bool ignoreCase)
             : base(segment, (value, seg) => string.Compare(value, seg, ignoreCase) == 0, ignoreCase) {
+        }
+
+        public override string ToString() {
+            return "[" + _segment + "]";
         }
     }
 
@@ -282,11 +298,19 @@ namespace NDepCheck {
         public StartsWithMatcher(string segment, bool ignoreCase)
             : base(segment.TrimEnd('*').TrimEnd('.'), (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) == 0, ignoreCase) {
         }
+
+        public override string ToString() {
+            return "[" + _segment + "*]";
+        }
     }
 
     internal sealed class EndsWithMatcher : AbstractDelegateMatcher {
         public EndsWithMatcher(string segment, bool ignoreCase)
             : base(segment.TrimStart('*').TrimStart('.'), (value, seg) => value.LastIndexOf(seg, GetComparisonType(ignoreCase)) >= value.Length - segment.Length, ignoreCase) {
+        }
+
+        public override string ToString() {
+            return "[*" + _segment + "]";
         }
     }
 
@@ -329,46 +353,51 @@ namespace NDepCheck {
             return _estimatedGroupCount;
         }
 
-        // TODO: NOCH NICHT IN BETRIEB ...
-        internal class RegexMatcherWithBackReferences : IMatcher {
-            private readonly int _estimatedGroupCount;
-            private readonly Regex _regex;
+        public override string ToString() {
+            return "[/" + _regex + "/]";
+        }
 
-            public RegexMatcherWithBackReferences(string pattern, bool ignoreCase, int estimatedGroupCount) {
-                _estimatedGroupCount = estimatedGroupCount;
-                _regex = new Regex(pattern, ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
-            }
+    }
 
-            public bool IsMatch(string value, string[] groupsInUsing) {
-                int fillupWithArbitraryStringsCount = EstimatedGroupCount() - groupsInUsing.Length;
-                IEnumerable<string> groupsWithFillUps = groupsInUsing.Concat(Enumerable.Range(0, fillupWithArbitraryStringsCount).Select(_ => "IGNORE"));
-                string joinedGroupsWithFillUps = string.Join("", groupsWithFillUps.Select(g => g + Pattern.GROUPSEP));
+    // TODO: NOCH NICHT IN BETRIEB ...
+    internal class RegexMatcherWithBackReferences : IMatcher {
+        private readonly int _estimatedGroupCount;
+        private readonly Regex _regex;
 
-                bool isMatch = _regex.IsMatch(joinedGroupsWithFillUps + value);
-                return isMatch;
-            }
+        public RegexMatcherWithBackReferences(string pattern, bool ignoreCase, int estimatedGroupCount) {
+            _estimatedGroupCount = estimatedGroupCount;
+            _regex = new Regex(pattern, ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
+        }
 
-            public string[] Match(string value) {
-                Match m = _regex.Match(value);
-                if (m.Success) {
-                    string[] groups = new string[m.Groups.Count - 1];
-                    for (int i = 1; i < m.Groups.Count; i++) {
-                        groups[i - 1] = m.Groups[i].Value;
-                    }
-                    return groups;
-                } else {
-                    return null;
+        public bool IsMatch(string value, string[] groupsInUsing) {
+            int fillupWithArbitraryStringsCount = EstimatedGroupCount() - groupsInUsing.Length;
+            IEnumerable<string> groupsWithFillUps = groupsInUsing.Concat(Enumerable.Range(0, fillupWithArbitraryStringsCount).Select(_ => "IGNORE"));
+            string joinedGroupsWithFillUps = string.Join("", groupsWithFillUps.Select(g => g + Pattern.GROUPSEP));
+
+            bool isMatch = _regex.IsMatch(joinedGroupsWithFillUps + value);
+            return isMatch;
+        }
+
+        public string[] Match(string value) {
+            Match m = _regex.Match(value);
+            if (m.Success) {
+                string[] groups = new string[m.Groups.Count - 1];
+                for (int i = 1; i < m.Groups.Count; i++) {
+                    groups[i - 1] = m.Groups[i].Value;
                 }
+                return groups;
+            } else {
+                return null;
             }
+        }
 
-            public int EstimatedGroupCount() {
-                return _estimatedGroupCount;
-            }
+        public int EstimatedGroupCount() {
+            return _estimatedGroupCount;
+        }
 
 
-            public bool MatchesAlike(IMatcher other) {
-                throw new NotImplementedException();
-            }
+        public bool MatchesAlike(IMatcher other) {
+            throw new NotImplementedException();
         }
     }
 }

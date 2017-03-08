@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 
@@ -27,31 +26,29 @@ namespace NDepCheck.MSBuild {
         public override bool Execute() {
             var logger = new MsBuildLogger(Log);
             global::NDepCheck.Log.Logger = logger;
-            global::NDepCheck.Log.IsChattyEnabled = false;
-            global::NDepCheck.Log.IsDebugEnabled = Debug;
+            global::NDepCheck.Log.SetLevel(
+                Verbose ? global::NDepCheck.Log.Level.Verbose : global::NDepCheck.Log.Level.Standard);
 
             var args = new List<string>();
+            if (Verbose) {
+                args.Add("/v");
+            }
 
-            var options = new Options {
-                Chatty = false,
-                Verbose = Verbose,
-                ////ShowTransitiveEdges = ShowTransitiveEdges, TODO: Replace with transformation ___
-                ShowUnusedQuestionableRules = ShowUnusedQuestionableRules,
-                MaxCpuCount = MaxCpuCount == 0 || MaxCpuCount < -1 ? Environment.ProcessorCount : MaxCpuCount
-            };
+            if (ShowUnusedQuestionableRules) {
+                args.Add("/q");
+            }
+
+            args.Add("/n " + (MaxCpuCount == 0 || MaxCpuCount < -1 ? Environment.ProcessorCount : MaxCpuCount));
+
             //////Assemblies
             //////    .Select(item => new InputFileOption(item.ItemSpec, null))
             //////    .AddTo(options.InputFiles);
 
             if (DefaultRuleSet != null) {
-                options.DefaultRuleSetFile = DefaultRuleSet.ItemSpec;
-            }
-            if (Directories != null) {
-                Directories
-                    .Select(GetDirectoryOptionFromTaskItem)
-                    .AddTo(options.Directories);
+                args.Add("/x " + DefaultRuleSet.ItemSpec);
             }
 
+            //Directories?.Select(GetDirectoryOptionFromTaskItem).AddTo(options.Directories);
 
             ExitCode = new Program().Run(args.ToArray());
 
@@ -66,14 +63,6 @@ namespace NDepCheck.MSBuild {
                 recursive = tmp;
             }
             return new DirectoryOption(taskItem.ItemSpec, recursive, ".dep");
-        }
-    }
-
-    public static class EnumerableExtensions {
-        public static void AddTo<T>(this IEnumerable<T> source, ICollection<T> target) {
-            foreach (var item in source) {
-                target.Add(item);
-            }
         }
     }
 }

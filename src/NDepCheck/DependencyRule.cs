@@ -34,8 +34,8 @@ namespace NDepCheck {
                   used: CreateMatchers(usedItemType, usedItemPattern, usingItemPattern.Count(c => c == '('), ignoreCase), rep: rep) {
         }
 
-        public DependencyRule([NotNull] ItemType usingItemType, IMatcher[] @using, [NotNull] ItemType usedItemType, IMatcher[] used,
-                              [NotNull] DependencyRuleRepresentation rep) {
+        public DependencyRule([NotNull] ItemType usingItemType, [NotNull] IMatcher[] @using, 
+                              [NotNull] ItemType usedItemType, [NotNull] IMatcher[] used, [NotNull] DependencyRuleRepresentation rep) {
             if (usingItemType == null) {
                 throw new ArgumentNullException(nameof(usingItemType));
             }
@@ -57,8 +57,10 @@ namespace NDepCheck {
         [NotNull]
         public DependencyRuleRepresentation Representation { get; }
 
+        [NotNull]
         public IMatcher[] Using => _using;
 
+        [NotNull]
         public IMatcher[] Used => _used;
 
         public bool IsMatch(Dependency dependency) {
@@ -68,6 +70,10 @@ namespace NDepCheck {
             }
             if (dependency.UsedItem.Type != _usedItemType) {
                 return false;
+            }
+
+            if (Log.IsChattyEnabled) {
+                Log.WriteInfo("Checking " + dependency + " against " + Representation);
             }
 
             string[] groupsInUsing = Match(dependency.UsingItem.Type, _using, dependency.UsingItem);

@@ -86,11 +86,10 @@ namespace NDepCheck {
 
         private IEnumerable<DependencyRule> CreateDependencyRule([NotNull] DependencyRuleSet parent,
             [NotNull] ItemType usingItemType, [NotNull] ItemType usedItemType, [NotNull] string ruleFileName, int lineNo,
-            [NotNull] string line, [NotNull] string sep, bool questionableRule, bool ignoreCase, 
+            [NotNull] string line, [NotNull] string use, bool questionableRule, bool ignoreCase, 
             string previousRawUsingPattern, out string currentRawUsingPattern) {
 
-            DependencyRuleRepresentation rep = new DependencyRuleRepresentation(ruleFileName, lineNo, line, questionableRule);
-            int i = line.IndexOf(sep, StringComparison.Ordinal);
+            int i = line.IndexOf(use, StringComparison.Ordinal);
 
             string rawUsingpattern = line.Substring(0, i).Trim();
             if (rawUsingpattern == "") {
@@ -100,21 +99,25 @@ namespace NDepCheck {
 
             string usingPattern = parent.ExpandDefines(rawUsingpattern);
 
-            string rawUsedPattern = line.Substring(i + sep.Length).Trim();
+            string rawUsedPattern = line.Substring(i + use.Length).Trim();
             string usedPattern = parent.ExpandDefines(rawUsedPattern);
+
+            string repString = rawUsingpattern + " " + use + " " + rawUsedPattern;
+            DependencyRuleRepresentation rep = new DependencyRuleRepresentation(ruleFileName, lineNo, repString, questionableRule);
 
             var head = new DependencyRule(usingItemType, usingPattern, usedItemType, usedPattern, rep, ignoreCase);
             var result = new List<DependencyRule> { head };
 
-            if (sep == DependencyRuleSet.MAYUSE_RECURSIVE) {
+            if (Log.IsVerboseEnabled) {
+                Log.WriteInfo($"Matchers used for checking {repString} ({ruleFileName}:{lineNo})");
+                Log.WriteInfo("  Using: " + string.Join<IMatcher>(", ", head.Using));
+                Log.WriteInfo("   Used: " + string.Join<IMatcher>(", ", head.Used));
+            }
+
+            if (use == DependencyRuleSet.MAYUSE_RECURSIVE) {
                 IEnumerable<DependencyRule> rulesWithMatchingUsingPattern = _allowed.Where(r => r.MatchesUsingPattern(head.Used));
 
                 result.AddRange(rulesWithMatchingUsingPattern.Select(tail => new DependencyRule(usingItemType, head.Using, usedItemType, tail.Used, rep)));
-            }
-
-            if (Log.IsChattyEnabled) {
-                Log.WriteInfo($"Rules used for checking {line} ({ruleFileName}:{lineNo})");
-                Log.WriteInfo("  " + result);
             }
 
             return result;
@@ -149,9 +152,6 @@ namespace NDepCheck {
 
         private bool Check([CanBeNull] IInputContext inputContext, [NotNull] Dependency d) {
             bool ok = false;
-            if (Log.IsChattyEnabled) {
-                Log.WriteInfo("Checking " + d);
-            }
             if (_forbidden.Any(r => r.IsMatch(d))) {
                 goto DONE;
             }

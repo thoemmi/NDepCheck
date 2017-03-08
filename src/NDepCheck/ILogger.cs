@@ -10,9 +10,23 @@
     }
 
     public static class Log {
-        public static ILogger Logger { get; set; }
-        public static bool IsChattyEnabled { get; set; }
-        public static bool IsDebugEnabled { get; set; }
+        public enum Level { Standard, Verbose, Chatty }
+
+        public static ILogger Logger {
+            get; set;
+        }
+
+        private static Level _level = Level.Standard;
+
+        public static void SetLevel(Level level) {
+            _level = level;
+        }
+
+        public static bool IsChattyEnabled => _level >= Level.Chatty;
+
+        public static bool IsVerboseEnabled => _level >= Level.Verbose;
+
+        private static string _previousInfo;
 
         internal static void WriteError(string msg) {
             Logger.WriteError(msg);
@@ -31,7 +45,11 @@
         }
 
         internal static void WriteInfo(string msg) {
-            Logger.WriteInfo(msg);
+            // Identical infos are collapsed - helps with chatty output on checking
+            if (msg != _previousInfo) {
+                Logger.WriteInfo(msg);
+            }
+            _previousInfo = msg;
         }
 
         internal static void WriteDebug(string msg) {

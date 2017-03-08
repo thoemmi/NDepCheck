@@ -269,15 +269,23 @@ namespace NDepCheck {
 
         private readonly ISet<string> _loggedInfos = new HashSet<string>();
 
+        private readonly HashSet<TypeReference> _unresolvableTypeReferences = new HashSet<TypeReference>();
+
         private ItemTail ExtractCustomSections(CustomAttribute customAttribute, ItemTail parent) {
             TypeDefinition attributeType;
-            try {
-                attributeType = customAttribute.AttributeType.Resolve();
-            } catch (Exception ex) {
+            TypeReference customAttributeTypeReference = customAttribute.AttributeType;
+            if (_unresolvableTypeReferences.Contains(customAttributeTypeReference)) {
                 attributeType = null;
-                string msg = "Cannot resolve " + customAttribute.AttributeType + " - reason: " + ex.Message;
-                if (_loggedInfos.Add(msg)) {
-                    Log.WriteInfo(msg);
+            } else {
+                try {
+                    attributeType = customAttributeTypeReference.Resolve();
+                } catch (Exception ex) {
+                    _unresolvableTypeReferences.Add(customAttributeTypeReference);
+                    attributeType = null;
+                    string msg = "Cannot resolve " + customAttributeTypeReference + " - reason: " + ex.Message;
+                    if (_loggedInfos.Add(msg)) {
+                        Log.WriteInfo(msg);
+                    }
                 }
             }
             bool isSectionAttribute = attributeType != null && attributeType.Interfaces.Any(i => i.FullName == "NDepCheck.ISectionAttribute");

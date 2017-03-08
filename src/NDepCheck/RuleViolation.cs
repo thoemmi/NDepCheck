@@ -3,18 +3,18 @@
 namespace NDepCheck {
     public class RuleViolation {
         [NotNull]
-        private readonly Dependency _dependency;
-        private readonly ViolationType _violationType;
-
-        public RuleViolation([NotNull]Dependency dependency, ViolationType violationType) {
-            _dependency = dependency;
-            _violationType = violationType;
+        public Dependency Dependency {
+            get;
         }
 
-        [NotNull]
-        public Dependency Dependency => _dependency;
+        public ViolationType ViolationType {
+            get;
+        }
 
-        public ViolationType ViolationType => _violationType;
+        public RuleViolation([NotNull]Dependency dependency, ViolationType violationType) {
+            Dependency = dependency;
+            ViolationType = violationType;
+        }
     }
 
     public enum ViolationType {

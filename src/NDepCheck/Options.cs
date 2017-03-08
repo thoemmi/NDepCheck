@@ -28,14 +28,6 @@ namespace NDepCheck {
 
         public bool ShowUnusedRules { get; set; }
 
-        /// <value>
-        /// Mark output of <c>DependencyGrapher</c>
-        /// as verbose.
-        /// </value>
-        public bool Verbose;
-
-        public bool Chatty;
-
         public bool IgnoreCase;
 
         public string DefaultRuleSetFile { get; set; }
@@ -54,7 +46,6 @@ namespace NDepCheck {
         internal bool CheckingDone { get; set; }
 
         public Options() {
-            ShowUnusedQuestionableRules = true;
             MaxCpuCount = 1;
         }
 

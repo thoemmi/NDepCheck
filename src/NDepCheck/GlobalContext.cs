@@ -46,7 +46,7 @@ namespace NDepCheck {
             if (alsoComputeViolations) {
                 int checkResult = ComputeViolations(options);
                 if (checkResult != 0) {
-                    Log.WriteInfo("Checking before reduction yielded return code " + checkResult);
+                    Log.WriteWarning("Checking before reduction yielded return code " + checkResult);
                 }
             }
 
@@ -81,14 +81,33 @@ namespace NDepCheck {
         public int ComputeViolations([NotNull] Options options) {
             options.CheckingDone = true;
             int result = 0;
+
+            var allCheckedGroups = new HashSet<DependencyRuleGroup>();
+
             foreach (var g in _inputContexts) {
-                int checkResult = g.CheckDependencies(this, options);
+                IEnumerable<DependencyRuleGroup> checkedGroups;
+                int checkResult = g.CheckDependencies(this, options, out checkedGroups);
                 if (checkResult != 0) {
                     if (result == 0) {
                         result = checkResult;
                     }
+                } else {
+                    allCheckedGroups.UnionWith(checkedGroups);
                 }
             }
+
+            foreach (var r in allCheckedGroups.SelectMany(g => g.AllRules).Select(r => r.Representation).Distinct().OrderBy(r => r.RuleFileName).ThenBy(r => r.LineNo)) {
+                if (options.ShowUnusedQuestionableRules && r.IsQuestionableRule && !r.WasHit) {
+                    Log.WriteInfo("Questionable rule " + r + " was never matched - maybe you can remove it!");
+                } else if (options.ShowUnusedRules && !r.WasHit) {
+                    Log.WriteInfo("Rule " + r + " was never matched - maybe you can remove it!");
+                } else {
+                    if (Log.IsChattyEnabled) {
+                        Log.WriteInfo("Rule " + r + " was hit " + r.HitCount + " times.");
+                    }
+                }
+            }
+
             return result;
         }
 
@@ -177,22 +196,22 @@ namespace NDepCheck {
                 string rulefilename, Options options, IDictionary<string, string> defines,
                 IDictionary<string, Macro> macros, bool ignoreCase,
                 string fileIncludeStack) {
-            string fullRuleFilename = Path.Combine(relativeRoot.FullName, rulefilename);
+            string fullCanonicalRuleFilename = new Uri(Path.Combine(relativeRoot.FullName, rulefilename)).LocalPath;
             DependencyRuleSet result;
-            if (!_fullFilename2RulesetCache.TryGetValue(fullRuleFilename, out result)) {
+            if (!_fullFilename2RulesetCache.TryGetValue(fullCanonicalRuleFilename, out result)) {
                 try {
                     long start = Environment.TickCount;
-                    result = new DependencyRuleSet(this, options, fullRuleFilename, defines, macros, ignoreCase,
-                        (string.IsNullOrEmpty(fileIncludeStack) ? "" : fileIncludeStack + " + ") + fullRuleFilename);
-                    Log.WriteDebug("Completed reading " + fullRuleFilename + " in " + (Environment.TickCount - start) + " ms");
+                    result = new DependencyRuleSet(this, options, fullCanonicalRuleFilename, defines, macros, ignoreCase,
+                        (string.IsNullOrEmpty(fileIncludeStack) ? "" : fileIncludeStack + " + ") + fullCanonicalRuleFilename);
+                    Log.WriteDebug("Completed reading " + fullCanonicalRuleFilename + " in " + (Environment.TickCount - start) + " ms");
 
-                    if (!_fullFilename2RulesetCache.ContainsKey(fullRuleFilename)) {
+                    if (!_fullFilename2RulesetCache.ContainsKey(fullCanonicalRuleFilename)) {
                         // If the set is already in the cache, we drop the set we just read (it's the same anyway).
-                        _fullFilename2RulesetCache.AddOrUpdate(fullRuleFilename,
+                        _fullFilename2RulesetCache.AddOrUpdate(fullCanonicalRuleFilename,
                             result, (filename, existingRuleSet) => result = existingRuleSet);
                     }
                 } catch (FileNotFoundException) {
-                    Log.WriteError("File " + fullRuleFilename + " not found");
+                    Log.WriteError("File " + fullCanonicalRuleFilename + " not found");
                     return null;
                 }
             }

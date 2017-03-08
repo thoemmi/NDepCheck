@@ -19,11 +19,6 @@ namespace NDepCheck {
         [CanBeNull]
         private Dependency _notOkExample;
 
-        private readonly string _fileName;
-        private readonly int _startLine;
-        private readonly int _startColumn;
-        private readonly int _endLine;
-        private readonly int _endColumn;
         private bool _onCycle;
         private bool _carrysTransitive;
 
@@ -51,11 +46,11 @@ namespace NDepCheck {
             }
             _usingItem = usingItem;
             _usedItem = usedItem;
-            _fileName = fileName; // != null ? string.Intern(fileName) : null;
-            _startLine = startLine;
-            _startColumn = startColumn;
-            _endLine = endLine;
-            _endColumn = endColumn;
+            FileName = fileName; // != null ? string.Intern(fileName) : null;
+            StartLine = startLine;
+            StartColumn = startColumn;
+            EndLine = endLine;
+            EndColumn = endColumn;
 
             _ct = ct;
             _notOkCt = notOkCt;
@@ -78,20 +73,20 @@ namespace NDepCheck {
         /// A guess where the use occurs in the
         /// original source file.
         /// </value>
-        public string FileName => _fileName;
+        public string FileName { get; }
 
         /// <summary>
         /// Gets a guess of the line number in the original
         /// source file.
         /// </summary>
         /// <value>The line number.</value>
-        public int StartLine => _startLine;
+        public int StartLine { get; }
 
-        public int EndLine => _endLine;
+        public int EndLine { get; }
 
-        public int StartColumn => _startColumn;
+        public int StartColumn { get; }
 
-        public int EndColumn => _endColumn;
+        public int EndColumn { get; }
 
         [NotNull]
         public Item UsingItem => _usingItem;
