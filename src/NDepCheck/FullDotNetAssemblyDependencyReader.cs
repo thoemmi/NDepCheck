@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Gibraltar;
 using JetBrains.Annotations;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -16,7 +17,13 @@ namespace NDepCheck {
         }
 
         protected override IEnumerable<Dependency> ReadDependencies(int depth) {
-            return GetOrReadRawDependencies(depth).Where(d => d.UsedItem != null).Select(d => d.ToDependencyWithTail(_options, depth));
+            try {
+                return GetOrReadRawDependencies(depth).Where(d => d.UsedItem != null).Select(d => d.ToDependencyWithTail(depth));
+            } finally {
+                Intern<RawUsingItem>.Pack();
+                Intern<RawUsedItem>.Pack();
+                Intern<RawDependency>.Pack();
+            }
         }
 
         private IEnumerable<RawDependency> GetOrReadRawDependencies(int depth) {
@@ -339,7 +346,7 @@ namespace NDepCheck {
                 // to get a useful Dependency_ for the user.
 
                 RawUsedItem usedItem = GetFullnameItem(usedType, memberName, memberSort);
-                yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, usedItem, sequencePoint);
+                yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, usedItem, sequencePoint, _options);
             }
 
             var genericInstanceType = usedType as GenericInstanceType;

@@ -216,11 +216,30 @@ namespace NDepCheck {
             }
         }
 
-        private static readonly ItemType REDUCED = ItemType.New("REDUCED", new[] { "Name" }, new string[] { null });
+        private static readonly ItemType REDUCED = ItemType.New("REDUCED", new[] { "Name1", "Name2", "Name3", "Name4", "Name5" }, new string[] { null, null, null, null, null });
 
         private static Item GetOrCreateNode(Dictionary<string, Item> nodes, string name, bool isInner) {
             if (!nodes.ContainsKey(name)) {
-                nodes[name] = Item.New(REDUCED, name, isInner);
+                var nameParts = name.Split(':');
+                string[] parts;
+                switch (nameParts.Length) {
+                    case 1:
+                        parts = new[] { nameParts[0], "", "", "", "" };
+                        break;
+                    case 2:
+                        parts = new[] { nameParts[0], nameParts[1], "", "", "" };
+                        break;
+                    case 3:
+                        parts = new[] { nameParts[0], nameParts[1], nameParts[2], "", "" };
+                        break;
+                    case 4:
+                        parts = new[] { nameParts[0], nameParts[1], nameParts[2], nameParts[3], "" };
+                        break;
+                    default:
+                        parts = new[] { nameParts[0], nameParts[1], nameParts[2], nameParts[3], nameParts[4] };
+                        break;
+                }
+                nodes[name] = Item.New(REDUCED, isInner, parts);
             }
             Item result = nodes[name];
             return result;
@@ -230,8 +249,8 @@ namespace NDepCheck {
             [NotNull]
             public readonly Item From;
             public readonly Item To;
-            public FromTo([NotNull] Item @from, [NotNull] Item to) {
-                From = @from;
+            public FromTo([NotNull] Item from, [NotNull] Item to) {
+                From = from;
                 To = to;
             }
 
@@ -355,13 +374,13 @@ namespace NDepCheck {
                             WriteFormat1Line(output, Limit("Id", colWidth), Limit("Name", labelWidth),
                                 topNodes.Select(n => NodeId(n, nodeFormat, node2Index) + (withNotOkCt ? ";" + Repeat(' ', colWidth) : "")));
 
-                            IWithCt ZERO_EDGE = new ZeroEdge();
+                            IWithCt zero_edge = new ZeroEdge();
                             foreach (var used in sortedNodes) {
                                 INode used1 = used;
                                 WriteFormat1Line(output, NodeId(used, nodeFormat, node2Index), Limit(used.Name, labelWidth),
                                     topNodes.Select(@using => FormatCt(withNotOkCt, ctFormat,
                                         node2Index[@using] > node2Index[used1],
-                                        nodesAndEdges[@using].FirstOrDefault(e => !e.Hidden && e.UsedNode.Equals(used1)) ?? ZERO_EDGE)));
+                                        nodesAndEdges[@using].FirstOrDefault(e => !e.Hidden && e.UsedNode.Equals(used1)) ?? zero_edge)));
                             }
                             break;
                         }

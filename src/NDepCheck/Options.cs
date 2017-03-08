@@ -77,8 +77,15 @@ namespace NDepCheck {
             CheckingDone = false;
         }
 
+        private string _lastUsedAssembly;
+        private AbstractDotNetAssemblyDependencyReader _readerForLastUsedAssembly;
+
         public AbstractDotNetAssemblyDependencyReader GetDotNetAssemblyReaderFor(string usedAssembly) {
-            return FirstMatchingReader(usedAssembly, _inputFiles, false) ?? FirstMatchingReader(usedAssembly, _itemFiles, true);
+            if (_lastUsedAssembly != usedAssembly) {
+                _lastUsedAssembly = usedAssembly;
+                _readerForLastUsedAssembly = FirstMatchingReader(_lastUsedAssembly, _inputFiles, false) ?? FirstMatchingReader(_lastUsedAssembly, _itemFiles, true);
+            }
+            return _readerForLastUsedAssembly;
         }
 
         private AbstractDotNetAssemblyDependencyReader FirstMatchingReader(string usedAssembly, List<InputFileOption> fileOptions, bool needsOnlyItemTails) {

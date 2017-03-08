@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 using Gibraltar;
 using JetBrains.Annotations;
 using Mono.Cecil;
@@ -258,8 +257,9 @@ namespace NDepCheck {
             public readonly RawUsingItem UsingItem;
             public readonly RawUsedItem UsedItem;
             private readonly SequencePoint _sequencePoint;
+            private readonly AbstractDotNetAssemblyDependencyReader _reader;
 
-            private RawDependency([NotNull] ItemType type, [NotNull] RawUsingItem usingItem, [NotNull] RawUsedItem usedItem, [CanBeNull] SequencePoint sequencePoint) {
+            private RawDependency([NotNull] ItemType type, [NotNull] RawUsingItem usingItem, [NotNull] RawUsedItem usedItem, [CanBeNull] SequencePoint sequencePoint, Options options) {
                 if (usingItem == null) {
                     throw new ArgumentNullException(nameof(usingItem));
                 }
@@ -268,12 +268,13 @@ namespace NDepCheck {
                 }
                 UsingItem = usingItem;
                 UsedItem = usedItem;
+                _reader = options.GetDotNetAssemblyReaderFor(UsedItem.AssemblyName);
                 _sequencePoint = sequencePoint;
                 _type = type;
             }
 
-            public static RawDependency New(ItemType type, [NotNull] RawUsingItem usingItem, [NotNull] RawUsedItem usedItem, SequencePoint sequencePoint) {
-                return Intern<RawDependency>.GetReference(new RawDependency(type, usingItem, usedItem, sequencePoint));
+            public static RawDependency New(ItemType type, [NotNull] RawUsingItem usingItem, [NotNull] RawUsedItem usedItem, SequencePoint sequencePoint, Options options) {
+                return Intern<RawDependency>.GetReference(new RawDependency(type, usingItem, usedItem, sequencePoint, options));
             }
 
             public override bool Equals(object obj) {
@@ -303,10 +304,9 @@ namespace NDepCheck {
             }
 
             [NotNull]
-            public Dependency ToDependencyWithTail(Options options, int depth) {
-                AbstractDotNetAssemblyDependencyReader reader = options.GetDotNetAssemblyReaderFor(UsedItem.AssemblyName);
+            public Dependency ToDependencyWithTail(int depth) {
                 // ?? fires if reader == null (i.e., target assembly is not read in), or if assemblies do not match (different compiles) and hence a used item is not found in target reader.
-                Item usedItem = (reader == null ? null : UsedItem.ToItemWithTail(_type, reader, depth)) ?? UsedItem.ToItem(_type);
+                Item usedItem = (_reader == null ? null : UsedItem.ToItemWithTail(_type, _reader, depth)) ?? UsedItem.ToItem(_type);
                 return ToDependency(usedItem);
             }
         }

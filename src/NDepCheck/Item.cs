@@ -10,16 +10,16 @@ namespace NDepCheck {
     public abstract class ItemSegment {
         [NotNull]
         private readonly ItemType _type;
-        [NotNull]
+        [NotNull, ItemNotNull]
         public readonly string[] Values;
 
-        protected ItemSegment([NotNull]ItemType type, [NotNull]string[] values) {
+        protected ItemSegment([NotNull]ItemType type, [NotNull, ItemNotNull]string[] values) {
             _type = type;
             //Values = _debugSingleton;
             //Values = values;
-            Values = values.Select(v => v == null ? null : string.Intern(v)).ToArray();
-            //Values = values.Select(v => v == null ? null : StringReference.GetReference(v)).ToArray();
-            //Values = values.Select(v => v == null ? null : MyIntern(v)).ToArray();
+            Values = values.Select(v => string.Intern(v)).ToArray();
+            //Values = values.Select(v => StringReference.GetReference(v)).ToArray();
+            //Values = values.Select(v => MyIntern(v)).ToArray();
         }
 
         public ItemType Type => _type;
@@ -85,7 +85,7 @@ namespace NDepCheck {
         private string _asString;
         private string _asStringWithType;
 
-        private Item([NotNull]ItemType type, bool isInner, string[] values)
+        private Item([NotNull]ItemType type, bool isInner, [ItemNotNull]string[] values)
             : base(type, values) {
             if (type.Length != values.Length) {
                 throw new ArgumentException("keys.Length != values.Length", nameof(values));
@@ -93,13 +93,13 @@ namespace NDepCheck {
             _isInner = isInner;
         }
 
-        public static Item New([NotNull]ItemType type, bool isInner, string[] values) {
+        public static Item New([NotNull]ItemType type, bool isInner, [ItemNotNull]string[] values) {
             return Intern<Item>.GetReference(new Item(type, isInner, values));
         }
 
-        public static Item New([NotNull]ItemType type, [NotNull]string reducedName, bool isInner) {
-            return New(type, isInner, new[] { reducedName });
-        }
+        //public static Item New([NotNull]ItemType type, [NotNull]string reducedName, bool isInner) {
+        //    return New(type, isInner, new[] { reducedName });
+        //}
 
         public static Item New([NotNull]ItemType type, params string[] values) {
             return New(type, false, values);
@@ -108,8 +108,8 @@ namespace NDepCheck {
         public override bool Equals(object obj) {
             var other = obj as Item;
             return this == obj
-                || other != null 
-                    && other._isInner == _isInner 
+                || other != null
+                    && other._isInner == _isInner
                     && EqualsSegment(other);
         }
 

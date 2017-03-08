@@ -236,7 +236,7 @@ namespace NDepCheck {
                 }
                 return HandleArgs(args.ToArray(), state, options);
             } catch (Exception ex) {
-                Log.WriteError("Cannot read arguments from " + filename + " at line " + lineNo + "; problem: " + ex.Message);
+                Log.WriteError("Cannot handle arguments from " + filename + " at line " + lineNo + "; problem: " + ex.Message);
                 return 7;
             }
         }
