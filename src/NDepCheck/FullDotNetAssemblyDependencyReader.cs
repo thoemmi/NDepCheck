@@ -69,7 +69,7 @@ namespace NDepCheck {
             ItemTail typeCustomSections = GetCustomSections(type.CustomAttributes, parentCustomSections);
             {
                 RawUsingItem usingItem = GetClassItem(type, typeCustomSections);
-                yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
+                ////??? yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
 
                 foreach (var dependency_ in AnalyzeCustomAttributes(usingItem, type.CustomAttributes)) {
                     yield return dependency_;
@@ -89,8 +89,8 @@ namespace NDepCheck {
 
                 foreach (FieldDefinition field in type.Fields) {
                     //if (IsLinked(field.FieldType, type.DeclaringType)) {
-                    ItemTail fieldCustomSections = GetCustomSections(field.CustomAttributes, typeCustomSections);
-                    yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, field.Name, "", fieldCustomSections), null, null);
+                    ////ItemTail fieldCustomSections = GetCustomSections(field.CustomAttributes, typeCustomSections);
+                    ////??yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, field.Name, "", fieldCustomSections), null, null);
 
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, field.FieldType, sequencePoint: null)) {
                         yield return dependency_;
@@ -99,8 +99,8 @@ namespace NDepCheck {
                 }
 
                 foreach (EventDefinition @event in type.Events) {
-                    ItemTail eventCustomSections = GetCustomSections(@event.CustomAttributes, typeCustomSections);
-                    yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, @event.Name, "", eventCustomSections), null, null);
+                    ////ItemTail eventCustomSections = GetCustomSections(@event.CustomAttributes, typeCustomSections);
+                    ////??yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, @event.Name, "", eventCustomSections), null, null);
 
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, @event.EventType, sequencePoint: null)) {
                         yield return dependency_;
@@ -121,7 +121,7 @@ namespace NDepCheck {
                 ItemTail methodCustomSections = GetCustomSections(method.CustomAttributes, typeCustomSections);
 
                 RawUsingItem usingItem = GetFullnameItem(type, method.Name, "", methodCustomSections);
-                yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
+                ////??yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
 
                 foreach (var dependency_ in AnalyzeMethod(type, usingItem, method)) {
                     yield return dependency_;
@@ -183,7 +183,7 @@ namespace NDepCheck {
                                                                [CanBeNull] MethodDefinition getterSetter) {
             if (getterSetter != null) {
                 RawUsingItem usingItem = GetFullnameItem(property.DeclaringType, property.Name, sort, propertyCustomSections);
-                yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
+                ////??yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
 
                 foreach (var dependency in AnalyzeMethod(owner, usingItem, getterSetter)) {
                     yield return dependency;

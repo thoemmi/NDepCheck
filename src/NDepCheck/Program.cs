@@ -27,167 +27,9 @@ namespace NDepCheck {
                 return UsageAndExit("No options or files specified");
             }
 
-            int result = 0;
-
-            int i;
-            for (i = 0; i < args.Length; i++) {
-                string arg = args[i].ToLowerInvariant();
-
-                if (arg == "-?" || arg == "/?") {
-                    // -?        Do write help
-                    return UsageAndExit(null, completeHelp: false);
-                } else if (arg == "-@" || arg == "/@") {
-                    // -@ &      Do read options from file
-                    string filename = ExtractOptionValue(args, ref i);
-                    result = RunFrom(filename);
-                } else if (arg.StartsWith("-c") || arg.StartsWith("/c")) {
-                    // -c &      Write dip output (after lazy reading; after lazy dep->graph run)
-                    string filename = ExtractOptionValue(args, ref i);
-                    if (string.IsNullOrWhiteSpace(filename)) {
-                        return UsageAndExit("Missing filename after " + arg);
-                    }
-                    state.ReadAll(options).ReduceGraph(options, false).WriteDipFile(options, filename);
-                } else if (arg == "-debug" || arg == "/debug") {
-                    // -debug    Do start .Net debugger
-                    Debugger.Launch();
-                } else if (arg.StartsWith("-d") || arg.StartsWith("/d")) {
-                    // -d &      Set directory search locations for rule files
-                    string path = ExtractOptionValue(args, ref i);
-                    options.CreateDirectoryOption(path, recurse: false);
-                } else if (arg.StartsWith("-e") || arg.StartsWith("/e")) {
-                    // -e $ &    Set file location with defined reader $ (currently supported: dip, dll, exe)
-                    string extension = ExtractOptionValue(args, ref i);
-                    CreateInputOption(args, ref i, extension, options, readOnlyItems: false);
-                } else if (arg.StartsWith("-f") || arg.StartsWith("/f")) {
-                    // -f &      Set file location with reader defined by file extension
-                    CreateInputOption(args, ref i, null, options, readOnlyItems: false);
-                } else if (arg.StartsWith("-g") || arg.StartsWith("/g")) {
-                    // -g &      Write graph output to file (after lazy reading; after lazy dep->graph run)
-                    string filename = ExtractOptionValue(args, ref i);
-                    if (string.IsNullOrWhiteSpace(filename)) {
-                        return UsageAndExit("Missing filename after " + arg);
-                    }
-                    state.ReadAll(options).ReduceGraph(options, false).WriteDotFile(options, filename);
-                } else if (arg == "-h" || arg == "/h") {
-                    // -h        Do write extensive help
-                    return UsageAndExit(null, completeHelp: true);
-                } else if (arg == "-i" || arg == "/i") {
-                    // -i        Set ignorecase option
-                    options.IgnoreCase = true;
-                } else if (arg.StartsWith("-j") || arg.StartsWith("/j")) {
-                    // -j #      Set edge length for graph output
-                    string optionValue = ExtractOptionValue(args, ref i);
-                    int lg;
-                    if (int.TryParse(optionValue, out lg) && lg > 0) {
-                        options.StringLength = lg;
-                    } else {
-                        return UsageAndExit("Cannot parse value for edge text '" + optionValue + "' as number");
-                    }
-                } else if (arg.StartsWith("-k") || arg.StartsWith("/k")) {
-                    // -k $ &    Set file location with defined reader $ (currently supported: dip, dll, exe)
-                    string extension = ExtractOptionValue(args, ref i);
-                    CreateInputOption(args, ref i, extension, options, readOnlyItems: true);
-                } else if (arg.StartsWith("-l") || arg.StartsWith("/l")) {
-                    // -l &      Set file location with reader defined by file extension
-                    CreateInputOption(args, ref i, null, options, readOnlyItems: true);
-                } else if (arg.StartsWith("-m") || arg.StartsWith("/m")) {
-                    // -m &      Write matrix output to file (after lazy reading; after lazy dep->graph run)
-
-                    char format = '1';
-                    if (arg.Length >= 3) {
-                        switch (arg[2]) {
-                            case '=':
-                                // Use default
-                                break;
-                            case '1':
-                            case '2':
-                                format = arg[2];
-                                break;
-                            default:
-                                return UsageAndExit("Unsupported matrix format option in " + arg);
-                        }
-                    }
-
-                    string filename = ExtractOptionValue(args, ref i);
-                    if (string.IsNullOrWhiteSpace(filename)) {
-                        return UsageAndExit("Missing filename after " + arg);
-                    }
-                    state.ReadAll(options).ReduceGraph(options, false).WriteMatrixFile(options, format, filename);
-                } else if (arg.StartsWith("-n") || arg.StartsWith("/n")) {
-                    // -n #|all  Set cpu count (currently no-op)
-                    string ms = ExtractOptionValue(args, ref i);
-                    if (ms == "all" || ms == "*") {
-                        options.MaxCpuCount = Environment.ProcessorCount;
-                    } else {
-                        int m;
-                        if (int.TryParse(ms, out m)) {
-                            options.MaxCpuCount = m;
-                        } else {
-                            return UsageAndExit("/n value " + ms + " is neither * nor a number", completeHelp: false);
-                        }
-                    }
-                } else if (arg.StartsWith("-o") || arg.StartsWith("/o")) {
-                    // -o &      Do write xml depcheck output (after lazy reading; after lazy depcheck)
-                    string xmlfile = ExtractOptionValue(args, ref i);
-                    if (xmlfile == null) {
-                        return UsageAndExit("Missing =filename after " + arg);
-                    }
-
-                    result = state.ReadAll(options).ComputeViolations(options);
-                    state.WriteViolations(xmlfile);
-                } else if (arg.StartsWith("-p") || arg.StartsWith("/p")) {
-                    // -p        Do write standard depcheck output (after lazy reading; after lazy depcheck)
-                    result = state.ReadAll(options).ComputeViolations(options);
-                    state.WriteViolations(null);
-                } else if (arg.StartsWith("-q") || arg.StartsWith("/q")) {
-                    // -q        Set option to show unused questionable rules
-                    options.ShowUnusedQuestionableRules = true;
-                } else if (arg.StartsWith("-r") || arg.StartsWith("/r")) {
-                    // -r *      Do graph transformation (after lazy reading; after lazy depcheck; and lazy dep->graph run)
-                    string transformationOption = ExtractOptionValue(args, ref i);
-                    state.ReadAll(options).ReduceGraph(options, true).TransformGraph(transformationOption);
-                } else if (arg.StartsWith("-s") || arg.StartsWith("/s")) {
-                    // -s &      Set directory tree search location for rule files
-                    string path = ExtractOptionValue(args, ref i);
-                    options.CreateDirectoryOption(path, recurse: true);
-                } else if (arg.StartsWith("-t") || arg.StartsWith("/t")) {
-                    // -t &      Set rule file extension (default .dep)
-                    options.RuleFileExtension = "." + ExtractOptionValue(args, ref i).TrimStart('.');
-                } else if (arg.StartsWith("-u") || arg.StartsWith("/u")) {
-                    // -u        Set option to show unused rules
-                    options.ShowUnusedRules = true;
-                } else if (arg == "-v" || arg == "/v") {
-                    // -v        Set verbose option
-                    Log.SetLevel(Log.Level.Verbose);
-                    WriteVersion();
-                } else if (arg.StartsWith("-x") || arg.StartsWith("/x")) {
-                    // -x &      Set search location for default rule file
-                    string filename = ExtractOptionValue(args, ref i);
-                    if (!string.IsNullOrEmpty(options.DefaultRuleSetFile)) {
-                        return UsageAndExit("Only one default rule set can be specified with " + arg);
-                    }
-                    if (!File.Exists(filename)) {
-                        return UsageAndExit("Cannot find the default rule set file '" + filename + "'", exitValue: 2);
-                    }
-                    options.DefaultRuleSetFile = filename;
-                } else if (arg == "-y" || arg == "/y") {
-                    // -y        Set chatty option
-                    Log.SetLevel(Log.Level.Chatty);
-                    WriteVersion();
-                } else if (arg == "-z" || arg == "/z") {
-                    // -z        Remove all dependencies and graphs, clear search options (-d, -s, -x) and some more
-                    state.Reset();
-                    options.Reset();
-                } else if (arg.EndsWith(".dll", StringComparison.InvariantCultureIgnoreCase)
-                        || arg.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase)
-                        || arg.EndsWith(".dip", StringComparison.InvariantCultureIgnoreCase)
-                        || arg.Contains("*")) {
-                    // &         If & ends with .dll, .exe, or. dip, or contains *: Remember 
-                    //           reading file - heuristics; should be removed.
-                    options.InputFilesSpecified = CreateInputOption(args, ref i, null, arg, options, false);
-                } else {
-                    return UsageAndExit("Unsupported option '" + arg + "'");
-                }
+            int result = HandleArgs(args, state, options);
+            if (result != 0) {
+                return result;
             }
 
             if (!options.GraphingDone && !options.CheckingDone) {
@@ -207,7 +49,174 @@ namespace NDepCheck {
             return result;
         }
 
-        private int RunFrom(string filename) {
+        private int HandleArgs(string[] args, GlobalContext state, Options options) {
+            int result = 0;
+
+            int i;
+            for (i = 0; i < args.Length; i++) {
+                string arg = args[i].ToLowerInvariant();
+
+                if (arg == "-?" || arg == "/?") {
+                    // -?        Do write help
+                    return result;
+                } else if (arg == "-@" || arg == "/@") {
+                    // -@ &      Do read options from file
+                    string filename = ExtractOptionValue(args, ref i);
+                    result = HandleArgsFromFile(filename, state, options);
+                } else if (arg.StartsWith("-c") || arg.StartsWith("/c")) {
+                    // -c &      Write dip output (after lazy reading; after lazy dep->graph run)
+                    string filename = ExtractOptionValue(args, ref i);
+                    if (string.IsNullOrWhiteSpace(filename)) {
+                        return result;
+                    }
+                    state.ReadAll(options).ReduceGraph(options, false).WriteDipFile(options, filename);
+                } else if (arg == "-debug" || arg == "/debug") {
+                    // -debug    Do start .Net debugger
+                    Debugger.Launch();
+                } else if (arg.StartsWith("-d") || arg.StartsWith("/d")) {
+                    // -d &      Set directory search locations for rule files
+                    string path = ExtractOptionValue(args, ref i);
+                    options.CreateDirectoryOption(path, recurse : false);
+                } else if (arg.StartsWith("-e") || arg.StartsWith("/e")) {
+                    // -e $ &    Set file location with defined reader $ (currently supported: dip, dll, exe)
+                    string extension = ExtractOptionValue(args, ref i);
+                    CreateInputOption(args, ref i, extension, options, readOnlyItems : false);
+                } else if (arg.StartsWith("-f") || arg.StartsWith("/f")) {
+                    // -f &      Set file location with reader defined by file extension
+                    CreateInputOption(args, ref i, null, options, readOnlyItems : false);
+                } else if (arg.StartsWith("-g") || arg.StartsWith("/g")) {
+                    // -g &      Write graph output to file (after lazy reading; after lazy dep->graph run)
+                    string filename = ExtractOptionValue(args, ref i);
+                    if (string.IsNullOrWhiteSpace(filename)) {
+                        return result;
+                    }
+                    state.ReadAll(options).ReduceGraph(options, false).WriteDotFile(options, filename);
+                } else if (arg == "-h" || arg == "/h") {
+                    // -h        Do write extensive help
+                    return result;
+                } else if (arg == "-i" || arg == "/i") {
+                    // -i        Set ignorecase option
+                    options.IgnoreCase = true;
+                } else if (arg.StartsWith("-j") || arg.StartsWith("/j")) {
+                    // -j #      Set edge length for graph output
+                    string optionValue = ExtractOptionValue(args, ref i);
+                    int lg;
+                    if (int.TryParse(optionValue, out lg) && lg > 0) {
+                        options.StringLength = lg;
+                    } else {
+                        return result;
+                    }
+                } else if (arg.StartsWith("-k") || arg.StartsWith("/k")) {
+                    // -k $ &    Set file location with defined reader $ (currently supported: dip, dll, exe)
+                    string extension = ExtractOptionValue(args, ref i);
+                    CreateInputOption(args, ref i, extension, options, readOnlyItems : true);
+                } else if (arg.StartsWith("-l") || arg.StartsWith("/l")) {
+                    // -l &      Set file location with reader defined by file extension
+                    CreateInputOption(args, ref i, null, options, readOnlyItems : true);
+                } else if (arg.StartsWith("-m") || arg.StartsWith("/m")) {
+                    // -m &      Write matrix output to file (after lazy reading; after lazy dep->graph run)
+
+                    char format = '1';
+                    if (arg.Length >= 3) {
+                        switch (arg[2]) {
+                            case '=':
+                                // Use default
+                                break;
+                            case '1':
+                            case '2':
+                                format = arg[2];
+                                break;
+                            default:
+                                return result;
+                        }
+                    }
+
+                    string filename = ExtractOptionValue(args, ref i);
+                    if (string.IsNullOrWhiteSpace(filename)) {
+                        return result;
+                    }
+                    state.ReadAll(options).ReduceGraph(options, false).WriteMatrixFile(options, format, filename);
+                } else if (arg.StartsWith("-n") || arg.StartsWith("/n")) {
+                    // -n #|all  Set cpu count (currently no-op)
+                    string ms = ExtractOptionValue(args, ref i);
+                    if (ms == "all" || ms == "*") {
+                        options.MaxCpuCount = Environment.ProcessorCount;
+                    } else {
+                        int m;
+                        if (int.TryParse(ms, out m)) {
+                            options.MaxCpuCount = m;
+                        } else {
+                            return result;
+                        }
+                    }
+                } else if (arg.StartsWith("-o") || arg.StartsWith("/o")) {
+                    // -o &      Do write xml depcheck output (after lazy reading; after lazy depcheck)
+                    string xmlfile = ExtractOptionValue(args, ref i);
+                    if (xmlfile == null) {
+                        return result;
+                    }
+
+                    result = state.ReadAll(options).ComputeViolations(options);
+                    state.WriteViolations(xmlfile);
+                } else if (arg.StartsWith("-p") || arg.StartsWith("/p")) {
+                    // -p        Do write standard depcheck output (after lazy reading; after lazy depcheck)
+                    result = state.ReadAll(options).ComputeViolations(options);
+                    state.WriteViolations(null);
+                } else if (arg.StartsWith("-q") || arg.StartsWith("/q")) {
+                    // -q        Set option to show unused questionable rules
+                    options.ShowUnusedQuestionableRules = true;
+                } else if (arg.StartsWith("-r") || arg.StartsWith("/r")) {
+                    // -r *      Do graph transformation (after lazy reading; after lazy depcheck; and lazy dep->graph run)
+                    string transformationOption = ExtractOptionValue(args, ref i);
+                    state.ReadAll(options).ReduceGraph(options, true).TransformGraph(transformationOption);
+                } else if (arg.StartsWith("-s") || arg.StartsWith("/s")) {
+                    // -s &      Set directory tree search location for rule files
+                    string path = ExtractOptionValue(args, ref i);
+                    options.CreateDirectoryOption(path, recurse : true);
+                } else if (arg.StartsWith("-t") || arg.StartsWith("/t")) {
+                    // -t &      Set rule file extension (default .dep)
+                    options.RuleFileExtension = "." + ExtractOptionValue(args, ref i).TrimStart('.');
+                } else if (arg.StartsWith("-u") || arg.StartsWith("/u")) {
+                    // -u        Set option to show unused rules
+                    options.ShowUnusedRules = true;
+                } else if (arg == "-v" || arg == "/v") {
+                    // -v        Set verbose option
+                    Log.SetLevel(Log.Level.Verbose);
+                    WriteVersion();
+                } else if (arg.StartsWith("-x") || arg.StartsWith("/x")) {
+                    // -x &      Set search location for default rule file
+                    string filename = ExtractOptionValue(args, ref i);
+                    if (!string.IsNullOrEmpty(options.DefaultRuleSetFile)) {
+                        return result;
+                    }
+                    if (!File.Exists(filename)) {
+                        Log.WriteError("Cannot find file " + filename);
+                        return result;
+                    }
+                    options.DefaultRuleSetFile = filename;
+                } else if (arg == "-y" || arg == "/y") {
+                    // -y        Set chatty option
+                    Log.SetLevel(Log.Level.Chatty);
+                    WriteVersion();
+                } else if (arg == "-z" || arg == "/z") {
+                    // -z        Remove all dependencies and graphs, clear search options (-d, -s, -x) and some more
+                    state.Reset();
+                    options.Reset();
+                } else if (arg.EndsWith(".dll", StringComparison.InvariantCultureIgnoreCase)
+                           || arg.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase)
+                           || arg.EndsWith(".dip", StringComparison.InvariantCultureIgnoreCase)
+                           || arg.Contains("*")) {
+                    // &         If & ends with .dll, .exe, or. dip, or contains *: Remember 
+                    //           reading file - heuristics; should be removed.
+                    options.InputFilesSpecified = CreateInputOption(args, ref i, null, arg, options, false);
+                } else {
+                    return result;
+                }
+            }
+            return result;
+        }
+
+        private int HandleArgsFromFile(string filename, GlobalContext state, Options options) {
             int lineNo = 0;
             try {
                 var args = new List<string>();
@@ -225,9 +234,9 @@ namespace NDepCheck {
                         args.AddRange(line.Split(' ', '\t'));
                     }
                 }
-                return Run(args.ToArray());
+                return HandleArgs(args.ToArray(), state, options);
             } catch (Exception ex) {
-                Log.WriteError("Cannot run commands in " + filename + " (" + ex.Message + ")", filename, lineNo);
+                Log.WriteError("Cannot read arguments from " + filename + " at line " + lineNo + "; problem: " + ex.Message);
                 return 7;
             }
         }
@@ -243,7 +252,7 @@ namespace NDepCheck {
             return true;
         }
 
-        private static int UsageAndExit(string message, int exitValue = 1, bool completeHelp = false) {
+        private static int UsageAndExit(string message, bool completeHelp = false) {
             if (message != null) {
                 Log.WriteInfo(message);
             }
@@ -549,7 +558,7 @@ using the wildcardpath syntax):
             ");
 
             }
-            return exitValue;
+            return 1;
         }
 
         private static void WriteVersion() {

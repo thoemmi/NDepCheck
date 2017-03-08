@@ -260,13 +260,19 @@ namespace NDepCheck {
             private readonly SequencePoint _sequencePoint;
 
             private RawDependency([NotNull] ItemType type, [NotNull] RawUsingItem usingItem, [NotNull] RawUsedItem usedItem, [CanBeNull] SequencePoint sequencePoint) {
+                if (usingItem == null) {
+                    throw new ArgumentNullException(nameof(usingItem));
+                }
+                if (usedItem == null) {
+                    throw new ArgumentNullException(nameof(usedItem));
+                }
                 UsingItem = usingItem;
                 UsedItem = usedItem;
                 _sequencePoint = sequencePoint;
                 _type = type;
             }
 
-            public static RawDependency New(ItemType type, RawUsingItem usingItem, RawUsedItem usedItem, SequencePoint sequencePoint) {
+            public static RawDependency New(ItemType type, [NotNull] RawUsingItem usingItem, [NotNull] RawUsedItem usedItem, SequencePoint sequencePoint) {
                 return Intern<RawDependency>.GetReference(new RawDependency(type, usingItem, usedItem, sequencePoint));
             }
 
