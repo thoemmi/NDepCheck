@@ -255,7 +255,7 @@ namespace NDepCheck {
                     Log.WriteInfo("Reducing graph " + i.Filename);
                     ReduceGraph(options, ruleSet, i.Dependencies, nodes, result);
                 } else {
-                    Log.WriteWarning("No ruleset found for reducing " + i.Filename);
+                    Log.WriteWarning("No rule set found for reducing " + i.Filename);
                     foreach (var e in i.Dependencies) {
                         result[new FromTo(e.UsingItem, e.UsedItem)] = e;
                     }

@@ -155,7 +155,7 @@ namespace NDepCheck {
                             // Error message when == null has been output by Create.
                             _includedRuleSets.Add(included);
 
-                            // We copy the defines down into the ruleset so that the selection
+                            // We copy the defines down into the rule set so that the selection
                             // of the longest name works (_defines implements this by using
                             // a SortedDictionary with a LengthComparer).
                             foreach (var kvp in included._defines) {
@@ -165,6 +165,7 @@ namespace NDepCheck {
                                 _macros[kvp.Key] = kvp.Value;
                             }
                         } else {
+                            Log.WriteError($"{line}: Could not load rule set from file {includeFilename}", fullRuleFilename, lineNo);
                             textIsOk = false;
                         }
                     } else if (line.EndsWith("{")) {
