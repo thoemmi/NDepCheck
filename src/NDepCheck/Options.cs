@@ -44,6 +44,8 @@ namespace NDepCheck {
         internal bool InputFilesSpecified { get; set; }
         internal bool GraphingDone { get; set; }
         internal bool CheckingDone { get; set; }
+        public ItemType UsingItemType { get; set; } = ItemType.SIMPLE;
+        public ItemType UsedItemType { get; set; } = ItemType.SIMPLE;
 
         public Options() {
             MaxCpuCount = 1;
@@ -70,22 +72,13 @@ namespace NDepCheck {
 
         public void Reset() {
             _directories.Clear();
-            DefaultRuleSetFile = null;
 
-            InputFilesSpecified = false;
             GraphingDone = false;
             CheckingDone = false;
         }
 
-        private string _lastUsedAssembly;
-        private AbstractDotNetAssemblyDependencyReader _readerForLastUsedAssembly;
-
         public AbstractDotNetAssemblyDependencyReader GetDotNetAssemblyReaderFor(string usedAssembly) {
-            if (_lastUsedAssembly != usedAssembly) {
-                _lastUsedAssembly = usedAssembly;
-                _readerForLastUsedAssembly = FirstMatchingReader(_lastUsedAssembly, _inputFiles, false) ?? FirstMatchingReader(_lastUsedAssembly, _itemFiles, true);
-            }
-            return _readerForLastUsedAssembly;
+            return FirstMatchingReader(usedAssembly, _inputFiles, false) ?? FirstMatchingReader(usedAssembly, _itemFiles, true);
         }
 
         private AbstractDotNetAssemblyDependencyReader FirstMatchingReader(string usedAssembly, List<InputFileOption> fileOptions, bool needsOnlyItemTails) {

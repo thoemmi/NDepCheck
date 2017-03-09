@@ -64,7 +64,7 @@ namespace NDepCheck {
         /// Constructor public only for test cases.
         /// </summary>
         public DependencyRuleSet(bool ignoreCase, string fileIncludeStack) {
-            _mainRuleGroup = new DependencyRuleGroup(ItemType.DEFAULT, group: "", ignoreCase: ignoreCase);
+            _mainRuleGroup = new DependencyRuleGroup(ItemType.SIMPLE, group: "", ignoreCase: ignoreCase);
             _ruleGroups.Add(_mainRuleGroup);
             FileIncludeStack = fileIncludeStack;
         }
@@ -82,14 +82,10 @@ namespace NDepCheck {
         }
 
         [CanBeNull]
-        public string FullSourceFilename {
-            get;
-        }
+        public string FullSourceFilename { get; }
 
         [NotNull]
-        public string FileIncludeStack {
-            get;
-        }
+        public string FileIncludeStack { get; }
 
         #region Loading
 
@@ -107,7 +103,7 @@ namespace NDepCheck {
             ItemType usingItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename, options?.RuleFileExtension);
             ItemType usedItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename, options?.RuleFileExtension);
 
-            return ProcessText(globalContext, fullRuleFilename, startLineNo, tr, options, leftParam, rightParam,
+            return ProcessText(globalContext, fullRuleFilename, startLineNo, tr, options, leftParam, rightParam, 
                                ignoreCase, fileIncludeStack, usingItemType, usedItemType);
         }
 
@@ -139,8 +135,8 @@ namespace NDepCheck {
                         // ignore;
                     } else if (line.StartsWith("@")) {
                         if (options == null) {
-                            Log.WriteError(
-                                    $"{fullRuleFilename}: @-line encountered while processing macro - this is not allowed", fullRuleFilename, lineNo);
+                            Log.WriteError($"{fullRuleFilename}: @-line encountered while processing macro - this is not allowed", fullRuleFilename, lineNo);
+                            textIsOk = false;
                         } else {
                             string[] args = line.Substring(1).Trim().Split(' ', '\t');
 
@@ -199,9 +195,15 @@ namespace NDepCheck {
                     } else if (ProcessMacroIfFound(globalContext, line, ignoreCase)) {
                         // macro is already processed as side effect in ProcessMacroIfFound()
                     } else if (line.StartsWith(GRAPHIT)) {
-                        AddGraphAbstractions(usingItemType, usedItemType, isInner: false, ruleFileName: fullRuleFilename, lineNo: lineNo, line: line, ignoreCase: ignoreCase);
+                        bool ok = AddGraphAbstractions(usingItemType, usedItemType, isInner: false, ruleFileName: fullRuleFilename, lineNo: lineNo, line: line, ignoreCase: ignoreCase);
+                        if (!ok) {
+                            textIsOk = false;
+                        }
                     } else if (line.StartsWith(GRAPHITINNER)) {
-                        AddGraphAbstractions(usingItemType, usedItemType, isInner: true, ruleFileName: fullRuleFilename, lineNo: lineNo, line: line, ignoreCase: ignoreCase);
+                        bool ok = AddGraphAbstractions(usingItemType, usedItemType, isInner: true, ruleFileName: fullRuleFilename, lineNo: lineNo, line: line, ignoreCase: ignoreCase);
+                        if (!ok) {
+                            textIsOk = false;
+                        }
                     } else if (line.Contains(MAYUSE) || line.Contains(MUSTNOTUSE) ||
                                line.Contains(MAYUSE_WITH_WARNING) || line.Contains(MAYUSE_RECURSIVE)) {
                         string currentRawUsingPattern;
@@ -307,7 +309,7 @@ namespace NDepCheck {
             int macroPos = line.IndexOf(foundMacroName, StringComparison.Ordinal);
             string leftParam = line.Substring(0, macroPos).Trim();
             string rightParam = line.Substring(macroPos + foundMacroName.Length).Trim();
-            ProcessText(globalContext, macro.RuleFileName, macro.StartLineNo, new StringReader(macro.MacroText),
+            ProcessText(globalContext, macro.RuleFileName, macro.StartLineNo, new StringReader(macro.MacroText), 
                 null, leftParam, rightParam, ignoreCase, "???PROCESSMACRO???", macro.UsingItemType, macro.UsedItemType);
             return true;
         }
@@ -377,20 +379,22 @@ namespace NDepCheck {
         /// line (with leading %).
         /// public for testability.
         /// </summary>
-        public void AddGraphAbstractions([CanBeNull] ItemType usingItemType, [CanBeNull]ItemType usedItemType, bool isInner,
+        public bool AddGraphAbstractions([CanBeNull] ItemType usingItemType, [CanBeNull]ItemType usedItemType, bool isInner,
                                          [NotNull] string ruleFileName, int lineNo, [NotNull] string line, bool ignoreCase) {
             if (usingItemType == null || usedItemType == null) {
                 Log.WriteError($"Itemtypes not defined - $ line is missing in {ruleFileName}, graph rules are ignored", ruleFileName, lineNo);
+                return false;
             } else {
                 line = ExpandDefines(line.Substring(GRAPHIT.Length).Trim());
-                CreateGraphAbstraction(usingItemType, isInner, ruleFileName, lineNo, line, ignoreCase);
+                bool ok = CreateGraphAbstraction(usingItemType, isInner, ruleFileName, lineNo, line, ignoreCase);
                 if (!usingItemType.Equals(usedItemType)) {
-                    CreateGraphAbstraction(usedItemType, isInner, ruleFileName, lineNo, line, ignoreCase);
+                    ok &= CreateGraphAbstraction(usedItemType, isInner, ruleFileName, lineNo, line, ignoreCase);
                 }
+                return ok;
             }
         }
 
-        private void CreateGraphAbstraction([NotNull] ItemType usingItemType, bool isInner, [NotNull] string ruleFileName, int lineNo,
+        private bool CreateGraphAbstraction([NotNull] ItemType usingItemType, bool isInner, [NotNull] string ruleFileName, int lineNo,
                                             [NotNull] string line, bool ignoreCase) {
             GraphAbstraction ga = new GraphAbstraction(usingItemType, line, isInner, ignoreCase);
             _orderedGraphAbstractions.Add(ga);
@@ -398,6 +402,7 @@ namespace NDepCheck {
                 Log.WriteInfo("Reg.exps used for drawing " + line + " (" + ruleFileName + ":" + lineNo + ")");
                 Log.WriteInfo(ga.ToString());
             }
+            return true;
         }
 
         internal IEnumerable<DependencyRuleGroup> ExtractDependencyGroups(bool ignoreCase) {

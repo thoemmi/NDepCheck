@@ -1,11 +1,12 @@
 using System;
 using System.Linq;
+using System.Text;
 using Gibraltar;
 using JetBrains.Annotations;
 
 namespace NDepCheck {
     public class ItemType : IEquatable<ItemType> {
-        internal static readonly ItemType DEFAULT = new ItemType("DEFAULT", new[] { "DATA " }, new[] { "" }); // ??????
+        internal static readonly ItemType SIMPLE = new ItemType("SIMPLE", new[] { "Data " }, new[] { "" });
 
         [NotNull]
         public readonly string Name;
@@ -29,28 +30,26 @@ namespace NDepCheck {
             Name = name;
         }
 
-        public static ItemType New([NotNull] string name, [NotNull] string[] keys, [NotNull] string[] subKeys) {
+        public static ItemType New([NotNull] string name, [NotNull, ItemNotNull] string[] keys, [NotNull, ItemNotNull] string[] subKeys) {
             return Intern<ItemType>.GetReference(new ItemType(name, keys, subKeys));
         }
 
         public int Length => Keys.Length;
 
         public bool Equals(ItemType other) {
-            // ReSharper disable once PossibleUnintendedReferenceComparison
-            if (this == other) {
-                return true;
-            } else if (other == null) {
+            // ReSharper disable once UseNullPropagation - clearer for me
+            if (other == null) {
                 return false;
-            } else if (Keys.Length != other.Keys.Length) {
-                return false;
-            } else {
-                for (int i = 0; i < Keys.Length; i++) {
-                    if (Keys[i] != other.Keys[i] || SubKeys[i] != other.SubKeys[i]) {
-                        return false;
-                    }
-                }
-                return true;
             }
+            if (Keys.Length != other.Keys.Length) {
+                return false;
+            }
+            for (int i = 0; i < Keys.Length; i++) {
+                if (Keys[i] != other.Keys[i] || SubKeys[i] != other.SubKeys[i]) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public override bool Equals(object obj) {
@@ -59,6 +58,30 @@ namespace NDepCheck {
 
         public override int GetHashCode() {
             return Name.GetHashCode();
+        }
+
+        public override string ToString() {
+            var result = new StringBuilder(nameof(ItemType) + " " + Name);
+            var sep = ' ';
+            for (int i = 0; i < Keys.Length; i++) {
+                result.Append(sep);
+                if (SubKeys[i] != "") {
+                    result.Append(Keys[i]);
+                    result.Append(SubKeys[i]);
+                } else {
+                    result.Append(Keys[i].TrimEnd('.'));
+                }
+                sep = ':';
+            }
+            return result.ToString();
+        }
+
+        public static ItemType New(string format) {
+            string[] parts = format.Split(':');
+            string name = parts[0];
+            string[] keys = parts.Skip(1).ToArray();
+            string[] subKeys = Enumerable.Repeat("", keys.Length).ToArray();
+            return New(name, keys, subKeys);
         }
     }
 }

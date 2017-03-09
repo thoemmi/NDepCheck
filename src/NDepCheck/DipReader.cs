@@ -15,7 +15,7 @@ namespace NDepCheck {
 
         private readonly DipReaderFactory _factory;
 
-        public DipReader([NotNull] string filename, [NotNull] DipReaderFactory factory) : base(filename) {
+        public DipReader([NotNull] string filename, [NotNull] DipReaderFactory factory) : base (filename) {
             _factory = factory;
         }
 

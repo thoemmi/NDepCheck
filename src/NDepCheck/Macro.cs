@@ -36,9 +36,11 @@ namespace NDepCheck {
 
         public override bool Equals(object obj) {
             var other = obj as Macro;
-            return this == obj
-                || other != null 
-                    && other.MacroText == MacroText;
+            if (other == null) {
+                return false;
+            } else {
+                return other.MacroText == MacroText;
+            }
         }
 
         public override int GetHashCode() {

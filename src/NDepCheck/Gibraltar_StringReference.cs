@@ -8,17 +8,17 @@ using System.Diagnostics;
 
 #endregion File Header
 
-// ReSharper disable once CheckNamespace -- derived from https://www.codeproject.com/kb/string/stringreference.aspx
+// ReSharper disable once CheckNamespace -- derived from ___
 namespace Gibraltar {
     /// <summary>
     /// Provides a way to ensure a string is a reference to a single copy instead of creating multiple copies.
     /// </summary>
     public class Intern<T> where T : class {
         // ReSharper disable StaticMemberInGenericType
-        private static readonly Dictionary<int, LinkedList<WeakReference>> _sStringReferences = new Dictionary<int, LinkedList<WeakReference>>(1024);
-        private static readonly object _sLock = new object(); //Multithread Protection lock
+        private static readonly Dictionary<int, LinkedList<WeakReference>> _references = new Dictionary<int, LinkedList<WeakReference>>(1024);
+        private static readonly object _lock = new object(); //Multithread Protection lock
 
-        private static volatile bool _s_disableCache;
+        private static volatile bool _disableCache;
         // ReSharper restore StaticMemberInGenericType
 
         /// <summary>
@@ -28,10 +28,10 @@ namespace Gibraltar {
         /// behavior with and without the cache without changing code.</remarks>
         public static bool Disabled {
             get {
-                return _s_disableCache;
+                return _disableCache;
             }
             set {
-                _s_disableCache = value;
+                _disableCache = value;
             }
         }
 
@@ -51,7 +51,7 @@ namespace Gibraltar {
         /// <param name="baseline"></param>
         /// <returns></returns>
         public static T GetReference(T baseline) {
-            if (_s_disableCache)
+            if (_disableCache)
                 return baseline;
 
             if (baseline == null)
@@ -64,10 +64,10 @@ namespace Gibraltar {
             T originalValue = baseline;
             T referenceValue = null;
             try {
-                lock (_sLock) {
+                lock (_lock) {
                     int baselineHashCode = baseline.GetHashCode();
                     LinkedList<WeakReference> possibleReferencesList;
-                    if (_sStringReferences.TryGetValue(baselineHashCode, out possibleReferencesList)) {
+                    if (_references.TryGetValue(baselineHashCode, out possibleReferencesList)) {
                         //hash code gets us close, now go through all of the items in the list to see if they're a match.
                         if (possibleReferencesList.Count > 0) {
                             LinkedListNode<WeakReference> currentReferenceNode = possibleReferencesList.First;
@@ -121,7 +121,7 @@ namespace Gibraltar {
                         if (possibleReferencesList == null) {
                             //no, we did not.  we need to add that.
                             possibleReferencesList = new LinkedList<WeakReference>();
-                            _sStringReferences.Add(baselineHashCode, possibleReferencesList);
+                            _references.Add(baselineHashCode, possibleReferencesList);
                         }
 
                         //now that we know wehave the list, we need to add a new node to it to be our item.
@@ -129,7 +129,7 @@ namespace Gibraltar {
                         possibleReferencesList.AddFirst(new WeakReference(referenceValue));
                     }
 
-                    System.Threading.Monitor.PulseAll(_sLock);
+                    System.Threading.Monitor.PulseAll(_lock);
                 }
             } catch (Exception ex) {
 #if DEBUG_GIBRALTAR
@@ -151,18 +151,18 @@ namespace Gibraltar {
 #if DEBUG_GIBRALTAR
             Stopwatch packTimer = Stopwatch.StartNew();
 #endif
-            if (_s_disableCache)
+            if (_disableCache)
                 return;
 
             //Our caller has a right to expect to never get an exception from this.
             try {
-                lock (_sLock) {
-                    if (_sStringReferences.Count == 0)
+                lock (_lock) {
+                    if (_references.Count == 0)
                         return; //nothing here, nothing to collect.
 
-                    List<int> deadNodes = new List<int>(_sStringReferences.Count / 4 + 1); //assume we're going to wipe out 25% every time.
+                    List<int> deadNodes = new List<int>(_references.Count / 4 + 1); //assume we're going to wipe out 25% every time.
 
-                    foreach (KeyValuePair<int, LinkedList<WeakReference>> keyValuePair in _sStringReferences) {
+                    foreach (KeyValuePair<int, LinkedList<WeakReference>> keyValuePair in _references) {
                         LinkedList<WeakReference> currentReferencesList = keyValuePair.Value;
                         ReleaseCollectedNodes(currentReferencesList);
                         if (currentReferencesList.Count == 0) {
@@ -172,14 +172,14 @@ namespace Gibraltar {
 
                     //and kill off our dead nodes.
                     foreach (int deadNodeKey in deadNodes) {
-                        _sStringReferences.Remove(deadNodeKey);
+                        _references.Remove(deadNodeKey);
                     }
 #if DEBUG_GIBRALTAR
                     packTimer.Stop();
                     Debug.WriteLine("StringReference: Removed " + deadNodes.Count + " nodes from the cache.");
                     Debug.WriteLine("StringReference:  Pack took {0}ms.", packTimer.ElapsedMilliseconds);
 #endif
-                    System.Threading.Monitor.PulseAll(_sLock);
+                    System.Threading.Monitor.PulseAll(_lock);
                 }
 
             } catch (Exception ex) {
@@ -227,5 +227,9 @@ namespace Gibraltar {
         }
 
         #endregion
+
+        public static void Reset() {
+            _references.Clear();
+        }
     }
 }

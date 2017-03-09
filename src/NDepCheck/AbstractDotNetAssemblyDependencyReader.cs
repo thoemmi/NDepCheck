@@ -259,7 +259,7 @@ namespace NDepCheck {
             private readonly SequencePoint _sequencePoint;
             private readonly AbstractDotNetAssemblyDependencyReader _reader;
 
-            private RawDependency([NotNull] ItemType type, [NotNull] RawUsingItem usingItem, [NotNull] RawUsedItem usedItem, [CanBeNull] SequencePoint sequencePoint, Options options) {
+            public RawDependency([NotNull] ItemType type, [NotNull] RawUsingItem usingItem, [NotNull] RawUsedItem usedItem, [CanBeNull] SequencePoint sequencePoint, Options options) {
                 if (usingItem == null) {
                     throw new ArgumentNullException(nameof(usingItem));
                 }
@@ -271,10 +271,6 @@ namespace NDepCheck {
                 _reader = options.GetDotNetAssemblyReaderFor(UsedItem.AssemblyName);
                 _sequencePoint = sequencePoint;
                 _type = type;
-            }
-
-            public static RawDependency New(ItemType type, [NotNull] RawUsingItem usingItem, [NotNull] RawUsedItem usedItem, SequencePoint sequencePoint, Options options) {
-                return Intern<RawDependency>.GetReference(new RawDependency(type, usingItem, usedItem, sequencePoint, options));
             }
 
             public override bool Equals(object obj) {
@@ -395,6 +391,12 @@ namespace NDepCheck {
                 }
             }
             return className;
+        }
+
+        public static void Reset()
+        {
+            Intern<RawUsingItem>.Reset();
+            Intern<RawUsedItem>.Reset();            
         }
     }
 }

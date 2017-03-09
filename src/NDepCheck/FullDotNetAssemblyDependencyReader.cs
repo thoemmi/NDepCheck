@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Gibraltar;
 using JetBrains.Annotations;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -17,13 +16,7 @@ namespace NDepCheck {
         }
 
         protected override IEnumerable<Dependency> ReadDependencies(int depth) {
-            try {
-                return GetOrReadRawDependencies(depth).Where(d => d.UsedItem != null).Select(d => d.ToDependencyWithTail(depth));
-            } finally {
-                Intern<RawUsingItem>.Pack();
-                Intern<RawUsedItem>.Pack();
-                Intern<RawDependency>.Pack();
-            }
+            return GetOrReadRawDependencies(depth).Where(d => d.UsedItem != null).Select(d => d.ToDependencyWithTail(depth)).Where(d => d != null);
         }
 
         private IEnumerable<RawDependency> GetOrReadRawDependencies(int depth) {
@@ -38,7 +31,7 @@ namespace NDepCheck {
             return GetOrReadRawDependencies(depth).Select(d => d.UsingItem);
         }
 
-        protected IEnumerable<RawDependency> ReadRawDependencies(int depth) {
+        protected IEnumerable<RawDependency> ReadRawDependencies(int depth) {            
             Log.WriteInfo(new string(' ', 2 * depth) + "Reading " + _filename);
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(_filename);
 
@@ -64,7 +57,7 @@ namespace NDepCheck {
 
             //foreach (AssemblyNameReference reference in assembly.MainModule.AssemblyReferences) {
             //    yield return
-            //        RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETREF,
+            //        new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETREF,
             //            new RawUsingItem(null, null, currentAssembly.Name, currentAssembly.Version.ToString(), currentAssembly.Culture, null, null),
             //            new RawUsedItem(null, null, reference.Name, reference.Version.ToString(), reference.Culture, null),
             //            null);
@@ -76,7 +69,7 @@ namespace NDepCheck {
             ItemTail typeCustomSections = GetCustomSections(type.CustomAttributes, parentCustomSections);
             {
                 RawUsingItem usingItem = GetClassItem(type, typeCustomSections);
-                ////??? yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
+                // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
 
                 foreach (var dependency_ in AnalyzeCustomAttributes(usingItem, type.CustomAttributes)) {
                     yield return dependency_;
@@ -96,8 +89,8 @@ namespace NDepCheck {
 
                 foreach (FieldDefinition field in type.Fields) {
                     //if (IsLinked(field.FieldType, type.DeclaringType)) {
-                    ////ItemTail fieldCustomSections = GetCustomSections(field.CustomAttributes, typeCustomSections);
-                    ////??yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, field.Name, "", fieldCustomSections), null, null);
+                    ItemTail fieldCustomSections = GetCustomSections(field.CustomAttributes, typeCustomSections);
+                    // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, field.Name, "", fieldCustomSections), null, null);
 
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, field.FieldType, sequencePoint: null)) {
                         yield return dependency_;
@@ -106,8 +99,8 @@ namespace NDepCheck {
                 }
 
                 foreach (EventDefinition @event in type.Events) {
-                    ////ItemTail eventCustomSections = GetCustomSections(@event.CustomAttributes, typeCustomSections);
-                    ////??yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, @event.Name, "", eventCustomSections), null, null);
+                    ItemTail eventCustomSections = GetCustomSections(@event.CustomAttributes, typeCustomSections);
+                    // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, @event.Name, "", eventCustomSections), null, null);
 
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, @event.EventType, sequencePoint: null)) {
                         yield return dependency_;
@@ -128,7 +121,7 @@ namespace NDepCheck {
                 ItemTail methodCustomSections = GetCustomSections(method.CustomAttributes, typeCustomSections);
 
                 RawUsingItem usingItem = GetFullnameItem(type, method.Name, "", methodCustomSections);
-                ////??yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
+                // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
 
                 foreach (var dependency_ in AnalyzeMethod(type, usingItem, method)) {
                     yield return dependency_;
@@ -142,7 +135,7 @@ namespace NDepCheck {
             }
         }
 
-        private IEnumerable<RawDependency> AnalyzeProperty([NotNull] TypeDefinition owner, [NotNull] RawUsingItem usingItem,
+        private IEnumerable<RawDependency> AnalyzeProperty([NotNull] TypeDefinition owner, [NotNull] RawUsingItem usingItem, 
                                                            [NotNull] PropertyDefinition property, [CanBeNull] ItemTail typeCustomSections) {
             ItemTail propertyCustomSections = GetCustomSections(property.CustomAttributes, typeCustomSections);
 
@@ -171,7 +164,7 @@ namespace NDepCheck {
             }
         }
 
-        private IEnumerable<RawDependency> AnalyzeCustomAttributes([NotNull] RawUsingItem usingItem,
+        private IEnumerable<RawDependency> AnalyzeCustomAttributes([NotNull] RawUsingItem usingItem, 
                                                                    [NotNull] IEnumerable<CustomAttribute> customAttributes) {
             foreach (CustomAttribute customAttribute in customAttributes) {
                 foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, customAttribute.Constructor.DeclaringType,
@@ -185,12 +178,12 @@ namespace NDepCheck {
             }
         }
 
-        private IEnumerable<RawDependency> AnalyzeGetterSetter([NotNull] TypeDefinition owner, [NotNull] PropertyDefinition property,
-                                                               [NotNull] string sort, [CanBeNull] ItemTail propertyCustomSections,
+        private IEnumerable<RawDependency> AnalyzeGetterSetter([NotNull] TypeDefinition owner, [NotNull] PropertyDefinition property, 
+                                                               [NotNull] string sort, [CanBeNull] ItemTail propertyCustomSections, 
                                                                [CanBeNull] MethodDefinition getterSetter) {
             if (getterSetter != null) {
                 RawUsingItem usingItem = GetFullnameItem(property.DeclaringType, property.Name, sort, propertyCustomSections);
-                ////??yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
+                // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
 
                 foreach (var dependency in AnalyzeMethod(owner, usingItem, getterSetter)) {
                     yield return dependency;
@@ -338,7 +331,7 @@ namespace NDepCheck {
             if (usedType is TypeSpecification) {
                 // E.g. the reference type System.Int32&, which is used for out parameters.
                 // or an arraytype?!?
-                usedType = ((TypeSpecification) usedType).ElementType;
+                usedType = ((TypeSpecification)usedType).ElementType;
             }
             if (!(usedType is GenericInstanceType) && !(usedType is GenericParameter)) {
                 // Currently, we do not look at generic type parameters; we would have to
@@ -346,7 +339,7 @@ namespace NDepCheck {
                 // to get a useful Dependency_ for the user.
 
                 RawUsedItem usedItem = GetFullnameItem(usedType, memberName, memberSort);
-                yield return RawDependency.New(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, usedItem, sequencePoint, _options);
+                yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, usedItem, sequencePoint, _options);
             }
 
             var genericInstanceType = usedType as GenericInstanceType;

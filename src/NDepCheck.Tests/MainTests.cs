@@ -324,7 +324,7 @@ NDepCheck:Tests ---> **
         [TestMethod]
         public void Exit1() {
             Assert.AreEqual(1, Program.Main(new string[] { }));
-            Assert.AreEqual(1, Program.Main(new[] { "/y" }));
+            Assert.AreEqual(1, Program.Main(new[] { "/w" }));
             Assert.AreEqual(1, Program.Main(new[] { "/v", "-v", "-i", "/i=100", "-t", "/t", "-g=someDotFile.dot" }));
         }
 
@@ -379,7 +379,7 @@ NDepCheck:Tests ---> **
                     }
                     ");
                 }
-                Assert.AreEqual(3, Program.Main(new[] { "-y", "-x=" + depFile, TestAssemblyPath }));
+                Assert.AreEqual(3, Program.Main(new[] { "-w", "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
         }

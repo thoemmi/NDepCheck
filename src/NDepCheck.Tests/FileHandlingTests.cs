@@ -68,7 +68,7 @@ namespace NDepCheck.Tests {
             WriteDep1To(@"a\b");
             WriteDep2To(@"a\c");
             WriteXTo(@"a\x");
-            Assert.AreEqual(0, Run(@"-x=%%\a\x\Defaults.dep", @"-d=%%\a\yy", @"-d=%%\a\xx", @"-d=%%\a\b", "-y"));
+            Assert.AreEqual(0, Run(@"-x=%%\a\x\Defaults.dep", @"-d=%%\a\yy", @"-d=%%\a\xx", @"-d=%%\a\b", "-w"));
         }
 
         [TestMethod]
