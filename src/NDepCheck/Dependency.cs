@@ -1,6 +1,7 @@
 // (c) HMMüller 2006...2010
 
 using System;
+using System.Globalization;
 using JetBrains.Annotations;
 
 namespace NDepCheck {
@@ -132,11 +133,19 @@ namespace NDepCheck {
             return "\"" + _usingItem.Name + "\" -> \"" + _usedItem.Name + "\" ["
                        + GetLabel(stringLengthForIllegalEdges)
                        + GetFontSize()
+                       + GetEdgePenWidthAndWeight()
                        + GetStyle() + "];";
         }
 
         private string GetFontSize() {
             return " fontsize=" + (10 + 5 * Math.Round(Math.Log10(Ct)));
+        }
+
+        private string GetEdgePenWidthAndWeight() {
+            double v = 1 + Math.Round(3 * Math.Log10(Ct));
+            return " penwidth=" + v.ToString(CultureInfo.InvariantCulture) + (v < 5 ? " constraint=false" : "");
+            //return " penwidth=" + v;
+            //return " penwidth=" + v + " weight=" + v;
         }
 
         private string GetLabel(int? stringLengthForIllegalEdges) {
