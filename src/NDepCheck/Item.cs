@@ -46,7 +46,7 @@ namespace NDepCheck {
         protected int SegmentHashCode() {
             int h = _type.GetHashCode();
 
-            foreach (string t in Values) {
+            foreach (var t in Values.Where(s => s != null)) {
                 h ^= t.GetHashCode();
             }
             return h;
