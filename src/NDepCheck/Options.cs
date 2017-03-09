@@ -68,10 +68,9 @@ namespace NDepCheck {
             (readOnlyItems ? _itemFiles : _inputFiles).Add(new InputFileOption(extension, filePattern, negativeFilePattern));
         }
 
-
-
         public void Reset() {
             _directories.Clear();
+            _inputFiles.Clear();
 
             GraphingDone = false;
             CheckingDone = false;

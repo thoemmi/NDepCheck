@@ -47,6 +47,7 @@ namespace NDepCheck {
                     options.InputFilesSpecified = true;
                 } else if (ArgMatches(arg, 'b')) {
                     // -b        Break execution here; useful in -@ file
+                    Log.WriteInfo("---- Stop reading options (-b)");
                     goto DONE;
                 } else if (ArgMatches(arg, 'c')) {
                     // -c &      Write dip output (after lazy reading; after lazy dep->graph run)
@@ -190,6 +191,8 @@ namespace NDepCheck {
                     options.UsedItemType = ItemType.New(usedFormat);
                 } else if (ArgMatches(arg, 'z')) {
                     // -z        Remove all dependencies and graphs and caches
+                    Log.WriteInfo("---- Reset of input options (-z)");
+
                     Intern<ItemType>.Reset();
                     Intern<ItemTail>.Reset();
                     Intern<Item>.Reset();

@@ -167,6 +167,7 @@ namespace NDepCheck {
 
         [NotNull]
         public GlobalContext WriteDipFile([NotNull]Options options, [NotNull]string filename) {
+            Log.WriteInfo("Writing " + filename);
             DipWriter.Write(_reducedGraph, filename);
             options.GraphingDone = true;
             return this;
