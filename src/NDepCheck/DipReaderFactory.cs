@@ -25,7 +25,9 @@ namespace NDepCheck {
         }
 
         public void AddItemType([NotNull]ItemType itemType) {
-            _registeredItemTypes.Add(itemType.Name, itemType);
+            if (!_registeredItemTypes.ContainsKey(itemType.Name)) {
+                _registeredItemTypes.Add(itemType.Name, itemType);
+            }
         }
     }
 }

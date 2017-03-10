@@ -576,14 +576,17 @@ using the wildcardpath syntax):
 
    // In DAG output, identify each object by its path (i.e.
    // namespace).
-        % (**).*
+        ! (**).*
 
    // Classes without namespace are identified by their class name:
-        % (*)
+        ! (*)
 
    // Classes in System.* are identified by the empty group, i.e.,
    // they (and arrows reaching them) are not shown at all.
-        % ()System.**
+        ! ()System.**
+
+   // Using % instead of ! puts the node in the 'outer layer', where
+   // only edges to the inner layer are drawn.
             ");
 
             }
