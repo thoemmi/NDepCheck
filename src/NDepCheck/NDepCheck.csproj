@@ -112,7 +112,7 @@
     <Compile Include="ConsoleLogger.cs" />
     <Compile Include="DipReader.cs" />
     <Compile Include="DipWriter.cs" />
-    <Compile Include="GraphAbstraction.cs" />
+    <Compile Include="Projection.cs" />
     <Compile Include="GraphTransformations\HidePureSinks.cs" />
     <Compile Include="GraphTransformations\HidePureSources.cs" />
     <Compile Include="Interfaces\IGlobalContext.cs" />

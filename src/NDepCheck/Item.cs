@@ -91,7 +91,11 @@ namespace NDepCheck {
             _isInner = isInner;
         }
 
-        public static Item New([NotNull]ItemType type, bool isInner, string[] values) {
+        public bool IsEmpty() {
+            return Values.All(s => s == "");
+        }
+
+        public static Item New([NotNull]ItemType type, bool isInner, [ItemNotNull] string[] values) {
             return Intern<Item>.GetReference(new Item(type, isInner, values));
         }
 
@@ -99,7 +103,7 @@ namespace NDepCheck {
             return New(type, isInner, reducedName.Split(':'));
         }
 
-        public static Item New([NotNull]ItemType type, params string[] values) {
+        public static Item New([NotNull]ItemType type, [ItemNotNull] params string[] values) {
             return New(type, false, values);
         }
 

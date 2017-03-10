@@ -137,7 +137,7 @@ NDepCheck:Tests ---> **
         [TestMethod]
         public void SmallGrapherTest() {
             var rs = new DependencyRuleSet(_ignoreCase, "in test");
-            rs.AddGraphAbstractions(ITEMTYPE, ITEMTYPE, false, "<test>", 0, "% (**)", _ignoreCase);
+            rs.AddProjections(ITEMTYPE, ITEMTYPE, false, "<test>", 0, "% (**)", _ignoreCase);
 
             var deps = new List<Dependency> {
                 NewDependency("A", "a1", "a1", "A", "a2", "a2"),
@@ -153,7 +153,7 @@ NDepCheck:Tests ---> **
                 NewDependency("B", "b3", "b3", "B", "b4", "b4")
             };
 
-            var nodes = new Dictionary<string, Item>();
+            var nodes = new Dictionary<Item, Item>();
             var edges = new Dictionary<DependencyGrapher.FromTo, Dependency>();
 
             DependencyGrapher.ReduceGraph(new Options { IgnoreCase = _ignoreCase }, rs, deps, nodes, edges);
@@ -167,7 +167,7 @@ NDepCheck:Tests ---> **
             }
         }
 
-        private readonly ItemType ITEMTYPE = ItemType.New("TEST", new[] { "AS", "NS", "CL" }, new string[] { null, null, null });
+        private static readonly ItemType ITEMTYPE = ItemType.New("TEST", new[] { "AS", "NS", "CL" }, new string[] { null, null, null });
         private const bool _ignoreCase = false;
 
         private Dependency NewDependency(string usingA, string usingN, string usingC, string usedA, string usedN, string usedC) {
@@ -177,7 +177,7 @@ NDepCheck:Tests ---> **
         [TestMethod]
         public void TransitiveReductionGrapherTest() {
             var rs = new DependencyRuleSet(_ignoreCase, "in test");
-            rs.AddGraphAbstractions(ITEMTYPE, ITEMTYPE, true, "<test>", 0, "% (**)", _ignoreCase);
+            rs.AddProjections(ITEMTYPE, ITEMTYPE, true, "<test>", 0, "% (**)", _ignoreCase);
 
             var deps = new List<Dependency> {
                 NewDependency("A", "a1", "a1", "A", "a2", "a2"),
@@ -193,7 +193,7 @@ NDepCheck:Tests ---> **
                 NewDependency("B", "b3", "b3", "B", "b4", "b4")
             };
 
-            var nodes = new Dictionary<string, Item>();
+            var nodes = new Dictionary<Item, Item>();
             var edges = new Dictionary<DependencyGrapher.FromTo, Dependency>();
 
             DependencyGrapher.ReduceGraph(new Options { IgnoreCase = _ignoreCase }, rs, deps, nodes, edges);

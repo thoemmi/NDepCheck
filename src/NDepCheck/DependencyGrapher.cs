@@ -175,32 +175,30 @@ namespace NDepCheck {
         ////    return s;
         ////}
 
-        private static void ReduceEdge(IEnumerable<GraphAbstraction> orderedGraphAbstractions, Dependency d, Dictionary<string, Item> nodes, 
-            Dictionary<FromTo, Dependency> result, ItemType usingItemType, ItemType usedItemType 
+        private static void ReduceEdge(IEnumerable<Projection> orderedGraphAbstractions, Dependency d, Dictionary<Item,Item> uniqueNodes, 
+            Dictionary<FromTo, Dependency> result
             /*,Dictionary<Tuple<string, int>, GraphAbstraction> skipCache*/) {
-            bool usingIsInner = false;
-            bool usedIsInner = false;
 
-            string usingMatch = orderedGraphAbstractions
+            Item usingMatch = orderedGraphAbstractions
                 //.Skip(GuaranteedNonMatching(d.UsingItem))
                 //.SkipWhile(ga => ga != FirstPossibleAbstractionInCache(d.UsingItem, skipCache))
-                                    .Select(ga => ga.Match(d.UsingItem, out usingIsInner/*, skipCache*/))
+                                    .Select(ga => ga.Match(d.UsingItem))
                                     .FirstOrDefault(m => m != null);
-            string usedMatch = orderedGraphAbstractions
+            Item usedMatch = orderedGraphAbstractions
                 //.Skip(GuaranteedNonMatching(d.UsedItem))
                 //.SkipWhile(ga => ga != FirstPossibleAbstractionInCache(d.UsedItem, skipCache))
-                                    .Select(ga => ga.Match(d.UsedItem, out usedIsInner/*, skipCache*/))
+                                    .Select(ga => ga.Match(d.UsedItem))
                                     .FirstOrDefault(n => n != null);
 
             if (usingMatch == null) {
                 Log.WriteInfo("No graph output pattern found for drawing " + d.UsingItem.AsString() + " - I ignore it");
             } else if (usedMatch == null) {
                 Log.WriteInfo("No graph output pattern found for drawing " + d.UsedItem.AsString() + " - I ignore it");
-            } else if (usingMatch == "" || usedMatch == "") {
+            } else if (usingMatch.IsEmpty() || usedMatch.IsEmpty()) {
                 // ignore this edge!
             } else {
-                Item usingNode = GetOrCreateNode(nodes, usingItemType, usingMatch, usingIsInner);
-                Item usedNode = GetOrCreateNode(nodes, usedItemType, usedMatch, usedIsInner);
+                Item usingNode = GetOrCreateNode(uniqueNodes, usingMatch);
+                Item usedNode = GetOrCreateNode(uniqueNodes, usedMatch);
 
                 FromTo key = new FromTo(usingNode, usedNode);
 
@@ -215,14 +213,11 @@ namespace NDepCheck {
             }
         }
 
-        //private static readonly ItemType REDUCED = ItemType.New("REDUCED", new[] { "Name" }, new string[] { null });
-
-        private static Item GetOrCreateNode(Dictionary<string, Item> nodes, ItemType itemType, string name, bool isInner) {
-            if (!nodes.ContainsKey(name)) {
-                nodes[name] = Item.New(itemType, name, isInner);
+        private static Item GetOrCreateNode(Dictionary<Item,Item> uniqueNodes, Item item) {
+            if (!uniqueNodes.ContainsKey(item)) {
+                uniqueNodes[item] = item;
             }
-            Item result = nodes[name];
-            return result;
+            return uniqueNodes[item];
         }
 
         public class FromTo {
@@ -245,14 +240,14 @@ namespace NDepCheck {
         }
 
         public static IEnumerable<Dependency> ReduceGraph(GlobalContext checkerContext, Options options) {
-            var nodes = new Dictionary<string, Item>();
+            var uniqueNodes = new Dictionary<Item,Item>();
             var result = new Dictionary<FromTo, Dependency>();
 
             foreach (var i in checkerContext.InputContexts) {
                 DependencyRuleSet ruleSet = i.GetOrCreateDependencyRuleSetMayBeCalledInParallel(checkerContext, options, "REDUCEGRAPH??");
                 if (ruleSet != null) {
                     Log.WriteInfo("Reducing graph " + i.Filename);
-                    ReduceGraph(options, ruleSet, i.Dependencies, nodes, result);
+                    ReduceGraph(options, ruleSet, i.Dependencies, uniqueNodes, result);
                 } else {
                     Log.WriteWarning("No rule set found for reducing " + i.Filename);
                     foreach (var e in i.Dependencies) {
@@ -264,16 +259,16 @@ namespace NDepCheck {
         }
 
         public static void ReduceGraph(Options options, [NotNull] DependencyRuleSet ruleSet,
-                [NotNull] IEnumerable<Dependency> dependencies, Dictionary<string, Item> nodes,
+                [NotNull] IEnumerable<Dependency> dependencies, Dictionary<Item,Item> uniqueNodes,
                 Dictionary<FromTo, Dependency> edges) {
-            List<GraphAbstraction> orderedGraphAbstractions = ruleSet.ExtractGraphAbstractions();
+            List<Projection> orderedGraphAbstractions = ruleSet.ExtractGraphAbstractions();
 
             // First pass: Compute all edges - i.e., 
             // select the abstraction pattern = first
             // group from each regexp match and put it
             // into edgeToLabel and n.odes
             foreach (var d in dependencies) {
-                ReduceEdge(orderedGraphAbstractions, d, nodes, edges, options.UsingItemType, options.UsedItemType /*, skipCache*/);
+                ReduceEdge(orderedGraphAbstractions, d, uniqueNodes, edges/*, skipCache*/);
             }
         }
 

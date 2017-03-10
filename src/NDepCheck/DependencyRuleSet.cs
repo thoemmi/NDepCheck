@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using JetBrains.Annotations;
 
@@ -16,8 +17,8 @@ namespace NDepCheck {
         internal const string MAYUSE_WITH_WARNING = "---?";
         internal const string MUSTNOTUSE = "---!";
 
-        internal const string GRAPHIT = "%";
-        internal const string GRAPHITINNER = "!";
+        internal const string ABSTRACT_IT = "%";
+        internal const string ABSTRACT_IT_AS_INNER = "!";
 
         /// <summary>
         /// Constant for one-line defines.
@@ -31,7 +32,7 @@ namespace NDepCheck {
             _reservedNames.Add(MAYUSE.Trim());
             _reservedNames.Add(MUSTNOTUSE.Trim());
             _reservedNames.Add(MAYUSE_WITH_WARNING.Trim());
-            _reservedNames.Add(GRAPHIT.Trim());
+            _reservedNames.Add(ABSTRACT_IT.Trim());
             _reservedNames.Add(MACRO_DEFINE.Trim());
             _reservedNames.Add(MACRO_END.Trim());
             _reservedNames.Add(LEFT_PARAM.Trim());
@@ -50,7 +51,7 @@ namespace NDepCheck {
         private readonly DependencyRuleGroup _mainRuleGroup;
 
         [NotNull]
-        private readonly List<GraphAbstraction> _orderedGraphAbstractions = new List<GraphAbstraction>();
+        private readonly List<Projection> _orderedAbstractions = new List<Projection>();
 
         [NotNull]
         private readonly List<DependencyRuleSet> _includedRuleSets = new List<DependencyRuleSet>();
@@ -82,10 +83,14 @@ namespace NDepCheck {
         }
 
         [CanBeNull]
-        public string FullSourceFilename { get; }
+        public string FullSourceFilename {
+            get;
+        }
 
         [NotNull]
-        public string FileIncludeStack { get; }
+        public string FileIncludeStack {
+            get;
+        }
 
         #region Loading
 
@@ -103,7 +108,7 @@ namespace NDepCheck {
             ItemType usingItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename, options?.RuleFileExtension);
             ItemType usedItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename, options?.RuleFileExtension);
 
-            return ProcessText(globalContext, fullRuleFilename, startLineNo, tr, options, leftParam, rightParam, 
+            return ProcessText(globalContext, fullRuleFilename, startLineNo, tr, options, leftParam, rightParam,
                                ignoreCase, fileIncludeStack, usingItemType, usedItemType);
         }
 
@@ -194,13 +199,9 @@ namespace NDepCheck {
                         }
                     } else if (ProcessMacroIfFound(globalContext, line, ignoreCase)) {
                         // macro is already processed as side effect in ProcessMacroIfFound()
-                    } else if (line.StartsWith(GRAPHIT)) {
-                        bool ok = AddGraphAbstractions(usingItemType, usedItemType, isInner: false, ruleFileName: fullRuleFilename, lineNo: lineNo, line: line, ignoreCase: ignoreCase);
-                        if (!ok) {
-                            textIsOk = false;
-                        }
-                    } else if (line.StartsWith(GRAPHITINNER)) {
-                        bool ok = AddGraphAbstractions(usingItemType, usedItemType, isInner: true, ruleFileName: fullRuleFilename, lineNo: lineNo, line: line, ignoreCase: ignoreCase);
+                    } else if (line.StartsWith(ABSTRACT_IT) || line.StartsWith(ABSTRACT_IT_AS_INNER)) {
+                        bool ok = AddProjections(usingItemType, usedItemType, isInner: line.StartsWith(ABSTRACT_IT_AS_INNER),
+                                                 ruleFileName: fullRuleFilename, lineNo: lineNo, line: line, ignoreCase: ignoreCase);
                         if (!ok) {
                             textIsOk = false;
                         }
@@ -309,7 +310,7 @@ namespace NDepCheck {
             int macroPos = line.IndexOf(foundMacroName, StringComparison.Ordinal);
             string leftParam = line.Substring(0, macroPos).Trim();
             string rightParam = line.Substring(macroPos + foundMacroName.Length).Trim();
-            ProcessText(globalContext, macro.RuleFileName, macro.StartLineNo, new StringReader(macro.MacroText), 
+            ProcessText(globalContext, macro.RuleFileName, macro.StartLineNo, new StringReader(macro.MacroText),
                 null, leftParam, rightParam, ignoreCase, "???PROCESSMACRO???", macro.UsingItemType, macro.UsedItemType);
             return true;
         }
@@ -357,18 +358,18 @@ namespace NDepCheck {
         }
 
         [NotNull]
-        internal List<GraphAbstraction> ExtractGraphAbstractions() {
-            var result = new List<GraphAbstraction>();
+        internal List<Projection> ExtractGraphAbstractions() {
+            var result = new List<Projection>();
             ExtractGraphAbstractions(result, new List<DependencyRuleSet>());
             return result;
         }
 
-        private void ExtractGraphAbstractions([NotNull]List<GraphAbstraction> orderedGraphAbstractions, [NotNull]List<DependencyRuleSet> visited) {
+        private void ExtractGraphAbstractions([NotNull]List<Projection> orderedGraphAbstractions, [NotNull]List<DependencyRuleSet> visited) {
             if (visited.Contains(this)) {
                 return;
             }
             visited.Add(this);
-            orderedGraphAbstractions.AddRange(_orderedGraphAbstractions);
+            orderedGraphAbstractions.AddRange(_orderedAbstractions);
             foreach (var includedRuleSet in _includedRuleSets) {
                 includedRuleSet.ExtractGraphAbstractions(orderedGraphAbstractions, visited);
             }
@@ -379,30 +380,36 @@ namespace NDepCheck {
         /// line (with leading %).
         /// public for testability.
         /// </summary>
-        public bool AddGraphAbstractions([CanBeNull] ItemType usingItemType, [CanBeNull]ItemType usedItemType, bool isInner,
+        public bool AddProjections([CanBeNull] ItemType sourceItemType, [CanBeNull]ItemType targetItemType, bool isInner,
                                          [NotNull] string ruleFileName, int lineNo, [NotNull] string line, bool ignoreCase) {
-            if (usingItemType == null || usedItemType == null) {
+            if (sourceItemType == null || targetItemType == null) {
                 Log.WriteError($"Itemtypes not defined - $ line is missing in {ruleFileName}, graph rules are ignored", ruleFileName, lineNo);
                 return false;
             } else {
-                line = ExpandDefines(line.Substring(GRAPHIT.Length).Trim());
-                bool ok = CreateGraphAbstraction(usingItemType, isInner, ruleFileName, lineNo, line, ignoreCase);
-                if (!usingItemType.Equals(usedItemType)) {
-                    ok &= CreateGraphAbstraction(usedItemType, isInner, ruleFileName, lineNo, line, ignoreCase);
-                }
-                return ok;
-            }
-        }
+                int i = line.IndexOf(MAYUSE, StringComparison.Ordinal);
+                string pattern;
+                string[] targetSegments;
+                if (i >= 0) {
+                    string rawPattern = line.Substring(0, i).Trim();
+                    pattern = ExpandDefines(rawPattern);
 
-        private bool CreateGraphAbstraction([NotNull] ItemType usingItemType, bool isInner, [NotNull] string ruleFileName, int lineNo,
-                                            [NotNull] string line, bool ignoreCase) {
-            GraphAbstraction ga = new GraphAbstraction(usingItemType, line, isInner, ignoreCase);
-            _orderedGraphAbstractions.Add(ga);
-            if (Log.IsChattyEnabled) {
-                Log.WriteInfo("Reg.exps used for drawing " + line + " (" + ruleFileName + ":" + lineNo + ")");
-                Log.WriteInfo(ga.ToString());
+                    string rawTargetSegments = line.Substring(i + MAYUSE.Length).Trim();
+                    targetSegments = ExpandDefines(rawTargetSegments).Split(':').Select(s => s.Trim()).ToArray();
+                } else {
+                    pattern = ExpandDefines(line.Trim());
+                    targetSegments = null;
+                }
+
+                Projection ga = new Projection(sourceItemType, targetItemType, pattern, targetSegments, isInner, ignoreCase);
+
+                _orderedAbstractions.Add(ga);
+                if (Log.IsChattyEnabled) {
+                    Log.WriteInfo("Reg.exps used for projecting " + pattern +
+                                  (targetSegments == null ? "" : " to " + string.Join(":", targetSegments)) + " (" + ruleFileName + ":" + lineNo + ")");
+                    Log.WriteInfo(ga.ToString());
+                }
+                return true;
             }
-            return true;
         }
 
         internal IEnumerable<DependencyRuleGroup> ExtractDependencyGroups(bool ignoreCase) {

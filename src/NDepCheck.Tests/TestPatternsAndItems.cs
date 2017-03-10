@@ -8,27 +8,28 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestSimpleDependencyRuleMatches() {
             DependencyRuleRepresentation rep = new DependencyRuleRepresentation("FILE", 0, "...", false);
-            ItemType ITEMTYPE = ItemType.New("TEST", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" });
-            var r1 = new DependencyRule(ITEMTYPE, ":", ITEMTYPE, ":", rep, IGNORECASE);
+            ItemType itemType = ItemType.New("TEST", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" });
 
-            var rn1 = new DependencyRule(ITEMTYPE, "n*", ITEMTYPE, ":", rep, IGNORECASE);
-            var rn2 = new DependencyRule(ITEMTYPE, "n*:", ITEMTYPE, ":", rep, IGNORECASE);
-            var rn3 = new DependencyRule(ITEMTYPE, "n**", ITEMTYPE, ":", rep, IGNORECASE);
-            var rn4 = new DependencyRule(ITEMTYPE, "n**:", ITEMTYPE, ":", rep, IGNORECASE);
-            var rn5 = new DependencyRule(ITEMTYPE, "n1", ITEMTYPE, ":", rep, IGNORECASE);
-            var rn6 = new DependencyRule(ITEMTYPE, "n1:", ITEMTYPE, ":", rep, IGNORECASE);
-            var rn7 = new DependencyRule(ITEMTYPE, "*n1:", ITEMTYPE, ":", rep, IGNORECASE);
-            var rn8 = new DependencyRule(ITEMTYPE, "**n1:", ITEMTYPE, ":", rep, IGNORECASE);
+            var r1 = new DependencyRule(itemType, ":", itemType, ":", rep, IGNORECASE);
 
-            var rc1 = new DependencyRule(ITEMTYPE, ":c*", ITEMTYPE, ":", rep, IGNORECASE);
-            var rc2 = new DependencyRule(ITEMTYPE, ":c**", ITEMTYPE, ":", rep, IGNORECASE);
-            var rc3 = new DependencyRule(ITEMTYPE, ":*c1", ITEMTYPE, ":", rep, IGNORECASE);
-            var rc4 = new DependencyRule(ITEMTYPE, ":**c1", ITEMTYPE, ":", rep, IGNORECASE);
+            var rn1 = new DependencyRule(itemType, "n*", itemType, ":", rep, IGNORECASE);
+            var rn2 = new DependencyRule(itemType, "n*:", itemType, ":", rep, IGNORECASE);
+            var rn3 = new DependencyRule(itemType, "n**", itemType, ":", rep, IGNORECASE);
+            var rn4 = new DependencyRule(itemType, "n**:", itemType, ":", rep, IGNORECASE);
+            var rn5 = new DependencyRule(itemType, "n1", itemType, ":", rep, IGNORECASE);
+            var rn6 = new DependencyRule(itemType, "n1:", itemType, ":", rep, IGNORECASE);
+            var rn7 = new DependencyRule(itemType, "*n1:", itemType, ":", rep, IGNORECASE);
+            var rn8 = new DependencyRule(itemType, "**n1:", itemType, ":", rep, IGNORECASE);
 
-            var rnc1 = new DependencyRule(ITEMTYPE, "n*:c*", ITEMTYPE, ":", rep, IGNORECASE);
-            var rnc2 = new DependencyRule(ITEMTYPE, "n**:c**", ITEMTYPE, ":", rep, IGNORECASE);
+            var rc1 = new DependencyRule(itemType, ":c*", itemType, ":", rep, IGNORECASE);
+            var rc2 = new DependencyRule(itemType, ":c**", itemType, ":", rep, IGNORECASE);
+            var rc3 = new DependencyRule(itemType, ":*c1", itemType, ":", rep, IGNORECASE);
+            var rc4 = new DependencyRule(itemType, ":**c1", itemType, ":", rep, IGNORECASE);
 
-            Dependency dep = new Dependency(Item.New(ITEMTYPE, "n1", "c1"), Item.New(ITEMTYPE, "n2", "c2"), null, 0, 0, 0, 0);
+            var rnc1 = new DependencyRule(itemType, "n*:c*", itemType, ":", rep, IGNORECASE);
+            var rnc2 = new DependencyRule(itemType, "n**:c**", itemType, ":", rep, IGNORECASE);
+
+            Dependency dep = new Dependency(Item.New(itemType, "n1", "c1"), Item.New(itemType, "n2", "c2"), null, 0, 0, 0, 0);
             Assert.IsTrue(r1.IsMatch(dep));
 
             Assert.IsTrue(rn1.IsMatch(dep));
@@ -52,14 +53,14 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestBackReferenceDependencyRuleMatches() {
             DependencyRuleRepresentation rep = new DependencyRuleRepresentation("FILE", 0, "...", false);
-            ItemType ITEMTYPE = ItemType.New("TEST", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" });
-            var rn1 = new DependencyRule(ITEMTYPE, "(s)*", ITEMTYPE, @"\1*", rep, IGNORECASE);
-            var rn2 = new DependencyRule(ITEMTYPE, "(s)*:(t)*", ITEMTYPE, @"\1*:\2*", rep, IGNORECASE);
-            var rn3 = new DependencyRule(ITEMTYPE, "(s)**:(t)**", ITEMTYPE, @"\1*:\2*", rep, IGNORECASE);
-            var rn4 = new DependencyRule(ITEMTYPE, "s(*):t(*)", ITEMTYPE, @"s\1:t\2", rep, IGNORECASE);
-            var rn5 = new DependencyRule(ITEMTYPE, "s(**):t(**)", ITEMTYPE, @"s\1:t\2", rep, IGNORECASE);
+            ItemType itemtype = ItemType.New("TEST", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" });
+            var rn1 = new DependencyRule(itemtype, "(s)*", itemtype, @"\1*", rep, IGNORECASE);
+            var rn2 = new DependencyRule(itemtype, "(s)*:(t)*", itemtype, @"\1*:\2*", rep, IGNORECASE);
+            var rn3 = new DependencyRule(itemtype, "(s)**:(t)**", itemtype, @"\1*:\2*", rep, IGNORECASE);
+            var rn4 = new DependencyRule(itemtype, "s(*):t(*)", itemtype, @"s\1:t\2", rep, IGNORECASE);
+            var rn5 = new DependencyRule(itemtype, "s(**):t(**)", itemtype, @"s\1:t\2", rep, IGNORECASE);
 
-            Dependency dep = new Dependency(Item.New(ITEMTYPE, "s1", "t1"), Item.New(ITEMTYPE, "s2", "t2"), null, 0, 0, 0, 0);
+            Dependency dep = new Dependency(Item.New(itemtype, "s1", "t1"), Item.New(itemtype, "s2", "t2"), null, 0, 0, 0, 0);
             Assert.IsTrue(rn1.IsMatch(dep));
             Assert.IsTrue(rn2.IsMatch(dep));
             Assert.IsTrue(rn3.IsMatch(dep));
@@ -70,16 +71,16 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestMoreBackReferenceDependencyRuleMatches() {
             DependencyRuleRepresentation rep = new DependencyRuleRepresentation("FILE", 0, "...", false);
-            ItemType ITEMTYPE = ItemType.New("TEST", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" });
-            var rn1 = new DependencyRule(ITEMTYPE, "(s)*", ITEMTYPE, @"\1*", rep, IGNORECASE);
-            var rn2 = new DependencyRule(ITEMTYPE, "(s*)", ITEMTYPE, @"\1", rep, IGNORECASE);
-            var rn3 = new DependencyRule(ITEMTYPE, "s(*)", ITEMTYPE, @"s\1", rep, IGNORECASE);
-            var rn4 = new DependencyRule(ITEMTYPE, "s(*):(t)*", ITEMTYPE, @"s\1:\2*", rep, IGNORECASE);
-            var rn5 = new DependencyRule(ITEMTYPE, "s*:t(*)", ITEMTYPE, @"s\1:t*", rep, IGNORECASE);
+            ItemType itemType = ItemType.New("TEST", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" });
+            var rn1 = new DependencyRule(itemType, "(s)*", itemType, @"\1*", rep, IGNORECASE);
+            var rn2 = new DependencyRule(itemType, "(s*)", itemType, @"\1", rep, IGNORECASE);
+            var rn3 = new DependencyRule(itemType, "s(*)", itemType, @"s\1", rep, IGNORECASE);
+            var rn4 = new DependencyRule(itemType, "s(*):(t)*", itemType, @"s\1:\2*", rep, IGNORECASE);
+            var rn5 = new DependencyRule(itemType, "s*:t(*)", itemType, @"s\1:t*", rep, IGNORECASE);
 
-            var rn6 = new DependencyRule(ITEMTYPE, "s*:(t*)", ITEMTYPE, @"s\1:t*", rep, IGNORECASE);
+            var rn6 = new DependencyRule(itemType, "s*:(t*)", itemType, @"s\1:t*", rep, IGNORECASE);
 
-            Dependency dep = new Dependency(Item.New(ITEMTYPE, "s1", "t1"), Item.New(ITEMTYPE, "s1", "t2"), null, 0, 0, 0, 0);
+            Dependency dep = new Dependency(Item.New(itemType, "s1", "t1"), Item.New(itemType, "s1", "t2"), null, 0, 0, 0, 0);
             Assert.IsTrue(rn1.IsMatch(dep));
             Assert.IsTrue(rn2.IsMatch(dep));
             Assert.IsTrue(rn3.IsMatch(dep));
@@ -90,120 +91,123 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestSimpleGraphAbstractionMatches() {
-            ItemType ITEMTYPE = ItemType.New("TEST", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" });
-            var g1 = new GraphAbstraction(ITEMTYPE, "**():", false, IGNORECASE);
+            ItemType testType = ItemType.New("TEST", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" });
+            ItemType simpleType = ItemType.New("SIMPLE", new[] { "NAME", }, new[] { "" });
+            var g1 = new Projection(testType, simpleType, "**():", null, false, IGNORECASE);
 
-            var gn1 = new GraphAbstraction(ITEMTYPE, "(n)*", false, IGNORECASE);
-            var gn2 = new GraphAbstraction(ITEMTYPE, "(n)*:", false, IGNORECASE);
-            var gn3 = new GraphAbstraction(ITEMTYPE, "(n)**", false, IGNORECASE);
-            var gn4 = new GraphAbstraction(ITEMTYPE, "(n)**:", false, IGNORECASE);
-            var gn5 = new GraphAbstraction(ITEMTYPE, "(n)1", false, IGNORECASE);
-            var gn6 = new GraphAbstraction(ITEMTYPE, "(n)1:", false, IGNORECASE);
-            var gn7 = new GraphAbstraction(ITEMTYPE, "(*n)1:", false, IGNORECASE);
-            var gn8 = new GraphAbstraction(ITEMTYPE, "**(n)1:", false, IGNORECASE);
+            var gn1 = new Projection(testType, simpleType, "(n)*", null, false, IGNORECASE);
+            var gn2 = new Projection(testType, simpleType, "(n)*:", null, false, IGNORECASE);
+            var gn3 = new Projection(testType, simpleType, "(n)**", null, false, IGNORECASE);
+            var gn4 = new Projection(testType, simpleType, "(n)**:", null, false, IGNORECASE);
+            var gn5 = new Projection(testType, simpleType, "(n)1", null, false, IGNORECASE);
+            var gn6 = new Projection(testType, simpleType, "(n)1:", null, false, IGNORECASE);
+            var gn7 = new Projection(testType, simpleType, "(*n)1:", null, false, IGNORECASE);
+            var gn8 = new Projection(testType, simpleType, "**(n)1:", null, false, IGNORECASE);
 
-            var hn1 = new GraphAbstraction(ITEMTYPE, "n(*)", false, IGNORECASE);
-            var hn2 = new GraphAbstraction(ITEMTYPE, "n(*):", false, IGNORECASE);
-            var hn3 = new GraphAbstraction(ITEMTYPE, "n(**)", false, IGNORECASE);
-            var hn4 = new GraphAbstraction(ITEMTYPE, "n(**):", false, IGNORECASE);
-            var hn5 = new GraphAbstraction(ITEMTYPE, "n(1)", false, IGNORECASE);
-            var hn6 = new GraphAbstraction(ITEMTYPE, "n(1):", false, IGNORECASE);
-            var hn7 = new GraphAbstraction(ITEMTYPE, "*n(1):", false, IGNORECASE);
-            var hn8 = new GraphAbstraction(ITEMTYPE, "**n(1):", false, IGNORECASE);
+            var hn1 = new Projection(testType, simpleType, "n(*)", null, false, IGNORECASE);
+            var hn2 = new Projection(testType, simpleType, "n(*):", null, false, IGNORECASE);
+            var hn3 = new Projection(testType, simpleType, "n(**)", null, false, IGNORECASE);
+            var hn4 = new Projection(testType, simpleType, "n(**):", null, false, IGNORECASE);
+            var hn5 = new Projection(testType, simpleType, "n(1)", null, false, IGNORECASE);
+            var hn6 = new Projection(testType, simpleType, "n(1):", null, false, IGNORECASE);
+            var hn7 = new Projection(testType, simpleType, "*n(1):", null, false, IGNORECASE);
+            var hn8 = new Projection(testType, simpleType, "**n(1):", null, false, IGNORECASE);
 
-            var gc1 = new GraphAbstraction(ITEMTYPE, ":(c)*", false, IGNORECASE);
-            var gc2 = new GraphAbstraction(ITEMTYPE, ":(c)**", false, IGNORECASE);
-            var gc3 = new GraphAbstraction(ITEMTYPE, ":(*c)1", false, IGNORECASE);
-            var gc4 = new GraphAbstraction(ITEMTYPE, ":(**c)1", false, IGNORECASE);
+            var gc1 = new Projection(testType, simpleType, ":(c)*", null, false, IGNORECASE);
+            var gc2 = new Projection(testType, simpleType, ":(c)**", null, false, IGNORECASE);
+            var gc3 = new Projection(testType, simpleType, ":(*c)1", null, false, IGNORECASE);
+            var gc4 = new Projection(testType, simpleType, ":(**c)1", null, false, IGNORECASE);
 
-            var hc1 = new GraphAbstraction(ITEMTYPE, ":c(*)", false, IGNORECASE);
-            var hc2 = new GraphAbstraction(ITEMTYPE, ":c(*)*", false, IGNORECASE);
-            var hc3 = new GraphAbstraction(ITEMTYPE, ":*c(1)", false, IGNORECASE);
-            var hc4 = new GraphAbstraction(ITEMTYPE, ":**c(1)", false, IGNORECASE);
+            var hc1 = new Projection(testType, simpleType, ":c(*)", null, false, IGNORECASE);
+            var hc2 = new Projection(testType, simpleType, ":c(*)*", null, false, IGNORECASE);
+            var hc3 = new Projection(testType, simpleType, ":*c(1)", null, false, IGNORECASE);
+            var hc4 = new Projection(testType, simpleType, ":**c(1)", null, false, IGNORECASE);
 
-            var gnc1 = new GraphAbstraction(ITEMTYPE, "n(*):(c)*", false, IGNORECASE);
-            var gnc2 = new GraphAbstraction(ITEMTYPE, "n(**):(c)**", false, IGNORECASE);
+            var gnc1 = new Projection(testType, simpleType, "n(*):(c)*", new[] { "\\1+\\2" }, false, IGNORECASE);
+            var gnc2 = new Projection(testType, simpleType, "n(**):(c)**", new[] { "\\1+\\2" }, false, IGNORECASE);
 
-            Item i = Item.New(ITEMTYPE, "n1", "c1");
+            Item i = Item.New(testType, "n1", "c1");
 
-            bool isInner;
-            Assert.AreEqual("", g1.Match(i, out isInner));
+            Assert.AreEqual("", g1.Match(i).Name);
 
-            Assert.AreEqual("n", gn1.Match(i, out isInner));
-            Assert.AreEqual("n", gn2.Match(i, out isInner));
-            Assert.AreEqual("n", gn3.Match(i, out isInner));
-            Assert.AreEqual("n", gn4.Match(i, out isInner));
-            Assert.AreEqual("n", gn5.Match(i, out isInner));
-            Assert.AreEqual("n", gn6.Match(i, out isInner));
-            Assert.AreEqual("n", gn7.Match(i, out isInner));
-            Assert.AreEqual("n", gn8.Match(i, out isInner));
+            Assert.AreEqual("n", gn1.Match(i).Name);
+            Assert.AreEqual("n", gn2.Match(i).Name);
+            Assert.AreEqual("n", gn3.Match(i).Name);
+            Assert.AreEqual("n", gn4.Match(i).Name);
+            Assert.AreEqual("n", gn5.Match(i).Name);
+            Assert.AreEqual("n", gn6.Match(i).Name);
+            Assert.AreEqual("n", gn7.Match(i).Name);
+            Assert.AreEqual("n", gn8.Match(i).Name);
 
-            Assert.AreEqual("1", hn1.Match(i, out isInner));
-            Assert.AreEqual("1", hn2.Match(i, out isInner));
-            Assert.AreEqual("1", hn3.Match(i, out isInner));
-            Assert.AreEqual("1", hn4.Match(i, out isInner));
-            Assert.AreEqual("1", hn5.Match(i, out isInner));
-            Assert.AreEqual("1", hn6.Match(i, out isInner));
-            Assert.AreEqual("1", hn7.Match(i, out isInner));
-            Assert.AreEqual("1", hn8.Match(i, out isInner));
+            Assert.AreEqual("1", hn1.Match(i).Name);
+            Assert.AreEqual("1", hn2.Match(i).Name);
+            Assert.AreEqual("1", hn3.Match(i).Name);
+            Assert.AreEqual("1", hn4.Match(i).Name);
+            Assert.AreEqual("1", hn5.Match(i).Name);
+            Assert.AreEqual("1", hn6.Match(i).Name);
+            Assert.AreEqual("1", hn7.Match(i).Name);
+            Assert.AreEqual("1", hn8.Match(i).Name);
 
-            Assert.AreEqual("c", gc1.Match(i, out isInner));
-            Assert.AreEqual("c", gc2.Match(i, out isInner));
-            Assert.AreEqual("c", gc3.Match(i, out isInner));
-            Assert.AreEqual("c", gc4.Match(i, out isInner));
+            Assert.AreEqual("c", gc1.Match(i).Name);
+            Assert.AreEqual("c", gc2.Match(i).Name);
+            Assert.AreEqual("c", gc3.Match(i).Name);
+            Assert.AreEqual("c", gc4.Match(i).Name);
 
-            Assert.AreEqual("1", hc1.Match(i, out isInner));
-            Assert.AreEqual("1", hc2.Match(i, out isInner));
-            Assert.AreEqual("1", hc3.Match(i, out isInner));
-            Assert.AreEqual("1", hc4.Match(i, out isInner));
+            Assert.AreEqual("1", hc1.Match(i).Name);
+            Assert.AreEqual("1", hc2.Match(i).Name);
+            Assert.AreEqual("1", hc3.Match(i).Name);
+            Assert.AreEqual("1", hc4.Match(i).Name);
 
-            Assert.AreEqual("1:c", gnc1.Match(i, out isInner));
-            Assert.AreEqual("1:c", gnc2.Match(i, out isInner));
+            Assert.AreEqual("1+c", gnc1.Match(i).Name);
+            Assert.AreEqual("1+c", gnc2.Match(i).Name);
         }
 
         [TestMethod]
         public void TestRegexGraphAbstractionMatches() {
-            ItemType ITEMTYPE = ItemType.New("TEST", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" });
-            var g1 = new GraphAbstraction(ITEMTYPE, "^.*()$:", false, IGNORECASE);
+            ItemType testType = ItemType.New("TEST", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" });
+            ItemType simpleType = ItemType.New("SIMPLE", new[] { "NAME" }, new[] { "" });
+            var g1 = new Projection(testType, simpleType, "^.*()$:", null, false, IGNORECASE);
 
-            var gn1a = new GraphAbstraction(ITEMTYPE, "^(n).*", false, IGNORECASE);
-            var gn1b = new GraphAbstraction(ITEMTYPE, "^(n).*$", false, IGNORECASE);
-            var gn1c = new GraphAbstraction(ITEMTYPE, "(n).*$", false, IGNORECASE);
-            var gn2a = new GraphAbstraction(ITEMTYPE, "^(n).*:", false, IGNORECASE);
-            var gn2b = new GraphAbstraction(ITEMTYPE, "^(n).*$:", false, IGNORECASE);
-            var gn2c = new GraphAbstraction(ITEMTYPE, "(n).*$:", false, IGNORECASE);
-            var gn5a = new GraphAbstraction(ITEMTYPE, "^(n)1", false, IGNORECASE);
-            var gn5b = new GraphAbstraction(ITEMTYPE, "^(n)1$", false, IGNORECASE);
-            var gn5c = new GraphAbstraction(ITEMTYPE, "(n)1$", false, IGNORECASE);
-            var gn6a = new GraphAbstraction(ITEMTYPE, "^(n)1:", false, IGNORECASE);
-            var gn6b = new GraphAbstraction(ITEMTYPE, "^(n)1$:", false, IGNORECASE);
-            var gn6c = new GraphAbstraction(ITEMTYPE, "(n)1$:", false, IGNORECASE);
-            var gn7a = new GraphAbstraction(ITEMTYPE, "^(.*n)1:", false, IGNORECASE);
-            var gn7b = new GraphAbstraction(ITEMTYPE, "^(.*n)1$:", false, IGNORECASE);
-            var gn7c = new GraphAbstraction(ITEMTYPE, "(.*n)1$:", false, IGNORECASE);
+            // ReSharper disable InconsistentNaming
+            var gn1a = new Projection(testType, simpleType, "^(n).*", null, false, IGNORECASE);
+            var gn1b = new Projection(testType, simpleType, "^(n).*$", null, false, IGNORECASE);
+            var gn1c = new Projection(testType, simpleType, "(n).*$", null, false, IGNORECASE);
+            var gn2a = new Projection(testType, simpleType, "^(n).*:", null, false, IGNORECASE);
+            var gn2b = new Projection(testType, simpleType, "^(n).*$:", null, false, IGNORECASE);
+            var gn2c = new Projection(testType, simpleType, "(n).*$:", null, false, IGNORECASE);
+            var gn5a = new Projection(testType, simpleType, "^(n)1", null, false, IGNORECASE);
+            var gn5b = new Projection(testType, simpleType, "^(n)1$", null, false, IGNORECASE);
+            var gn5c = new Projection(testType, simpleType, "(n)1$", null, false, IGNORECASE);
+            var gn6a = new Projection(testType, simpleType, "^(n)1:", null, false, IGNORECASE);
+            var gn6b = new Projection(testType, simpleType, "^(n)1$:", null, false, IGNORECASE);
+            var gn6c = new Projection(testType, simpleType, "(n)1$:", null, false, IGNORECASE);
+            var gn7a = new Projection(testType, simpleType, "^(.*n)1:", null, false, IGNORECASE);
+            var gn7b = new Projection(testType, simpleType, "^(.*n)1$:", null, false, IGNORECASE);
+            var gn7c = new Projection(testType, simpleType, "(.*n)1$:", null, false, IGNORECASE);
 
-            var hn1a = new GraphAbstraction(ITEMTYPE, "^n(.*)", false, IGNORECASE);
-            var hn1b = new GraphAbstraction(ITEMTYPE, "^n(.*)$", false, IGNORECASE);
-            var hn1c = new GraphAbstraction(ITEMTYPE, "n(.*)$", false, IGNORECASE);
-            var hn2a = new GraphAbstraction(ITEMTYPE, "^n(.*):", false, IGNORECASE);
-            var hn2b = new GraphAbstraction(ITEMTYPE, "^n(.*)$:", false, IGNORECASE);
-            var hn2c = new GraphAbstraction(ITEMTYPE, "n(.*)$:", false, IGNORECASE);
-            var hn5a = new GraphAbstraction(ITEMTYPE, "^n(1)", false, IGNORECASE);
-            var hn5b = new GraphAbstraction(ITEMTYPE, "^n(1)$", false, IGNORECASE);
-            var hn5c = new GraphAbstraction(ITEMTYPE, "n(1)$", false, IGNORECASE);
-            var hn6a = new GraphAbstraction(ITEMTYPE, "^n(1):", false, IGNORECASE);
-            var hn6b = new GraphAbstraction(ITEMTYPE, "^n(1)$:", false, IGNORECASE);
-            var hn6c = new GraphAbstraction(ITEMTYPE, "n(1)$:", false, IGNORECASE);
-            var hn7a = new GraphAbstraction(ITEMTYPE, "^.*n(1):", false, IGNORECASE);
-            var hn7b = new GraphAbstraction(ITEMTYPE, "^.*n(1)$:", false, IGNORECASE);
-            var hn7c = new GraphAbstraction(ITEMTYPE, ".*n(1)$:", false, IGNORECASE);
+            var hn1a = new Projection(testType, simpleType, "^n(.*)", null, false, IGNORECASE);
+            var hn1b = new Projection(testType, simpleType, "^n(.*)$", null, false, IGNORECASE);
+            var hn1c = new Projection(testType, simpleType, "n(.*)$", null, false, IGNORECASE);
+            var hn2a = new Projection(testType, simpleType, "^n(.*):", null, false, IGNORECASE);
+            var hn2b = new Projection(testType, simpleType, "^n(.*)$:", null, false, IGNORECASE);
+            var hn2c = new Projection(testType, simpleType, "n(.*)$:", null, false, IGNORECASE);
+            var hn5a = new Projection(testType, simpleType, "^n(1)", null, false, IGNORECASE);
+            var hn5b = new Projection(testType, simpleType, "^n(1)$", null, false, IGNORECASE);
+            var hn5c = new Projection(testType, simpleType, "n(1)$", null, false, IGNORECASE);
+            var hn6a = new Projection(testType, simpleType, "^n(1):", null, false, IGNORECASE);
+            var hn6b = new Projection(testType, simpleType, "^n(1)$:", null, false, IGNORECASE);
+            var hn6c = new Projection(testType, simpleType, "n(1)$:", null, false, IGNORECASE);
+            var hn7a = new Projection(testType, simpleType, "^.*n(1):", null, false, IGNORECASE);
+            var hn7b = new Projection(testType, simpleType, "^.*n(1)$:", null, false, IGNORECASE);
+            var hn7c = new Projection(testType, simpleType, ".*n(1)$:", null, false, IGNORECASE);
 
-            var gc1a = new GraphAbstraction(ITEMTYPE, ":^(c).*", false, IGNORECASE);
-            var gc1b = new GraphAbstraction(ITEMTYPE, ":^(c).*$", false, IGNORECASE);
-            var gc1c = new GraphAbstraction(ITEMTYPE, ":(c).*$", false, IGNORECASE);
-            var gc3a = new GraphAbstraction(ITEMTYPE, ":^(.*c)1", false, IGNORECASE);
-            var gc3b = new GraphAbstraction(ITEMTYPE, ":^(.*c)1$", false, IGNORECASE);
-            var gc3c = new GraphAbstraction(ITEMTYPE, ":(.*c)1$", false, IGNORECASE);
+            var gc1a = new Projection(testType, simpleType, ":^(c).*", null, false, IGNORECASE);
+            var gc1b = new Projection(testType, simpleType, ":^(c).*$", null, false, IGNORECASE);
+            var gc1c = new Projection(testType, simpleType, ":(c).*$", null, false, IGNORECASE);
+            var gc3a = new Projection(testType, simpleType, ":^(.*c)1", null, false, IGNORECASE);
+            var gc3b = new Projection(testType, simpleType, ":^(.*c)1$", null, false, IGNORECASE);
+            var gc3c = new Projection(testType, simpleType, ":(.*c)1$", null, false, IGNORECASE);
+            // ReSharper restore InconsistentNaming
 
             //var hc1 = new GraphAbstraction_(":c(*)", false);
             //var hc2 = new GraphAbstraction_(":c(*)*", false);
@@ -213,78 +217,79 @@ namespace NDepCheck.Tests {
             //var gnc1 = new GraphAbstraction_("n(*):(c)*", false);
             //var gnc2 = new GraphAbstraction_("n(**):(c)**", false);
 
-            Item i = Item.New(ITEMTYPE, "n1", "c1");
+            Item i = Item.New(testType, "n1", "c1");
 
-            bool isInner;
-            Assert.AreEqual("", g1.Match(i, out isInner));
+            Assert.AreEqual("", g1.Match(i).Name);
 
-            Assert.AreEqual("n", gn1a.Match(i, out isInner));
-            Assert.AreEqual("n", gn1b.Match(i, out isInner));
-            Assert.AreEqual("n", gn1c.Match(i, out isInner));
-            Assert.AreEqual("n", gn2a.Match(i, out isInner));
-            Assert.AreEqual("n", gn2b.Match(i, out isInner));
-            Assert.AreEqual("n", gn2c.Match(i, out isInner));
-            Assert.AreEqual("n", gn5a.Match(i, out isInner));
-            Assert.AreEqual("n", gn5b.Match(i, out isInner));
-            Assert.AreEqual("n", gn5c.Match(i, out isInner));
-            Assert.AreEqual("n", gn6a.Match(i, out isInner));
-            Assert.AreEqual("n", gn6b.Match(i, out isInner));
-            Assert.AreEqual("n", gn6c.Match(i, out isInner));
-            Assert.AreEqual("n", gn7a.Match(i, out isInner));
-            Assert.AreEqual("n", gn7b.Match(i, out isInner));
-            Assert.AreEqual("n", gn7c.Match(i, out isInner));
+            Assert.AreEqual("n", gn1a.Match(i).Name);
+            Assert.AreEqual("n", gn1b.Match(i).Name);
+            Assert.AreEqual("n", gn1c.Match(i).Name);
+            Assert.AreEqual("n", gn2a.Match(i).Name);
+            Assert.AreEqual("n", gn2b.Match(i).Name);
+            Assert.AreEqual("n", gn2c.Match(i).Name);
+            Assert.AreEqual("n", gn5a.Match(i).Name);
+            Assert.AreEqual("n", gn5b.Match(i).Name);
+            Assert.AreEqual("n", gn5c.Match(i).Name);
+            Assert.AreEqual("n", gn6a.Match(i).Name);
+            Assert.AreEqual("n", gn6b.Match(i).Name);
+            Assert.AreEqual("n", gn6c.Match(i).Name);
+            Assert.AreEqual("n", gn7a.Match(i).Name);
+            Assert.AreEqual("n", gn7b.Match(i).Name);
+            Assert.AreEqual("n", gn7c.Match(i).Name);
 
-            Assert.AreEqual("1", hn1a.Match(i, out isInner));
-            Assert.AreEqual("1", hn1b.Match(i, out isInner));
-            Assert.AreEqual("1", hn1c.Match(i, out isInner));
-            Assert.AreEqual("1", hn2a.Match(i, out isInner));
-            Assert.AreEqual("1", hn2b.Match(i, out isInner));
-            Assert.AreEqual("1", hn2c.Match(i, out isInner));
-            Assert.AreEqual("1", hn5a.Match(i, out isInner));
-            Assert.AreEqual("1", hn5b.Match(i, out isInner));
-            Assert.AreEqual("1", hn5c.Match(i, out isInner));
-            Assert.AreEqual("1", hn6a.Match(i, out isInner));
-            Assert.AreEqual("1", hn6b.Match(i, out isInner));
-            Assert.AreEqual("1", hn6c.Match(i, out isInner));
-            Assert.AreEqual("1", hn7a.Match(i, out isInner));
-            Assert.AreEqual("1", hn7b.Match(i, out isInner));
-            Assert.AreEqual("1", hn7c.Match(i, out isInner));
+            Assert.AreEqual("1", hn1a.Match(i).Name);
+            Assert.AreEqual("1", hn1b.Match(i).Name);
+            Assert.AreEqual("1", hn1c.Match(i).Name);
+            Assert.AreEqual("1", hn2a.Match(i).Name);
+            Assert.AreEqual("1", hn2b.Match(i).Name);
+            Assert.AreEqual("1", hn2c.Match(i).Name);
+            Assert.AreEqual("1", hn5a.Match(i).Name);
+            Assert.AreEqual("1", hn5b.Match(i).Name);
+            Assert.AreEqual("1", hn5c.Match(i).Name);
+            Assert.AreEqual("1", hn6a.Match(i).Name);
+            Assert.AreEqual("1", hn6b.Match(i).Name);
+            Assert.AreEqual("1", hn6c.Match(i).Name);
+            Assert.AreEqual("1", hn7a.Match(i).Name);
+            Assert.AreEqual("1", hn7b.Match(i).Name);
+            Assert.AreEqual("1", hn7c.Match(i).Name);
 
-            Assert.AreEqual("c", gc1a.Match(i, out isInner));
-            Assert.AreEqual("c", gc1b.Match(i, out isInner));
-            Assert.AreEqual("c", gc1c.Match(i, out isInner));
-            Assert.AreEqual("c", gc3a.Match(i, out isInner));
-            Assert.AreEqual("c", gc3b.Match(i, out isInner));
-            Assert.AreEqual("c", gc3c.Match(i, out isInner));
+            Assert.AreEqual("c", gc1a.Match(i).Name);
+            Assert.AreEqual("c", gc1b.Match(i).Name);
+            Assert.AreEqual("c", gc1c.Match(i).Name);
+            Assert.AreEqual("c", gc3a.Match(i).Name);
+            Assert.AreEqual("c", gc3b.Match(i).Name);
+            Assert.AreEqual("c", gc3c.Match(i).Name);
 
-            //Assert.AreEqual("1", hc1.Match(i, out isInner));
-            //Assert.AreEqual("1", hc2.Match(i, out isInner));
-            //Assert.AreEqual("1", hc3.Match(i, out isInner));
-            //Assert.AreEqual("1", hc4.Match(i, out isInner));
+            //Assert.AreEqual("1", hc1.Match(i).Name);
+            //Assert.AreEqual("1", hc2.Match(i).Name);
+            //Assert.AreEqual("1", hc3.Match(i).Name);
+            //Assert.AreEqual("1", hc4.Match(i).Name);
 
-            //Assert.AreEqual("1c", gnc1.Match(i, out isInner));
-            //Assert.AreEqual("1c", gnc2.Match(i, out isInner));
+            //Assert.AreEqual("1c", gnc1.Match(i).Name);
+            //Assert.AreEqual("1c", gnc2.Match(i).Name);
         }
 
         [TestMethod]
         public void TestAsterisks() {
-            ItemType ITEMTYPE = ItemType.New("TEST", new[] { "NAME", }, new[] { "" });
-            var g1 = new GraphAbstraction(ITEMTYPE, "(**)", false, IGNORECASE);
+            ItemType testType = ItemType.New("TEST", new[] { "NAME", }, new[] { "" });
+            ItemType simpleType = ItemType.New("SIMPLE", new[] { "NAME", }, new[] { "" });
+            var g1 = new Projection(testType, simpleType, "(**)", null, false, IGNORECASE);
 
-            bool isInner;
-            Assert.AreEqual("n1", g1.Match(Item.New(ITEMTYPE, "n1"), out isInner));
-            Assert.AreEqual("n1.n2", g1.Match(Item.New(ITEMTYPE, "n1.n2"), out isInner));
-            Assert.AreEqual("n1.n2.n3", g1.Match(Item.New(ITEMTYPE, "n1.n2.n3"), out isInner));
+            Assert.AreEqual("n1", g1.Match(Item.New(testType, "n1")).Name);
+            Assert.AreEqual("n1.n2", g1.Match(Item.New(testType, "n1.n2")).Name);
+            Assert.AreEqual("n1.n2.n3", g1.Match(Item.New(testType, "n1.n2.n3")).Name);
         }
         //
 
         [TestMethod]
         public void TestProblemWithTests() {
-            ItemType ITEMTYPE = ItemType.New("TEST", new[] { "ASSEMBLY", }, new[] { "NAME" });
-            var g1 = new GraphAbstraction(ITEMTYPE, "**Tests**", false, IGNORECASE);
+            ItemType testType = ItemType.New("TEST", new[] { "ASSEMBLY", }, new[] { "NAME" });
+            ItemType simpleType = ItemType.New("SIMPLE", new[] { "NAME", }, new[] { "" });
+            var g1 = new Projection(testType, simpleType, "**Tests**", null, false, IGNORECASE);
+            var g2 = new Projection(testType, simpleType, "**Tests**()", null, false, IGNORECASE);
 
-            bool isInner;
-            Assert.AreEqual("", g1.Match(Item.New(ITEMTYPE, "Framework.Core.NunitTests.IBOL"), out isInner));
+            Assert.AreEqual("\\1", g1.Match(Item.New(testType, "Framework.Core.NunitTests.IBOL")).Name);
+            Assert.AreEqual("", g2.Match(Item.New(testType, "Framework.Core.NunitTests.IBOL")).Name);
         }
 
         [TestMethod]
@@ -302,8 +307,8 @@ namespace NDepCheck.Tests {
         public void TestEmptyNamespaceInRule() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
 
-            var @using = Item.New(itemType, "NDepCheck.TestAssembly.dir1.dir2", "SomeClass", "NDepCheck.TestAssembly", "1.0.0.0", "", "AnotherMethod", "");
-            var used = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "I", "");
+            Item @using = Item.New(itemType, "NDepCheck.TestAssembly.dir1.dir2", "SomeClass", "NDepCheck.TestAssembly", "1.0.0.0", "", "AnotherMethod", "");
+            Item used = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "I", "");
             var d = new Dependency(@using, used, null, 0, 0, 0, 0);
 
             var r = new DependencyRule(itemType, "NDepCheck.TestAssembly.dir1.dir2:SomeClass:**", itemType, "-:NamespacelessTestClassForNDepCheck::I", new DependencyRuleRepresentation("rules.dep", 0, "...", false), IGNORECASE);
@@ -315,14 +320,13 @@ namespace NDepCheck.Tests {
         public void TestAmpersand() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
 
-            var ga = new GraphAbstraction(itemType, "(**):(**):(**)", false, false);
+            var ga = new Projection(itemType, itemType, "(**):(**):(**)", new[] { "\\1", "\\2", "\\3", "", "", "", "" }, false, false);
 
-            var used = Item.New(itemType, "System", "Byte&", "mscorlib", "4.0.0.0", "", "", "");
+            Item used = Item.New(itemType, "System", "Byte&", "mscorlib", "4.0.0.0", "", "", "");
 
-            bool isInner;
-            string result = ga.Match(used, out isInner);
+            string result = ga.Match(used).Name;
 
-            Assert.AreEqual("System:Byte&:mscorlib", result);
+            Assert.AreEqual("System:Byte&:mscorlib;;:;", result);
         }
     }
 }
