@@ -82,6 +82,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
@@ -132,6 +133,7 @@
     <Compile Include="GraphTransformations\HideTransitiveEdges.cs" />
     <Compile Include="RuleViolation.cs" />
     <Compile Include="XmlViolationsWriter.cs" />
+    <Compile Include="Rendering\Renderer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config">

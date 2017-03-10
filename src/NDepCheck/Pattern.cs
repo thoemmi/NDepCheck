@@ -8,7 +8,7 @@ using JetBrains.Annotations;
 
 namespace NDepCheck {
     public interface IMatcher {
-        bool IsMatch([NotNull]string value, [NotNull]string[] groupsInUsing);
+        bool IsMatch([NotNull]string value, [NotNull]string[] groups);
 
         [CanBeNull]
         string[] Match([NotNull]string value);
@@ -50,8 +50,6 @@ namespace NDepCheck {
 
         private static readonly string ASTERISKS_PATTERN = EscapePattern(@"(?:" + ASTERISK_ALONE_PATTERN + @"(?:" + SEPARATORS_REGEX + ASTERISK_ALONE_PATTERN + ")*)?");
         private static readonly string SEPARATOR_AND_ASTERISKS_PATTERN = EscapePattern(@"(?:" + SEPARATORS_REGEX + ASTERISK_ALONE_PATTERN + ")*");
-
-        public const char GROUPSEP = '#'; // TODO: Durch nbsp o.ä. ersetzen
 
         [NotNull]
         protected static string ExpandAsterisks([NotNull] string pattern, bool ignoreCase) {
@@ -110,12 +108,12 @@ namespace NDepCheck {
                     j++;
                 }
                 while (j > 0 && j < type.Keys.Length && type.Keys[j - 1] == type.Keys[j]) {
-                    result.Add(new AlwaysMatcher());
+                    result.Add(new AlwaysMatcher(alsoMatchDot: true, groupCount: 0));
                     j++;
                 }
             }
             while (j < type.Keys.Length) {
-                result.Add(new AlwaysMatcher());
+                result.Add(new AlwaysMatcher(alsoMatchDot: true, groupCount: 0));
                 j++;
             }
             return result.Take(type.Keys.Length).ToArray();
@@ -123,29 +121,33 @@ namespace NDepCheck {
 
         [NotNull]
         private static IMatcher CreateMatcher([NotNull] string segment, int estimatedGroupCount, bool ignoreCase) {
-            string groupPrefix = string.Join("", Enumerable.Repeat("([^" + GROUPSEP + "]*)" + GROUPSEP, estimatedGroupCount));
-            if (segment == "-") {
-                return new EmptyStringMatcher();
-            } else if (string.IsNullOrWhiteSpace(segment) || segment.Trim('*') == "") {
-                return new AlwaysMatcher();
+            if (Regex.IsMatch(segment, @"^[\(\)-]+$")) { // Examples: (-), ()-, -(), ((-)), ((-))()
+                return new EmptyStringMatcher(groupCount: segment.Count(c => c == '('));
+            } else if (string.IsNullOrWhiteSpace(segment) || Regex.IsMatch(segment, @"^\(*\*+\)*$")) { // Examples: empty string, *, **, (**), (((****)))
+                return new AlwaysMatcher(alsoMatchDot: string.IsNullOrWhiteSpace(segment) || segment.Count(c => c == '*') > 1, groupCount: segment.Count(c => c == '('));
             } else if (segment.StartsWith("^")) {
                 string pattern = segment.TrimStart('^');
-                return new RegexMatcher("^" + groupPrefix + pattern, ignoreCase, estimatedGroupCount);
+                return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(estimatedGroupCount) + pattern, ignoreCase, estimatedGroupCount);
             } else if (segment.EndsWith("$")) {
-                return new RegexMatcher("^" + groupPrefix + ".*" + segment, ignoreCase, estimatedGroupCount);
+                return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(estimatedGroupCount) + ".*" + segment, ignoreCase, estimatedGroupCount);
             } else if (estimatedGroupCount == 0 && HasNoRegexCharsExceptPeriod(segment)) {
+                // TODO: Also allow suurrounding ()
                 return new EqualsMatcher(segment, ignoreCase);
             } else if (IsPrefixAndSuffixAsterisksPattern(segment)) {
+                // TODO: Also allow suurrounding ()
                 return new ContainsMatcher(segment, ignoreCase);
             } else if (IsSuffixAsterisksPattern(segment)) {
+                // TODO: Also allow suurrounding ()
                 return new StartsWithMatcher(segment, ignoreCase);
             } else if (IsPrefixAsterisksPattern(segment)) {
+                // TODO: Also allow suurrounding ()
                 return new EndsWithMatcher(segment, ignoreCase);
             } else {
                 string pattern = ExpandAsterisks(segment, ignoreCase);
-                return new RegexMatcher("^" + groupPrefix + pattern + "$", ignoreCase, estimatedGroupCount);
+                return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(estimatedGroupCount) + pattern + "$", ignoreCase, estimatedGroupCount);
             }
         }
+
 
         private static bool IsPrefixAndSuffixAsterisksPattern([NotNull] string segment) {
             return segment.StartsWith("**") && segment.EndsWith("**") && HasNoRegexCharsExceptPeriod(segment.Trim('*'));
@@ -167,7 +169,7 @@ namespace NDepCheck {
 
         [CanBeNull]
         protected static string[] Match([NotNull] ItemType type, [NotNull] IMatcher[] matchers, [NotNull] Item item) {
-            if (item.Type != type) {
+            if (!item.Type.Equals(type)) {
                 return null;
             }
 
@@ -192,12 +194,20 @@ namespace NDepCheck {
     }
 
     internal sealed class AlwaysMatcher : IMatcher {
-        public bool IsMatch(string value, string[] groupsInUsing) {
-            return true;
+        private readonly bool _alsoMatchDot;
+        private readonly int _groupCount;
+
+        public AlwaysMatcher(bool alsoMatchDot, int groupCount) {
+            _alsoMatchDot = alsoMatchDot;
+            _groupCount = groupCount;
+        }
+
+        public bool IsMatch(string value, string[] groups) {
+            return _alsoMatchDot || !value.Contains('.');
         }
 
         public string[] Match(string value) {
-            return Pattern.NO_GROUPS;
+            return Enumerable.Repeat(value, _groupCount).ToArray();
         }
 
         public bool MatchesAlike(IMatcher other) {
@@ -210,12 +220,18 @@ namespace NDepCheck {
     }
 
     internal sealed class EmptyStringMatcher : IMatcher {
-        public bool IsMatch(string value, string[] groupsInUsing) {
+        private readonly string[] _groups;
+
+        public EmptyStringMatcher(int groupCount) {
+            _groups = Enumerable.Repeat("", groupCount).ToArray();
+        }
+
+        public bool IsMatch(string value, string[] groups) {
             return value == "";
         }
 
         public string[] Match(string value) {
-            return value == "" ? Pattern.NO_GROUPS : null;
+            return value == "" ? _groups : null;
         }
 
         public bool MatchesAlike(IMatcher other) {
@@ -223,7 +239,7 @@ namespace NDepCheck {
         }
 
         public override string ToString() {
-            return "[\"\"]";
+            return "[-]";
         }
     }
 
@@ -256,7 +272,7 @@ namespace NDepCheck {
             _ignoreCase = ignoreCase;
         }
 
-        public bool IsMatch(string value, string[] groupsInUsing) {
+        public bool IsMatch(string value, string[] groups) {
             return Match(value) != null;
         }
 
@@ -315,18 +331,27 @@ namespace NDepCheck {
     }
 
     internal sealed class RegexMatcher : AbstractRememberingMatcher, IMatcher {
+        private const char GROUPSEP = '#'; // TODO: Durch nbsp o.ä. ersetzen
+
         private readonly int _estimatedGroupCount;
         private readonly Regex _regex;
+
+        internal static string CreateGroupPrefix(int estimatedGroupCount) {
+            return string.Join("", Enumerable.Repeat("([^" + GROUPSEP + "]*)" + GROUPSEP, estimatedGroupCount));
+        }
 
         public RegexMatcher([NotNull]string pattern, bool ignoreCase, int estimatedGroupCount) {
             _estimatedGroupCount = estimatedGroupCount;
             _regex = new Regex(pattern, ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
         }
 
-        public bool IsMatch(string value, string[] groupsInUsing) {
-            int fillupWithArbitraryStringsCount = EstimatedGroupCount() - groupsInUsing.Length;
-            IEnumerable<string> groupsWithFillUps = groupsInUsing.Concat(Enumerable.Range(0, fillupWithArbitraryStringsCount).Select(_ => "IGNORE"));
-            string joinedGroupsWithFillUps = string.Join("", groupsWithFillUps.Select(g => g + Pattern.GROUPSEP));
+        public bool IsMatch(string value, string[] groups) {
+            // Idea: From groups (e.g. a, b, c) and value(\1xy\2) construct the string a#b#c#\1xy\2.
+            // The pattern created (see the constructor calls in CreateMatcher) is ([^#]*)#([^#]*)#([^#]*)#pattern
+            // Thus, the groups prefixed to the string match the prefixed group patterns.
+            int fillupWithArbitraryStringsCount = EstimatedGroupCount() - groups.Length;
+            IEnumerable<string> groupsWithFillUps = groups.Concat(Enumerable.Range(0, fillupWithArbitraryStringsCount).Select(_ => "IGNORE"));
+            string joinedGroupsWithFillUps = string.Join("", groupsWithFillUps.Select(g => g + GROUPSEP));
 
             bool isMatch = _regex.IsMatch(joinedGroupsWithFillUps + value);
             return isMatch;
@@ -361,6 +386,8 @@ namespace NDepCheck {
 
     // TODO: NOCH NICHT IN BETRIEB ...
     internal class RegexMatcherWithBackReferences : IMatcher {
+        private const char GROUPSEP = '#'; // TODO: Durch nbsp o.ä. ersetzen
+
         private readonly int _estimatedGroupCount;
         private readonly Regex _regex;
 
@@ -369,10 +396,11 @@ namespace NDepCheck {
             _regex = new Regex(pattern, ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
         }
 
-        public bool IsMatch(string value, string[] groupsInUsing) {
-            int fillupWithArbitraryStringsCount = EstimatedGroupCount() - groupsInUsing.Length;
-            IEnumerable<string> groupsWithFillUps = groupsInUsing.Concat(Enumerable.Range(0, fillupWithArbitraryStringsCount).Select(_ => "IGNORE"));
-            string joinedGroupsWithFillUps = string.Join("", groupsWithFillUps.Select(g => g + Pattern.GROUPSEP));
+        public bool IsMatch(string value, string[] groups) {
+
+            int fillupWithArbitraryStringsCount = EstimatedGroupCount() - groups.Length;
+            IEnumerable<string> groupsWithFillUps = groups.Concat(Enumerable.Range(0, fillupWithArbitraryStringsCount).Select(_ => "IGNORE"));
+            string joinedGroupsWithFillUps = string.Join("", groupsWithFillUps.Select(g => g + GROUPSEP));
 
             bool isMatch = _regex.IsMatch(joinedGroupsWithFillUps + value);
             return isMatch;
@@ -394,7 +422,6 @@ namespace NDepCheck {
         public int EstimatedGroupCount() {
             return _estimatedGroupCount;
         }
-
 
         public bool MatchesAlike(IMatcher other) {
             throw new NotImplementedException();

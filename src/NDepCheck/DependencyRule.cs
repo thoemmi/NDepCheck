@@ -65,10 +65,10 @@ namespace NDepCheck {
 
         public bool IsMatch(Dependency dependency) {
             // We check the types immediately, so that no unnecessary Match is run.
-            if (dependency.UsingItem.Type != _usingItemType) {
+            if (!dependency.UsingItem.Type.Equals(_usingItemType)) {
                 return false;
             }
-            if (dependency.UsedItem.Type != _usedItemType) {
+            if (!Equals(dependency.UsedItem.Type, _usedItemType)) {
                 return false;
             }
 
