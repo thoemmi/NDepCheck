@@ -152,8 +152,6 @@ namespace NDepCheck.Rendering {
                             hd.SetY(size.Height / 2 * 1.2);
                         }
                     }
-
-
                 }
             }
         }
@@ -206,7 +204,7 @@ namespace NDepCheck.Rendering {
                 }
                 DrawText(graphics, _text, _textFont, _textColor, _tail * (1 - _textLocation) + _head * _textLocation, _placing);
 
-                // Get all these elements somehow and then do a "draw tooltip" ...
+                // TODO: Get all these elements somehow and then do a "draw tooltip" ...
             }
 
             public void BeforeDrawing(Graphics graphics) {
@@ -319,7 +317,7 @@ namespace NDepCheck.Rendering {
 
             var bitMap = new Bitmap(width, height);
             var graphics = Graphics.FromImage(bitMap);
-            graphics.Clear(Color.Yellow);
+            graphics.Clear(GetBackGroundColor);
 
             StringBuilder errors = new StringBuilder();
             foreach (var b in _builders) {
@@ -350,13 +348,12 @@ namespace NDepCheck.Rendering {
 
             StringBuilder htmlForTooltips = new StringBuilder();
 
-            // 5% margin
+            // 5% margin on all sides
             float BORDER = 0.1f;
             double scaleX = width * (1 - 2 * BORDER) / (maxX - minX);
             double scaleY = height * (1 - 2 * BORDER) / (maxY - minY);
             float scale = (float)Math.Min(scaleX, scaleY); // No distortion!
 
-            ////graphics.Transform = new Matrix(1, 0, 0, 1, 200, 400);
             graphics.Transform = new Matrix(scale, 0, 0, scale, (float)(-scale * minX + width * BORDER), (float)(scale * maxY + height * BORDER));
 
             foreach (var b in _builders) {
@@ -385,6 +382,8 @@ namespace NDepCheck.Rendering {
             //< area shape = "poly" coords = "x1,y1,x2,y2,..,xn,yn" title = ".." >< area shape = "poly" coords = "2,5,32,1,33,22,51,36,33,57" title = "The Americas" >< area shape = "poly" coords = "57,14,70,2,111,3,114,23,97,34" title = "Eurasia" >< area shape = "poly" coords = "57,14,86,29,73,52,66,49,50,28" title = "Africa" >< area shape = "poly" coords = "105,40,108,49,122,52,127,41,117,34" title = "Australia" >
 
         }
+
+        protected virtual Color GetBackGroundColor => Color.White;
 
         protected abstract void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies);
     }
