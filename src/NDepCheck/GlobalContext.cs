@@ -3,8 +3,10 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using JetBrains.Annotations;
 using NDepCheck.GraphTransformations;
+using NDepCheck.Rendering;
 
 namespace NDepCheck {
     public class GlobalContext : IGlobalContext {
@@ -56,24 +58,22 @@ namespace NDepCheck {
         }
 
         [NotNull]
-        public GlobalContext WriteDotFile([NotNull] Options options, [NotNull] string filename) {
+        public GlobalContext RenderToFile([NotNull] Options options, [NotNull] string assemblyName, [NotNull] string rendererClassName, [NotNull] string filename) {
+            IDependencyRenderer renderer;
+            try {
+                var a = Assembly.LoadFrom(assemblyName);
+                renderer = (IDependencyRenderer)Activator.CreateInstance(a.GetType(rendererClassName, true, ignoreCase: true));
+            } catch (Exception ex) {
+                throw new ApplicationException($"Cannot create renderer {rendererClassName} from assembly {assemblyName}; problem: " + ex.Message, ex);
+            }
             options.GraphingDone = true;
-            using (var output = new StreamWriter(filename)) {
-                Log.WriteInfo("Writing dot file " + filename);
-                DependencyGrapher.WriteDotFile(_reducedGraph, output, options.StringLength);
+
+            if (_reducedGraph == null) {
+                throw new Exception("Internal error: _reducedGraph is null");
             }
-            return this;
-        }
 
-        [NotNull]
-        public GlobalContext WriteMatrixFile([NotNull] Options options, char format, [NotNull] string filename) {
-            using (var output = new StreamWriter(filename)) {
-                Log.WriteInfo("Sorting graph and writing to " + filename);
+            renderer.RenderToFile(_reducedGraph.SelectMany(e => new[] { e.UsingItem, e.UsedItem }).Distinct(), _reducedGraph, filename, options.StringLength);
 
-                bool withNotOkCount = InputContexts.Any(c => c.RuleViolations.Any());
-
-                DependencyGrapher.WriteMatrixFile(_reducedGraph, output, format, options.StringLength, withNotOkCount);
-            }
             return this;
         }
 

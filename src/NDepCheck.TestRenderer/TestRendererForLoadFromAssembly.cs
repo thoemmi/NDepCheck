@@ -5,7 +5,7 @@ using System.Linq;
 using NDepCheck.Rendering;
 
 namespace NDepCheck.TestRenderer {
-    public class TestRendererForLoadFromAssembly : Renderer {
+    public class TestRendererForLoadFromAssembly : GraphicsRenderer<Item,Dependency> {
         protected override Color GetBackGroundColor => Color.Yellow;
 
         protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
@@ -38,6 +38,10 @@ namespace NDepCheck.TestRenderer {
             }
 
             origin.Set(0, 0);
+        }
+
+        protected override Size GetSize() {
+            return new Size(400, 300);
         }
     }
 }

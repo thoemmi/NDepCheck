@@ -10,13 +10,18 @@ using JetBrains.Annotations;
 namespace NDepCheck.Rendering {
     public interface IBox {
         Vector Center { get; }
+        Vector HalfDiagonal { get; }
         Vector GetBestAnchor(Vector farAway);
     }
 
     public interface IArrow {
+        Vector Head { get; }
+        Vector Tail { get; }
     }
 
-    public abstract class Renderer {
+    public abstract class GraphicsRenderer<TItem, TDependency> : IRenderer<TItem, TDependency> 
+            where TItem : class, INode 
+            where TDependency : class, IEdge {
         public static Vector C(double x, double y) {
             return Vector.Fixed(x, y);
         }
@@ -64,6 +69,7 @@ namespace NDepCheck.Rendering {
             }
 
             public Vector Center => _center;
+            public Vector HalfDiagonal => _halfDiagonal;
 
             public void Draw(Graphics graphics, StringBuilder htmlForTooltips) {
                 Vector leftUpper = _center - ~_halfDiagonal;
@@ -157,8 +163,8 @@ namespace NDepCheck.Rendering {
         }
 
         private class ArrowBuilder : IBuilder, IArrow {
-            private readonly Vector _tail;
             private readonly Vector _head;
+            private readonly Vector _tail;
             private readonly double _width;
             private readonly Color _color;
             private readonly string _text;
@@ -183,6 +189,10 @@ namespace NDepCheck.Rendering {
                 _tooltip = tooltip;
             }
 
+            public Vector Tail => _tail;
+
+            public Vector Head => _head;
+
             public IEnumerable<Vector> GetBoundingVectors() {
                 yield return _tail;
                 yield return _head;
@@ -200,7 +210,7 @@ namespace NDepCheck.Rendering {
                     };
                     graphics.DrawLine(pen, (~_tail).AsPointF(), (~_head).AsPointF());
                 } else {
-                    graphics.FillEllipse(new SolidBrush(_color), _head.GetX() - fWidth/2, -_head.GetY() - fWidth/2, fWidth, fWidth);
+                    graphics.FillEllipse(new SolidBrush(_color), _head.GetX() - fWidth / 2, -_head.GetY() - fWidth / 2, fWidth, fWidth);
                 }
                 DrawText(graphics, _text, _textFont, _textColor, _tail * (1 - _textLocation) + _head * _textLocation, _placing);
 
@@ -279,7 +289,7 @@ namespace NDepCheck.Rendering {
             if (center == null) {
                 throw new ArgumentNullException(nameof(center));
             }
-            var boxBuilder = new BoxBuilder(center, halfDiagonal ?? new VariableVector(text ?? center.ToString()), color ?? Color.White, 
+            var boxBuilder = new BoxBuilder(center, halfDiagonal ?? new VariableVector(text ?? center.ToString()), color ?? Color.White,
                 borderWidth, borderColor ?? Color.Black, anchorNr,
                 text ?? "", placing, textFont ?? new Font(FontFamily.GenericSansSerif, 10), textColor ?? Color.Black, tooltip ?? "");
             _builders.Add(boxBuilder);
@@ -302,69 +312,80 @@ namespace NDepCheck.Rendering {
             return arrowBuilder;
         }
 
-        public void RenderToFile(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string baseFilename, int width, int height) {
+        private Bitmap Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, Size size) {
             PlaceObjects(items, dependencies);
-
-            double minX = double.MaxValue;
-            double maxX = -double.MaxValue;
-            double minY = double.MaxValue;
-            double maxY = -double.MaxValue;
 
             // I tried it with SVG - but SVG support in .Net seems to be non-existent.
             // The library at https://github.com/managed-commons/SvgNet is a nice attempet (a 2015 resurrection of a 2003 attempt),
             // but it closes off the SVG objects in such a way that adding tooltips ("mouse hoverings") seems very hard.
             // If someone knows more about SVG than I (who doesn't know a bit ...), feel free to try it with SVG!
 
-            var bitMap = new Bitmap(width, height);
-            var graphics = Graphics.FromImage(bitMap);
-            graphics.Clear(GetBackGroundColor);
+            var bitmap = new Bitmap(size.Width, size.Height);
+            using (Graphics graphics = Graphics.FromImage(bitmap)) {
+                graphics.Clear(GetBackGroundColor);
 
-            StringBuilder errors = new StringBuilder();
-            foreach (var b in _builders) {
-                b.BeforeDrawing(graphics);
+                double minX = double.MaxValue;
+                double maxX = -double.MaxValue;
+                double minY = double.MaxValue;
+                double maxY = -double.MaxValue;
 
-                foreach (var v in b.GetBoundingVectors()) {
-                    var vv = v as VariableVector;
+                StringBuilder errors = new StringBuilder();
+                foreach (var b in _builders) {
+                    b.BeforeDrawing(graphics);
 
-                    double? x = v.X();
-                    if (!x.HasValue) {
-                        errors.AppendLine("No x value set in vector " + (vv?.Name ?? "dependent on other vectors"));
-                    } else {
-                        minX = Math.Min(minX, x.Value);
-                        maxX = Math.Max(maxX, x.Value);
-                    }
-                    double? y = v.Y();
-                    if (!y.HasValue) {
-                        errors.AppendLine("No y value set in vector " + (vv?.Name ?? "dependent on other vectors"));
-                    } else {
-                        minY = Math.Min(minY, y.Value);
-                        maxY = Math.Max(maxY, y.Value);
+                    foreach (var v in b.GetBoundingVectors()) {
+                        var vv = v as VariableVector;
+
+                        double? x = v.X();
+                        if (!x.HasValue) {
+                            errors.AppendLine("No x value set in vector " + (vv?.Name ?? "dependent on other vectors"));
+                        } else {
+                            minX = Math.Min(minX, x.Value);
+                            maxX = Math.Max(maxX, x.Value);
+                        }
+                        double? y = v.Y();
+                        if (!y.HasValue) {
+                            errors.AppendLine("No y value set in vector " + (vv?.Name ?? "dependent on other vectors"));
+                        } else {
+                            minY = Math.Min(minY, y.Value);
+                            maxY = Math.Max(maxY, y.Value);
+                        }
                     }
                 }
+                if (errors.Length > 0) {
+                    throw new InvalidOperationException(errors.ToString());
+                }
+
+                StringBuilder htmlForTooltips = new StringBuilder();
+
+                // 5% margin on all sides
+                float BORDER = 0.1f;
+                double scaleX = size.Width * (1 - 2 * BORDER) / (maxX - minX);
+                double scaleY = size.Height * (1 - 2 * BORDER) / (maxY - minY);
+                float scale = (float) Math.Min(scaleX, scaleY); // No distortion!
+
+                graphics.Transform = new Matrix(scale, 0, 0, scale, (float) (-scale * minX + size.Width * BORDER),
+                    (float) (scale * maxY + size.Height * BORDER));
+
+                foreach (var b in _builders) {
+                    b.Draw(graphics, htmlForTooltips);
+                }
             }
-            if (errors.Length > 0) {
-                throw new InvalidOperationException(errors.ToString());
-            }
 
-            StringBuilder htmlForTooltips = new StringBuilder();
+            //var f = new Font(FontFamily.GenericSansSerif, 10);
+            //DrawText(graphics, "0|0", f, Color.Blue, C(0, 0), TextPlacing.Center);
+            //DrawText(graphics, "C|0", f, Color.Blue, C(100, 0), TextPlacing.Center);
+            //DrawText(graphics, "O|C", f, Color.Blue, C(0, 100), TextPlacing.Center);
+            //DrawText(graphics, "C|C", f, Color.Blue, C(100, 100), TextPlacing.Center);
+            Bitmap bitMap = bitmap;
+            return bitMap;
+        }
 
-            // 5% margin on all sides
-            float BORDER = 0.1f;
-            double scaleX = width * (1 - 2 * BORDER) / (maxX - minX);
-            double scaleY = height * (1 - 2 * BORDER) / (maxY - minY);
-            float scale = (float)Math.Min(scaleX, scaleY); // No distortion!
+        public void RenderToFile(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies,
+            string baseFilename, int? optionsStringLength) {
 
-            graphics.Transform = new Matrix(scale, 0, 0, scale, (float)(-scale * minX + width * BORDER), (float)(scale * maxY + height * BORDER));
-
-            foreach (var b in _builders) {
-                b.Draw(graphics, htmlForTooltips);
-            }
-
-            var f = new Font(FontFamily.GenericSansSerif, 10);
-            DrawText(graphics, "0|0", f, Color.Blue, C(0, 0), TextPlacing.Center);
-            DrawText(graphics, "C|0", f, Color.Blue, C(100, 0), TextPlacing.Center);
-            DrawText(graphics, "O|C", f, Color.Blue, C(0, 100), TextPlacing.Center);
-            DrawText(graphics, "C|C", f, Color.Blue, C(100, 100), TextPlacing.Center);
+            Size size = GetSize();
+            Bitmap bitMap = Render(items, dependencies, size);
 
             var gifFilename = baseFilename + ".gif";
             bitMap.Save(gifFilename, ImageFormat.Gif);
@@ -372,7 +393,7 @@ namespace NDepCheck.Rendering {
                 tw.WriteLine($@"
 <html>
 <body>
-<img src = ""{ Path.GetFileName(gifFilename)}"" width = ""{width}"" height = ""{height}"" usemap = ""#map"" alt = ""Webdesign Group"">
+<img src = ""{ Path.GetFileName(gifFilename)}"" width = ""{size.Width}"" height = ""{size.Height}"" usemap = ""#map"" alt = ""Webdesign Group"">
 </ body>
 </ html>
 "); // ______{htmlForTooltips}___
@@ -383,8 +404,19 @@ namespace NDepCheck.Rendering {
 
         }
 
+        public void RenderToStream(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, Stream stream, int? optionsStringLength) {
+            Size size = GetSize();
+            Bitmap bitMap = Render(items, dependencies, size);
+
+            bitMap.Save(stream, ImageFormat.Gif);
+        }
+
+        protected abstract Size GetSize();
+
         protected virtual Color GetBackGroundColor => Color.White;
 
-        protected abstract void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies);
+        protected abstract void PlaceObjects(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies);
     }
+
+    public abstract class GraphicsDependencyRenderer : GraphicsRenderer<Item, Dependency>, IDependencyRenderer { }
 }

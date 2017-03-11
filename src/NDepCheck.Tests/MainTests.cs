@@ -6,6 +6,7 @@ using System.IO;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.GraphTransformations;
+using NDepCheck.Rendering;
 
 namespace NDepCheck.Tests {
     /// <remarks>
@@ -160,8 +161,8 @@ NDepCheck:Tests ---> **
 
             new HideTransitiveEdges<Dependency>(new[] { "a" }).Run(edges.Values);
 
-            using (var sw = new StringWriter()) {
-                DependencyGrapher.WriteDotFile(edges.Values, sw, null);
+            using (var sw = new MemoryStream()) {
+                new GenericDotRenderer().RenderToStream(nodes.Values, edges.Values, sw, null);
 
                 // what to assert??
             }
@@ -200,8 +201,8 @@ NDepCheck:Tests ---> **
 
             new HideTransitiveEdges<Dependency>(new[] { "a" }).Run(edges.Values);
 
-            using (var sw = new StringWriter()) {
-                DependencyGrapher.WriteDotFile(edges.Values, sw, null);
+            using (var s = new MemoryStream()) {
+                new DotRenderer().RenderToStream(nodes.Values, edges.Values, s, null);
 
                 // what to assert??
             }

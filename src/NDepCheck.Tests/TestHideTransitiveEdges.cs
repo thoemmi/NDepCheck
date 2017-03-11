@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.GraphTransformations;
+using NDepCheck.Rendering;
 
 namespace NDepCheck.Tests {
     [TestClass]
@@ -43,13 +44,14 @@ namespace NDepCheck.Tests {
 
             new HideTransitiveEdges<TestEdge>(new string[0]).Run(edges);
 
-            using (var sw = new StringWriter()) {
-                DependencyGrapher.WriteDotFile(edges, sw, null);
+            using (var s = new MemoryStream()) {
+                new GenericDotRenderer().RenderToStream(nodes.Values, edges, s, null);
+
                 int ctEdgesAfterHiding = edges.Count(e => !e.Hidden);
                 Assert.IsTrue(ctEdgesAfterHiding < ctEdgesBeforeHiding, ctEdgesAfterHiding + " not < " + ctEdgesBeforeHiding);
+
+                // what else to assert??
             }
-
-
         }
 
         [TestMethod]
@@ -233,12 +235,13 @@ namespace NDepCheck.Tests {
 
             new HideTransitiveEdges<TestEdge>(new string[0]).Run(edges);
 
-            using (var sw = new StringWriter()) {
-                DependencyGrapher.WriteDotFile(edges, sw, null);
+            using (var s = new MemoryStream()) {
+                new GenericDotRenderer().RenderToStream(nodes.Values, edges, s, null);
 
                 int ctEdgesAfterHiding = edges.Count(e => !e.Hidden);
-
                 Assert.IsTrue(ctEdgesAfterHiding < ctEdgesBeforeHiding, ctEdgesAfterHiding + " not < " + ctEdgesBeforeHiding);
+
+                // what else to assert??
             }
         }
     }

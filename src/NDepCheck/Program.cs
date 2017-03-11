@@ -70,13 +70,6 @@ namespace NDepCheck {
                 } else if (ArgMatches(arg, 'f')) {
                     // -f &      Set file location with reader defined by file extension
                     CreateInputOption(args, ref i, null, options, readOnlyItems: false);
-                } else if (ArgMatches(arg, 'g')) {
-                    // -g &      Write graph output to file (after lazy reading; after lazy dep->graph run)
-                    string filename = ExtractOptionValue(args, ref i);
-                    if (string.IsNullOrWhiteSpace(filename)) {
-                        return UsageAndExit("Missing filename after " + arg);
-                    }
-                    state.ReadAll(options).ReduceGraph(options, false).WriteDotFile(options, filename);
                 } else if (arg == "-h" || arg == "/h") {
                     // -h        Do write extensive help
                     return UsageAndExit(null, completeHelp: true);
@@ -100,28 +93,9 @@ namespace NDepCheck {
                     // -l &      Set file location with reader defined by file extension
                     CreateInputOption(args, ref i, null, options, readOnlyItems: true);
                 } else if (ArgMatches(arg, 'm')) {
-                    // -m &      Write matrix output to file (after lazy reading; after lazy dep->graph run)
-
-                    char format = '1';
-                    if (arg.Length >= 3) {
-                        switch (arg[2]) {
-                            case '=':
-                                // Use default
-                                break;
-                            case '1':
-                            case '2':
-                                format = arg[2];
-                                break;
-                            default:
-                                return UsageAndExit("Unsupported matrix format option in " + arg);
-                        }
-                    }
-
-                    string filename = ExtractOptionValue(args, ref i);
-                    if (string.IsNullOrWhiteSpace(filename)) {
-                        return UsageAndExit("Missing filename after " + arg);
-                    }
-                    state.ReadAll(options).ReduceGraph(options, false).WriteMatrixFile(options, format, filename);
+                    // -m $      Do graph transformation $ (after lazy reading; after lazy depcheck; and lazy dep->graph run)
+                    string transformationOption = ExtractOptionValue(args, ref i);
+                    state.ReadAll(options).ReduceGraph(options, true).TransformGraph(transformationOption);
                 } else if (ArgMatches(arg, 'n')) {
                     // -n #|all  Set cpu count (currently no-op)
                     string ms = ExtractOptionValue(args, ref i);
@@ -152,9 +126,20 @@ namespace NDepCheck {
                     // -q        Set option to show unused questionable rules
                     options.ShowUnusedQuestionableRules = true;
                 } else if (ArgMatches(arg, 'r')) {
-                    // -r *      Do graph transformation (after lazy reading; after lazy depcheck; and lazy dep->graph run)
-                    string transformationOption = ExtractOptionValue(args, ref i);
-                    state.ReadAll(options).ReduceGraph(options, true).TransformGraph(transformationOption);
+                    // -r & $ &  Render with $ in assembly & to file & (after lazy reading and lazy dep->graph run)
+                    string assemblyName = ExtractOptionValue(args, ref i);
+                    if (string.IsNullOrWhiteSpace(assemblyName)) {
+                        return UsageAndExit("Missing assembly name after " + arg);
+                    }
+                    string rendererClassName = ExtractNextValue(args, ref i);
+                    if (string.IsNullOrWhiteSpace(rendererClassName)) {
+                        return UsageAndExit("Missing renderer class after " + arg + " " + assemblyName);
+                    }
+                    string filename = ExtractNextValue(args, ref i);
+                    if (string.IsNullOrWhiteSpace(filename)) {
+                        return UsageAndExit("Missing filename after " + arg + " " + assemblyName + " " + rendererClassName);
+                    }
+                    state.ReadAll(options).ReduceGraph(options, false).RenderToFile(options, assemblyName, rendererClassName, filename);
                 } else if (ArgMatches(arg, 's')) {
                     // -s &      Set directory tree search location for rule files
                     string path = ExtractOptionValue(args, ref i);
@@ -186,7 +171,7 @@ namespace NDepCheck {
                 } else if (ArgMatches(arg, 'y')) {
                     // -y <type> <type>        Set itemtypes for reductions
                     string usingFormat = ExtractOptionValue(args, ref i);
-                    string usedFormat = args[++i];
+                    string usedFormat = ExtractNextValue(args, ref i);
                     options.UsingItemType = ItemType.New(usingFormat);
                     options.UsedItemType = ItemType.New(usedFormat);
                 } else if (ArgMatches(arg, 'z')) {
@@ -228,6 +213,10 @@ namespace NDepCheck {
             }
 
             return result;
+        }
+
+        private static string ExtractNextValue(string[] args, ref int i) {
+            return i <= args.Length ? args[++i] : null;
         }
 
         private bool ArgMatches(string arg, char option) {
@@ -303,6 +292,7 @@ All messages of NDepCheck are written to Console.Out.
 
 Options overview:
     & in the following is a filename.
+    $ in the following is a name.
     # in the following is a positive integer number.
     Options can be written with leading - or /
 
@@ -314,16 +304,15 @@ Options overview:
     -debug    Do start .Net debugger
     -e $ &    Set file location with defined reader $ (currently supported: dip, dll, exe)
     -f &      Set file location with reader defined by file extension
-    -g &      Write graph output to file (after lazy reading; after lazy dep->graph run)
     -h        Do write extensive help
     -i        Set ignorecase option
     -j #      Set edge length for graph output
-    -m &      Write matrix output to file (after lazy reading; after lazy dep->graph run)
+    -m $      Do graph transformation (after lazy reading; after lazy depcheck; and lazy dep->graph run)
     -n #|all  Set cpu count (currently no-op)
     -o &      Do write xml depcheck output (after lazy reading; after lazy depcheck)
     -p        Do write standard depcheck output (after lazy reading; after lazy depcheck)
     -q        Set option to show unused questionable rules
-    -r *      Do graph transformation (after lazy reading; after lazy depcheck; and lazy dep->graph run)
+    -r & $ &  Render with $ in assembly & to file & (after lazy reading and lazy dep->graph run)
     -s &      Set directory tree search location for rule files
     -t &      Set rule file extension (default .dep; specify before -s!)
     -u        Set option to show unused rules

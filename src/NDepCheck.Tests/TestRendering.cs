@@ -13,7 +13,7 @@ namespace NDepCheck.Tests {
 
         #region Simple tests
 
-        internal class DelegteTestRenderer : Renderer {
+        internal class DelegteTestRenderer : GraphicsRenderer<Item, Dependency> {
             private readonly Action<DelegteTestRenderer> _placeObjects;
 
             public DelegteTestRenderer(Action<DelegteTestRenderer> placeObjects) {
@@ -25,13 +25,16 @@ namespace NDepCheck.Tests {
             protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
                 _placeObjects(this);
             }
+
+            protected override Size GetSize() {
+                return new Size(300, 400);
+            }
         }
 
         private static void CreateAndRender(Action<DelegteTestRenderer> placeObjects) {
             string tempFile = Path.GetTempFileName();
             Console.WriteLine(tempFile + ".gif");
-            new DelegteTestRenderer(placeObjects).RenderToFile(Enumerable.Empty<Item>(), Enumerable.Empty<Dependency>(),
-                tempFile, 300, 400);
+            new DelegteTestRenderer(placeObjects).RenderToFile(Enumerable.Empty<Item>(), Enumerable.Empty<Dependency>(), tempFile, null);
         }
 
         [TestMethod]
@@ -84,7 +87,17 @@ namespace NDepCheck.Tests {
 
         #region Somewhat complex tests
 
-        internal class SomewhatComplexTestRenderer : Renderer {
+        internal class SomewhatComplexTestRenderer : GraphicsRenderer<Item, Dependency> {
+            private readonly Size _size;
+
+            public SomewhatComplexTestRenderer(Size size) {
+                _size = size;
+            }
+
+            protected override Size GetSize() {
+                return _size;
+            }
+
             protected override Color GetBackGroundColor => Color.Yellow;
 
             protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
@@ -129,7 +142,7 @@ namespace NDepCheck.Tests {
 
             string tempFile = Path.GetTempFileName();
             Console.WriteLine(tempFile + ".gif");
-            new SomewhatComplexTestRenderer().RenderToFile(items, dependencies, tempFile, width, height);
+            new SomewhatComplexTestRenderer(new Size(width, height)).RenderToFile(items, dependencies, tempFile, null);
         }
 
         [TestMethod]
@@ -171,7 +184,11 @@ namespace NDepCheck.Tests {
 
         #region IXOS-Rendering
 
-        internal class IXOSApplicationRenderer : Renderer {
+        internal class IXOSApplicationRenderer : GraphicsRenderer<Item, Dependency> {
+            protected override Size GetSize() {
+                return new Size(2000, 1600);
+            }
+
             protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
                 // ItemType Name:Order
 
