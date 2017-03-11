@@ -4,146 +4,16 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Linq;
 using System.Text;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Rendering {
-    public interface IRectangle {
+    public interface IBox {
         Vector Center { get; }
-        Vector GetAnchor(Vector toCenter, double angle = Math.PI / 4);
+        Vector GetBestAnchor(Vector farAway);
     }
 
-    public interface ILine {
-    }
-
-    public class VariableVector : Vector {
-        public string Name {
-            get;
-        }
-        private double? _x;
-        private double? _y;
-
-        public VariableVector(string name, double? x = null, double? y = null) {
-            Name = name;
-            Set(x, y);
-        }
-
-        public void Set(double? x, double? y) {
-            SetX(x);
-            SetY(y);
-        }
-
-        public void SetX(double? x) {
-            _x = x;
-        }
-
-        public void SetY(double? y) {
-            _y = y;
-        }
-
-        public override Func<double?> X => () => _x;
-        public override Func<double?> Y => () => _y;
-    }
-
-    public class DependentVector : Vector {
-        public DependentVector(Func<double?> x, Func<double?> y) {
-            X = x;
-            Y = y;
-        }
-
-        public override Func<double?> X {
-            get;
-        }
-
-        public override Func<double?> Y {
-            get;
-        }
-    }
-
-    public abstract class Vector {
-        public abstract Func<double?> X {
-            get;
-        }
-        public abstract Func<double?> Y {
-            get;
-        }
-
-        public static Vector Fixed(double x, double y) {
-            return new FixedVector(x, y);
-        }
-
-        public PointF AsPointF() {
-            return new PointF(GetX(), (float) GetY());
-        }
-
-        public float GetX() {
-            double? x = X();
-            if (!x.HasValue) {
-                throw new InvalidOperationException("X has no value");
-            }
-            return (float) x.Value;
-        }
-
-        public float GetY() {
-            double? y = Y();
-            if (!y.HasValue) {
-                throw new InvalidOperationException("Y has no value");
-            }
-            return (float) y.Value;
-        }
-
-        private class FixedVector : Vector {
-            private readonly double _x;
-            private readonly double _y;
-
-            public FixedVector(double x, double y) {
-                _x = x;
-                _y = y;
-            }
-
-            public override Func<double?> X => () => _x;
-            public override Func<double?> Y => () => _y;
-        }
-
-        public static Vector operator +([NotNull] Vector v1, [NotNull] Vector v2) {
-            CheckNotNull(v1);
-            CheckNotNull(v2);
-            return new DependentVector(() => v1.X() + v2.X(), () => v1.Y() + v2.Y());
-        }
-
-        private static void CheckNotNull(Vector v) {
-            if (v == null) {
-                throw new ArgumentNullException(nameof(v));
-            }
-        }
-
-        public static Vector operator -([NotNull] Vector v1, [NotNull] Vector v2) {
-            CheckNotNull(v1);
-            CheckNotNull(v2);
-            return new DependentVector(() => v1.X() - v2.X(), () => v1.Y() - v2.Y());
-        }
-
-        public static Vector operator *([NotNull] Vector v, double d) {
-            CheckNotNull(v);
-            return new DependentVector(() => v.X() * d, () => v.Y() * d);
-        }
-
-        public static Vector operator *(double d, [NotNull] Vector v) {
-            CheckNotNull(v);
-            return new DependentVector(() => v.X() * d, () => v.Y() * d);
-        }
-
-        public static Vector operator /([NotNull] Vector v, double d) {
-            CheckNotNull(v);
-            return new DependentVector(() => v.X() / d, () => v.Y() / d);
-        }
-    }
-
-    public static class DrawingExtensions {
-        public static Vector C(this double x, double y) {
-            return Vector.Fixed(x, y);
-        }
+    public interface IArrow {
     }
 
     public abstract class Renderer {
@@ -151,22 +21,23 @@ namespace NDepCheck.Rendering {
             return Vector.Fixed(x, y);
         }
 
+        public static Vector V(string name, double? x, double? y) {
+            return Vector.Variable(name, x, y);
+        }
+
         public enum TextPlacing {
             Left, Center, Right, LeftUp, CenterUp, RightUp, LeftDown, CenterDown, RightDown
         }
 
-        public enum Tip {
-            Simple, Arrow
-        }
-
         private interface IBuilder {
-            IEnumerable<Vector> GetAllVectors();
+            IEnumerable<Vector> GetBoundingVectors();
+            void BeforeDrawing(Graphics graphics);
             void Draw(Graphics graphics, StringBuilder htmlForTooltips);
         }
 
-        private class RectangleBuilder : IBuilder, IRectangle {
+        private class BoxBuilder : IBuilder, IBox {
             private readonly Vector _center;
-            private readonly Vector _halfSize;
+            private readonly Vector _halfDiagonal;
             private readonly double _borderWidth;
             private readonly string _text;
             private readonly TextPlacing _placing;
@@ -174,14 +45,13 @@ namespace NDepCheck.Rendering {
             private readonly Color _textColor;
             private readonly Font _textFont;
             private readonly Color _borderColor;
+            private readonly int _anchorNr;
             private readonly Color _color;
 
-            public RectangleBuilder(Vector center, Vector halfSize, Color color,
-            double borderWidth, Color borderColor,
-            string text, TextPlacing placing, Font textFont, Color textColor,
-            string tooltip) {
+            public BoxBuilder(Vector center, Vector halfDiagonal, Color color, double borderWidth, Color borderColor,
+                int anchorNr, string text, TextPlacing placing, Font textFont, Color textColor, string tooltip) {
                 _center = center;
-                _halfSize = halfSize;
+                _halfDiagonal = halfDiagonal;
                 _color = color;
                 _borderWidth = borderWidth;
                 _text = text;
@@ -190,82 +60,157 @@ namespace NDepCheck.Rendering {
                 _textColor = textColor;
                 _textFont = textFont;
                 _borderColor = borderColor;
+                _anchorNr = anchorNr;
             }
 
-            public Vector Center {
-                get { return _center; }
-            }
+            public Vector Center => _center;
 
             public void Draw(Graphics graphics, StringBuilder htmlForTooltips) {
-                Vector leftUpper = _center - _halfSize;
+                Vector leftUpper = _center - ~_halfDiagonal;
 
-                Vector diagonal = 2 * _halfSize;
-                graphics.FillRectangle(new SolidBrush(_borderColor), leftUpper.GetX(), leftUpper.GetY(), diagonal.GetX(), diagonal.GetY());
+                Vector diagonal = 2 * _halfDiagonal;
+                FillBox(graphics, new SolidBrush(_borderColor), leftUpper.GetX(), -leftUpper.GetY(), diagonal.GetX(),
+                    diagonal.GetY());
 
-                Vector diagonalInner = diagonal - _borderWidth.C(_borderWidth);
-                graphics.FillRectangle(new SolidBrush(_color), leftUpper.GetX(), leftUpper.GetY(), diagonalInner.GetX(), diagonalInner.GetY());
+                Vector borderDiagonal = C(_borderWidth, _borderWidth);
+                Vector leftUpperInner = leftUpper + ~borderDiagonal;
+                Vector diagonalInner = diagonal - 2 * borderDiagonal;
+                FillBox(graphics, new SolidBrush(_color), leftUpperInner.GetX(), -leftUpperInner.GetY(),
+                    diagonalInner.GetX(), diagonalInner.GetY());
 
                 DrawText(graphics, _text, _textFont, _textColor, _center, _placing);
 
                 // Get all these elements somehow and then do a "draw tooltip" ...
             }
 
-            public IEnumerable<Vector> GetAllVectors() {
-                yield return _center;
-                yield return _halfSize;
+            private void FillBox(Graphics graphics, SolidBrush b, float x, float y, float width, float height) {
+                //Console.WriteLine($"FillBox({x},{y},{width},{height})");
+                graphics.FillRectangle(b, x, y, width, height);
             }
 
-            public Vector GetAnchor(Vector toCenter, double angle = 0.785398163397448) {
-                throw new NotImplementedException();
+            public IEnumerable<Vector> GetBoundingVectors() {
+                yield return _center + _halfDiagonal;
+                yield return _center - _halfDiagonal;
+            }
+
+            /// <summary>
+            ///  Assert angle is in [0, 2*pi)
+            /// </summary>
+            /// <param name="a"></param>
+            /// <returns></returns>
+            private static double NormalizedAngle(double a) {
+                const double twoPI = 2 * Math.PI;
+                return a - Math.Floor(a / twoPI) * twoPI;
+            }
+
+            public Vector GetBestAnchor(Vector farAway) {
+                double sectorAngle = 2 * Math.PI / _anchorNr;
+                Func<Vector> findNearestAnchor = () => {
+                    var d = farAway - _center;
+                    double angle = Math.Atan2(d.GetY(), d.GetX());
+                    double roundedAngle =
+                        NormalizedAngle(Math.Round(angle / sectorAngle) * sectorAngle);
+                    double diagX = _halfDiagonal.GetX();
+                    double diagY = _halfDiagonal.GetY();
+                    double diagonalAngle = NormalizedAngle(Math.Atan2(diagY, diagX));
+                    double x, y;
+                    if (roundedAngle < diagonalAngle) {
+                        x = diagX;
+                        y = x * Math.Tan(roundedAngle);
+                    } else if (roundedAngle < Math.PI - diagonalAngle) {
+                        y = diagY;
+                        x = y * Math.Tan(Math.PI / 2 - roundedAngle);
+                    } else if (roundedAngle < Math.PI + diagonalAngle) {
+                        x = -diagX;
+                        y = x * Math.Tan(roundedAngle);
+                    } else if (roundedAngle < 2 * Math.PI - diagonalAngle) {
+                        y = -diagY;
+                        x = y * Math.Tan(Math.PI / 2 - roundedAngle);
+                    } else {
+                        x = diagX;
+                        y = x * Math.Tan(roundedAngle);
+                    }
+                    return _center + C(x, y);
+                };
+                return new DependentVector(() => findNearestAnchor().GetX(), () => findNearestAnchor().GetY());
+            }
+
+            public void BeforeDrawing(Graphics graphics) {
+                var hd = _halfDiagonal as VariableVector;
+                if (hd != null) {
+                    bool hasX = hd.X().HasValue;
+                    bool hasY = hd.Y().HasValue;
+                    if (!hasX || !hasY) {
+                        // Compute missing parts from text and font
+                        SizeF size = graphics.MeasureString(_text, _textFont);
+                        if (!hasX) {
+                            // 20% padding by default
+                            hd.SetX(size.Width / 2 * 1.2);
+                        }
+                        if (!hasY) {
+                            // 20% padding by default
+                            hd.SetY(size.Height / 2 * 1.2);
+                        }
+                    }
+
+
+                }
             }
         }
 
-        private class LineBuilder : IBuilder, ILine {
+        private class ArrowBuilder : IBuilder, IArrow {
             private readonly Vector _tail;
             private readonly Vector _head;
             private readonly double _width;
             private readonly Color _color;
-            private readonly Tip _tailTip;
-            private readonly Tip _headTip;
             private readonly string _text;
             private readonly TextPlacing _placing;
             private readonly Font _textFont;
             private readonly Color _textColor;
+            private readonly double _textLocation;
             private readonly string _tooltip;
 
-            internal LineBuilder(Vector tail, Vector head, double width, Color color, Tip tailTip, Tip headTip,
-                        string text, TextPlacing placing, Font textFont, Color textColor,
+            internal ArrowBuilder(Vector tail, Vector head, double width, Color color,
+                        string text, TextPlacing placing, Font textFont, Color textColor, double textLocation,
                         string tooltip) {
                 _tail = tail;
                 _head = head;
                 _width = width;
                 _color = color;
-                _tailTip = tailTip;
-                _headTip = headTip;
                 _text = text;
                 _placing = placing;
                 _textFont = textFont;
                 _textColor = textColor;
+                _textLocation = textLocation;
                 _tooltip = tooltip;
             }
 
-            public IEnumerable<Vector> GetAllVectors() {
+            public IEnumerable<Vector> GetBoundingVectors() {
                 yield return _tail;
                 yield return _head;
             }
+
             public void Draw(Graphics graphics, StringBuilder htmlForTooltips) {
+                float fWidth = (float)_width;
 
-                graphics.DrawLine(new Pen(_color, (float) _width), _tail.AsPointF(), _head.AsPointF());
-                DrawTip(graphics, _tail, _head, _headTip);
-                DrawTip(graphics, _head, _tail, _tailTip);
-
-                DrawText(graphics, _text, _textFont, _textColor, (_head + _tail) / 2, _placing);
+                if (_tail.AsPointF() != _head.AsPointF()) {
+                    float absoluteArrowSize = Math.Min(10 * fWidth, (float)_head.To(_tail) / 4);
+                    var pen = new Pen(_color, fWidth) {
+                        StartCap = LineCap.RoundAnchor,
+                        // arrowsize is relative to line width
+                        CustomEndCap = new AdjustableArrowCap(absoluteArrowSize / fWidth, absoluteArrowSize / fWidth, isFilled: false)
+                    };
+                    graphics.DrawLine(pen, (~_tail).AsPointF(), (~_head).AsPointF());
+                } else {
+                    graphics.FillEllipse(new SolidBrush(_color), _head.GetX() - fWidth/2, -_head.GetY() - fWidth/2, fWidth, fWidth);
+                }
+                DrawText(graphics, _text, _textFont, _textColor, _tail * (1 - _textLocation) + _head * _textLocation, _placing);
 
                 // Get all these elements somehow and then do a "draw tooltip" ...
             }
 
-            private void DrawTip(Graphics graphics, Vector tail, Vector head, Tip headTip) {
-                // not yet implemented
+            public void BeforeDrawing(Graphics graphics) {
+                // empty
             }
         }
 
@@ -282,11 +227,12 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        protected readonly Store<Item, IRectangle> ItemRectangles = new Store<Item, IRectangle>();
-        protected readonly Store<Dependency, ILine> DependencyLines = new Store<Dependency, ILine>();
+        protected readonly Store<Item, IBox> ItemBoxes = new Store<Item, IBox>();
+        protected readonly Store<Dependency, IArrow> DependencyArrows = new Store<Dependency, IArrow>();
 
         private static void DrawText(Graphics graphics, string text, Font textFont, Color textColor, Vector center, TextPlacing textPlacing) {
-            graphics.DrawString(text, textFont, new SolidBrush(textColor), center.AsPointF(),
+            //graphics.FillEllipse(new SolidBrush(Color.Red), center.GetX() - 3, -center.GetY() - 3, 6, 6);
+            graphics.DrawString(text, textFont, new SolidBrush(textColor), (~center - C(0, textFont.GetHeight() / 2)).AsPointF(),
                 new StringFormat(GetDirection(textPlacing)) { Alignment = GetStringAlignment(textPlacing), });
         }
 
@@ -327,46 +273,71 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        protected IRectangle CreateRectangle(Vector center, Vector halfSize, Color? color = null /*White*/,
-            double borderWidth = 0, Color? borderColor = null /*Black*/,
-            string text = "", TextPlacing placing = TextPlacing.Center, Font textFont = null /*___*/, Color? textColor = null /*Black*/,
-            string tooltip = "") {
-            var rectangleBuilder = new RectangleBuilder(center, halfSize, color ?? Color.White, borderWidth, borderColor ?? Color.Black,
-                text, placing, textFont ?? new Font(FontFamily.GenericSansSerif, 10), textColor ?? Color.Black, tooltip);
-            _builders.Add(rectangleBuilder);
-            return rectangleBuilder;
+        public IBox Box([NotNull] Vector center, [CanBeNull] Vector halfDiagonal, [CanBeNull] string text,
+            [CanBeNull] Color? color = null /*White*/, int anchorNr = 8,
+            double borderWidth = 0, [CanBeNull] Color? borderColor = null /*Black*/,
+            TextPlacing placing = TextPlacing.Center, [CanBeNull] Font textFont = null /*___*/, [CanBeNull] Color? textColor = null /*Black*/,
+            [CanBeNull] string tooltip = null) {
+            if (center == null) {
+                throw new ArgumentNullException(nameof(center));
+            }
+            var boxBuilder = new BoxBuilder(center, halfDiagonal ?? new VariableVector(text ?? center.ToString()), color ?? Color.White, 
+                borderWidth, borderColor ?? Color.Black, anchorNr,
+                text ?? "", placing, textFont ?? new Font(FontFamily.GenericSansSerif, 10), textColor ?? Color.Black, tooltip ?? "");
+            _builders.Add(boxBuilder);
+            return boxBuilder;
         }
 
-        protected ILine CreateLine(Vector tail, Vector head, double width, Color? color = null /*Black*/, Tip tailtip = Tip.Simple, Tip headtip = Tip.Simple,
-            string text = "", TextPlacing placing = TextPlacing.Center, Font textFont = null /*___*/, Color? textColor = null /*Black*/,
-            string tooltip = "") {
-            var lineBuilder = new LineBuilder(tail, head, width, color ?? Color.Black, tailtip, headtip,
-                text, placing, textFont ?? new Font(FontFamily.GenericSansSerif, 10), textColor ?? Color.Black, tooltip);
-            _builders.Add(lineBuilder);
-            return lineBuilder;
+        public IArrow Arrow([NotNull] Vector tail, [NotNull] Vector head, double width, [CanBeNull] Color? color = null /*Black*/,
+            [CanBeNull] string text = null, TextPlacing placing = TextPlacing.Center, [CanBeNull] Font textFont = null /*___*/,
+            [CanBeNull] Color? textColor = null /*Black*/, double textLocation = 0.5, [CanBeNull] string tooltip = null) {
+            if (tail == null) {
+                throw new ArgumentNullException(nameof(tail));
+            }
+            if (head == null) {
+                throw new ArgumentNullException(nameof(head));
+            }
+            var arrowBuilder = new ArrowBuilder(tail, head, width, color ?? Color.Black,
+                text ?? "", placing, textFont ?? new Font(FontFamily.GenericSansSerif, 10), textColor ?? Color.Black,
+                textLocation, tooltip);
+            _builders.Add(arrowBuilder);
+            return arrowBuilder;
         }
 
-        public void DrawToFile(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string baseFilename, int width, int height) {
-            CreateImage(items, dependencies);
+        public void RenderToFile(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string baseFilename, int width, int height) {
+            PlaceObjects(items, dependencies);
 
             double minX = double.MaxValue;
             double maxX = -double.MaxValue;
             double minY = double.MaxValue;
             double maxY = -double.MaxValue;
 
+            // I tried it with SVG - but SVG support in .Net seems to be non-existent.
+            // The library at https://github.com/managed-commons/SvgNet is a nice attempet (a 2015 resurrection of a 2003 attempt),
+            // but it closes off the SVG objects in such a way that adding tooltips ("mouse hoverings") seems very hard.
+            // If someone knows more about SVG than I (who doesn't know a bit ...), feel free to try it with SVG!
+
+            var bitMap = new Bitmap(width, height);
+            var graphics = Graphics.FromImage(bitMap);
+            graphics.Clear(Color.Yellow);
+
             StringBuilder errors = new StringBuilder();
             foreach (var b in _builders) {
-                foreach (var v in b.GetAllVectors().OfType<VariableVector>()) {
+                b.BeforeDrawing(graphics);
+
+                foreach (var v in b.GetBoundingVectors()) {
+                    var vv = v as VariableVector;
+
                     double? x = v.X();
                     if (!x.HasValue) {
-                        errors.AppendLine("No x value set in vector " + v.Name);
+                        errors.AppendLine("No x value set in vector " + (vv?.Name ?? "dependent on other vectors"));
                     } else {
                         minX = Math.Min(minX, x.Value);
                         maxX = Math.Max(maxX, x.Value);
                     }
-                    double? y = v.X();
+                    double? y = v.Y();
                     if (!y.HasValue) {
-                        errors.AppendLine("No y value set in vector " + v.Name);
+                        errors.AppendLine("No y value set in vector " + (vv?.Name ?? "dependent on other vectors"));
                     } else {
                         minY = Math.Min(minY, y.Value);
                         maxY = Math.Max(maxY, y.Value);
@@ -377,26 +348,37 @@ namespace NDepCheck.Rendering {
                 throw new InvalidOperationException(errors.ToString());
             }
 
-            // I tried it with SVG - but SVG support in .Net seems to be non-existent.
-            // The library at https://github.com/managed-commons/SvgNet is a nice attempet (a 2015 resurrection of a 2003 attempt),
-            // but it closes off the SVG objects in such a way that adding tooltips ("mouse hoverings") seems very hard.
-            // If someone knows more about SVG than I (who doesn't know a bit ...), feel free to try it with SVG!
-
-            var bitMap = new Bitmap(width, height);
-            var graphics = Graphics.FromImage(bitMap);
-
             StringBuilder htmlForTooltips = new StringBuilder();
 
-            graphics.Transform = new Matrix(0, 1, 2, 3, 4, 5);
+            // 5% margin
+            float BORDER = 0.1f;
+            double scaleX = width * (1 - 2 * BORDER) / (maxX - minX);
+            double scaleY = height * (1 - 2 * BORDER) / (maxY - minY);
+            float scale = (float)Math.Min(scaleX, scaleY); // No distortion!
+
+            ////graphics.Transform = new Matrix(1, 0, 0, 1, 200, 400);
+            graphics.Transform = new Matrix(scale, 0, 0, scale, (float)(-scale * minX + width * BORDER), (float)(scale * maxY + height * BORDER));
 
             foreach (var b in _builders) {
                 b.Draw(graphics, htmlForTooltips);
             }
 
+            var f = new Font(FontFamily.GenericSansSerif, 10);
+            DrawText(graphics, "0|0", f, Color.Blue, C(0, 0), TextPlacing.Center);
+            DrawText(graphics, "C|0", f, Color.Blue, C(100, 0), TextPlacing.Center);
+            DrawText(graphics, "O|C", f, Color.Blue, C(0, 100), TextPlacing.Center);
+            DrawText(graphics, "C|C", f, Color.Blue, C(100, 100), TextPlacing.Center);
+
             var gifFilename = baseFilename + ".gif";
             bitMap.Save(gifFilename, ImageFormat.Gif);
             using (var tw = new StreamWriter(baseFilename + ".html")) {
-                tw.WriteLine($"___{Path.GetFileName(gifFilename)}___{htmlForTooltips}___");
+                tw.WriteLine($@"
+<html>
+<body>
+<img src = ""{ Path.GetFileName(gifFilename)}"" width = ""{width}"" height = ""{height}"" usemap = ""#map"" alt = ""Webdesign Group"">
+</ body>
+</ html>
+"); // ______{htmlForTooltips}___
             }
 
 
@@ -404,6 +386,6 @@ namespace NDepCheck.Rendering {
 
         }
 
-        protected abstract void CreateImage(IEnumerable<Item> items, IEnumerable<Dependency> dependencies);
+        protected abstract void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies);
     }
 }

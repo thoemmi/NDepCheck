@@ -8,3 +8,5 @@ thumbs.db
 *.nupkg
 
 src/CommonAssemblyInfo.cs
+*.bak
+/ToDos.txt

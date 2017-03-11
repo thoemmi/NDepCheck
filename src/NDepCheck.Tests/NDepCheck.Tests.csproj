@@ -64,6 +64,7 @@
       <SpecificVersion>True</SpecificVersion>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
@@ -74,9 +75,11 @@
     <Compile Include="MainTests.cs" />
     <Compile Include="TestEdge.cs" />
     <Compile Include="TestHideTransitiveEdges.cs" />
+    <Compile Include="TestRendering.cs" />
     <Compile Include="TestUnhideCycles.cs" />
     <Compile Include="TestNode.cs" />
     <Compile Include="TestPatternsAndItems.cs" />
+    <Compile Include="TestVectors.cs" />
     <Compile Include="TestWriteMatrixFile.cs" />
   </ItemGroup>
   <ItemGroup>

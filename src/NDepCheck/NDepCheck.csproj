@@ -131,6 +131,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="GraphTransformations\UnhideCycles.cs" />
     <Compile Include="GraphTransformations\HideTransitiveEdges.cs" />
+    <Compile Include="Rendering\Vector.cs" />
     <Compile Include="RuleViolation.cs" />
     <Compile Include="XmlViolationsWriter.cs" />
     <Compile Include="Rendering\Renderer.cs" />
