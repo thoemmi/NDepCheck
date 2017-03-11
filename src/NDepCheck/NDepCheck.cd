@@ -63,11 +63,11 @@
       <FileName>DependencyRuleGroup.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="NDepCheck.GraphAbstraction">
+  <Class Name="NDepCheck.Projection">
     <Position X="14.5" Y="7.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>QCAAAgAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAQAAAAA=</HashCode>
-      <FileName>GraphAbstraction.cs</FileName>
+      <FileName>Projection.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="NDepCheck.Macro" Collapsed="true">

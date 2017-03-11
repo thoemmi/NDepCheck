@@ -64,7 +64,7 @@ namespace NDepCheck {
                 var a = Assembly.LoadFrom(assemblyName);
                 renderer = (IDependencyRenderer)Activator.CreateInstance(a.GetType(rendererClassName, true, ignoreCase: true));
             } catch (Exception ex) {
-                throw new ApplicationException($"Cannot create renderer {rendererClassName} from assembly {assemblyName}; problem: " + ex.Message, ex);
+                throw new ApplicationException($"Cannot create renderer {rendererClassName} from assembly {assemblyName} running in working directory {Environment.CurrentDirectory}; problem: " + ex.Message, ex);
             }
             options.GraphingDone = true;
 

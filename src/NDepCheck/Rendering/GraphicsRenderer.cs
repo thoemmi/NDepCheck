@@ -381,15 +381,14 @@ namespace NDepCheck.Rendering {
             return bitMap;
         }
 
-        public void RenderToFile(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies,
-            string baseFilename, int? optionsStringLength) {
+        public void RenderToFile(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, string baseFilename, int? optionsStringLength) {
 
             Size size = GetSize();
             Bitmap bitMap = Render(items, dependencies, size);
 
-            var gifFilename = baseFilename + ".gif";
+            string gifFilename = Path.ChangeExtension(baseFilename, ".gif");
             bitMap.Save(gifFilename, ImageFormat.Gif);
-            using (var tw = new StreamWriter(baseFilename + ".html")) {
+            using (var tw = new StreamWriter(Path.ChangeExtension(baseFilename, ".html"))) {
                 tw.WriteLine($@"
 <html>
 <body>

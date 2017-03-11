@@ -95,6 +95,10 @@
       <Project>{724AFB8E-E89C-4864-B9E1-274D177524FA}</Project>
       <Name>NDepCheck.TestAssemblyÄÖÜß</Name>
     </ProjectReference>
+    <ProjectReference Include="..\NDepCheck.TestRenderer\NDepCheck.TestRenderer.csproj">
+      <Project>{72a2f47a-4902-47e2-a1ab-3715f3139b53}</Project>
+      <Name>NDepCheck.TestRenderer</Name>
+    </ProjectReference>
     <ProjectReference Include="..\NDepCheck\NDepCheck.csproj">
       <Project>{FF14C674-9AC8-4658-8A89-C2EEAC3453F3}</Project>
       <Name>NDepCheck</Name>

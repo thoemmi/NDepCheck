@@ -18,7 +18,7 @@ namespace NDepCheck {
 
     /// <remarks>
     /// Parent class for pattern objects (currently,
-    /// <see>DependencyRule</see> and <see>GraphAbstraction</see>).
+    /// <see>DependencyRule</see> and <see>Projection</see>).
     /// This class provides the helper methods to produce
     /// regular expressions from wildcard patterns; and to
     /// extend regular expression in four ways (not at all,

@@ -200,8 +200,9 @@ namespace NDepCheck {
                     } else if (ProcessMacroIfFound(globalContext, line, ignoreCase)) {
                         // macro is already processed as side effect in ProcessMacroIfFound()
                     } else if (line.StartsWith(ABSTRACT_IT) || line.StartsWith(ABSTRACT_IT_AS_INNER)) {
+                        string rule = line.Substring(1).Trim();
                         bool ok = AddProjections(usingItemType, usedItemType, isInner: line.StartsWith(ABSTRACT_IT_AS_INNER),
-                                                 ruleFileName: fullRuleFilename, lineNo: lineNo, line: line, ignoreCase: ignoreCase);
+                                                 ruleFileName: fullRuleFilename, lineNo: lineNo, rule: rule, ignoreCase: ignoreCase);
                         if (!ok) {
                             textIsOk = false;
                         }
@@ -381,22 +382,22 @@ namespace NDepCheck {
         /// public for testability.
         /// </summary>
         public bool AddProjections([CanBeNull] ItemType sourceItemType, [CanBeNull]ItemType targetItemType, bool isInner,
-                                         [NotNull] string ruleFileName, int lineNo, [NotNull] string line, bool ignoreCase) {
+                                         [NotNull] string ruleFileName, int lineNo, [NotNull] string rule, bool ignoreCase) {
             if (sourceItemType == null || targetItemType == null) {
                 Log.WriteError($"Itemtypes not defined - $ line is missing in {ruleFileName}, graph rules are ignored", ruleFileName, lineNo);
                 return false;
             } else {
-                int i = line.IndexOf(MAYUSE, StringComparison.Ordinal);
+                int i = rule.IndexOf(MAYUSE, StringComparison.Ordinal);
                 string pattern;
                 string[] targetSegments;
                 if (i >= 0) {
-                    string rawPattern = line.Substring(0, i).Trim();
+                    string rawPattern = rule.Substring(0, i).Trim();
                     pattern = ExpandDefines(rawPattern);
 
-                    string rawTargetSegments = line.Substring(i + MAYUSE.Length).Trim();
+                    string rawTargetSegments = rule.Substring(i + MAYUSE.Length).Trim();
                     targetSegments = ExpandDefines(rawTargetSegments).Split(':').Select(s => s.Trim()).ToArray();
                 } else {
-                    pattern = ExpandDefines(line.Trim());
+                    pattern = ExpandDefines(rule.Trim());
                     targetSegments = null;
                 }
 

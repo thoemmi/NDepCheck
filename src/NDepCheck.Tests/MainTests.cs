@@ -7,6 +7,7 @@ using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.GraphTransformations;
 using NDepCheck.Rendering;
+using NDepCheck.TestRenderer;
 
 namespace NDepCheck.Tests {
     /// <remarks>
@@ -431,6 +432,42 @@ NDepCheck:Tests ---> **
                 Assert.AreEqual(5, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
                 File.Delete(depFile);
             }
+        }
+
+
+        [TestMethod]
+        public void TestLoadedRenderer() {
+            string depFile = CreateTempDotNetDepFileName();
+            using (TextWriter tw = new StreamWriter(depFile)) {
+                tw.Write(@"
+                    $ DOTNETCALL ---> DOTNETCALL
+                  
+                    NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
+                    NDepCheck.TestAssembly.**::NDepCheck.TestAssembly ---> System.**::mscorlib
+                    NDepCheck.TestAssembly.dir1.dir2:SomeClass        ---? -:NamespacelessTestClassForNDepCheck::I
+                    -:*                       ---? System:**
+                    NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
+
+                    $ DOTNETREF ---> DOTNETREF
+                    **          ---> **
+
+                    $ DOTNETCALL      ---> SIMPLE(Name)
+                    ! System**:**     ---> .Net
+                    ! Microsoft**:**  ---> .Net
+                    ! (**):(**)       ---> \1#\2
+                ");
+            }
+
+            string gifFile = Path.GetTempFileName() + ".gif";
+            Console.WriteLine("Writing to " + gifFile);
+            // typeof(FullName) forces copying to knwon directory ...
+            Assert.AreEqual(0, Program.Main(new[] {
+                "-x=" + depFile,
+                TestAssemblyPath,
+                "-r", "NDepCheck.TestRenderer.dll", typeof(TestRendererForLoadFromAssembly).FullName, gifFile }));
+
+            File.Delete(depFile);
+            //File.Delete(gifFile);
         }
     }
 }

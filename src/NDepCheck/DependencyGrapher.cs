@@ -173,16 +173,16 @@ namespace NDepCheck {
         ////    return s;
         ////}
 
-        private static void ReduceEdge(IEnumerable<Projection> orderedGraphAbstractions, Dependency d, Dictionary<Item, Item> uniqueNodes,
-            Dictionary<FromTo, Dependency> result
-            /*,Dictionary<Tuple<string, int>, GraphAbstraction> skipCache*/) {
+        private static void ReduceEdge(IEnumerable<Projection> orderedProjections, Dependency d, 
+            Dictionary<Item, Item> uniqueNodes, Dictionary<FromTo, Dependency> result
+            /*,Dictionary<Tuple<string, int>, Projection> skipCache*/) {
 
-            Item usingMatch = orderedGraphAbstractions
+            Item usingMatch = orderedProjections
                                     //.Skip(GuaranteedNonMatching(d.UsingItem))
                                     //.SkipWhile(ga => ga != FirstPossibleAbstractionInCache(d.UsingItem, skipCache))
                                     .Select(ga => ga.Match(d.UsingItem))
                                     .FirstOrDefault(m => m != null);
-            Item usedMatch = orderedGraphAbstractions
+            Item usedMatch = orderedProjections
                                     //.Skip(GuaranteedNonMatching(d.UsedItem))
                                     //.SkipWhile(ga => ga != FirstPossibleAbstractionInCache(d.UsedItem, skipCache))
                                     .Select(ga => ga.Match(d.UsedItem))
