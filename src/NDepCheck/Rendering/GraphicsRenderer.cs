@@ -11,7 +11,7 @@ namespace NDepCheck.Rendering {
     public interface IBox {
         Vector Center { get; }
         Vector HalfDiagonal { get; }
-        Vector GetBestAnchor(Vector farAway);
+        Vector GetBestConnector(Vector farAway);
     }
 
     public interface IArrow {
@@ -19,19 +19,22 @@ namespace NDepCheck.Rendering {
         Vector Tail { get; }
     }
 
-    public abstract class GraphicsRenderer<TItem, TDependency> : IRenderer<TItem, TDependency> 
-            where TItem : class, INode 
+    public abstract class GraphicsRenderer<TItem, TDependency> : IRenderer<TItem, TDependency>
+            where TItem : class, INode
             where TDependency : class, IEdge {
-        public static Vector C(double x, double y) {
+        public static Vector F(double? x, double? y) {
             return Vector.Fixed(x, y);
         }
 
-        public static Vector V(string name, double? x, double? y) {
-            return Vector.Variable(name, x, y);
+        public static BoundedVector B(string name, double interpolateMinMax = 0.0) {
+            return Vector.Bounded(name, interpolateMinMax);
         }
 
         public enum TextPlacing {
             Left, Center, Right, LeftUp, CenterUp, RightUp, LeftDown, CenterDown, RightDown
+        }
+        public enum BoxAnchoring {
+            Center, LowerLeft, CenterLeft, UpperLeft, CenterTop, UpperRight, CenterRight, LowerRight, CenterBottom
         }
 
         private interface IBuilder {
@@ -48,13 +51,14 @@ namespace NDepCheck.Rendering {
             private readonly TextPlacing _placing;
             private readonly string _tooltip;
             private readonly Color _textColor;
+            private readonly double _textMargin;
             private readonly Font _textFont;
             private readonly Color _borderColor;
-            private readonly int _anchorNr;
+            private readonly int _connectors;
             private readonly Color _color;
 
             public BoxBuilder(Vector center, Vector halfDiagonal, Color color, double borderWidth, Color borderColor,
-                int anchorNr, string text, TextPlacing placing, Font textFont, Color textColor, string tooltip) {
+                int connectors, string text, TextPlacing placing, Font textFont, Color textColor, double textMargin, string tooltip) {
                 _center = center;
                 _halfDiagonal = halfDiagonal;
                 _color = color;
@@ -63,9 +67,10 @@ namespace NDepCheck.Rendering {
                 _placing = placing;
                 _tooltip = tooltip;
                 _textColor = textColor;
+                _textMargin = textMargin;
                 _textFont = textFont;
                 _borderColor = borderColor;
-                _anchorNr = anchorNr;
+                _connectors = connectors;
             }
 
             public Vector Center => _center;
@@ -78,7 +83,7 @@ namespace NDepCheck.Rendering {
                 FillBox(graphics, new SolidBrush(_borderColor), leftUpper.GetX(), -leftUpper.GetY(), diagonal.GetX(),
                     diagonal.GetY());
 
-                Vector borderDiagonal = C(_borderWidth, _borderWidth);
+                Vector borderDiagonal = F(_borderWidth, _borderWidth);
                 Vector leftUpperInner = leftUpper + ~borderDiagonal;
                 Vector diagonalInner = diagonal - 2 * borderDiagonal;
                 FillBox(graphics, new SolidBrush(_color), leftUpperInner.GetX(), -leftUpperInner.GetY(),
@@ -109,9 +114,9 @@ namespace NDepCheck.Rendering {
                 return a - Math.Floor(a / twoPI) * twoPI;
             }
 
-            public Vector GetBestAnchor(Vector farAway) {
-                double sectorAngle = 2 * Math.PI / _anchorNr;
-                Func<Vector> findNearestAnchor = () => {
+            public Vector GetBestConnector(Vector farAway) {
+                double sectorAngle = 2 * Math.PI / _connectors;
+                Func<Vector> findNearestConnector = () => {
                     var d = farAway - _center;
                     double angle = Math.Atan2(d.GetY(), d.GetX());
                     double roundedAngle =
@@ -136,28 +141,16 @@ namespace NDepCheck.Rendering {
                         x = diagX;
                         y = x * Math.Tan(roundedAngle);
                     }
-                    return _center + C(x, y);
+                    return _center + F(x, y);
                 };
-                return new DependentVector(() => findNearestAnchor().GetX(), () => findNearestAnchor().GetY());
+                return new DependentVector(() => findNearestConnector().GetX(), () => findNearestConnector().GetY());
             }
 
             public void BeforeDrawing(Graphics graphics) {
-                var hd = _halfDiagonal as VariableVector;
+                var hd = _halfDiagonal as BoundedVector;
                 if (hd != null) {
-                    bool hasX = hd.X().HasValue;
-                    bool hasY = hd.Y().HasValue;
-                    if (!hasX || !hasY) {
-                        // Compute missing parts from text and font
-                        SizeF size = graphics.MeasureString(_text, _textFont);
-                        if (!hasX) {
-                            // 20% padding by default
-                            hd.SetX(size.Width / 2 * 1.2);
-                        }
-                        if (!hasY) {
-                            // 20% padding by default
-                            hd.SetY(size.Height / 2 * 1.2);
-                        }
-                    }
+                    SizeF size = graphics.MeasureString(_text, _textFont);
+                    hd.Restrict(Vector.Fixed(size.Width / 2 * (1 + _textMargin), size.Height / 2 * (1 + _textMargin)));
                 }
             }
         }
@@ -240,7 +233,7 @@ namespace NDepCheck.Rendering {
 
         private static void DrawText(Graphics graphics, string text, Font textFont, Color textColor, Vector center, TextPlacing textPlacing) {
             //graphics.FillEllipse(new SolidBrush(Color.Red), center.GetX() - 3, -center.GetY() - 3, 6, 6);
-            graphics.DrawString(text, textFont, new SolidBrush(textColor), (~center - C(0, textFont.GetHeight() / 2)).AsPointF(),
+            graphics.DrawString(text, textFont, new SolidBrush(textColor), (~center - F(0, textFont.GetHeight() / 2)).AsPointF(),
                 new StringFormat(GetDirection(textPlacing)) { Alignment = GetStringAlignment(textPlacing), });
         }
 
@@ -281,17 +274,52 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public IBox Box([NotNull] Vector center, [CanBeNull] Vector halfDiagonal, [CanBeNull] string text,
-            [CanBeNull] Color? color = null /*White*/, int anchorNr = 8,
+        public IBox Box([NotNull] Vector anchor, [CanBeNull] Vector halfDiagonal, [CanBeNull] string text,
+            BoxAnchoring boxAnchoring = BoxAnchoring.Center,
+            [CanBeNull] Color? color = null /*White*/, int connectors = 8,
             double borderWidth = 0, [CanBeNull] Color? borderColor = null /*Black*/,
             TextPlacing placing = TextPlacing.Center, [CanBeNull] Font textFont = null /*___*/, [CanBeNull] Color? textColor = null /*Black*/,
-            [CanBeNull] string tooltip = null) {
-            if (center == null) {
-                throw new ArgumentNullException(nameof(center));
+            double textMargin = 0.2, [CanBeNull] string tooltip = null) {
+            if (anchor == null) {
+                throw new ArgumentNullException(nameof(anchor));
             }
-            var boxBuilder = new BoxBuilder(center, halfDiagonal ?? new VariableVector(text ?? center.ToString()), color ?? Color.White,
-                borderWidth, borderColor ?? Color.Black, anchorNr,
-                text ?? "", placing, textFont ?? new Font(FontFamily.GenericSansSerif, 10), textColor ?? Color.Black, tooltip ?? "");
+            Vector center;
+            halfDiagonal = halfDiagonal ?? new BoundedVector(text ?? anchor.ToString());
+            switch (boxAnchoring) {
+                case BoxAnchoring.Center:
+                    center = anchor;
+                    break;
+                case BoxAnchoring.LowerLeft:
+                    center = anchor + halfDiagonal;
+                    break;
+                case BoxAnchoring.CenterLeft:
+                    center = anchor + halfDiagonal.Horizontal();
+                    break;
+                case BoxAnchoring.UpperLeft:
+                    center = anchor + ~halfDiagonal;
+                    break;
+                case BoxAnchoring.CenterTop:
+                    center = anchor - halfDiagonal.Vertical();
+                    break;
+                case BoxAnchoring.UpperRight:
+                    center = anchor - halfDiagonal;
+                    break;
+                case BoxAnchoring.CenterRight:
+                    center = anchor - halfDiagonal.Horizontal();
+                    break;
+                case BoxAnchoring.LowerRight:
+                    center = anchor - ~halfDiagonal;
+                    break;
+                case BoxAnchoring.CenterBottom:
+                    center = anchor + halfDiagonal.Vertical();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(boxAnchoring), boxAnchoring, null);
+            }
+
+            var boxBuilder = new BoxBuilder(center, halfDiagonal, color ?? Color.White,
+                borderWidth, borderColor ?? Color.Black, connectors,
+                text ?? "", placing, textFont ?? new Font(FontFamily.GenericSansSerif, 10), textColor ?? Color.Black, textMargin, tooltip ?? "");
             _builders.Add(boxBuilder);
             return boxBuilder;
         }
@@ -334,7 +362,7 @@ namespace NDepCheck.Rendering {
                     b.BeforeDrawing(graphics);
 
                     foreach (var v in b.GetBoundingVectors()) {
-                        var vv = v as VariableVector;
+                        var vv = v as BoundedVector;
 
                         double? x = v.X();
                         if (!x.HasValue) {
@@ -362,10 +390,10 @@ namespace NDepCheck.Rendering {
                 float BORDER = 0.1f;
                 double scaleX = size.Width * (1 - 2 * BORDER) / (maxX - minX);
                 double scaleY = size.Height * (1 - 2 * BORDER) / (maxY - minY);
-                float scale = (float) Math.Min(scaleX, scaleY); // No distortion!
+                float scale = (float)Math.Min(scaleX, scaleY); // No distortion!
 
-                graphics.Transform = new Matrix(scale, 0, 0, scale, (float) (-scale * minX + size.Width * BORDER),
-                    (float) (scale * maxY + size.Height * BORDER));
+                graphics.Transform = new Matrix(scale, 0, 0, scale, (float)(-scale * minX + size.Width * BORDER),
+                    (float)(scale * maxY + size.Height * BORDER));
 
                 foreach (var b in _builders) {
                     b.Draw(graphics, htmlForTooltips);

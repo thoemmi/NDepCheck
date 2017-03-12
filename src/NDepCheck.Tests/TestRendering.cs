@@ -45,7 +45,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestSingleBoxWithText() {
-            CreateAndRender(r => r.Box(Vector.Fixed(100, 100), Vector.Variable("b", null, 200),
+            CreateAndRender(r => r.Box(Vector.Fixed(100, 100), Vector.Bounded("b").Set(null, 200),
                 "A long text", borderWidth: 10, textFont: new Font(FontFamily.GenericSansSerif, 30)));
         }
 
@@ -60,13 +60,13 @@ namespace NDepCheck.Tests {
             const int ANCHORS = 10;
 
             CreateAndRender(r => {
-                var b = r.Box(Vector.Fixed(0, 0), Vector.Variable("b", null, 40), "A long text", borderWidth: 10,
-                    textFont: new Font(FontFamily.GenericSansSerif, 30), anchorNr: ANCHORS);
+                var b = r.Box(Vector.Fixed(0, 0), Vector.Bounded("b").Set(null, 40), "A long text", borderWidth: 10,
+                    textFont: new Font(FontFamily.GenericSansSerif, 30), connectors: ANCHORS);
 
                 for (int i = 0; i < N; i++) {
                     var angle = 2 * Math.PI * i / N;
                     var farAway = Vector.Fixed(300 * Math.Sin(angle), 300 * Math.Cos(angle));
-                    r.Arrow(farAway, b.GetBestAnchor(farAway), 2 + i);
+                    r.Arrow(farAway, b.GetBestConnector(farAway), 2 + i);
                 }
             });
         }
@@ -79,7 +79,7 @@ namespace NDepCheck.Tests {
                 Vector far = Vector.Fixed(300, 400);
                 r.Arrow(box.Center, far, width: 5, color: Color.Blue); // center to far point
                 r.Arrow(box.Center, Vector.Fixed(400, 400), width: 2, color: Color.Green); // 45° diagonal from center
-                r.Arrow(box.GetBestAnchor(far), far, width: 10, color: Color.Brown); // anchor to far point
+                r.Arrow(box.GetBestConnector(far), far, width: 10, color: Color.Brown); // anchor to far point
             });
         }
 
@@ -101,7 +101,7 @@ namespace NDepCheck.Tests {
             protected override Color GetBackGroundColor => Color.Yellow;
 
             protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
-                var origin = new VariableVector("origin");
+                var origin = new BoundedVector("origin");
                 double deltaAngle = 2 * Math.PI / items.Count();
                 Func<int, double> r =
                       items.Any(i => i.Name.StartsWith("star")) ? i => 100.0 + (i % 2 == 0 ? 60 : 0)
@@ -115,7 +115,7 @@ namespace NDepCheck.Tests {
                     int k = n++;
                     double angle = k * deltaAngle;
                     var pos = new DependentVector(() => origin.X() + r(k) * Math.Sin(angle), () => origin.X() + r(k) * Math.Cos(angle));
-                    ItemBoxes.Put(i, Box(pos, diagonals.Put(i, V(i.Name, null, 15)), i.Name, borderWidth: 2));
+                    ItemBoxes.Put(i, Box(pos, diagonals.Put(i, B(i.Name).Set(null, 15)), i.Name, borderWidth: 2));
                 }
 
                 foreach (var d in dependencies) {
@@ -124,7 +124,7 @@ namespace NDepCheck.Tests {
 
                     if (d.Ct > 0 && !Equals(d.UsingItem, d.UsedItem)) {
                         //Arrow(from.Center, to.Center, 1, text: "#=" + d.Ct, textLocation: 0.3);
-                        Arrow(from.GetBestAnchor(to.Center), to.GetBestAnchor(from.Center), 1, text: "#=" + d.Ct, textLocation: 0.2);
+                        Arrow(from.GetBestConnector(to.Center), to.GetBestConnector(from.Center), 1, text: "#=" + d.Ct, textLocation: 0.2);
                         //Arrow(from.GetNearestAnchor(to.Center), to.Center, 1, text: "#=" + d.Ct);
                     }
                 }
@@ -184,31 +184,45 @@ namespace NDepCheck.Tests {
 
         #region IXOS-Rendering
 
-        internal class IXOSApplicationRenderer : GraphicsRenderer<Item, Dependency> {
-            protected override Size GetSize() {
-                return new Size(2000, 1600);
-            }
+        //internal class IXOSApplicationRenderer : GraphicsRenderer<Item, Dependency> {
+        //    protected override Size GetSize() {
+        //        return new Size(2000, 1600);
+        //    }
 
-            protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
-                // ItemType Name:Order
+        //    protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
+        //        // ItemType Name:Order
 
-                VariableVector itemDistance = new VariableVector(nameof(itemDistance), null, 40);
-                Vector pos = C(0, 0);
-                
-                // Hauptmodule auf Diagonale
-                foreach (var i in items.Where(i => !i.Values[0].Contains(".MI")).OrderBy(i => i.Values[1])) {
-                    var name = i.Values[0];
-                    Box(pos, null, name, borderWidth: 5);
-                    pos += itemDistance;
-                }
+        //        BoundedVector itemDistance = new BoundedVector(nameof(itemDistance)).Set(null, 40);
+        //        Vector pos = F(0, 0);
 
-                // MIs ____
+        //        var upperInterfaceBoxes = new Store<Item, IBox>();
+        //        var lowerInterfaceBoxes = new Store<Item, IBox>();
 
-                // Abhängigkeiten ___
-                throw new NotImplementedException();
-            }
-        }
+        //        // Hauptmodule auf Diagonale
+        //        foreach (var i in items.Where(i => !i.Values[0].Contains(".MI")).OrderBy(i => i.Values[1])) {
+        //            string name = i.Values[0];
+        //            IBox b = ItemBoxes.Put(i, Box(pos, new BoundedVector(name),boxAnchoring: BoxAnchoring.LowerLeft, text: name, borderWidth: 5));
+
+        //            ///
+
+        //            upperInterfaceBoxes.Put(i, Box(pos - b.HalfDiagonal,  new BoundedVector(name).Set(null, 20), name, borderWidth: 2));
+        //            upperInterfaceBoxes.Put(i, Box(left, new BoundedVector(name).Set(null, 20), name, borderWidth: 2));
+
+        //            pos += itemDistance;
+        //        }
+
+        //        // MIs ____
+        //        foreach (var i in items.Where(i => i.Values[0].Contains(".MI")).OrderBy(i => i.Values[1])) {
+
+        //        }
+
+        //        // Abhängigkeiten ___
+
+
+        //            throw new NotImplementedException();
+        //    }
+        //}
 
         #endregion IXOS-Rendering
-        }
     }
+}

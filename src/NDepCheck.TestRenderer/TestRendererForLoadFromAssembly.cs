@@ -9,7 +9,7 @@ namespace NDepCheck.TestRenderer {
         protected override Color GetBackGroundColor => Color.Yellow;
 
         protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
-            var origin = new VariableVector("origin");
+            var origin = new BoundedVector("origin");
             double deltaAngle = 2 * Math.PI / items.Count();
 
             var diagonals = new Store<Item, Vector>();
@@ -19,7 +19,7 @@ namespace NDepCheck.TestRenderer {
                 int k = n++;
                 double angle = k * deltaAngle;
                 var pos = new DependentVector(() => origin.X() + 500 * Math.Sin(angle), () => origin.X() + 500 * Math.Cos(angle));
-                ItemBoxes.Put(i, Box(pos, diagonals.Put(i, V(i.Name, null, 15)), i.Name, borderWidth: 2));
+                ItemBoxes.Put(i, Box(pos, diagonals.Put(i, B(i.Name).Restrict(F(null, 15))), i.Name, borderWidth: 2));
             }
 
             foreach (var d in dependencies) {
@@ -28,12 +28,12 @@ namespace NDepCheck.TestRenderer {
 
                 if (d.Ct > 0 && !Equals(d.UsingItem, d.UsedItem)) {
                     //Arrow(from.Center, to.Center, 1, text: "#=" + d.Ct, textLocation: 0.3);
-                    Arrow(from.GetBestAnchor(to.Center), to.GetBestAnchor(from.Center), 1, text: "#=" + d.Ct, textLocation: 0.2);
+                    Arrow(from.GetBestConnector(to.Center), to.GetBestConnector(from.Center), 1, text: "#=" + d.Ct, textLocation: 0.2);
                     //Arrow(from.GetNearestAnchor(to.Center), to.Center, 1, text: "#=" + d.Ct);
                 }
             }
 
-            origin.Set(0, 0);
+            origin.Set(F(0, 0));
         }
 
         protected override Size GetSize() {

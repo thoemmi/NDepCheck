@@ -459,15 +459,15 @@ NDepCheck:Tests ---> **
             }
 
             string gifFile = Path.GetTempFileName() + ".gif";
-            Console.WriteLine("Writing to " + gifFile);
-            // typeof(FullName) forces copying to knwon directory ...
+            Console.WriteLine("Writing GIF to " + gifFile);
+            // typeof(FullName) forces copying to known directory ...
             Assert.AreEqual(0, Program.Main(new[] {
                 "-x=" + depFile,
                 TestAssemblyPath,
                 "-r", "NDepCheck.TestRenderer.dll", typeof(TestRendererForLoadFromAssembly).FullName, gifFile }));
 
             File.Delete(depFile);
-            //File.Delete(gifFile);
+            File.Delete(gifFile);
         }
     }
 }
