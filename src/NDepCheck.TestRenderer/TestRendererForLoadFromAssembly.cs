@@ -20,7 +20,7 @@ namespace NDepCheck.TestRenderer {
             foreach (var i in items) {
                 int k = n++;
                 double angle = k * deltaAngle;
-                var pos = new DependentVector(() => origin.X() + 500 * Math.Sin(angle), () => origin.X() + 500 * Math.Cos(angle));
+                var pos = new DependentVector(() => origin.X() + 500 * Math.Sin(angle), () => origin.X() + 500 * Math.Cos(angle), "pos_" + k);
                 i.DynamicData.MainBox = Box(pos, diagonals.Put(i, B(i.Name).Restrict(F(null, 15))), i.Name, borderWidth: 2);
             }
 

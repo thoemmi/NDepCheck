@@ -10,7 +10,18 @@ using JetBrains.Annotations;
 namespace NDepCheck.Rendering {
     public interface IBox {
         Vector Center { get; }
-        Vector HalfDiagonal { get; }
+
+        Vector LowerLeft { get; }
+        Vector CenterLeft { get; }
+        Vector UpperLeft { get; }
+        Vector CenterTop { get; }
+        Vector UpperRight { get; }
+        Vector CenterRight { get; }
+        Vector LowerRight { get; }
+        Vector CenterBottom { get; }
+
+        Vector Diagonal { get; }
+
         Vector GetBestConnector(Vector farAway);
     }
 
@@ -22,8 +33,8 @@ namespace NDepCheck.Rendering {
     public abstract class GraphicsRenderer<TItem, TDependency> : IRenderer<TItem, TDependency>
             where TItem : class, INode
             where TDependency : class, IEdge {
-        public static Vector F(double? x, double? y) {
-            return Vector.Fixed(x, y);
+        public static Vector F(double? x, double? y, string name = null) {
+            return Vector.Fixed(x, y, name);
         }
 
         public static BoundedVector B(string name, double interpolateMinMax = 0.0) {
@@ -45,7 +56,7 @@ namespace NDepCheck.Rendering {
 
         private class BoxBuilder : IBuilder, IBox {
             private readonly Vector _center;
-            private readonly Vector _halfDiagonal;
+            private readonly Vector _diagonal;
             private readonly double _borderWidth;
             private readonly string _text;
             private readonly TextPlacing _placing;
@@ -57,10 +68,11 @@ namespace NDepCheck.Rendering {
             private readonly int _connectors;
             private readonly Color _color;
 
-            public BoxBuilder(Vector center, Vector halfDiagonal, Color color, double borderWidth, Color borderColor,
-                int connectors, string text, TextPlacing placing, Font textFont, Color textColor, double textMargin, string tooltip) {
+            public BoxBuilder(Vector center, Vector diagonal, Color color,
+                              double borderWidth, Color borderColor, int connectors, string text,
+                              TextPlacing placing, Font textFont, Color textColor, double textMargin, string tooltip) {
                 _center = center;
-                _halfDiagonal = halfDiagonal;
+                _diagonal = diagonal;
                 _color = color;
                 _borderWidth = borderWidth;
                 _text = text;
@@ -74,18 +86,26 @@ namespace NDepCheck.Rendering {
             }
 
             public Vector Center => _center;
-            public Vector HalfDiagonal => _halfDiagonal;
+            public Vector LowerLeft => _center - _diagonal / 2;
+            public Vector CenterLeft => _center - _diagonal.Horizontal() / 2;
+            public Vector UpperLeft => _center - ~_diagonal / 2;
+            public Vector CenterTop => _center + _diagonal.Vertical() / 2;
+            public Vector UpperRight => _center + _diagonal / 2;
+            public Vector CenterRight => _center + _diagonal.Horizontal() / 2;
+            public Vector LowerRight => _center + ~_diagonal / 2;
+            public Vector CenterBottom => _center + (~_diagonal).Vertical() / 2;
+
+            public Vector Diagonal => _diagonal;
 
             public void Draw(Graphics graphics, StringBuilder htmlForTooltips) {
-                Vector leftUpper = _center - ~_halfDiagonal;
+                Vector leftUpper = _center - ~_diagonal/2;
 
-                Vector diagonal = 2 * _halfDiagonal;
-                FillBox(graphics, new SolidBrush(_borderColor), leftUpper.GetX(), -leftUpper.GetY(), diagonal.GetX(),
-                    diagonal.GetY());
+                FillBox(graphics, new SolidBrush(_borderColor), leftUpper.GetX(), -leftUpper.GetY(), _diagonal.GetX(),
+                    _diagonal.GetY());
 
                 Vector borderDiagonal = F(_borderWidth, _borderWidth);
                 Vector leftUpperInner = leftUpper + ~borderDiagonal;
-                Vector diagonalInner = diagonal - 2 * borderDiagonal;
+                Vector diagonalInner = _diagonal - 2 * borderDiagonal;
                 FillBox(graphics, new SolidBrush(_color), leftUpperInner.GetX(), -leftUpperInner.GetY(),
                     diagonalInner.GetX(), diagonalInner.GetY());
 
@@ -100,8 +120,8 @@ namespace NDepCheck.Rendering {
             }
 
             public IEnumerable<Vector> GetBoundingVectors() {
-                yield return _center + _halfDiagonal;
-                yield return _center - _halfDiagonal;
+                yield return _center + _diagonal / 2;
+                yield return _center - _diagonal / 2;
             }
 
             /// <summary>
@@ -121,8 +141,8 @@ namespace NDepCheck.Rendering {
                     double angle = Math.Atan2(d.GetY(), d.GetX());
                     double roundedAngle =
                         NormalizedAngle(Math.Round(angle / sectorAngle) * sectorAngle);
-                    double diagX = _halfDiagonal.GetX();
-                    double diagY = _halfDiagonal.GetY();
+                    double diagX = _diagonal.GetX() / 2;
+                    double diagY = _diagonal.GetY() / 2;
                     double diagonalAngle = NormalizedAngle(Math.Atan2(diagY, diagX));
                     double x, y;
                     if (roundedAngle < diagonalAngle) {
@@ -143,14 +163,14 @@ namespace NDepCheck.Rendering {
                     }
                     return _center + F(x, y);
                 };
-                return new DependentVector(() => findNearestConnector().GetX(), () => findNearestConnector().GetY());
+                return new DependentVector(() => findNearestConnector().GetX(), () => findNearestConnector().GetY(), farAway.Name + ".NC()");
             }
 
             public void BeforeDrawing(Graphics graphics) {
-                var hd = _halfDiagonal as BoundedVector;
-                if (hd != null) {
+                var d = _diagonal as BoundedVector;
+                if (d != null) {
                     SizeF size = graphics.MeasureString(_text, _textFont);
-                    hd.Restrict(Vector.Fixed(size.Width / 2 * (1 + _textMargin), size.Height / 2 * (1 + _textMargin)));
+                    d.Restrict(Vector.Fixed(size.Width * (1 + _textMargin), size.Height * (1 + _textMargin), "|" + _text + "|"));
                 }
             }
         }
@@ -271,7 +291,7 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public IBox Box([NotNull] Vector anchor, [CanBeNull] Vector halfDiagonal, [CanBeNull] string text,
+        public IBox Box([NotNull] Vector anchor, [CanBeNull] Vector diagonal, [CanBeNull] string text,
             BoxAnchoring boxAnchoring = BoxAnchoring.Center,
             [CanBeNull] Color? color = null /*White*/, int connectors = 8,
             double borderWidth = 0, [CanBeNull] Color? borderColor = null /*Black*/,
@@ -281,7 +301,8 @@ namespace NDepCheck.Rendering {
                 throw new ArgumentNullException(nameof(anchor));
             }
             Vector center;
-            halfDiagonal = halfDiagonal ?? new BoundedVector(text ?? anchor.ToString());
+            diagonal = diagonal ?? new BoundedVector("/" + (text ?? anchor.Name));
+            var halfDiagonal = diagonal / 2;
             switch (boxAnchoring) {
                 case BoxAnchoring.Center:
                     center = anchor;
@@ -314,7 +335,7 @@ namespace NDepCheck.Rendering {
                     throw new ArgumentOutOfRangeException(nameof(boxAnchoring), boxAnchoring, null);
             }
 
-            var boxBuilder = new BoxBuilder(center, halfDiagonal, color ?? Color.White,
+            var boxBuilder = new BoxBuilder(center, diagonal, color ?? Color.White,
                 borderWidth, borderColor ?? Color.Black, connectors,
                 text ?? "", placing, textFont ?? new Font(FontFamily.GenericSansSerif, 10), textColor ?? Color.Black, textMargin, tooltip ?? "");
             _builders.Add(boxBuilder);
@@ -359,18 +380,16 @@ namespace NDepCheck.Rendering {
                     b.BeforeDrawing(graphics);
 
                     foreach (var v in b.GetBoundingVectors()) {
-                        var vv = v as BoundedVector;
-
                         double? x = v.X();
                         if (!x.HasValue) {
-                            errors.AppendLine("No x value set in vector " + (vv?.Name ?? "dependent on other vectors"));
+                            errors.AppendLine("No x value set in vector " + (v.Name ?? "dependent on other vectors"));
                         } else {
                             minX = Math.Min(minX, x.Value);
                             maxX = Math.Max(maxX, x.Value);
                         }
                         double? y = v.Y();
                         if (!y.HasValue) {
-                            errors.AppendLine("No y value set in vector " + (vv?.Name ?? "dependent on other vectors"));
+                            errors.AppendLine("No y value set in vector " + (v.Name ?? "dependent on other vectors"));
                         } else {
                             minY = Math.Min(minY, y.Value);
                             maxY = Math.Max(maxY, y.Value);

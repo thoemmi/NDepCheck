@@ -122,7 +122,7 @@ namespace NDepCheck.Tests {
                 foreach (var i in items) {
                     int k = n++;
                     double angle = k * deltaAngle;
-                    var pos = new DependentVector(() => origin.X() + r(k) * Math.Sin(angle), () => origin.X() + r(k) * Math.Cos(angle));
+                    var pos = new DependentVector(() => origin.X() + r(k) * Math.Sin(angle), () => origin.X() + r(k) * Math.Cos(angle), "pos_" + k);
 
                     i.DynamicData.Box = Box(pos, diagonals.Put(i, B(i.Name).Set(null, 15)), i.Name, borderWidth: 2);
                 }
@@ -206,104 +206,153 @@ namespace NDepCheck.Tests {
 
         #region IXOS-Rendering
 
-        //internal class IXOSApplicationRenderer : GraphicsRenderer<Item, Dependency> {
-        //    protected override Size GetSize() {
-        //        return new Size(2000, 1600);
-        //    }
+        internal class IXOSApplicationRenderer : GraphicsDependencyRenderer {
+            protected override Size GetSize() {
+                return new Size(2000, 1600);
+            }
 
-        //    protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
-        //        // ASCII-art sketch of what I want to accomplish:
-        //        //
-        //        //    |         |         |             |          |        |<--------+-----+
-        //        //    |         |         |             |          |<-----------------|     |
-        //        //    |         |         |             |<----------------------------| Top |
-        //        //    |         |         |<------------------------------------------|     |
-        //        //    |         |<----------------------------------------------------+-----+
-        //        //    |         |         |             |          |        |
-        //        //    |         |         |             |          |<-------+-----+
-        //        //    |         |         |             |<------------------|     |
-        //        //    |         |         |<--------------------------------| IMP |
-        //        //    |         |<------------------------------------------|     |
-        //        //    |<----------------------------------------------------+-----+
-        //        //    |         |         |             |          |          |
-        //        //    |         |         |             |<---------+-----+    |
-        //        //    |         |         |<-----------------------|     |    |
-        //        //    |         |<---------------------------------| WLG |    |
-        //        //    |<-------------------------------------------+-----+    |
-        //        //    |         |         |             |            | |      |
-        //        //    |         |         |<------------+-----+      | |      |
-        //        //    |         |<----------------------| VKF |-------------->|
-        //        //    |<--------------------------------+-----+      | |      |
-        //        //    |         |         |               | |        | |      Imp.MI
-        //        //    |         |         |       ...     | |        | |
-        //        //    |         |         |               | |        | |
-        //        //    |         |         +-----+         | |        | |
-        //        //    |         |         | KAH |---------->|        | |
-        //        //    |         |         +-----+-------->| |        | |
-        //        //    |         |           |             | |        | |
-        //        //    |         +-----+------------------------------->|
-        //        //    |         |     |----------------------------->| |
-        //        //    |         | KST |-------------------->|        | |
-        //        //    |         |     |------------------>| |        | |
-        //        //    |<--------+-----+---->|             | |        | |
-        //        //    |                     |             | |        | |
-        //        //    |        ...          |             | |        | |
-        //        //    |                    Kah         Vkf1 Vkf2  Wlg1 Wlg2
-        //        //    +-----+              .MI          .MI .MI    .MI .MI
-        //        //    | BAC |
-        //        //    +-----+
+            private static string GetName(Item i) {
+                return i.Values[0];
+            }
 
-        //        // The itemtype is expected to have 3 fields Name:Module:Order.
-        //        // In the example diagram above, we would have items about like the following:
-        //        //        BAC    :BAC:0100
-        //        //        KST    :KST:0200
-        //        //        KAH    :KAH:0300
-        //        //        Kah.MI :KAH:0301
-        //        //        VKF    :VKF:0400
-        //        //        Vkf1.MI:VKF:0401
-        //        //        Vkf2.MI:VKF:0402
-        //        //        WLG    :WLG:0500
-        //        //        Wlg1.MI:WLG:0501
-        //        //        Wlg2.MI:WLG:0502
-        //        //        IMP    :IMP:0600
-        //        //        Imp.MI :IMP:0601
-        //        //        Top    :TOP:0700
+            private static string GetModule(Item i) {
+                return i.Values[1];
+            }
 
-        //        BoundedVector itemDistance = new BoundedVector(nameof(itemDistance)).Set(null, 40);
-        //        Vector pos = F(0, 0);
+            private static string GetOrder(Item i) {
+                return i.Values[2];
+            }
 
-        //        // Hauptmodule auf Diagonale
-        //        foreach (var i in items.Where(i => !i.Values[0].Contains(".MI")).OrderBy(i => i.Values[1])) {
-        //            string name = i.Values[0];
-        //            IBox b = ItemBoxes.Put(i, Box(pos, new BoundedVector(name), boxAnchoring: BoxAnchoring.LowerLeft, text: name, borderWidth: 5));
+            protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
+                // ASCII-art sketch of what I want to accomplish:
+                //
+                //    |         |         |             |          |        |<--------+-----+
+                //    |         |         |             |          |<-----------------|     |
+                //    |         |         |             |<----------------------------| Top |
+                //    |         |         |<------------------------------------------|     |
+                //    |         |<----------------------------------------------------+-----+
+                //    |         |         |             |          |        |
+                //    |         |         |             |          |<-------+-----+
+                //    |         |         |             |<------------------|     |
+                //    |         |         |<--------------------------------| IMP |
+                //    |         |<------------------------------------------|     |
+                //    |<----------------------------------------------------+-----+
+                //    |         |         |             |          |          |
+                //    |         |         |             |<---------+-----+    |
+                //    |         |         |<-----------------------|     |    |
+                //    |         |<---------------------------------| WLG |    |
+                //    |<-------------------------------------------+-----+    |
+                //    |         |         |             |            | |      |
+                //    |         |         |<------------+-----+      | |      |
+                //    |         |<----------------------| VKF |-------------->|
+                //    |<--------------------------------+-----+      | |      |
+                //    |         |         |               | |        | |      Imp.MI
+                //    |<------------------------------------|        | |
+                //    |<----------------------------------| |        | |
+                //    |         |         |       ...     | |        | |
+                //    |         |         |               | |        | |
+                //    |         |         +-----+         | |        | |
+                //    |         |         | KAH |---------->|        | |
+                //    |         |         +-----+-------->| |        | |
+                //    |         |           |             | |        | |
+                //    |         +-----+------------------------------->|
+                //    |         |     |----------------------------->| |
+                //    |         | KST |-------------------->|        | |
+                //    |         |     |------------------>| |        | |
+                //    |<--------+-----+---->|             | |        | |
+                //    |                     |             | |        | |
+                //    |        ...          |             | |        | |
+                //    |                    Kah         Vkf1 Vkf2  Wlg1 Wlg2
+                //    +-----+              .MI          .MI .MI    .MI .MI
+                //    | BAC |
+                //    +-----+
 
-        //            Box(i.Data.LowerLeft = pos - b.HalfDiagonal, new BoundedVector(name).Set(null, 20), name, borderWidth: 2);
-        //            i.Data.UpperRight = i.Data.LowerLeft + 2 * b.HalfDiagonal;
+                // The itemtype is expected to have 3 fields Name:Module:Order.
+                // In the example diagram above, we would have items about like the following:
+                //        BAC    :BAC:0100
+                //        KST    :KST:0200
+                //        KAH    :KAH:0300
+                //        Kah.MI :KAH:0301
+                //        VKF    :VKF:0400
+                //        Vkf1.MI:VKF:0401
+                //        Vkf2.MI:VKF:0402
+                //        WLG    :WLG:0500
+                //        Wlg1.MI:WLG:0501
+                //        Wlg2.MI:WLG:0502
+                //        IMP    :IMP:0600
+                //        Imp.MI :IMP:0601
+                //        Top    :TOP:0700
+
+                BoundedVector itemDistance = new BoundedVector(nameof(itemDistance));
+                Vector pos = F(0, 0);
+
+                // Hauptmodule auf Diagonale
+                foreach (var i in items.Where(i => !GetName(i).Contains(".MI")).OrderBy(GetOrder)) {
+                    string name = GetName(i);
+
+                    BoundedVector mainBoxDiagonal = new BoundedVector("/" + name);
+                    IBox mainBox = Box(pos, mainBoxDiagonal, boxAnchoring: BoxAnchoring.LowerLeft, text: name, borderWidth: 5, color: Color.Coral);
+                    Vector interfacePos = mainBox.UpperLeft;
+                    i.DynamicData.InterfaceBox = Box(interfacePos, new BoundedVector(name).Set(5, null),
+                        boxAnchoring: BoxAnchoring.LowerLeft, text: "", borderWidth: 1, color: Color.Coral);
+
+                    foreach (var mi in items.Where(mi => GetName(mi).Contains(".MI") && GetModule(mi) == GetModule(i)).OrderBy(GetOrder)) {
+                        interfacePos += F(15, 0);
+
+                        mi.DynamicData.InterfaceBox = Box(interfacePos, new BoundedVector(name).Set(5, null),
+                                                            boxAnchoring: BoxAnchoring.LowerLeft, text: GetName(mi),
+                                                            placing: TextPlacing.LeftUp, borderWidth: 1, color: Color.LemonChiffon);
+                    }
+
+                    mainBoxDiagonal.Restrict(minX: () => interfacePos.X() - mainBox.LowerLeft.X());
+                    itemDistance.Restrict(minX: () => mainBoxDiagonal.X() + 15);
+
+                    // Testing only:
+                    itemDistance.Restrict(minY: () => mainBoxDiagonal.Y() + 15);
+
+                    pos += itemDistance;
+                }
+
+                foreach (var d in dependencies) {
 
 
 
+                }
 
 
+            }
 
+            public override void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
+                ItemType amo = ItemType.New("AMO:Assembly:Module:Order");
 
+                var bac = Item.New(amo, "BAC:BAC:0100".Split(':'));
+                var kst = Item.New(amo, "KST:KST:0200".Split(':'));
+                var kah = Item.New(amo, "KAH:KAH:0300".Split(':'));
+                var kah_mi = Item.New(amo, "Kah.MI:KAH:0301".Split(':'));
+                var vkf = Item.New(amo, "VKF:VKF:0400".Split(':'));
+                var vkf1_mi = Item.New(amo, "Vkf1.MI:VKF:0401".Split(':'));
+                var vkf2_mi = Item.New(amo, "Vkf2.MI:VKF:0402".Split(':'));
+                var wlg = Item.New(amo, "WLG:WLG:0500".Split(':'));
+                var wlg1_mi = Item.New(amo, "Wlg1.MI:WLG:0501".Split(':'));
+                var wlg2_mi = Item.New(amo, "Wlg2.MI:WLG:0502".Split(':'));
+                var imp = Item.New(amo, "IMP:IMP:0600".Split(':'));
+                var imp_mi = Item.New(amo, "Imp.MI:IMP:0601".Split(':'));
+                var top = Item.New(amo, "Top:TOP:0700".Split(':'));
 
+                items = new[] { bac, kst, kah, kah_mi, vkf, vkf1_mi, vkf2_mi, wlg, wlg1_mi, wlg2_mi, imp, imp_mi, top };
 
-        //            upperInterfaceBoxes.Put(i, Box(left, new BoundedVector(name).Set(null, 20), name, borderWidth: 2));
+                dependencies = new[] {
+                    FromTo(kst, bac), FromTo(kst, kah_mi), FromTo(kst, vkf1_mi), FromTo(kst, vkf2_mi), FromTo(kst, wlg1_mi), FromTo(kst, wlg2_mi),
+                    FromTo(kah, bac), FromTo(kah, vkf1_mi), FromTo(kah, vkf2_mi),
+                    FromTo(vkf, bac), FromTo(vkf, kst), FromTo(vkf, kah), FromTo(vkf, imp_mi), FromTo(vkf1_mi, bac), FromTo(vkf2_mi, bac),
+                    // ... more to come
+                };
+            }
 
-        //            pos += itemDistance;
-        //        }
-
-        //        // MIs ____
-        //        foreach (var i in items.Where(i => i.Values[0].Contains(".MI")).OrderBy(i => i.Values[1])) {
-
-        //        }
-
-        //        // Abhängigkeiten ___
-
-
-        //        throw new NotImplementedException();
-        //    }
-        //}
+            private Dependency FromTo(Item from, Item to) {
+                return new Dependency(from, to, "Test", 0, 0);
+            }
+        }
 
         #endregion IXOS-Rendering
     }

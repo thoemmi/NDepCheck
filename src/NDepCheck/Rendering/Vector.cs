@@ -5,17 +5,22 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Rendering {
     public abstract class Vector {
+        public string Name { get; }
         protected static volatile int _now = 1;
+
+        protected Vector(string name) {
+            Name = name;
+        }
 
         protected class DoubleCache {
             private double? _value;
             private int _cachedAt;
 
-            public Func<double?> Cache(Func<double?> f) {
+            public Func<double?> Cache([CanBeNull] Func<double?> f) {
                 return () => {
                     if (_cachedAt != _now) {
                         _cachedAt = _now;
-                        _value = f();
+                        _value = f?.Invoke();
                     }
                     return _value;
                 };
@@ -33,11 +38,11 @@ namespace NDepCheck.Rendering {
 
         internal double? DebugY => Y();
 
-        public static Vector Fixed(double? x, double? y) {
-            return new FixedVector(x, y);
+        public static Vector Fixed(double? x, double? y, string name = null) {
+            return new FixedVector(x, y, name ?? $"[{x}|{y}]");
         }
 
-        public static BoundedVector Bounded(string name, double interpolateMinMax = 0.0) {
+        public static BoundedVector Bounded([NotNull] string name, double interpolateMinMax = 0.0) {
             return new BoundedVector(name, interpolateMinMax);
         }
 
@@ -69,7 +74,7 @@ namespace NDepCheck.Rendering {
             private readonly double? _x;
             private readonly double? _y;
 
-            public FixedVector(double? x, double? y) {
+            public FixedVector(double? x, double? y, string name) : base(name) {
                 _x = x;
                 _y = y;
             }
@@ -78,14 +83,14 @@ namespace NDepCheck.Rendering {
             public override Func<double?> Y => () => _y;
 
             public override string ToString() {
-                return $"FV[{_x},{_y}]";
+                return $"FV[{Name}:{_x},{_y}]";
             }
         }
 
         public static Vector operator +([NotNull] Vector v1, [NotNull] Vector v2) {
             CheckNotNull(v1);
             CheckNotNull(v2);
-            return new DependentVector(() => v1.X() + v2.X(), () => v1.Y() + v2.Y());
+            return new DependentVector(() => v1.X() + v2.X(), () => v1.Y() + v2.Y(), v1.Name + "+" + v2.Name);
         }
 
         private static void CheckNotNull(Vector v) {
@@ -97,32 +102,32 @@ namespace NDepCheck.Rendering {
         public static Vector operator -([NotNull] Vector v1, [NotNull] Vector v2) {
             CheckNotNull(v1);
             CheckNotNull(v2);
-            return new DependentVector(() => v1.X() - v2.X(), () => v1.Y() - v2.Y());
+            return new DependentVector(() => v1.X() - v2.X(), () => v1.Y() - v2.Y(), v1.Name + "-" + v2.Name);
         }
 
         public static Vector operator *([NotNull] Vector v, double d) {
             CheckNotNull(v);
-            return new DependentVector(() => v.X() * d, () => v.Y() * d);
+            return new DependentVector(() => v.X() * d, () => v.Y() * d, v.Name + "*" + d);
         }
 
         public static Vector operator *(double d, [NotNull] Vector v) {
             CheckNotNull(v);
-            return new DependentVector(() => v.X() * d, () => v.Y() * d);
+            return new DependentVector(() => v.X() * d, () => v.Y() * d, d + "*" + v.Name);
         }
 
         public static Vector operator /([NotNull] Vector v, double d) {
             CheckNotNull(v);
-            return new DependentVector(() => v.X() / d, () => v.Y() / d);
+            return new DependentVector(() => v.X() / d, () => v.Y() / d, v.Name + "*" + d);
         }
 
         public static Vector operator -([NotNull] Vector v) {
             CheckNotNull(v);
-            return new DependentVector(() => -v.X(), () => -v.Y());
+            return new DependentVector(() => -v.X(), () => -v.Y(), "-" + v.Name);
         }
 
         public static Vector operator ~([NotNull] Vector v) {
             CheckNotNull(v);
-            return new DependentVector(() => v.X(), () => -v.Y());
+            return new DependentVector(() => v.X(), () => -v.Y(), "~" + v.Name);
         }
 
         public double To(Vector other) {
@@ -136,11 +141,11 @@ namespace NDepCheck.Rendering {
         }
 
         public Vector Horizontal() {
-            return new DependentVector(X, () => 0);
+            return new DependentVector(X, () => 0, Name + ".H()");
         }
 
         public Vector Vertical() {
-            return new DependentVector(() => 0, Y);
+            return new DependentVector(() => 0, Y, Name + ".V()");
         }
     }
 
@@ -154,27 +159,26 @@ namespace NDepCheck.Rendering {
         [ItemNotNull]
         private readonly List<Vector> _upperBounds = new List<Vector>();
 
-        public string Name {
-            get;
-        }
-
-        public BoundedVector(string name, double interpolateMinMax = 0.0) {
+        public BoundedVector([NotNull] string name, double interpolateMinMax = 0.0) : base(name) {
+            if (string.IsNullOrWhiteSpace(name)) {
+                throw new ArgumentNullException(nameof(name));
+            }
             _interpolateMinMax = interpolateMinMax;
-            Name = name;
             X = _x.Cache(ComputeX);
             Y = _y.Cache(ComputeY);
         }
 
         public BoundedVector Set(double? x, double? y) {
-            return Restrict(x, y, x, y);
+            return Restrict(Fixed(x, y, "Restriction on " + Name));
         }
 
         public BoundedVector Set([NotNull] Vector v) {
             return Restrict(v, v);
         }
 
-        public BoundedVector Restrict(double? minX, double? minY, double? maxX = null, double? maxY = null) {
-            Restrict(Fixed(minX, minY), Fixed(maxX, maxY));
+        public BoundedVector Restrict([CanBeNull] Func<double?> minX = null, [CanBeNull] Func<double?> minY = null, 
+                                      [CanBeNull] Func<double?> maxX = null, [CanBeNull] Func<double?> maxY = null) {
+            Restrict(new DependentVector(minX, minY, "maxR[" + Name + "]"), new DependentVector(maxX, maxY, "maxR[" + Name + "]"));
             return this;
         }
 
@@ -262,7 +266,7 @@ namespace NDepCheck.Rendering {
         private readonly DoubleCache _x = new DoubleCache();
         private readonly DoubleCache _y = new DoubleCache();
 
-        public DependentVector(Func<double?> x, Func<double?> y) {
+        public DependentVector([CanBeNull] Func<double?> x, [CanBeNull] Func<double?> y, [CanBeNull] string name) : base(name) {
             X = _x.Cache(x);
             Y = _y.Cache(y);
         }
@@ -276,7 +280,7 @@ namespace NDepCheck.Rendering {
         }
 
         public override string ToString() {
-            return "DV[]";
+            return $"DV[{Name}]";
         }
     }
 }

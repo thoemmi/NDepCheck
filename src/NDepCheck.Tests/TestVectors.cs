@@ -14,11 +14,12 @@ namespace NDepCheck.Tests {
             }, () => {
                 recomputeDv[1]++;
                 return vv.Y() + 1;
-            });
-            var dv2 = new DependentVector(() => dv1.X() + 2, () => dv1.Y() + 2);
-            var dv3 = new DependentVector(() => dv1.X() + 3, () => dv1.Y() + 3);
+            },
+            "dv1");
+            var dv2 = new DependentVector(() => dv1.X() + 2, () => dv1.Y() + 2, "dv2");
+            var dv3 = new DependentVector(() => dv1.X() + 3, () => dv1.Y() + 3, "dv3");
 
-            vv.Restrict(10, null);
+            vv.Restrict(minX: () => 10);
 
             Assert.AreEqual(10 + 1 + 2, dv2.X());
             Assert.AreEqual(10 + 1 + 3, dv3.X());

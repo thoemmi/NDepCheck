@@ -471,15 +471,26 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TestGOption() {
-
             string gifFile = Path.GetTempFileName() + ".gif";
             Console.WriteLine("Writing GIF to " + gifFile);
-            // typeof(FullName) forces copying to known directory ...
+            // The usage typeof(...).FullName forces copying of assembly to bin directory.
             Assert.AreEqual(0, Program.Main(new[] {
                 TestAssemblyPath,
                 "-g", "NDepCheck.TestRenderer.dll", typeof(TestRendererForLoadFromAssembly).FullName, gifFile }));
 
             File.Delete(gifFile);
+        }
+
+
+        [TestMethod]
+        public void TestGOptionWithIXOSRenderer() {
+            string gifFile = Path.GetTempFileName() + ".gif";
+            Console.WriteLine("Writing GIF to " + gifFile);
+            Assert.AreEqual(0, Program.Main(new[] {
+                TestAssemblyPath,
+                "-g", "NDepCheck.Tests.dll", typeof(TestRendering.IXOSApplicationRenderer).FullName, gifFile }));
+
+            //File.Delete(gifFile);
         }
     }
 }
