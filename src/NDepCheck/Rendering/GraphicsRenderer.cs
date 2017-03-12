@@ -30,6 +30,14 @@ namespace NDepCheck.Rendering {
         Vector Tail { get; }
     }
 
+    public enum TextPlacing {
+        Left, Center, Right, LeftUp, CenterUp, RightUp, LeftDown, CenterDown, RightDown
+    }
+
+    public enum BoxAnchoring {
+        Center, LowerLeft, CenterLeft, UpperLeft, CenterTop, UpperRight, CenterRight, LowerRight, CenterBottom
+    }
+
     public abstract class GraphicsRenderer<TItem, TDependency> : IRenderer<TItem, TDependency>
             where TItem : class, INode
             where TDependency : class, IEdge {
@@ -39,13 +47,6 @@ namespace NDepCheck.Rendering {
 
         public static BoundedVector B(string name, double interpolateMinMax = 0.0) {
             return Vector.Bounded(name, interpolateMinMax);
-        }
-
-        public enum TextPlacing {
-            Left, Center, Right, LeftUp, CenterUp, RightUp, LeftDown, CenterDown, RightDown
-        }
-        public enum BoxAnchoring {
-            Center, LowerLeft, CenterLeft, UpperLeft, CenterTop, UpperRight, CenterRight, LowerRight, CenterBottom
         }
 
         private interface IBuilder {
@@ -98,7 +99,7 @@ namespace NDepCheck.Rendering {
             public Vector Diagonal => _diagonal;
 
             public void Draw(Graphics graphics, StringBuilder htmlForTooltips) {
-                Vector leftUpper = _center - ~_diagonal/2;
+                Vector leftUpper = _center - ~_diagonal / 2;
 
                 FillBox(graphics, new SolidBrush(_borderColor), leftUpper.GetX(), -leftUpper.GetY(), _diagonal.GetX(),
                     _diagonal.GetY());
@@ -170,6 +171,10 @@ namespace NDepCheck.Rendering {
                 var d = _diagonal as BoundedVector;
                 if (d != null) {
                     SizeF size = graphics.MeasureString(_text, _textFont);
+                    if ((GetDirection(_placing) & StringFormatFlags.DirectionVertical) > 0) {
+                        // Flip size for vertical text
+                        size = new SizeF(size.Height, size.Width);
+                    }
                     d.Restrict(Vector.Fixed(size.Width * (1 + _textMargin), size.Height * (1 + _textMargin), "|" + _text + "|"));
                 }
             }

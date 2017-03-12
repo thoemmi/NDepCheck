@@ -485,7 +485,7 @@ NDepCheck:Tests ---> **
         [TestMethod]
         public void TestGOptionWithIXOSRenderer() {
             string gifFile = Path.GetTempFileName() + ".gif";
-            Console.WriteLine("Writing GIF to " + gifFile);
+            Console.WriteLine(gifFile);
             Assert.AreEqual(0, Program.Main(new[] {
                 TestAssemblyPath,
                 "-g", "NDepCheck.Tests.dll", typeof(TestRendering.IXOSApplicationRenderer).FullName, gifFile }));

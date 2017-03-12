@@ -41,7 +41,7 @@ namespace NDepCheck.Tests {
 
         private static void CreateAndRender(Action<DelegteTestRenderer> placeObjects) {
             string tempFile = Path.GetTempFileName();
-            Console.WriteLine(tempFile + ".gif");
+            Console.WriteLine(Path.ChangeExtension(tempFile, ".gif"));
             new DelegteTestRenderer(placeObjects).RenderToFile(Enumerable.Empty<Item>(), Enumerable.Empty<Dependency>(), tempFile, null);
         }
 
@@ -88,6 +88,36 @@ namespace NDepCheck.Tests {
                 r.Arrow(box.Center, far, width: 5, color: Color.Blue); // center to far point
                 r.Arrow(box.Center, Vector.Fixed(400, 400), width: 2, color: Color.Green); // 45° diagonal from center
                 r.Arrow(box.GetBestConnector(far), far, width: 10, color: Color.Brown); // anchor to far point
+            });
+        }
+
+        [TestMethod]
+        public void TestWindrose() {
+            CreateAndRender(r => {
+                var b = r.Box(Vector.Fixed(100, 100), Vector.Fixed(100, 100), "B", borderWidth: 10,
+                    boxAnchoring: BoxAnchoring.LowerLeft,
+                    textFont: new Font(FontFamily.GenericSansSerif, 30));
+                r.Arrow(b.CenterBottom, Vector.Fixed(150, 0), 4, text: "CenterBottom");
+                r.Arrow(b.LowerLeft, Vector.Fixed(0, 0), 4, text: "LowerLeft");
+                r.Arrow(b.CenterLeft, Vector.Fixed(0, 150), 4, text: "CenterLeft");
+                r.Arrow(b.UpperLeft, Vector.Fixed(0, 230), 4, text: "UpperLeft");
+                r.Arrow(b.CenterTop, Vector.Fixed(150, 230), 4, text: "CenterTop");
+                r.Arrow(b.UpperRight, Vector.Fixed(230, 230), 4, text: "UpperRight");
+                r.Arrow(b.CenterRight, Vector.Fixed(250, 150), 4, text: "CenterRight");
+                r.Arrow(b.LowerRight, Vector.Fixed(250, 0), 4, text: "LowerRight");
+            });
+        }
+
+        [TestMethod]
+        public void TestTwoBoxes() {
+            CreateAndRender(r => {
+                var b = r.Box(Vector.Fixed(100, 100), Vector.Fixed(100, 100), "B", borderWidth: 10,
+                    boxAnchoring: BoxAnchoring.LowerLeft,
+                    textFont: new Font(FontFamily.GenericSansSerif, 30));
+
+                r.Box(b.UpperLeft, Vector.Fixed(50, 200), "C", borderWidth: 5,
+                    boxAnchoring: BoxAnchoring.LowerLeft,
+                    textFont: new Font(FontFamily.GenericSansSerif, 30));
             });
         }
 
@@ -163,7 +193,7 @@ namespace NDepCheck.Tests {
                     (from, i) => items.Skip(i).Select(to => new Dependency(from, to, prefix, i, 0, i, 100, 10 * i))).ToArray();
 
             string tempFile = Path.GetTempFileName();
-            Console.WriteLine(tempFile + ".gif");
+            Console.WriteLine(Path.ChangeExtension(tempFile, ".gif"));
             new SomewhatComplexTestRenderer(new Size(width, height)).RenderToFile(items, dependencies, tempFile, null);
         }
 
@@ -200,6 +230,25 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestLargeSpiral() {
             CreateAndRender(20, "spiral", 2000, 2000);
+        }
+
+        [TestMethod]
+        public void TwoItemBoxes() {
+            ItemType amo = ItemType.New("AMO:Assembly:Module:Order");
+            Item i = Item.New(amo, "VKF", "VKF", "01");
+
+            CreateAndRender(r => {
+                Vector pos = Vector.Fixed(0, 0);
+
+                string name = i.Values[0];
+
+                BoundedVector mainBoxDiagonal = new BoundedVector("/" + name);
+                IBox mainBox = r.Box(pos, mainBoxDiagonal, boxAnchoring: BoxAnchoring.LowerLeft, text: name,
+                    borderWidth: 5, color: Color.Coral);
+                Vector interfacePos = mainBox.UpperLeft;
+                i.DynamicData.InterfaceBox = r.Box(interfacePos, new BoundedVector(name).Restrict(Vector.Fixed(5, 20)),
+                    boxAnchoring: BoxAnchoring.LowerLeft, text: "", borderWidth: 1, color: Color.Coral);
+            });
         }
 
         #endregion Somewhat complex tests
@@ -292,16 +341,15 @@ namespace NDepCheck.Tests {
 
                     BoundedVector mainBoxDiagonal = new BoundedVector("/" + name);
                     IBox mainBox = Box(pos, mainBoxDiagonal, boxAnchoring: BoxAnchoring.LowerLeft, text: name, borderWidth: 5, color: Color.Coral);
-                    Vector interfacePos = mainBox.UpperLeft;
-                    i.DynamicData.InterfaceBox = Box(interfacePos, new BoundedVector(name).Set(5, null),
+                    i.DynamicData.InterfaceBox = Box(mainBox.UpperLeft, new BoundedVector(name).Set(5, 20),
                         boxAnchoring: BoxAnchoring.LowerLeft, text: "", borderWidth: 1, color: Color.Coral);
 
+                    Vector interfacePos = mainBox.LowerLeft;
                     foreach (var mi in items.Where(mi => GetName(mi).Contains(".MI") && GetModule(mi) == GetModule(i)).OrderBy(GetOrder)) {
-                        interfacePos += F(15, 0);
-
-                        mi.DynamicData.InterfaceBox = Box(interfacePos, new BoundedVector(name).Set(5, null),
-                                                            boxAnchoring: BoxAnchoring.LowerLeft, text: GetName(mi),
+                        mi.DynamicData.InterfaceBox = Box(interfacePos, new BoundedVector(name).Set(5, 200),
+                                                            boxAnchoring: BoxAnchoring.UpperLeft, text: GetName(mi),
                                                             placing: TextPlacing.LeftUp, borderWidth: 1, color: Color.LemonChiffon);
+                        interfacePos += F(15, 0);
                     }
 
                     mainBoxDiagonal.Restrict(minX: () => interfacePos.X() - mainBox.LowerLeft.X());

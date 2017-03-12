@@ -83,7 +83,7 @@ namespace NDepCheck.Rendering {
             public override Func<double?> Y => () => _y;
 
             public override string ToString() {
-                return $"FV[{Name}:{_x},{_y}]";
+                return $"FV[{Name}:{DebugX}|{DebugY}]";
             }
         }
 
@@ -258,7 +258,7 @@ namespace NDepCheck.Rendering {
         }
 
         public override string ToString() {
-            return $"VV[{Name}]";
+            return $"BV[{Name}:{DebugX}|{DebugY}]";
         }
     }
 
@@ -280,7 +280,7 @@ namespace NDepCheck.Rendering {
         }
 
         public override string ToString() {
-            return $"DV[{Name}]";
+            return $"DV[{Name}:{DebugX}|{DebugY}]";
         }
     }
 }
