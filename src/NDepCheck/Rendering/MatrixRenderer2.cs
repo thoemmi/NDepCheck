@@ -1,10 +1,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using JetBrains.Annotations;
 
 namespace NDepCheck.Rendering {
-    public class MatrixRenderer2 : IDependencyRenderer {
+    public class MatrixRenderer2 : AbstractMatrixRenderer, IDependencyRenderer {
         public void RenderToFile(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string baseFilename, int? optionsStringLength) {
             new GenericMatrixRenderer2().RenderToFile(items, dependencies, baseFilename, optionsStringLength);
         }
@@ -14,7 +13,7 @@ namespace NDepCheck.Rendering {
         }
     }
 
-    public class GenericMatrixRenderer2 : AbstractMatrixRenderer {
+    public class GenericMatrixRenderer2 : AbstractGenericMatrixRenderer {
         protected override void Write(StreamWriter output, int colWidth, int labelWidth, IEnumerable<INode> topNodes, string nodeFormat,
             Dictionary<INode, int> node2Index, bool withNotOkCt, IEnumerable<INode> sortedNodes, string ctFormat, IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges) {
             var emptyCtCols = Repeat(' ', colWidth) + (withNotOkCt ? ";" + Repeat(' ', colWidth) : "");
@@ -50,7 +49,7 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public override void RenderToFile(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, [NotNull] string baseFilename, int? optionsStringLength) {
+        public override void RenderToFile(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string baseFilename, int? optionsStringLength) {
             string filename = Path.ChangeExtension(baseFilename, ".csv");
             using (var sw = new StreamWriter(filename)) {
                 Render(items, dependencies, sw, optionsStringLength);

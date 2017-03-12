@@ -59,22 +59,45 @@ namespace NDepCheck {
 
         [NotNull]
         public GlobalContext RenderToFile([NotNull] Options options, [NotNull] string assemblyName, [NotNull] string rendererClassName, [NotNull] string filename) {
-            IDependencyRenderer renderer;
-            try {
-                var a = Assembly.LoadFrom(assemblyName);
-                renderer = (IDependencyRenderer)Activator.CreateInstance(a.GetType(rendererClassName, true, ignoreCase: true));
-            } catch (Exception ex) {
-                throw new ApplicationException($"Cannot create renderer {rendererClassName} from assembly {assemblyName} running in working directory {Environment.CurrentDirectory}; problem: " + ex.Message, ex);
-            }
-            options.GraphingDone = true;
-
             if (_reducedGraph == null) {
                 throw new Exception("Internal error: _reducedGraph is null");
             }
 
-            renderer.RenderToFile(_reducedGraph.SelectMany(e => new[] { e.UsingItem, e.UsedItem }).Distinct(), _reducedGraph, filename, options.StringLength);
+            var dependencies = _reducedGraph;
+            var items = dependencies.SelectMany(e => new[] { e.UsingItem, e.UsedItem }).Distinct();
 
+            var renderer = GetRenderer(assemblyName, rendererClassName);
+
+            renderer.RenderToFile(items, dependencies, filename, options.StringLength);
+
+            options.GraphingDone = true;
             return this;
+        }
+
+        private static IDependencyRenderer GetRenderer(string assemblyName, string rendererClassName) {
+            IDependencyRenderer renderer;
+            try {
+                var a = Assembly.LoadFrom(assemblyName);
+                renderer = (IDependencyRenderer) Activator.CreateInstance(a.GetType(rendererClassName, true, ignoreCase: true));
+            } catch (Exception ex) {
+                throw new ApplicationException(
+                    $"Cannot create renderer {rendererClassName} from assembly {assemblyName} running in working directory {Environment.CurrentDirectory}; problem: " +
+                    ex.Message, ex);
+            }
+            return renderer;
+        }
+
+        public static void RenderTestDataToFile([NotNull] Options options, [NotNull] string assemblyName, [NotNull] string rendererClassName, [NotNull] string filename) {
+            var renderer = GetRenderer(assemblyName, rendererClassName);
+
+            IEnumerable<Item> items;
+            IEnumerable<Dependency> dependencies;
+
+            renderer.CreateSomeTestItems(out items, out dependencies);
+
+            renderer.RenderToFile(items, dependencies, filename, options.StringLength);
+
+            options.GraphingDone = true;
         }
 
         public int ComputeViolations([NotNull] Options options) {
@@ -152,7 +175,7 @@ namespace NDepCheck {
                     return new UnhideCycles<Dependency>(args.Skip(1));
                 case "ah":
                     return new AssociativeHull<Dependency>(args.Skip(1),
-                        (e1, e2) => new Dependency(e1.UsingItem, e2.UsedItem, e2.FileName, e2.StartLine, e2.StartColumn, e2.EndLine, e2.EndColumn)
+                        (e1, e2) => new Dependency(e1.UsingItem, e2.UsedItem, e2.Source, e2.StartLine, e2.StartColumn, e2.EndLine, e2.EndColumn)
                         );
                 default:
                     throw new ArgumentException("Graph transformation '" + args[0] + "' not implemented");

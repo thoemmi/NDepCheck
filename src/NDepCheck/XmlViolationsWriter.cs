@@ -24,7 +24,7 @@ namespace NDepCheck {
                                 //new XElement("UsingNamespace", violation.Dependency.UsingNamespace),
                                 new XElement("UsedItem", violation.Dependency.UsedItemAsString),
                                 //new XElement("UsedNamespace", violation.Dependency.UsedNamespace),
-                                new XElement("FileName", violation.Dependency.FileName),
+                                new XElement("FileName", violation.Dependency.Source),
                                 new XElement("StartLine", violation.Dependency.StartLine),
                                 new XElement("StartColumn", violation.Dependency.StartColumn),
                                 new XElement("EndLine", violation.Dependency.EndLine),

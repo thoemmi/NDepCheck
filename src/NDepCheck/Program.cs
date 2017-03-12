@@ -70,6 +70,8 @@ namespace NDepCheck {
                 } else if (ArgMatches(arg, 'f')) {
                     // -f &      Set file location with reader defined by file extension
                     CreateInputOption(args, ref i, null, options, readOnlyItems: false);
+
+                    // -g & $ &Render the test data of renderer $ in assembly & to file & -> see below at -r
                 } else if (arg == "-h" || arg == "/h") {
                     // -h        Do write extensive help
                     return UsageAndExit(null, completeHelp: true);
@@ -115,7 +117,6 @@ namespace NDepCheck {
                     if (xmlfile == null) {
                         return UsageAndExit("Missing =filename after " + arg);
                     }
-
                     result = state.ReadAll(options).ComputeViolations(options);
                     state.WriteViolations(xmlfile);
                 } else if (ArgMatches(arg, 'p')) {
@@ -125,8 +126,9 @@ namespace NDepCheck {
                 } else if (ArgMatches(arg, 'q')) {
                     // -q        Set option to show unused questionable rules
                     options.ShowUnusedQuestionableRules = true;
-                } else if (ArgMatches(arg, 'r')) {
-                    // -r & $ &  Render with $ in assembly & to file & (after lazy reading and lazy dep->graph run)
+                } else if (ArgMatches(arg, 'r') || ArgMatches(arg, 'g')) {
+                    // -g & $ &' Render the test data of renderer $ in assembly & to file &'
+                    // -r & $ &' Render with $ in assembly & to file &' (after lazy reading and lazy dep->graph run)
                     string assemblyName = ExtractOptionValue(args, ref i);
                     if (string.IsNullOrWhiteSpace(assemblyName)) {
                         return UsageAndExit("Missing assembly name after " + arg);
@@ -139,7 +141,13 @@ namespace NDepCheck {
                     if (string.IsNullOrWhiteSpace(filename)) {
                         return UsageAndExit("Missing filename after " + arg + " " + assemblyName + " " + rendererClassName);
                     }
-                    state.ReadAll(options).ReduceGraph(options, false).RenderToFile(options, assemblyName, rendererClassName, filename);
+                    if (ArgMatches(arg, 'r')) {
+                        state.ReadAll(options)
+                            .ReduceGraph(options, false)
+                            .RenderToFile(options, assemblyName, rendererClassName, filename);
+                    } else {
+                        GlobalContext.RenderTestDataToFile(options, assemblyName, rendererClassName, filename);
+                    }
                 } else if (ArgMatches(arg, 's')) {
                     // -s &      Set directory tree search location for rule files
                     string path = ExtractOptionValue(args, ref i);
@@ -206,7 +214,7 @@ namespace NDepCheck {
                 return UsageAndExit("No input files specified");
             }
 
-        DONE:
+            DONE:
 
             if (Log.IsVerboseEnabled) {
                 Log.WriteInfo("Completed with exitcode " + result);
@@ -304,15 +312,18 @@ Options overview:
     -debug    Do start .Net debugger
     -e $ &    Set file location with defined reader $ (currently supported: dip, dll, exe)
     -f &      Set file location with reader defined by file extension
+    -g & $ &' Render the test data of renderer $ in assembly & to file &'
     -h        Do write extensive help
     -i        Set ignorecase option
     -j #      Set edge length for graph output
+    -k $ &    Set file location with defined reader $ (currently supported: dip, dll, exe)
+    -l &      Set file location with reader defined by file extension
     -m $      Do graph transformation (after lazy reading; after lazy depcheck; and lazy dep->graph run)
     -n #|all  Set cpu count (currently no-op)
     -o &      Do write xml depcheck output (after lazy reading; after lazy depcheck)
     -p        Do write standard depcheck output (after lazy reading; after lazy depcheck)
     -q        Set option to show unused questionable rules
-    -r & $ &  Render with $ in assembly & to file & (after lazy reading and lazy dep->graph run)
+    -r & $ &' Render with $ in assembly & to file &' (after lazy reading and lazy dep->graph run)
     -s &      Set directory tree search location for rule files
     -t &      Set rule file extension (default .dep; specify before -s!)
     -u        Set option to show unused rules

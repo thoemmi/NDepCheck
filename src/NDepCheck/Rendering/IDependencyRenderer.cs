@@ -4,7 +4,10 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Rendering {
     public interface IDependencyRenderer {
-        void RenderToFile([NotNull] [ItemNotNull] IEnumerable<Item> items, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies, string baseFilename, int? optionsStringLength);
-        void RenderToStream([NotNull] [ItemNotNull] IEnumerable<Item> items, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies, Stream output, int? optionsStringLength);
+        void RenderToFile([NotNull] [ItemNotNull] IEnumerable<Item> items, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
+            string baseFilename, int? optionsStringLength);
+        void RenderToStream([NotNull] [ItemNotNull] IEnumerable<Item> items, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
+            Stream output, int? optionsStringLength);
+        void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies);
     }
 }

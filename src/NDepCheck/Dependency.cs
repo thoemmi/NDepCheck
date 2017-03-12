@@ -28,7 +28,7 @@ namespace NDepCheck {
         /// </summary>
         /// <param name="usingItem">The using item.</param>
         /// <param name="usedItem">The used item.</param>
-        /// <param name="fileName">Name of the file.</param>
+        /// <param name="source">Name of the file.</param>
         /// <param name="startLine">The start line.</param>
         /// <param name="startColumn">The start column.</param>
         /// <param name="endLine">The end line.</param>
@@ -37,7 +37,7 @@ namespace NDepCheck {
         /// <param name="notOkCt"></param>
         /// <param name="notOkExample"></param>
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem,
-            string fileName, int startLine, int startColumn, int endLine, int endColumn,
+            string source, int startLine, int startColumn, int endLine = 0, int endColumn = 0,
             int ct = 1, int notOkCt = 0, [CanBeNull] Dependency notOkExample = null) {
             if (usingItem == null) {
                 throw new ArgumentNullException(nameof(usingItem));
@@ -47,7 +47,7 @@ namespace NDepCheck {
             }
             _usingItem = usingItem;
             _usedItem = usedItem;
-            FileName = fileName; // != null ? string.Intern(fileName) : null;
+            Source = source; // != null ? string.Intern(fileName) : null;
             StartLine = startLine;
             StartColumn = startColumn;
             EndLine = endLine;
@@ -74,7 +74,7 @@ namespace NDepCheck {
         /// A guess where the use occurs in the
         /// original source file.
         /// </value>
-        public string FileName { get; }
+        public string Source { get; }
 
         /// <summary>
         /// Gets a guess of the line number in the original

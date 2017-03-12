@@ -8,6 +8,7 @@
 // ReSharper disable MemberCanBeProtected.Global
 // ReSharper disable InconsistentNaming
 
+// ReSharper disable once CheckNamespace - JetBrains.Annotations must be in JetBrains.Annotations :-)
 namespace JetBrains.Annotations {
     /// <summary>
     /// Indicates that the value of the marked element could be <c>null</c> sometimes,

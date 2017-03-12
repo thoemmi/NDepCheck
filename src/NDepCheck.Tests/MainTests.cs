@@ -434,9 +434,8 @@ NDepCheck:Tests ---> **
             }
         }
 
-
         [TestMethod]
-        public void TestLoadedRenderer() {
+        public void TestROption() {
             string depFile = CreateTempDotNetDepFileName();
             using (TextWriter tw = new StreamWriter(depFile)) {
                 tw.Write(@"
@@ -467,6 +466,19 @@ NDepCheck:Tests ---> **
                 "-r", "NDepCheck.TestRenderer.dll", typeof(TestRendererForLoadFromAssembly).FullName, gifFile }));
 
             File.Delete(depFile);
+            File.Delete(gifFile);
+        }
+
+        [TestMethod]
+        public void TestGOption() {
+
+            string gifFile = Path.GetTempFileName() + ".gif";
+            Console.WriteLine("Writing GIF to " + gifFile);
+            // typeof(FullName) forces copying to known directory ...
+            Assert.AreEqual(0, Program.Main(new[] {
+                TestAssemblyPath,
+                "-g", "NDepCheck.TestRenderer.dll", typeof(TestRendererForLoadFromAssembly).FullName, gifFile }));
+
             File.Delete(gifFile);
         }
     }

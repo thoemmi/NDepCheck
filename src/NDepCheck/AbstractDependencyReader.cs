@@ -74,6 +74,7 @@ namespace NDepCheck {
         protected abstract IEnumerable<Dependency> ReadDependencies(int depth);
 
         public Dependency[] ReadOrGetDependencies(int depth) {
+            // ReSharper disable once ConvertIfStatementToNullCoalescingExpression -- ReadDependencies action is "long"
             if (_dependencies == null) {
                 _dependencies = ReadDependencies(depth).ToArray();
             }

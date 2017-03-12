@@ -9,18 +9,9 @@ namespace NDepCheck {
         private readonly List<InputFileOption> _itemFiles = new List<InputFileOption>();
         private readonly List<InputFileOption> _inputFiles = new List<InputFileOption>();
 
-        /////// <summary>
-        /////// Set output file name. If set to <c>null</c> (or left
-        /////// at <c>null</c>), no DOT output is created.
-        /////// </summary>
-        /////// <value>The dot filename.</value>
-        ////public string DotFilename { get; set; }
-
-        ////public readonly List<string> GraphTransformations = new List<string>();
-
         /// <value>
-        /// With /g: If not null, show a concrete dependency for each illegal edge.
-        /// With /m: Use as prefix length.
+        /// With -r, -g: If not null, show a concrete dependency for each illegal edge.
+        /// With -m: Use as prefix length.
         /// </value>
         public int? StringLength;
 

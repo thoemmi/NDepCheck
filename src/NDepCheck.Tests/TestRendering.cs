@@ -29,6 +29,14 @@ namespace NDepCheck.Tests {
             protected override Size GetSize() {
                 return new Size(300, 400);
             }
+
+            public override void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
+                ItemType simple = ItemType.New("Simple:Name");
+                Item i1 = Item.New(simple, "I1");
+                Item i2 = Item.New(simple, "I2");
+                items = new[] { i1, Item.New(simple, "I2") };
+                dependencies = new[] { new Dependency(i1, i1, "Test", 0, 0), new Dependency(i1, i2, "Test", 0, 0) };
+            }
         }
 
         private static void CreateAndRender(Action<DelegteTestRenderer> placeObjects) {
@@ -115,12 +123,13 @@ namespace NDepCheck.Tests {
                     int k = n++;
                     double angle = k * deltaAngle;
                     var pos = new DependentVector(() => origin.X() + r(k) * Math.Sin(angle), () => origin.X() + r(k) * Math.Cos(angle));
-                    ItemBoxes.Put(i, Box(pos, diagonals.Put(i, B(i.Name).Set(null, 15)), i.Name, borderWidth: 2));
+
+                    i.DynamicData.Box = Box(pos, diagonals.Put(i, B(i.Name).Set(null, 15)), i.Name, borderWidth: 2);
                 }
 
                 foreach (var d in dependencies) {
-                    IBox from = ItemBoxes.Get(d.UsingItem);
-                    IBox to = ItemBoxes.Get(d.UsedItem);
+                    IBox from = d.UsingItem.DynamicData.Box;
+                    IBox to = d.UsedItem.DynamicData.Box;
 
                     if (d.Ct > 0 && !Equals(d.UsingItem, d.UsedItem)) {
                         //Arrow(from.Center, to.Center, 1, text: "#=" + d.Ct, textLocation: 0.3);
@@ -130,6 +139,19 @@ namespace NDepCheck.Tests {
                 }
 
                 origin.Set(0, 0);
+            }
+
+            public static void CreateSomeTestItems(int n, string prefix, out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
+                ItemType simple = ItemType.New("Simple:Name");
+                var localItems = Enumerable.Range(0, n).Select(i => Item.New(simple, prefix + i)).ToArray();
+                dependencies =
+                    localItems.SelectMany(
+                        (from, i) => localItems.Skip(i).Select(to => new Dependency(from, to, prefix, i, 0, i, 100, 10 * i))).ToArray();
+                items = localItems;
+            }
+
+            public override void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
+                CreateSomeTestItems(5, "spiral", out items, out dependencies);
             }
         }
 
@@ -190,22 +212,82 @@ namespace NDepCheck.Tests {
         //    }
 
         //    protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
-        //        // ItemType Name:Order
+        //        // ASCII-art sketch of what I want to accomplish:
+        //        //
+        //        //    |         |         |             |          |        |<--------+-----+
+        //        //    |         |         |             |          |<-----------------|     |
+        //        //    |         |         |             |<----------------------------| Top |
+        //        //    |         |         |<------------------------------------------|     |
+        //        //    |         |<----------------------------------------------------+-----+
+        //        //    |         |         |             |          |        |
+        //        //    |         |         |             |          |<-------+-----+
+        //        //    |         |         |             |<------------------|     |
+        //        //    |         |         |<--------------------------------| IMP |
+        //        //    |         |<------------------------------------------|     |
+        //        //    |<----------------------------------------------------+-----+
+        //        //    |         |         |             |          |          |
+        //        //    |         |         |             |<---------+-----+    |
+        //        //    |         |         |<-----------------------|     |    |
+        //        //    |         |<---------------------------------| WLG |    |
+        //        //    |<-------------------------------------------+-----+    |
+        //        //    |         |         |             |            | |      |
+        //        //    |         |         |<------------+-----+      | |      |
+        //        //    |         |<----------------------| VKF |-------------->|
+        //        //    |<--------------------------------+-----+      | |      |
+        //        //    |         |         |               | |        | |      Imp.MI
+        //        //    |         |         |       ...     | |        | |
+        //        //    |         |         |               | |        | |
+        //        //    |         |         +-----+         | |        | |
+        //        //    |         |         | KAH |---------->|        | |
+        //        //    |         |         +-----+-------->| |        | |
+        //        //    |         |           |             | |        | |
+        //        //    |         +-----+------------------------------->|
+        //        //    |         |     |----------------------------->| |
+        //        //    |         | KST |-------------------->|        | |
+        //        //    |         |     |------------------>| |        | |
+        //        //    |<--------+-----+---->|             | |        | |
+        //        //    |                     |             | |        | |
+        //        //    |        ...          |             | |        | |
+        //        //    |                    Kah         Vkf1 Vkf2  Wlg1 Wlg2
+        //        //    +-----+              .MI          .MI .MI    .MI .MI
+        //        //    | BAC |
+        //        //    +-----+
+
+        //        // The itemtype is expected to have 3 fields Name:Module:Order.
+        //        // In the example diagram above, we would have items about like the following:
+        //        //        BAC    :BAC:0100
+        //        //        KST    :KST:0200
+        //        //        KAH    :KAH:0300
+        //        //        Kah.MI :KAH:0301
+        //        //        VKF    :VKF:0400
+        //        //        Vkf1.MI:VKF:0401
+        //        //        Vkf2.MI:VKF:0402
+        //        //        WLG    :WLG:0500
+        //        //        Wlg1.MI:WLG:0501
+        //        //        Wlg2.MI:WLG:0502
+        //        //        IMP    :IMP:0600
+        //        //        Imp.MI :IMP:0601
+        //        //        Top    :TOP:0700
 
         //        BoundedVector itemDistance = new BoundedVector(nameof(itemDistance)).Set(null, 40);
         //        Vector pos = F(0, 0);
 
-        //        var upperInterfaceBoxes = new Store<Item, IBox>();
-        //        var lowerInterfaceBoxes = new Store<Item, IBox>();
-
         //        // Hauptmodule auf Diagonale
         //        foreach (var i in items.Where(i => !i.Values[0].Contains(".MI")).OrderBy(i => i.Values[1])) {
         //            string name = i.Values[0];
-        //            IBox b = ItemBoxes.Put(i, Box(pos, new BoundedVector(name),boxAnchoring: BoxAnchoring.LowerLeft, text: name, borderWidth: 5));
+        //            IBox b = ItemBoxes.Put(i, Box(pos, new BoundedVector(name), boxAnchoring: BoxAnchoring.LowerLeft, text: name, borderWidth: 5));
 
-        //            ///
+        //            Box(i.Data.LowerLeft = pos - b.HalfDiagonal, new BoundedVector(name).Set(null, 20), name, borderWidth: 2);
+        //            i.Data.UpperRight = i.Data.LowerLeft + 2 * b.HalfDiagonal;
 
-        //            upperInterfaceBoxes.Put(i, Box(pos - b.HalfDiagonal,  new BoundedVector(name).Set(null, 20), name, borderWidth: 2));
+
+
+
+
+
+
+
+
         //            upperInterfaceBoxes.Put(i, Box(left, new BoundedVector(name).Set(null, 20), name, borderWidth: 2));
 
         //            pos += itemDistance;
@@ -219,7 +301,7 @@ namespace NDepCheck.Tests {
         //        // Abhängigkeiten ___
 
 
-        //            throw new NotImplementedException();
+        //        throw new NotImplementedException();
         //    }
         //}
 

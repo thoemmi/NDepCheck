@@ -228,9 +228,6 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        protected readonly Store<Item, IBox> ItemBoxes = new Store<Item, IBox>();
-        protected readonly Store<Dependency, IArrow> DependencyArrows = new Store<Dependency, IArrow>();
-
         private static void DrawText(Graphics graphics, string text, Font textFont, Color textColor, Vector center, TextPlacing textPlacing) {
             //graphics.FillEllipse(new SolidBrush(Color.Red), center.GetX() - 3, -center.GetY() - 3, 6, 6);
             graphics.DrawString(text, textFont, new SolidBrush(textColor), (~center - F(0, textFont.GetHeight() / 2)).AsPointF(),
@@ -443,6 +440,8 @@ namespace NDepCheck.Rendering {
         protected virtual Color GetBackGroundColor => Color.White;
 
         protected abstract void PlaceObjects(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies);
+
+        public abstract void CreateSomeTestItems(out IEnumerable<TItem> items, out IEnumerable<TDependency> dependencies);
     }
 
     public abstract class GraphicsDependencyRenderer : GraphicsRenderer<Item, Dependency>, IDependencyRenderer { }

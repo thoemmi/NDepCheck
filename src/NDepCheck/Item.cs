@@ -5,15 +5,14 @@ using System.Linq;
 using System.Text;
 using Gibraltar;
 using JetBrains.Annotations;
+using NDepCheck.Rendering;
 
 namespace NDepCheck {
     public abstract class ItemSegment {
-        [NotNull]
-        private readonly ItemType _type;
-        [NotNull]
-        public readonly string[] Values;
+        [NotNull] private readonly ItemType _type;
+        [NotNull] public readonly string[] Values;
 
-        protected ItemSegment([NotNull]ItemType type, [NotNull]string[] values) {
+        protected ItemSegment([NotNull] ItemType type, [NotNull] string[] values) {
             _type = type;
             //Values = _debugSingleton;
             //Values = values;
@@ -78,6 +77,8 @@ namespace NDepCheck {
     /// A token representing a complex name. 
     /// </remarks>
     public sealed class Item : ItemSegment, INode {
+        private AdditionalDynamicData _additionalDynamicData;
+
         private readonly bool _isInner;
 
         private string _asString;
@@ -91,10 +92,6 @@ namespace NDepCheck {
             _isInner = isInner;
         }
 
-        public bool IsEmpty() {
-            return Values.All(s => s == "");
-        }
-
         public static Item New([NotNull]ItemType type, bool isInner, [ItemNotNull] string[] values) {
             return Intern<Item>.GetReference(new Item(type, isInner, values));
         }
@@ -105,6 +102,17 @@ namespace NDepCheck {
 
         public static Item New([NotNull]ItemType type, [ItemNotNull] params string[] values) {
             return New(type, false, values);
+        }
+
+        /// <summary>
+        /// Container for any additional data useful for other algorithms. This is e.g. helpful
+        /// during rendering in a <see cref="GraphicsDependencyRenderer"/> for associating various
+        /// <see cref="IBox"/>es with an <see cref="Item"/>.
+        /// </summary>
+        public dynamic DynamicData => _additionalDynamicData ?? (_additionalDynamicData = new AdditionalDynamicData(this));
+
+        public bool IsEmpty() {
+            return Values.All(s => s == "");
         }
 
         public override bool Equals(object obj) {
@@ -122,10 +130,7 @@ namespace NDepCheck {
 
         [NotNull]
         public string AsStringWithType() {
-            if (_asStringWithType == null) {
-                _asStringWithType = Type.Name + ":" + AsString();
-            }
-            return _asStringWithType;
+            return _asStringWithType ?? (_asStringWithType = Type.Name + ":" + AsString());
         }
 
         [NotNull]

@@ -49,9 +49,9 @@ namespace NDepCheck {
 
         private static string FormatMessage(Dependency dependency, ViolationType violationType) {
             var message = violationType == ViolationType.Warning ? dependency.QuestionableMessage() : dependency.IllegalMessage();
-            if (dependency.FileName != null) {
+            if (dependency.Source != null) {
                 var sb = new StringBuilder(message);
-                sb.Append(" (probably at ").Append(dependency.FileName);
+                sb.Append(" (probably at ").Append(dependency.Source);
                 if (dependency.StartLine > 0) {
                     sb.Append(":").Append(dependency.StartLine);
                 }

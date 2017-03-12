@@ -4,6 +4,9 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Rendering {
+    /// <summary>
+    /// Class that creates AT&amp;T DOT (graphviz) output from dependencies - see <a href="http://graphviz.org/">http://graphviz.org/</a>.
+    /// </summary>
     public class DotRenderer : IDependencyRenderer {
         public void RenderToFile(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string baseFilename, int? optionsStringLength) {
             new GenericDotRenderer().RenderToFile(items, dependencies, baseFilename, optionsStringLength);
@@ -11,6 +14,10 @@ namespace NDepCheck.Rendering {
 
         public void RenderToStream(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, Stream output, int? optionsStringLength) {
             new GenericDotRenderer().RenderToStream(items, dependencies, output, optionsStringLength);
+        }
+
+        public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
+            SomeRendererTestData.CreateSomeTestItems(out items, out dependencies);
         }
     }
 
@@ -38,7 +45,7 @@ namespace NDepCheck.Rendering {
             output.WriteLine("}");
         }
 
-        public void RenderToFile(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, [NotNull] string baseFilename, int? optionsStringLength) {
+        public void RenderToFile(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string baseFilename, int? optionsStringLength) {
             string filename = Path.ChangeExtension(baseFilename, ".dot");
             using (var sw = new StreamWriter(filename)) {
                 Render(/*items,*/ dependencies, sw, optionsStringLength);

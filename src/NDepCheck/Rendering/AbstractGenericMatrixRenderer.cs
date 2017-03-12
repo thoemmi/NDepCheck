@@ -5,7 +5,13 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Rendering {
-    public abstract class AbstractMatrixRenderer : IRenderer<INode, IEdge> {
+    public abstract class AbstractMatrixRenderer {
+        public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
+            SomeRendererTestData.CreateSomeTestItems(out items, out dependencies);
+        }
+    }
+
+    public abstract class AbstractGenericMatrixRenderer : IRenderer<INode, IEdge> {
         private static List<INode> MoreOrLessTopologicalSort(IEnumerable<IEdge> edges) {
             Dictionary<INode, List<IEdge>> nodesAndEdges = DependencyGrapher.Edges2NodesAndEdgesList(edges);
 

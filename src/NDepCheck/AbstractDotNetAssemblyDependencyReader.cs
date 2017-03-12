@@ -192,6 +192,7 @@ namespace NDepCheck {
             }
 
             public override Item ToItem(ItemType type) {
+                // ReSharper disable once ConvertIfStatementToNullCoalescingExpression
                 if (_item == null) {
                     _item = base.ToItem(type).Append(_tail);
                 }
@@ -199,6 +200,7 @@ namespace NDepCheck {
             }
 
             public new RawUsedItem ToRawUsedItem() {
+                // ReSharper disable once ConvertIfStatementToNullCoalescingExpression
                 if (_usedItem == null) {
                     _usedItem = base.ToRawUsedItem();
                 }
