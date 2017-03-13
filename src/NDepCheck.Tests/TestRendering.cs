@@ -68,7 +68,7 @@ namespace NDepCheck.Tests {
                 foreach (BoxTextPlacement e in typeof(BoxTextPlacement).GetEnumValues()) {
                     r.Box(pos, e.ToString(), Vector.Fixed(90, 200), borderWidth: 1,
                         boxTextPlacement: e, textFont: new Font(FontFamily.GenericSansSerif, 8));
-                    pos += Vector.Fixed(100, 0);
+                    pos += Vector.Fixed(100, 5);
                 }
             }, 2000, 1500);
         }
@@ -91,11 +91,14 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestLinesWithMovedText() {
             CreateAndRender(r => {
+                r.Arrow(Vector.Fixed(0, 0), Vector.Fixed(100, 0), 1, color: Color.Chartreuse);
+
+
                 var tail = Vector.Fixed(0, 0);
                 var head = Vector.Fixed(100, 120);
                 var delta = head;
                 foreach (LineTextPlacement e in typeof(LineTextPlacement).GetEnumValues()) {
-                    r.Arrow(tail, head, 3, placement: e, text: e.ToString(), textFont: new Font(FontFamily.GenericSansSerif, 8), textLocation: 0.2);
+                    r.Arrow(tail, head, 3, placement: e, text: e.ToString(), textFont: new Font(FontFamily.GenericSansSerif, 8), textLocation: 0.3);
                     tail = head;
                     delta = ~delta;
                     head += delta;
@@ -379,22 +382,28 @@ namespace NDepCheck.Tests {
                 BoundedVector itemDistance = new BoundedVector(nameof(itemDistance));
                 Vector pos = F(0, 0);
 
+                //Arrow(pos, F(100, 0), 1, Color.Chartreuse);
+
+                var boxFont = new Font(FontFamily.GenericSansSerif, 10);
+                var interfaceFont = new Font(FontFamily.GenericSansSerif, 7);
+
                 // Hauptmodule auf Diagonale
                 foreach (var i in items.Where(i => !GetName(i).Contains(".MI")).OrderBy(GetOrder)) {
                     string name = GetName(i);
 
-                    IBox mainBox = Box(pos, boxAnchoring: BoxAnchoring.LowerLeft, text: name, borderWidth: 5, boxColor: Color.Coral);
-                    IBox interfaceBox = Box(mainBox.UpperLeft, text: "", boxAnchoring: BoxAnchoring.LowerLeft, borderWidth: 1, boxColor: Color.Coral);
+                    IBox mainBox = Box(pos, boxAnchoring: BoxAnchoring.LowerLeft, text: name, borderWidth: 5, boxColor: Color.Coral, textFont: boxFont);
+                    IBox interfaceBox = Box(mainBox.UpperLeft, text: "", boxAnchoring: BoxAnchoring.LowerLeft, borderWidth: 1, boxColor: Color.Coral, textFont: interfaceFont);
                     interfaceBox.Diagonal.Set(5, 20);
                     i.DynamicData.InterfaceBox = interfaceBox;
 
                     Vector interfacePos = mainBox.LowerLeft;
                     foreach (var mi in items.Where(mi => GetName(mi).Contains(".MI") && GetModule(mi) == GetModule(i)).OrderBy(GetOrder)) {
                         interfaceBox = Box(interfacePos, text: GetName(mi), boxAnchoring: BoxAnchoring.UpperLeft,
-                                           boxTextPlacement: BoxTextPlacement.LeftUp, borderWidth: 1, boxColor: Color.LemonChiffon);
-                        interfaceBox.Diagonal.Set(5, 200); // for Tests only!!!!!!
+                                           boxTextPlacement: BoxTextPlacement.LeftUp, 
+                                           borderWidth: 1, boxColor: Color.LemonChiffon, textFont: interfaceFont);
+                        interfaceBox.Diagonal.Set(null, 200); // for Tests only!!!!!!
                         mi.DynamicData.InterfaceBox = interfaceBox;
-                        interfacePos += F(15, 0);
+                        interfacePos += F(18, 0);
                     }
 
                     mainBox.Diagonal.Restrict(minX: () => interfacePos.X() - mainBox.LowerLeft.X());
@@ -425,6 +434,8 @@ namespace NDepCheck.Tests {
                 var vkf = Item.New(amo, "VKF:VKF:0400".Split(':'));
                 var vkf1_mi = Item.New(amo, "Vkf1.MI:VKF:0401".Split(':'));
                 var vkf2_mi = Item.New(amo, "Vkf2.MI:VKF:0402".Split(':'));
+                var vkf3_mi = Item.New(amo, "Vkf3.MI:VKF:0402".Split(':'));
+                var vkf4_mi = Item.New(amo, "Vkf4.MI:VKF:0402".Split(':'));
                 var wlg = Item.New(amo, "WLG:WLG:0500".Split(':'));
                 var wlg1_mi = Item.New(amo, "Wlg1.MI:WLG:0501".Split(':'));
                 var wlg2_mi = Item.New(amo, "Wlg2.MI:WLG:0502".Split(':'));
@@ -432,7 +443,7 @@ namespace NDepCheck.Tests {
                 var imp_mi = Item.New(amo, "Imp.MI:IMP:0601".Split(':'));
                 var top = Item.New(amo, "Top:TOP:0700".Split(':'));
 
-                items = new[] { bac, kst, kah, kah_mi, vkf, vkf1_mi, vkf2_mi, wlg, wlg1_mi, wlg2_mi, imp, imp_mi, top };
+                items = new[] { bac, kst, kah, kah_mi, vkf, vkf1_mi, vkf2_mi, vkf3_mi, vkf4_mi, wlg, wlg1_mi, wlg2_mi, imp, imp_mi, top };
 
                 dependencies = new[] {
                     FromTo(kst, bac), FromTo(kst, kah_mi), FromTo(kst, vkf1_mi), FromTo(kst, vkf2_mi), FromTo(kst, wlg1_mi), FromTo(kst, wlg2_mi),

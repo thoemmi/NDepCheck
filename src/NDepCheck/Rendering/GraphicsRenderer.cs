@@ -47,6 +47,8 @@ namespace NDepCheck.Rendering {
     public abstract class GraphicsRenderer<TItem, TDependency> : IRenderer<TItem, TDependency>
             where TItem : class, INode
             where TDependency : class, IEdge {
+        private static readonly bool DEBUG = false;
+
         public static Vector F(double? x, double? y, string name = null) {
             return Vector.Fixed(x, y, name);
         }
@@ -136,46 +138,44 @@ namespace NDepCheck.Rendering {
             public void Draw(Graphics graphics, StringBuilder htmlForTooltips) {
                 Vector leftUpper = _center - ~_diagonal / 2;
 
-                FillBox(graphics, new SolidBrush(_borderColor), leftUpper.GetX(), -leftUpper.GetY(), _diagonal.GetX(),
-                    _diagonal.GetY());
+                FillBox(graphics, new SolidBrush(_borderColor), leftUpper.GetX(), -leftUpper.GetY(), _diagonal.GetX(), _diagonal.GetY());
 
                 Vector borderDiagonal = F(_borderWidth, _borderWidth);
                 Vector leftUpperInner = leftUpper + ~borderDiagonal;
                 Vector diagonalInner = _diagonal - 2 * borderDiagonal;
-                FillBox(graphics, new SolidBrush(_color), leftUpperInner.GetX(), -leftUpperInner.GetY(),
-                    diagonalInner.GetX(), diagonalInner.GetY());
+                FillBox(graphics, new SolidBrush(_color), leftUpperInner.GetX(), -leftUpperInner.GetY(), diagonalInner.GetX(), diagonalInner.GetY());
 
                 Matrix m = new Matrix();
                 switch (_boxTextPlacement) {
                     case BoxTextPlacement.Left:
-                        m.Translate(-(_diagonal - _textBox).Horizontal().GetX() / 2, 0);
+                        m.Translate(-(_diagonal - _textBox).GetX() / 2, 0);
                         break;
                     case BoxTextPlacement.Center:
                         break;
                     case BoxTextPlacement.Right:
-                        m.Translate((_diagonal - _textBox).Horizontal().GetX() / 2, 0);
+                        m.Translate((_diagonal - _textBox).GetX() / 2, 0);
                         break;
                     case BoxTextPlacement.LeftUp:
-                        m.Translate(0, (_diagonal - _textBox).Vertical().GetY() / 2);
-                        m.RotateAt(-90, _center.AsPointF());
+                        m.Translate(0, -(_diagonal - _textBox).AsMirroredPointF().Y / 2);
+                        m.RotateAt(-90, _center.AsMirroredPointF());
                         break;
                     case BoxTextPlacement.CenterUp:
-                        m.RotateAt(-90, _center.AsPointF());
+                        m.RotateAt(-90, _center.AsMirroredPointF());
                         break;
                     case BoxTextPlacement.RightUp:
-                        m.Translate(0, -(_diagonal - _textBox).Vertical().GetY() / 2);
-                        m.RotateAt(-90, _center.AsPointF());
+                        m.Translate(0, (_diagonal - _textBox).AsMirroredPointF().Y / 2);
+                        m.RotateAt(-90, _center.AsMirroredPointF());
                         break;
                     case BoxTextPlacement.LeftDown:
-                        m.Translate(0, -(_diagonal - _textBox).Vertical().GetY() / 2);
-                        m.RotateAt(90, _center.AsPointF());
+                        m.Translate(0, (_diagonal - _textBox).AsMirroredPointF().Y / 2);
+                        m.RotateAt(90, _center.AsMirroredPointF());
                         break;
                     case BoxTextPlacement.CenterDown:
-                        m.RotateAt(90, _center.AsPointF());
+                        m.RotateAt(90, _center.AsMirroredPointF());
                         break;
                     case BoxTextPlacement.RightDown:
-                        m.Translate(0, (_diagonal - _textBox).Vertical().GetY() / 2);
-                        m.RotateAt(90, _center.AsPointF());
+                        m.Translate(0, -(_diagonal - _textBox).AsMirroredPointF().Y / 2);
+                        m.RotateAt(90, _center.AsMirroredPointF());
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(_boxTextPlacement), _boxTextPlacement, null);
@@ -273,7 +273,7 @@ namespace NDepCheck.Rendering {
                 _lineTextPlacement = lineTextPlacement;
                 _textFont = textFont;
                 _textColor = textColor;
-                _textPadding = (float) textPadding;
+                _textPadding = (float)textPadding;
                 _textLocation = textLocation;
                 _tooltip = tooltip;
             }
@@ -288,7 +288,7 @@ namespace NDepCheck.Rendering {
             }
 
             public void FullyRestrictBoundingVectors(Graphics graphics) {
-                // With LineTextPlacement.AlongLine, the _textbox set here is wrong. This is a "feature",
+                // With LineTextPlacement.*Inclined, the _textbox set here is wrong. This is a "feature",
                 // because it is hard to repair; and the usecases where another vector depends on the
                 // rotated text are too rare to spend effort on them ...
                 SizeF textSize = graphics.MeasureString(_text, _textFont);
@@ -298,67 +298,77 @@ namespace NDepCheck.Rendering {
             public void Draw(Graphics graphics, StringBuilder htmlForTooltips) {
                 float fWidth = (float)_width;
 
-                var h = ~_head;
-                var t = ~_tail;
-
-                if (t.AsPointF() != h.AsPointF()) {
+                PointF tailPoint = _tail.AsMirroredPointF();
+                PointF headPoint = _head.AsMirroredPointF();
+                if (tailPoint != headPoint) {
                     float absoluteArrowSize = Math.Min(10 * fWidth, (float)_head.To(_tail) / 4);
                     var pen = new Pen(_color, fWidth) {
                         StartCap = LineCap.RoundAnchor,
                         // arrowsize is relative to line width, therefore we divide by fWidth
                         CustomEndCap = new AdjustableArrowCap(absoluteArrowSize / fWidth / 2, absoluteArrowSize / fWidth, isFilled: false)
                     };
-                    graphics.DrawLine(pen, t.AsPointF(), h.AsPointF());
+                    graphics.DrawLine(pen, tailPoint, headPoint);
                 } else {
-                    graphics.FillEllipse(new SolidBrush(_color), h.GetX() - fWidth / 2, h.GetY() - fWidth / 2, fWidth, fWidth);
+                    graphics.FillEllipse(new SolidBrush(_color), headPoint.X - fWidth / 2, headPoint.Y - fWidth / 2, fWidth, fWidth);
                 }
 
-                var m = new Matrix();
+                if (DEBUG) {
+                    graphics.FillEllipse(new SolidBrush(Color.GreenYellow), headPoint.X - fWidth / 2, headPoint.Y - fWidth / 2, fWidth, fWidth);
+                    graphics.FillEllipse(new SolidBrush(Color.Aqua), tailPoint.X - fWidth / 2, tailPoint.Y - fWidth / 2, fWidth, fWidth);
+                }
+
+                Vector textCenter = _tail * (1 - _textLocation) + _head * _textLocation;
+                float halfTextWidth = _textBox.GetX() / 2;
+                float lineAngleDegrees = (float)(-Math.Atan2(_head.GetY() - _tail.GetY(), _head.GetX() - _tail.GetX()) * 180 / Math.PI);
+
+                var textTransform = new Matrix();
                 switch (_lineTextPlacement) {
                     case LineTextPlacement.Left:
-                        m.Translate(-_textBox.Horizontal().GetX() / 2, 0);
+                        textTransform.Translate(-halfTextWidth, 0);
                         break;
                     case LineTextPlacement.Center:
                         break;
                     case LineTextPlacement.Right:
-                        m.Translate(_textBox.Horizontal().GetX() / 2, 0);
+                        textTransform.Translate(halfTextWidth, 0);
                         break;
                     case LineTextPlacement.LeftInclined:
-                        RotateToLine(m, h, t);
-                        m.Translate(-_textBox.Horizontal().GetX() / 2, -_textBox.GetY() / 2);
+                        textTransform.RotateAt(lineAngleDegrees, textCenter.AsMirroredPointF());
+                        textTransform.Translate(-halfTextWidth, 0);
                         break;
                     case LineTextPlacement.CenterInclined:
-                        RotateToLine(m, h, t);
-                        m.Translate(0, -_textBox.GetY() / 2);
+                        textTransform.RotateAt(lineAngleDegrees, textCenter.AsMirroredPointF());
                         break;
                     case LineTextPlacement.RightInclined:
-                        RotateToLine(m, h, t);
-                        m.Translate(_textBox.Horizontal().GetX() / 2, -_textBox.GetY() / 2);
+                        textTransform.RotateAt(lineAngleDegrees, textCenter.AsMirroredPointF());
+                        textTransform.Translate(halfTextWidth, 0);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
-                DrawText(graphics, _text, _textFont, _textColor, _tail * (1 - _textLocation) + _head * _textLocation, m);
+                // Move text away form line; needs improvement for steeply inclined lines
+                textTransform.Translate(0, -_textBox.GetY() / 2);
+                DrawText(graphics, _text, _textFont, _textColor, textCenter, textTransform);
 
                 // TODO: Get all these elements somehow and then do a "draw tooltip" ...
             }
-
-            private static void RotateToLine(Matrix m, Vector h, Vector t) {
-                Vector lineVector = h - t;
-                double lineAngle = Math.Atan2(lineVector.GetY(), lineVector.GetX());
-                m.RotateAt((float) (lineAngle * 180 / Math.PI), ((h + t) / 2).AsPointF());
-            }
         }
 
+        private readonly Font _defaultTextFont = new Font(FontFamily.GenericSansSerif, 10);
         private readonly List<IBuilder> _builders = new List<IBuilder>();
 
         private static void DrawText(Graphics graphics, string text, Font textFont, Color textColor, Vector center, Matrix m) {
-            //graphics.FillEllipse(new SolidBrush(Color.Red), center.GetX() - 3, -center.GetY() - 3, 6, 6);
+            StringFormat centered = new StringFormat {Alignment = StringAlignment.Center};
+            PointF position = (center + F(0, textFont.GetHeight() / 2)).AsMirroredPointF();
+            if (DEBUG) {
+                graphics.FillEllipse(new SolidBrush(Color.Red), center.AsMirroredPointF().X - 3, center.AsMirroredPointF().Y - 3, 6, 6);
+                graphics.DrawString(text, textFont, new SolidBrush(Color.LightGray), position, centered);
+            }
 
             GraphicsContainer containerForTextPlacement = graphics.BeginContainer();
+
             graphics.MultiplyTransform(m);
-            graphics.DrawString(text, textFont, new SolidBrush(textColor), (~center - F(0, textFont.GetHeight() / 2)).AsPointF(),
-                new StringFormat { Alignment = StringAlignment.Center });
+            graphics.DrawString(text, textFont, new SolidBrush(textColor), position, centered);
+
             graphics.EndContainer(containerForTextPlacement);
         }
 
@@ -408,7 +418,7 @@ namespace NDepCheck.Rendering {
 
             var boxBuilder = new BoxBuilder(center, diagonal, boxColor ?? Color.White,
                 borderWidth, borderColor ?? Color.Black, connectors,
-                text ?? "", boxTextPlacement, textFont ?? new Font(FontFamily.GenericSansSerif, 10), textColor ?? Color.Black, textPadding, tooltip ?? "");
+                text ?? "", boxTextPlacement, textFont ?? _defaultTextFont, textColor ?? Color.Black, textPadding, tooltip ?? "");
             _builders.Add(boxBuilder);
             return boxBuilder;
         }
@@ -423,7 +433,7 @@ namespace NDepCheck.Rendering {
                 throw new ArgumentNullException(nameof(head));
             }
             var arrowBuilder = new ArrowBuilder(tail, head, width, color ?? Color.Black,
-                text ?? "", placement, textFont ?? new Font(FontFamily.GenericSansSerif, 10), textColor ?? Color.Black,
+                text ?? "", placement, textFont ?? _defaultTextFont, textColor ?? Color.Black,
                 textPadding, textLocation, tooltip);
             _builders.Add(arrowBuilder);
             return arrowBuilder;

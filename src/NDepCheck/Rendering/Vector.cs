@@ -46,8 +46,8 @@ namespace NDepCheck.Rendering {
             return new BoundedVector(name, interpolateMinMax);
         }
 
-        public PointF AsPointF() {
-            return new PointF(GetX(), GetY());
+        public PointF AsMirroredPointF() {
+            return new PointF(GetX(), -GetY());
         }
 
         public float GetX() {
