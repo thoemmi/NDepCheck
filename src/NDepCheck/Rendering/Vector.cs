@@ -147,6 +147,24 @@ namespace NDepCheck.Rendering {
         public Vector Vertical() {
             return new DependentVector(() => 0, Y, Name + ".V()");
         }
+
+        public Vector WithVerticalOffsetOf([NotNull]Vector other) {
+            return new DependentVector(other.X, Y, "X@" + other.Name + "&Y@" + Name);
+        }
+
+        public Vector WithHorizontalHeightOf([NotNull]Vector other) {
+            return new DependentVector(X, other.Y, "X@" + Name + "&Y@" + other.Name);
+        }
+
+        public DependentVector Unit() {
+            return new DependentVector(() => X() / Length(), () => Y() / Length(), Name + "°");
+        }
+
+        private Func<double?> Length => () => {
+                                        var x = X();
+                                        var y = Y();
+                                        return x.HasValue && y.HasValue ? (double?) Math.Sqrt(x.Value * x.Value + y.Value * y.Value) : null;
+                                    };
     }
 
     public class BoundedVector : Vector {
@@ -176,7 +194,7 @@ namespace NDepCheck.Rendering {
             return Restrict(v, v);
         }
 
-        public BoundedVector Restrict([CanBeNull] Func<double?> minX = null, [CanBeNull] Func<double?> minY = null, 
+        public BoundedVector Restrict([CanBeNull] Func<double?> minX = null, [CanBeNull] Func<double?> minY = null,
                                       [CanBeNull] Func<double?> maxX = null, [CanBeNull] Func<double?> maxY = null) {
             Restrict(new DependentVector(minX, minY, "maxR[" + Name + "]"), new DependentVector(maxX, maxY, "maxR[" + Name + "]"));
             return this;

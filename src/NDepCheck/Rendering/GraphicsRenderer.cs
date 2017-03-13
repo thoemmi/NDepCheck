@@ -317,7 +317,9 @@ namespace NDepCheck.Rendering {
                     graphics.FillEllipse(new SolidBrush(Color.Aqua), tailPoint.X - fWidth / 2, tailPoint.Y - fWidth / 2, fWidth, fWidth);
                 }
 
-                Vector textCenter = _tail * (1 - _textLocation) + _head * _textLocation;
+                Vector textCenter =_textLocation >= 0 
+                    ? _tail * (1 - _textLocation) + _head * _textLocation
+                    : _tail + (_head - _tail).Unit() * -_textLocation;
                 float halfTextWidth = _textBox.GetX() / 2;
                 float lineAngleDegrees = (float)(-Math.Atan2(_head.GetY() - _tail.GetY(), _head.GetX() - _tail.GetX()) * 180 / Math.PI);
 

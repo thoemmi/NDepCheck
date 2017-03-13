@@ -319,6 +319,10 @@ namespace NDepCheck.Tests {
                 return i.Values[2];
             }
 
+            private static readonly Font _boxFont = new Font(FontFamily.GenericSansSerif, 10);
+            private static readonly Font _interfaceFont = new Font(FontFamily.GenericSansSerif, 7);
+            private static readonly Font _lineFont = new Font(FontFamily.GenericSansSerif, 5);
+
             protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
                 // ASCII-art sketch of what I want to accomplish:
                 //
@@ -380,48 +384,86 @@ namespace NDepCheck.Tests {
                 //        Top    :TOP:0700
 
                 BoundedVector itemDistance = new BoundedVector(nameof(itemDistance));
-                Vector pos = F(0, 0);
+                Vector pos = F(0, 30);
 
-                //Arrow(pos, F(100, 0), 1, Color.Chartreuse);
-
-                var boxFont = new Font(FontFamily.GenericSansSerif, 10);
-                var interfaceFont = new Font(FontFamily.GenericSansSerif, 7);
+                Arrow(F(0, 0), F(100, 0), 1, Color.Chartreuse, "100px", textFont: _lineFont);
+                Box(F(200, 0), "IXOS-Architektur A (generiert " + DateTime.Now + ")", boxAnchoring: BoxAnchoring.LowerLeft);
 
                 // Hauptmodule auf Diagonale
-                foreach (var i in items.Where(i => !GetName(i).Contains(".MI")).OrderBy(GetOrder)) {
+                foreach (var i in items.Where(i => !IsMI(i)).OrderBy(GetOrder)) {
                     string name = GetName(i);
 
-                    IBox mainBox = Box(pos, boxAnchoring: BoxAnchoring.LowerLeft, text: name, borderWidth: 5, boxColor: Color.Coral, textFont: boxFont);
-                    IBox interfaceBox = Box(mainBox.UpperLeft, text: "", boxAnchoring: BoxAnchoring.LowerLeft, borderWidth: 1, boxColor: Color.Coral, textFont: interfaceFont);
-                    interfaceBox.Diagonal.Set(5, 20);
-                    i.DynamicData.InterfaceBox = interfaceBox;
-
+                    IBox mainBox = Box(pos, boxAnchoring: BoxAnchoring.LowerLeft, text: name, borderWidth: 3,
+                        boxColor: Color.Coral, textFont: _boxFont);
+                    i.DynamicData.MainBox = mainBox;
+                    i.DynamicData.MainBoxNextFreePos = mainBox.LowerLeft;
+                    {
+                        IBox interfaceBox = Box(mainBox.UpperLeft, text: "", boxAnchoring: BoxAnchoring.LowerLeft,
+                            borderWidth: 1, boxColor: Color.Coral, textFont: _interfaceFont);
+                        interfaceBox.Diagonal.Set(10, null);
+                        i.DynamicData.InterfaceBox = interfaceBox;
+                        i.DynamicData.InterfaceBoxNextFreePos = mainBox.LowerLeft - F(0, 10);
+                    }
                     Vector interfacePos = mainBox.LowerLeft;
-                    foreach (var mi in items.Where(mi => GetName(mi).Contains(".MI") && GetModule(mi) == GetModule(i)).OrderBy(GetOrder)) {
-                        interfaceBox = Box(interfacePos, text: GetName(mi), boxAnchoring: BoxAnchoring.UpperLeft,
-                                           boxTextPlacement: BoxTextPlacement.LeftUp, 
-                                           borderWidth: 1, boxColor: Color.LemonChiffon, textFont: interfaceFont);
-                        interfaceBox.Diagonal.Set(null, 200); // for Tests only!!!!!!
-                        mi.DynamicData.InterfaceBox = interfaceBox;
+                    foreach (var mi in items.Where(mi => IsMI(mi) && GetModule(mi) == GetModule(i)).OrderBy(GetOrder)) {
+                        var miBox = Box(interfacePos, text: GetName(mi), boxAnchoring: BoxAnchoring.UpperLeft,
+                            boxTextPlacement: BoxTextPlacement.LeftUp, borderWidth: 1, boxColor: Color.LemonChiffon,
+                            textFont: _interfaceFont);
+                        mi.DynamicData.MainItem = i;
+                        mi.DynamicData.InterfaceBox = miBox;
+
                         interfacePos += F(18, 0);
                     }
 
                     mainBox.Diagonal.Restrict(minX: () => interfacePos.X() - mainBox.LowerLeft.X());
-                    itemDistance.Restrict(minX: () => mainBox.Diagonal.X() + 15);
-
-                    // Testing only:
-                    itemDistance.Restrict(minY: () => mainBox.Diagonal.Y() + 15);
+                    itemDistance.Restrict(minX: () => mainBox.Diagonal.X() + 15, minY: () => mainBox.Diagonal.Y() + 15);
 
                     pos += itemDistance;
                 }
 
                 foreach (var d in dependencies) {
+                    Item from = d.UsingItem;
+                    Item to = d.UsedItem;
+                    if (IsMI(from)) {
+                        IBox fromBox = from.DynamicData.InterfaceBox;
+                        // Separate local variable necessary - Dependent-lambdas are evaluated much later ...
+                        Item mainItem = from.DynamicData.MainItem;
+                        Vector nextFreePos  = mainItem.DynamicData.InterfaceBoxNextFreePos;
+                        Vector fromPos = new DependentVector(() => fromBox.LowerLeft.X(), () => nextFreePos.Y(), from + "->" + to);
+                        ArrowToInterfaceBox(fromBox, fromPos, to, d, "(MI)");
 
+                        mainItem.DynamicData.InterfaceBoxNextFreePos -= F(0, 15);
+                    } else {
+                        IBox mainBox = from.DynamicData.MainBox;
+                        Vector fromPos = from.DynamicData.MainBoxNextFreePos;
+                        ArrowToInterfaceBox(mainBox, fromPos, to, d, "");
 
-
+                        from.DynamicData.MainBoxNextFreePos += F(0, 8);
+                    }
                 }
 
+                foreach (var i in items.Where(i => !IsMI(i)).OrderBy(GetOrder)) {
+                    IBox mainBox = i.DynamicData.MainBox;
+                    Vector mainBoxFreePos = i.DynamicData.MainBoxNextFreePos;
+                    mainBox.Diagonal.Restrict(null, () => mainBoxFreePos.Y() - mainBox.LowerLeft.Y());
+                }
+            }
 
+            private void ArrowToInterfaceBox(IBox fromBox, Vector fromPos, Item to, Dependency d, string prefix) {
+                IBox toBox = to.DynamicData.InterfaceBox;
+                Vector toPos = toBox.GetBestConnector(fromPos).WithHorizontalHeightOf(fromPos);
+                fromPos = fromBox.GetBestConnector(toPos).WithHorizontalHeightOf(fromPos);
+                Arrow(fromPos, toPos, 1, color: d.NotOkCt > 0 ? Color.Red : Color.Black, text: prefix + "#=" + d.Ct, textLocation: -20, textFont: _lineFont);
+
+                if (IsMI(to)) {
+                    toBox.Diagonal.Restrict(null, () => toBox.UpperLeft.Y() - toPos.Y() + toBox.TextBox.Y());
+                } else {
+                    toBox.Diagonal.Restrict(null, () => toPos.Y() - toBox.LowerLeft.Y() + toBox.TextBox.Y());
+                }
+            }
+
+            private static bool IsMI(Item mi) {
+                return GetName(mi).Contains(".MI");
             }
 
             public override void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
