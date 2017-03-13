@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Text;
 using JetBrains.Annotations;
 
@@ -20,7 +21,8 @@ namespace NDepCheck.Rendering {
         Vector LowerRight { get; }
         Vector CenterBottom { get; }
 
-        Vector Diagonal { get; }
+        BoundedVector Diagonal { get; }
+        BoundedVector TextBox { get; }
 
         Vector GetBestConnector(Vector farAway);
     }
@@ -30,12 +32,16 @@ namespace NDepCheck.Rendering {
         Vector Tail { get; }
     }
 
-    public enum TextPlacing {
+    public enum BoxTextPlacement {
         Left, Center, Right, LeftUp, CenterUp, RightUp, LeftDown, CenterDown, RightDown
     }
 
     public enum BoxAnchoring {
         Center, LowerLeft, CenterLeft, UpperLeft, CenterTop, UpperRight, CenterRight, LowerRight, CenterBottom
+    }
+
+    public enum LineTextPlacement {
+        Left, Center, Right, LeftInclined, CenterInclined, RightInclined
     }
 
     public abstract class GraphicsRenderer<TItem, TDependency> : IRenderer<TItem, TDependency>
@@ -51,36 +57,39 @@ namespace NDepCheck.Rendering {
 
         private interface IBuilder {
             IEnumerable<Vector> GetBoundingVectors();
-            void BeforeDrawing(Graphics graphics);
+            void FullyRestrictBoundingVectors(Graphics graphics);
             void Draw(Graphics graphics, StringBuilder htmlForTooltips);
         }
 
         private class BoxBuilder : IBuilder, IBox {
             private readonly Vector _center;
-            private readonly Vector _diagonal;
+            [NotNull]
+            private readonly BoundedVector _diagonal;
+            private readonly BoundedVector _textBox;
             private readonly double _borderWidth;
             private readonly string _text;
-            private readonly TextPlacing _placing;
+            private readonly BoxTextPlacement _boxTextPlacement;
             private readonly string _tooltip;
             private readonly Color _textColor;
-            private readonly double _textMargin;
+            private readonly double _textPadding;
             private readonly Font _textFont;
             private readonly Color _borderColor;
             private readonly int _connectors;
             private readonly Color _color;
 
-            public BoxBuilder(Vector center, Vector diagonal, Color color,
+            public BoxBuilder(Vector center, BoundedVector diagonal, Color color,
                               double borderWidth, Color borderColor, int connectors, string text,
-                              TextPlacing placing, Font textFont, Color textColor, double textMargin, string tooltip) {
+                              BoxTextPlacement boxTextPlacement, Font textFont, Color textColor, double textPadding, string tooltip) {
                 _center = center;
-                _diagonal = diagonal;
+                _textBox = new BoundedVector($"${_center.Name}['{text}']");
+                _diagonal = diagonal.Restrict(_textBox);
                 _color = color;
                 _borderWidth = borderWidth;
                 _text = text;
-                _placing = placing;
+                _boxTextPlacement = boxTextPlacement;
                 _tooltip = tooltip;
                 _textColor = textColor;
-                _textMargin = textMargin;
+                _textPadding = textPadding;
                 _textFont = textFont;
                 _borderColor = borderColor;
                 _connectors = connectors;
@@ -96,7 +105,33 @@ namespace NDepCheck.Rendering {
             public Vector LowerRight => _center + ~_diagonal / 2;
             public Vector CenterBottom => _center + (~_diagonal).Vertical() / 2;
 
-            public Vector Diagonal => _diagonal;
+            public BoundedVector Diagonal => _diagonal;
+
+            public BoundedVector TextBox => _textBox;
+
+            public void FullyRestrictBoundingVectors(Graphics graphics) {
+                // Textbox is set here, because it is needed for restricting the Diagonal.
+
+                SizeF size = graphics.MeasureString(_text, _textFont);
+                switch (_boxTextPlacement) {
+                    case BoxTextPlacement.Left:
+                    case BoxTextPlacement.Center:
+                    case BoxTextPlacement.Right:
+                        break;
+                    case BoxTextPlacement.LeftUp:
+                    case BoxTextPlacement.CenterUp:
+                    case BoxTextPlacement.RightUp:
+                    case BoxTextPlacement.LeftDown:
+                    case BoxTextPlacement.CenterDown:
+                    case BoxTextPlacement.RightDown:
+                        // Flip size for vertical text
+                        size = new SizeF(size.Height, size.Width);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+                _textBox.Set(Vector.Fixed(size.Width * (1 + _textPadding) + 2 * _borderWidth, size.Height * (1 + _textPadding) + 2 * _borderWidth, "|" + _text + "|"));
+            }
 
             public void Draw(Graphics graphics, StringBuilder htmlForTooltips) {
                 Vector leftUpper = _center - ~_diagonal / 2;
@@ -110,7 +145,43 @@ namespace NDepCheck.Rendering {
                 FillBox(graphics, new SolidBrush(_color), leftUpperInner.GetX(), -leftUpperInner.GetY(),
                     diagonalInner.GetX(), diagonalInner.GetY());
 
-                DrawText(graphics, _text, _textFont, _textColor, _center, _placing);
+                Matrix m = new Matrix();
+                switch (_boxTextPlacement) {
+                    case BoxTextPlacement.Left:
+                        m.Translate(-(_diagonal - _textBox).Horizontal().GetX() / 2, 0);
+                        break;
+                    case BoxTextPlacement.Center:
+                        break;
+                    case BoxTextPlacement.Right:
+                        m.Translate((_diagonal - _textBox).Horizontal().GetX() / 2, 0);
+                        break;
+                    case BoxTextPlacement.LeftUp:
+                        m.Translate(0, (_diagonal - _textBox).Vertical().GetY() / 2);
+                        m.RotateAt(-90, _center.AsPointF());
+                        break;
+                    case BoxTextPlacement.CenterUp:
+                        m.RotateAt(-90, _center.AsPointF());
+                        break;
+                    case BoxTextPlacement.RightUp:
+                        m.Translate(0, -(_diagonal - _textBox).Vertical().GetY() / 2);
+                        m.RotateAt(-90, _center.AsPointF());
+                        break;
+                    case BoxTextPlacement.LeftDown:
+                        m.Translate(0, -(_diagonal - _textBox).Vertical().GetY() / 2);
+                        m.RotateAt(90, _center.AsPointF());
+                        break;
+                    case BoxTextPlacement.CenterDown:
+                        m.RotateAt(90, _center.AsPointF());
+                        break;
+                    case BoxTextPlacement.RightDown:
+                        m.Translate(0, (_diagonal - _textBox).Vertical().GetY() / 2);
+                        m.RotateAt(90, _center.AsPointF());
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(_boxTextPlacement), _boxTextPlacement, null);
+                }
+
+                DrawText(graphics, _text, _textFont, _textColor, _center, m);
 
                 // Get all these elements somehow and then do a "draw tooltip" ...
             }
@@ -136,6 +207,14 @@ namespace NDepCheck.Rendering {
             }
 
             public Vector GetBestConnector(Vector farAway) {
+                // Current algorithm: There are 360°/_connectors equal-sized sectors;
+                // the "best connector" is the intersection of a sector center line
+                // nearest to the line from center to farAway.
+                // Other ideas: 
+                // - Divide the circumference of the box into equal-sized lengths.
+                // - Like before, but with guaranteed connectors at corners.
+                // - Like before, but with additional guaranteed connectors at edge midpoints.
+
                 double sectorAngle = 2 * Math.PI / _connectors;
                 Func<Vector> findNearestConnector = () => {
                     var d = farAway - _center;
@@ -166,18 +245,6 @@ namespace NDepCheck.Rendering {
                 };
                 return new DependentVector(() => findNearestConnector().GetX(), () => findNearestConnector().GetY(), farAway.Name + ".NC()");
             }
-
-            public void BeforeDrawing(Graphics graphics) {
-                var d = _diagonal as BoundedVector;
-                if (d != null) {
-                    SizeF size = graphics.MeasureString(_text, _textFont);
-                    if ((GetDirection(_placing) & StringFormatFlags.DirectionVertical) > 0) {
-                        // Flip size for vertical text
-                        size = new SizeF(size.Height, size.Width);
-                    }
-                    d.Restrict(Vector.Fixed(size.Width * (1 + _textMargin), size.Height * (1 + _textMargin), "|" + _text + "|"));
-                }
-            }
         }
 
         private class ArrowBuilder : IBuilder, IArrow {
@@ -186,23 +253,27 @@ namespace NDepCheck.Rendering {
             private readonly double _width;
             private readonly Color _color;
             private readonly string _text;
-            private readonly TextPlacing _placing;
+            private readonly BoundedVector _textBox;
+            private readonly LineTextPlacement _lineTextPlacement;
             private readonly Font _textFont;
             private readonly Color _textColor;
+            private readonly float _textPadding;
             private readonly double _textLocation;
             private readonly string _tooltip;
 
             internal ArrowBuilder(Vector tail, Vector head, double width, Color color,
-                        string text, TextPlacing placing, Font textFont, Color textColor, double textLocation,
+                        string text, LineTextPlacement lineTextPlacement, Font textFont, Color textColor, double textPadding, double textLocation,
                         string tooltip) {
                 _tail = tail;
                 _head = head;
                 _width = width;
                 _color = color;
                 _text = text;
-                _placing = placing;
+                _textBox = new BoundedVector($"${tail.Name}->{head.Name}['{text}']");
+                _lineTextPlacement = lineTextPlacement;
                 _textFont = textFont;
                 _textColor = textColor;
+                _textPadding = (float) textPadding;
                 _textLocation = textLocation;
                 _tooltip = tooltip;
             }
@@ -216,97 +287,92 @@ namespace NDepCheck.Rendering {
                 yield return _head;
             }
 
+            public void FullyRestrictBoundingVectors(Graphics graphics) {
+                // With LineTextPlacement.AlongLine, the _textbox set here is wrong. This is a "feature",
+                // because it is hard to repair; and the usecases where another vector depends on the
+                // rotated text are too rare to spend effort on them ...
+                SizeF textSize = graphics.MeasureString(_text, _textFont);
+                _textBox.Set(Vector.Fixed(textSize.Width * (1 + _textPadding), textSize.Height * (1 + _textPadding), "|" + _text + "|"));
+            }
+
             public void Draw(Graphics graphics, StringBuilder htmlForTooltips) {
                 float fWidth = (float)_width;
 
-                if (_tail.AsPointF() != _head.AsPointF()) {
+                var h = ~_head;
+                var t = ~_tail;
+
+                if (t.AsPointF() != h.AsPointF()) {
                     float absoluteArrowSize = Math.Min(10 * fWidth, (float)_head.To(_tail) / 4);
                     var pen = new Pen(_color, fWidth) {
                         StartCap = LineCap.RoundAnchor,
-                        // arrowsize is relative to line width
-                        CustomEndCap = new AdjustableArrowCap(absoluteArrowSize / fWidth, absoluteArrowSize / fWidth, isFilled: false)
+                        // arrowsize is relative to line width, therefore we divide by fWidth
+                        CustomEndCap = new AdjustableArrowCap(absoluteArrowSize / fWidth / 2, absoluteArrowSize / fWidth, isFilled: false)
                     };
-                    graphics.DrawLine(pen, (~_tail).AsPointF(), (~_head).AsPointF());
+                    graphics.DrawLine(pen, t.AsPointF(), h.AsPointF());
                 } else {
-                    graphics.FillEllipse(new SolidBrush(_color), _head.GetX() - fWidth / 2, -_head.GetY() - fWidth / 2, fWidth, fWidth);
+                    graphics.FillEllipse(new SolidBrush(_color), h.GetX() - fWidth / 2, h.GetY() - fWidth / 2, fWidth, fWidth);
                 }
-                DrawText(graphics, _text, _textFont, _textColor, _tail * (1 - _textLocation) + _head * _textLocation, _placing);
+
+                var m = new Matrix();
+                switch (_lineTextPlacement) {
+                    case LineTextPlacement.Left:
+                        m.Translate(-_textBox.Horizontal().GetX() / 2, 0);
+                        break;
+                    case LineTextPlacement.Center:
+                        break;
+                    case LineTextPlacement.Right:
+                        m.Translate(_textBox.Horizontal().GetX() / 2, 0);
+                        break;
+                    case LineTextPlacement.LeftInclined:
+                        RotateToLine(m, h, t);
+                        m.Translate(-_textBox.Horizontal().GetX() / 2, -_textBox.GetY() / 2);
+                        break;
+                    case LineTextPlacement.CenterInclined:
+                        RotateToLine(m, h, t);
+                        m.Translate(0, -_textBox.GetY() / 2);
+                        break;
+                    case LineTextPlacement.RightInclined:
+                        RotateToLine(m, h, t);
+                        m.Translate(_textBox.Horizontal().GetX() / 2, -_textBox.GetY() / 2);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+                DrawText(graphics, _text, _textFont, _textColor, _tail * (1 - _textLocation) + _head * _textLocation, m);
 
                 // TODO: Get all these elements somehow and then do a "draw tooltip" ...
             }
 
-            public void BeforeDrawing(Graphics graphics) {
-                // empty
+            private static void RotateToLine(Matrix m, Vector h, Vector t) {
+                Vector lineVector = h - t;
+                double lineAngle = Math.Atan2(lineVector.GetY(), lineVector.GetX());
+                m.RotateAt((float) (lineAngle * 180 / Math.PI), ((h + t) / 2).AsPointF());
             }
         }
 
         private readonly List<IBuilder> _builders = new List<IBuilder>();
 
-        protected class Store<TKey, TValue> {
-            private readonly Dictionary<TKey, TValue> _dict = new Dictionary<TKey, TValue>();
-            public TValue Put(TKey key, TValue value) {
-                _dict[key] = value;
-                return value;
-            }
-            public TValue Get(TKey key) {
-                return _dict[key];
-            }
-        }
-
-        private static void DrawText(Graphics graphics, string text, Font textFont, Color textColor, Vector center, TextPlacing textPlacing) {
+        private static void DrawText(Graphics graphics, string text, Font textFont, Color textColor, Vector center, Matrix m) {
             //graphics.FillEllipse(new SolidBrush(Color.Red), center.GetX() - 3, -center.GetY() - 3, 6, 6);
+
+            GraphicsContainer containerForTextPlacement = graphics.BeginContainer();
+            graphics.MultiplyTransform(m);
             graphics.DrawString(text, textFont, new SolidBrush(textColor), (~center - F(0, textFont.GetHeight() / 2)).AsPointF(),
-                new StringFormat(GetDirection(textPlacing)) { Alignment = GetStringAlignment(textPlacing), });
+                new StringFormat { Alignment = StringAlignment.Center });
+            graphics.EndContainer(containerForTextPlacement);
         }
 
-        private static StringAlignment GetStringAlignment(TextPlacing p) {
-            switch (p) {
-                case TextPlacing.Left:
-                case TextPlacing.LeftUp:
-                case TextPlacing.LeftDown:
-                    return StringAlignment.Near;
-                case TextPlacing.Center:
-                case TextPlacing.CenterUp:
-                case TextPlacing.CenterDown:
-                    return StringAlignment.Center;
-                case TextPlacing.Right:
-                case TextPlacing.RightUp:
-                case TextPlacing.RightDown:
-                    return StringAlignment.Far;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(p), p, null);
-            }
-        }
-
-        private static StringFormatFlags GetDirection(TextPlacing p) {
-            switch (p) {
-                case TextPlacing.Left:
-                case TextPlacing.Center:
-                case TextPlacing.Right:
-                    return 0;
-                case TextPlacing.LeftUp:
-                case TextPlacing.CenterUp:
-                case TextPlacing.RightUp:
-                case TextPlacing.LeftDown:
-                case TextPlacing.CenterDown:
-                case TextPlacing.RightDown:
-                    return StringFormatFlags.DirectionVertical; // opder Transformation????????????
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(p), p, null);
-            }
-        }
-
-        public IBox Box([NotNull] Vector anchor, [CanBeNull] Vector diagonal, [CanBeNull] string text,
+        public IBox Box([NotNull] Vector anchor, [CanBeNull] string text, [CanBeNull] Vector minDiagonal = null,
             BoxAnchoring boxAnchoring = BoxAnchoring.Center,
-            [CanBeNull] Color? color = null /*White*/, int connectors = 8,
+            [CanBeNull] Color? boxColor = null /*White*/, int connectors = 8,
             double borderWidth = 0, [CanBeNull] Color? borderColor = null /*Black*/,
-            TextPlacing placing = TextPlacing.Center, [CanBeNull] Font textFont = null /*___*/, [CanBeNull] Color? textColor = null /*Black*/,
-            double textMargin = 0.2, [CanBeNull] string tooltip = null) {
+            BoxTextPlacement boxTextPlacement = BoxTextPlacement.Center, [CanBeNull] Font textFont = null /*___*/, [CanBeNull] Color? textColor = null /*Black*/,
+            double textPadding = 0.2, [CanBeNull] string tooltip = null) {
             if (anchor == null) {
                 throw new ArgumentNullException(nameof(anchor));
             }
             Vector center;
-            diagonal = diagonal ?? new BoundedVector("/" + (text ?? anchor.Name));
+            var diagonal = new BoundedVector("/" + (text ?? anchor.Name)).Restrict(minDiagonal);
             var halfDiagonal = diagonal / 2;
             switch (boxAnchoring) {
                 case BoxAnchoring.Center:
@@ -340,16 +406,16 @@ namespace NDepCheck.Rendering {
                     throw new ArgumentOutOfRangeException(nameof(boxAnchoring), boxAnchoring, null);
             }
 
-            var boxBuilder = new BoxBuilder(center, diagonal, color ?? Color.White,
+            var boxBuilder = new BoxBuilder(center, diagonal, boxColor ?? Color.White,
                 borderWidth, borderColor ?? Color.Black, connectors,
-                text ?? "", placing, textFont ?? new Font(FontFamily.GenericSansSerif, 10), textColor ?? Color.Black, textMargin, tooltip ?? "");
+                text ?? "", boxTextPlacement, textFont ?? new Font(FontFamily.GenericSansSerif, 10), textColor ?? Color.Black, textPadding, tooltip ?? "");
             _builders.Add(boxBuilder);
             return boxBuilder;
         }
 
         public IArrow Arrow([NotNull] Vector tail, [NotNull] Vector head, double width, [CanBeNull] Color? color = null /*Black*/,
-            [CanBeNull] string text = null, TextPlacing placing = TextPlacing.Center, [CanBeNull] Font textFont = null /*___*/,
-            [CanBeNull] Color? textColor = null /*Black*/, double textLocation = 0.5, [CanBeNull] string tooltip = null) {
+            [CanBeNull] string text = null, LineTextPlacement placement = LineTextPlacement.Center, [CanBeNull] Font textFont = null /*___*/,
+            [CanBeNull] Color? textColor = null /*Black*/, double textPadding = 0.2, double textLocation = 0.5, [CanBeNull] string tooltip = null) {
             if (tail == null) {
                 throw new ArgumentNullException(nameof(tail));
             }
@@ -357,8 +423,8 @@ namespace NDepCheck.Rendering {
                 throw new ArgumentNullException(nameof(head));
             }
             var arrowBuilder = new ArrowBuilder(tail, head, width, color ?? Color.Black,
-                text ?? "", placing, textFont ?? new Font(FontFamily.GenericSansSerif, 10), textColor ?? Color.Black,
-                textLocation, tooltip);
+                text ?? "", placement, textFont ?? new Font(FontFamily.GenericSansSerif, 10), textColor ?? Color.Black,
+                textPadding, textLocation, tooltip);
             _builders.Add(arrowBuilder);
             return arrowBuilder;
         }
@@ -382,7 +448,7 @@ namespace NDepCheck.Rendering {
 
                 StringBuilder errors = new StringBuilder();
                 foreach (var b in _builders) {
-                    b.BeforeDrawing(graphics);
+                    b.FullyRestrictBoundingVectors(graphics);
 
                     foreach (var v in b.GetBoundingVectors()) {
                         double? x = v.X();
@@ -416,8 +482,23 @@ namespace NDepCheck.Rendering {
                 graphics.Transform = new Matrix(scale, 0, 0, scale, (float)(-scale * minX + size.Width * BORDER),
                     (float)(scale * maxY + size.Height * BORDER));
 
-                foreach (var b in _builders) {
-                    b.Draw(graphics, htmlForTooltips);
+                List<IBuilder> openBuilders = _builders.ToList();
+
+                RETRY:
+                bool someRemoved = false;
+                try {
+                    foreach (var b in openBuilders.ToArray()) {
+                        b.Draw(graphics, htmlForTooltips);
+                        someRemoved = openBuilders.Remove(b);
+                    }
+                } catch (MissingValueException) {
+                    // Coordinates of one builder not set (probably not possible right now, but might be with more complex dependencies)
+                    if (someRemoved) {
+                        // A retry will not lead to an endless loop
+                        goto RETRY;
+                    } else {
+                        throw;
+                    }
                 }
             }
 

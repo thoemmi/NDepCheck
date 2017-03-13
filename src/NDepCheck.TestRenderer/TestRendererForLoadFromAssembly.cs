@@ -14,14 +14,12 @@ namespace NDepCheck.TestRenderer {
             var origin = new BoundedVector("origin");
             double deltaAngle = 2 * Math.PI / items.Count();
 
-            var diagonals = new Store<Item, Vector>();
-
             int n = 0;
             foreach (var i in items) {
                 int k = n++;
                 double angle = k * deltaAngle;
                 var pos = new DependentVector(() => origin.X() + 500 * Math.Sin(angle), () => origin.X() + 500 * Math.Cos(angle), "pos_" + k);
-                i.DynamicData.MainBox = Box(pos, diagonals.Put(i, B(i.Name).Restrict(F(null, 15))), i.Name, borderWidth: 2);
+                i.DynamicData.MainBox = Box(pos, i.Name, B(i.Name).Restrict(minY: () => 15), borderWidth: 2);
             }
 
             foreach (var d in dependencies) {

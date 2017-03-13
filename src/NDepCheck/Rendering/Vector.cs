@@ -4,6 +4,10 @@ using System.Drawing;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Rendering {
+    public class MissingValueException : Exception {
+        public MissingValueException(string message) : base(message) { }
+    }
+
     public abstract class Vector {
         public string Name { get; }
         protected static volatile int _now = 1;
@@ -34,10 +38,6 @@ namespace NDepCheck.Rendering {
             get;
         }
 
-        internal double? DebugX => X();
-
-        internal double? DebugY => Y();
-
         public static Vector Fixed(double? x, double? y, string name = null) {
             return new FixedVector(x, y, name ?? $"[{x}|{y}]");
         }
@@ -53,7 +53,7 @@ namespace NDepCheck.Rendering {
         public float GetX() {
             double? x = X();
             if (!x.HasValue) {
-                throw new InvalidOperationException("X has no value");
+                throw new MissingValueException($"{Name}.X has no value");
             }
             return (float)x.Value;
         }
@@ -61,7 +61,7 @@ namespace NDepCheck.Rendering {
         public float GetY() {
             double? y = Y();
             if (!y.HasValue) {
-                throw new InvalidOperationException("Y has no value");
+                throw new MissingValueException($"{Name}.Y has no value");
             }
             return (float)y.Value;
         }
@@ -83,7 +83,7 @@ namespace NDepCheck.Rendering {
             public override Func<double?> Y => () => _y;
 
             public override string ToString() {
-                return $"FV[{Name}:{DebugX}|{DebugY}]";
+                return $"FV[{Name}]";
             }
         }
 
@@ -117,7 +117,7 @@ namespace NDepCheck.Rendering {
 
         public static Vector operator /([NotNull] Vector v, double d) {
             CheckNotNull(v);
-            return new DependentVector(() => v.X() / d, () => v.Y() / d, v.Name + "*" + d);
+            return new DependentVector(() => v.X() / d, () => v.Y() / d, v.Name + "/" + d);
         }
 
         public static Vector operator -([NotNull] Vector v) {
@@ -182,12 +182,15 @@ namespace NDepCheck.Rendering {
             return this;
         }
 
-        public BoundedVector Restrict([NotNull] Vector min, [CanBeNull] Vector max = null) {
-            _lowerBounds.Add(min);
+        public BoundedVector Restrict([CanBeNull] Vector min = null, [CanBeNull] Vector max = null) {
+            if (min != null) {
+                _lowerBounds.Add(min);
+                ForceRecompute();
+            }
             if (max != null) {
                 _upperBounds.Add(max);
+                ForceRecompute();
             }
-            ForceRecompute();
             return this;
         }
 
@@ -209,7 +212,7 @@ namespace NDepCheck.Rendering {
             if (minX.HasValue) {
                 if (maxX.HasValue) {
                     if (minX > maxX) {
-                        throw new InvalidOperationException($"No possible X value for BoundedVector {Name}: minX={minX} > maxX={maxX}");
+                        throw new MissingValueException($"No possible X value for BoundedVector {Name}: minX={minX} > maxX={maxX}");
                     }
                     return minX * (1 - _interpolateMinMax) + maxX * _interpolateMinMax;
                 } else {
@@ -238,7 +241,7 @@ namespace NDepCheck.Rendering {
             if (minY.HasValue) {
                 if (maxY.HasValue) {
                     if (minY > maxY) {
-                        throw new InvalidOperationException($"No possible Y value for BoundedVector {Name}: minY={minY} > maxY={maxY}");
+                        throw new MissingValueException($"No possible Y value for BoundedVector {Name}: minY={minY} > maxY={maxY}");
                     }
                     return minY * (1 - _interpolateMinMax) + maxY * _interpolateMinMax;
                 } else {
@@ -258,7 +261,7 @@ namespace NDepCheck.Rendering {
         }
 
         public override string ToString() {
-            return $"BV[{Name}:{DebugX}|{DebugY}]";
+            return $"BV[{Name}]";
         }
     }
 
@@ -280,7 +283,7 @@ namespace NDepCheck.Rendering {
         }
 
         public override string ToString() {
-            return $"DV[{Name}:{DebugX}|{DebugY}]";
+            return $"DV[{Name}]";
         }
     }
 }
