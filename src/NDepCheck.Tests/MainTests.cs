@@ -1,4 +1,4 @@
-// (c) HMMüller 2006...2010
+// (c) HMMüller 2006...2017
 
 using System;
 using System.Collections.Generic;
@@ -490,7 +490,7 @@ NDepCheck:Tests ---> **
                 TestAssemblyPath,
                 "-g", "NDepCheck.Tests.dll", typeof(TestRendering.IXOSApplicationRenderer).FullName, gifFile }));
 
-            //File.Delete(gifFile);
+            File.Delete(gifFile);
         }
     }
 }

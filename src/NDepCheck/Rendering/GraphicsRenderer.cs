@@ -7,29 +7,30 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using JetBrains.Annotations;
+using NDepCheck.ConstraintSolving;
 
 namespace NDepCheck.Rendering {
     public interface IBox {
-        Vector Center { get; }
+        VariableVector Center { get; }
 
-        Vector LowerLeft { get; }
-        Vector CenterLeft { get; }
-        Vector UpperLeft { get; }
-        Vector CenterTop { get; }
-        Vector UpperRight { get; }
-        Vector CenterRight { get; }
-        Vector LowerRight { get; }
-        Vector CenterBottom { get; }
+        VariableVector LowerLeft { get; }
+        VariableVector CenterLeft { get; }
+        VariableVector UpperLeft { get; }
+        VariableVector CenterTop { get; }
+        VariableVector UpperRight { get; }
+        VariableVector CenterRight { get; }
+        VariableVector LowerRight { get; }
+        VariableVector CenterBottom { get; }
 
-        BoundedVector Diagonal { get; }
-        BoundedVector TextBox { get; }
+        VariableVector Diagonal { get; }
+        VariableVector TextBox { get; }
 
-        Vector GetBestConnector(Vector farAway);
+        VariableVector GetBestConnector(VariableVector farAway);
     }
 
     public interface IArrow {
-        Vector Head { get; }
-        Vector Tail { get; }
+        VariableVector Head { get; }
+        VariableVector Tail { get; }
     }
 
     public enum BoxTextPlacement {
@@ -47,28 +48,76 @@ namespace NDepCheck.Rendering {
     public abstract class GraphicsRenderer<TItem, TDependency> : IRenderer<TItem, TDependency>
             where TItem : class, INode
             where TDependency : class, IEdge {
-        private static readonly bool DEBUG = false;
 
-        public static Vector F(double? x, double? y, string name = null) {
-            return Vector.Fixed(x, y, name);
+        private class GraphicsRendererSolver : SimpleConstraintSolver {
+            private readonly GraphicsRenderer<TItem, TDependency> _renderer;
+
+            public GraphicsRendererSolver(GraphicsRenderer<TItem, TDependency> renderer) : base(1.5e-5) {
+                _renderer = renderer;
+            }
+
+            protected override IEnumerable<NumericVariable> CheckState(IEnumerable<NumericVariable> allVariables) {
+                foreach (var b in _renderer._builders.OrderBy(b => b.FixingOrder).ThenBy(b => b.CreationOrder)) {
+                    foreach (var v in b.GetFixVariables()) {
+                        if (double.IsInfinity(v.Value.Hi)) {
+                            if (v.Fix()) {
+                                yield return v;
+                                yield break;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
-        public static BoundedVector B(string name, double interpolateMinMax = 0.0) {
-            return Vector.Bounded(name, interpolateMinMax);
+        protected readonly SimpleConstraintSolver _solver;
+
+        private static readonly bool DEBUG = false;
+
+        public GraphicsRenderer() {
+            _solver = new GraphicsRendererSolver(this);
+        }
+
+        public VariableVector F(double? x, double? y, string name = "C") {
+            return new VariableVector(name, _solver, x, y);
+        }
+
+        public VariableVector B(string name, double interpolateMinMax = 0.0) {
+            return new VariableVector(name, _solver, null, null);
         }
 
         private interface IBuilder {
-            IEnumerable<Vector> GetBoundingVectors();
+            string Name { get; }
+            int CreationOrder { get; }
+            int DrawingOrder { get; }
+            int FixingOrder { get; }
+            IEnumerable<VectorF> GetBoundingVectors();
             void FullyRestrictBoundingVectors(Graphics graphics);
             void Draw(Graphics graphics, StringBuilder htmlForTooltips);
+            IEnumerable<NumericVariable> GetFixVariables();
         }
 
-        private class BoxBuilder : IBuilder, IBox {
-            private readonly Vector _center;
+        private abstract class AbstractBuilder {
+            private static int _creationOrder = 0; // or use Renderer as parent and place ct there ...
+
+            protected AbstractBuilder(int drawingOrder, int fixingOrder) {
+                DrawingOrder = drawingOrder;
+                FixingOrder = fixingOrder;
+                _creationOrder++;
+            }
+
+            public int DrawingOrder { get; }
+            public int FixingOrder { get; }
+            public int CreationOrder => _creationOrder;
+        }
+
+        private class BoxBuilder : AbstractBuilder, IBuilder, IBox {
+            private readonly SimpleConstraintSolver _solver;
+            private VariableVector _anchor;
             [NotNull]
-            private readonly BoundedVector _diagonal;
-            private readonly BoundedVector _textBox;
-            private readonly double _borderWidth;
+            private readonly VariableVector _diagonal;
+            private readonly VariableVector _textBox;
+            private readonly float _borderWidth;
             private readonly string _text;
             private readonly BoxTextPlacement _boxTextPlacement;
             private readonly string _tooltip;
@@ -76,17 +125,165 @@ namespace NDepCheck.Rendering {
             private readonly double _textPadding;
             private readonly Font _textFont;
             private readonly Color _borderColor;
-            private readonly int _connectors;
             private readonly Color _color;
+            private double _sectorAngle;
 
-            public BoxBuilder(Vector center, BoundedVector diagonal, Color color,
+            private readonly VariableVector _center;
+            private readonly VariableVector _lowerLeft;
+            private readonly VariableVector _centerLeft;
+            private readonly VariableVector _upperLeft;
+            private readonly VariableVector _centerTop;
+            private readonly VariableVector _upperRight;
+            private readonly VariableVector _centerRight;
+            private readonly VariableVector _lowerRight;
+            private readonly VariableVector _centerBottom;
+
+            public BoxBuilder([NotNull] SimpleConstraintSolver solver,
+                             [NotNull] VariableVector anchor, [NotNull] VariableVector diagonal,
+                             BoxAnchoring boxAnchoring, Color color,
                               double borderWidth, Color borderColor, int connectors, string text,
-                              BoxTextPlacement boxTextPlacement, Font textFont, Color textColor, double textPadding, string tooltip) {
-                _center = center;
-                _textBox = new BoundedVector($"${_center.Name}['{text}']");
-                _diagonal = diagonal.Restrict(_textBox);
+                              BoxTextPlacement boxTextPlacement, Font textFont, Color textColor, double textPadding,
+                              string tooltip, int drawingOrder, int fixingOrder, string name) : base(drawingOrder, fixingOrder) {
+                _solver = solver;
+                Name = name ?? anchor.Name;
+
+                _anchor = anchor;
+                _textBox = new VariableVector(Name + ".TXT", _solver);
+                _diagonal = diagonal.AlsoNamed(Name + "./").Restrict(_textBox);
+
+                var halfDiagonal = diagonal / 2;
+                var halfHorizontal = halfDiagonal.Horizontal();
+                var halfVertical = halfDiagonal.Vertical();
+                var vertical = diagonal.Vertical();
+                var horizontal = diagonal.Horizontal();
+
+                switch (boxAnchoring) {
+                    case BoxAnchoring.Center:
+                        _center = anchor;
+                        _lowerLeft = anchor - halfDiagonal;
+                        _centerLeft = anchor - halfHorizontal;
+                        _upperLeft = anchor + ~halfDiagonal;
+                        _centerTop = anchor + halfVertical;
+                        _upperRight = anchor + halfDiagonal;
+                        _centerRight = anchor + halfHorizontal;
+                        _lowerRight = anchor + !halfDiagonal;
+                        _centerBottom = anchor - halfVertical;
+                        break;
+                    case BoxAnchoring.LowerLeft:
+                        _center = anchor + halfDiagonal;
+                        _lowerLeft = anchor;
+                        _centerLeft = anchor + halfVertical;
+                        _upperLeft = anchor + vertical;
+                        _centerTop = _upperLeft + halfHorizontal;
+                        _upperRight = anchor + diagonal;
+                        _centerRight = _centerLeft + horizontal;
+                        _lowerRight = anchor + horizontal;
+                        _centerBottom = anchor + halfHorizontal;
+                        break;
+                    case BoxAnchoring.CenterLeft:
+                        _center = anchor + halfHorizontal;
+                        _lowerLeft = anchor - halfVertical;
+                        _centerLeft = anchor;
+                        _upperLeft = anchor + halfVertical;
+                        _centerTop = anchor + halfDiagonal;
+                        _upperRight = _centerTop + halfHorizontal;
+                        _centerRight = anchor + horizontal;
+                        _lowerRight = _centerRight - halfVertical;
+                        _centerBottom = anchor + !halfDiagonal;
+                        break;
+                    case BoxAnchoring.UpperLeft:
+                        _center = anchor - ~halfDiagonal;
+                        _lowerLeft = anchor - vertical;
+                        _centerLeft = anchor - halfVertical;
+                        _upperLeft = anchor;
+                        _centerTop = anchor + halfHorizontal;
+                        _upperRight = anchor + horizontal;
+                        _centerRight = _upperRight - halfVertical;
+                        _lowerRight = anchor - ~diagonal;
+                        _centerBottom = anchor + new VariableVector(null, diagonal.X / 2, -diagonal.Y);
+                        break;
+                    case BoxAnchoring.CenterTop:
+                        _center = anchor - halfVertical;
+                        _lowerLeft = _center - halfDiagonal;
+                        _centerLeft = anchor - halfDiagonal;
+                        _upperLeft = anchor - halfHorizontal;
+                        _centerTop = anchor;
+                        _upperRight = anchor + halfHorizontal;
+                        _centerRight = anchor + !halfDiagonal;
+                        _lowerRight = _centerRight - halfVertical;
+                        _centerBottom = anchor - vertical;
+                        break;
+                    case BoxAnchoring.UpperRight:
+                        _center = anchor - halfDiagonal;
+                        _lowerLeft = anchor - diagonal;
+                        _centerLeft = anchor + new VariableVector(null, -diagonal.X, diagonal.Y / -2);
+                        _upperLeft = anchor - horizontal;
+                        _centerTop = anchor - halfHorizontal;
+                        _upperRight = anchor;
+                        _centerRight = anchor - halfVertical;
+                        _lowerRight = anchor - vertical;
+                        _centerBottom = anchor + new VariableVector(null, diagonal.X / -2, -diagonal.Y);
+                        break;
+                    case BoxAnchoring.CenterRight:
+                        _center = anchor - halfHorizontal;
+                        _lowerLeft = _center - halfDiagonal;
+                        _centerLeft = anchor - horizontal;
+                        _upperLeft = anchor + new VariableVector(null, -diagonal.X, diagonal.Y / 2);
+                        _centerTop = anchor + ~halfDiagonal;
+                        _upperRight = anchor + halfVertical;
+                        _centerRight = anchor;
+                        _lowerRight = anchor - halfVertical;
+                        _centerBottom = anchor - halfDiagonal;
+                        break;
+                    case BoxAnchoring.LowerRight:
+                        _center = anchor + ~halfDiagonal;
+                        _lowerLeft = anchor - horizontal;
+                        _centerLeft = anchor + new VariableVector(null, -diagonal.X, diagonal.Y / 2);
+                        _upperLeft = anchor + ~diagonal;
+                        _centerTop = anchor + new VariableVector(null, diagonal.X / -2, diagonal.Y);
+                        _upperRight = anchor + vertical;
+                        _centerRight = anchor + halfVertical;
+                        _lowerRight = anchor;
+                        _centerBottom = anchor - halfHorizontal;
+                        break;
+                    case BoxAnchoring.CenterBottom:
+                        _center = anchor + halfVertical;
+                        _lowerLeft = anchor - halfHorizontal;
+                        _centerLeft = anchor + ~halfDiagonal;
+                        _upperLeft = _centerLeft + halfVertical;
+                        _centerTop = anchor + vertical;
+                        _upperRight = _centerTop + halfHorizontal;
+                        _centerRight = anchor + halfDiagonal;
+                        _lowerRight = anchor + halfHorizontal;
+                        _centerBottom = anchor;
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(boxAnchoring), boxAnchoring, null);
+                }
+
+                _center = _center.AlsoNamed(Name + "CC");
+                _lowerLeft = _lowerLeft.AlsoNamed(Name + ".LL");
+                _centerLeft = _centerLeft.AlsoNamed(Name + ".CL");
+                _upperLeft = _upperLeft.AlsoNamed(Name + ".UL");
+                _centerTop = _centerTop.AlsoNamed(Name + ".CT");
+                _upperRight = _upperRight.AlsoNamed(Name + ".UR");
+                _centerRight = _centerRight.AlsoNamed(Name + ".CR");
+                _lowerRight = _lowerRight.AlsoNamed(Name + ".LR");
+                _centerBottom = _centerBottom.AlsoNamed(Name + ".CB");
+
+                _upperRight.SetY(_centerTop.Y);
+                _upperRight.SetY(_upperLeft.Y);
+                _centerTop.SetY(_upperLeft.Y);
+                _centerRight.SetY(_center.Y);
+                _centerRight.SetY(_centerLeft.Y);
+                _center.SetY(_centerLeft.Y);
+                _lowerRight.SetY(_centerBottom.Y);
+                _lowerRight.SetY(_lowerLeft.Y);
+                _centerBottom.SetY(_lowerLeft.Y);
+
+                // Simple stuff
                 _color = color;
-                _borderWidth = borderWidth;
+                _borderWidth = (float)borderWidth;
                 _text = text;
                 _boxTextPlacement = boxTextPlacement;
                 _tooltip = tooltip;
@@ -94,22 +291,33 @@ namespace NDepCheck.Rendering {
                 _textPadding = textPadding;
                 _textFont = textFont;
                 _borderColor = borderColor;
-                _connectors = connectors;
+                _sectorAngle = 2 * Math.PI / connectors;
             }
 
-            public Vector Center => _center;
-            public Vector LowerLeft => _center - _diagonal / 2;
-            public Vector CenterLeft => _center - _diagonal.Horizontal() / 2;
-            public Vector UpperLeft => _center - ~_diagonal / 2;
-            public Vector CenterTop => _center + _diagonal.Vertical() / 2;
-            public Vector UpperRight => _center + _diagonal / 2;
-            public Vector CenterRight => _center + _diagonal.Horizontal() / 2;
-            public Vector LowerRight => _center + ~_diagonal / 2;
-            public Vector CenterBottom => _center + (~_diagonal).Vertical() / 2;
+            public override string ToString() {
+                return "BoxBuilder " + Name;
+            }
 
-            public BoundedVector Diagonal => _diagonal;
+            public IEnumerable<NumericVariable> GetFixVariables() {
+                yield return _anchor.X;
+                yield return _anchor.Y;
+                yield return _diagonal.X;
+                yield return _diagonal.Y;
+            }
 
-            public BoundedVector TextBox => _textBox;
+            public VariableVector Center => _center;
+            public VariableVector LowerLeft => _lowerLeft;
+            public VariableVector CenterLeft => _centerLeft;
+            public VariableVector UpperLeft => _upperLeft;
+            public VariableVector CenterTop => _centerTop;
+            public VariableVector UpperRight => _upperRight;
+            public VariableVector CenterRight => _centerRight;
+            public VariableVector LowerRight => _lowerRight;
+            public VariableVector CenterBottom => _centerBottom;
+            public VariableVector Diagonal => _diagonal;
+            public VariableVector TextBox => _textBox;
+
+            public string Name { get; }
 
             public void FullyRestrictBoundingVectors(Graphics graphics) {
                 // Textbox is set here, because it is needed for restricting the Diagonal.
@@ -132,56 +340,60 @@ namespace NDepCheck.Rendering {
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
-                _textBox.Set(Vector.Fixed(size.Width * (1 + _textPadding) + 2 * _borderWidth, size.Height * (1 + _textPadding) + 2 * _borderWidth, "|" + _text + "|"));
+                _textBox.Set(size.Width * (1 + _textPadding) + 2 * _borderWidth, size.Height * (1 + _textPadding) + 2 * _borderWidth);
             }
 
             public void Draw(Graphics graphics, StringBuilder htmlForTooltips) {
-                Vector leftUpper = _center - ~_diagonal / 2;
+                var diagonalF = _diagonal.AsVectorF();
+                var textBoxF = _textBox.AsVectorF();
+                var centerF = _center.AsVectorF();
+                VectorF leftUpperF = _center.AsVectorF() - ~diagonalF / 2;
 
-                FillBox(graphics, new SolidBrush(_borderColor), leftUpper.GetX(), -leftUpper.GetY(), _diagonal.GetX(), _diagonal.GetY());
+                FillBox(graphics, new SolidBrush(_borderColor), leftUpperF.GetX(), -leftUpperF.GetY(), diagonalF.GetX(), diagonalF.GetY());
 
-                Vector borderDiagonal = F(_borderWidth, _borderWidth);
-                Vector leftUpperInner = leftUpper + ~borderDiagonal;
-                Vector diagonalInner = _diagonal - 2 * borderDiagonal;
+                VectorF borderDiagonal = new VectorF(_borderWidth, _borderWidth, "45°@" + _borderWidth);
+                VectorF leftUpperInner = leftUpperF + ~borderDiagonal;
+                VectorF diagonalInner = diagonalF - 2 * borderDiagonal;
+
                 FillBox(graphics, new SolidBrush(_color), leftUpperInner.GetX(), -leftUpperInner.GetY(), diagonalInner.GetX(), diagonalInner.GetY());
 
                 Matrix m = new Matrix();
                 switch (_boxTextPlacement) {
                     case BoxTextPlacement.Left:
-                        m.Translate(-(_diagonal - _textBox).GetX() / 2, 0);
+                        m.Translate(-(diagonalF - textBoxF).GetX() / 2, 0);
                         break;
                     case BoxTextPlacement.Center:
                         break;
                     case BoxTextPlacement.Right:
-                        m.Translate((_diagonal - _textBox).GetX() / 2, 0);
+                        m.Translate((diagonalF - textBoxF).GetX() / 2, 0);
                         break;
                     case BoxTextPlacement.LeftUp:
-                        m.Translate(0, -(_diagonal - _textBox).AsMirroredPointF().Y / 2);
-                        m.RotateAt(-90, _center.AsMirroredPointF());
+                        m.Translate(0, -(diagonalF - textBoxF).AsMirroredPointF().Y / 2);
+                        m.RotateAt(-90, centerF.AsMirroredPointF());
                         break;
                     case BoxTextPlacement.CenterUp:
-                        m.RotateAt(-90, _center.AsMirroredPointF());
+                        m.RotateAt(-90, centerF.AsMirroredPointF());
                         break;
                     case BoxTextPlacement.RightUp:
-                        m.Translate(0, (_diagonal - _textBox).AsMirroredPointF().Y / 2);
-                        m.RotateAt(-90, _center.AsMirroredPointF());
+                        m.Translate(0, (diagonalF - textBoxF).AsMirroredPointF().Y / 2);
+                        m.RotateAt(-90, centerF.AsMirroredPointF());
                         break;
                     case BoxTextPlacement.LeftDown:
-                        m.Translate(0, (_diagonal - _textBox).AsMirroredPointF().Y / 2);
-                        m.RotateAt(90, _center.AsMirroredPointF());
+                        m.Translate(0, (diagonalF - textBoxF).AsMirroredPointF().Y / 2);
+                        m.RotateAt(90, centerF.AsMirroredPointF());
                         break;
                     case BoxTextPlacement.CenterDown:
-                        m.RotateAt(90, _center.AsMirroredPointF());
+                        m.RotateAt(90, centerF.AsMirroredPointF());
                         break;
                     case BoxTextPlacement.RightDown:
-                        m.Translate(0, -(_diagonal - _textBox).AsMirroredPointF().Y / 2);
-                        m.RotateAt(90, _center.AsMirroredPointF());
+                        m.Translate(0, -(diagonalF - textBoxF).AsMirroredPointF().Y / 2);
+                        m.RotateAt(90, centerF.AsMirroredPointF());
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(_boxTextPlacement), _boxTextPlacement, null);
                 }
 
-                DrawText(graphics, _text, _textFont, _textColor, _center, m);
+                DrawText(graphics, _text, _textFont, _textColor, _center.AsVectorF(), m);
 
                 // Get all these elements somehow and then do a "draw tooltip" ...
             }
@@ -191,9 +403,9 @@ namespace NDepCheck.Rendering {
                 graphics.FillRectangle(b, x, y, width, height);
             }
 
-            public IEnumerable<Vector> GetBoundingVectors() {
-                yield return _center + _diagonal / 2;
-                yield return _center - _diagonal / 2;
+            public IEnumerable<VectorF> GetBoundingVectors() {
+                yield return _lowerLeft.AsVectorF().Suffixed("ll");
+                yield return _upperRight.AsVectorF().Suffixed("ur");
             }
 
             /// <summary>
@@ -206,7 +418,7 @@ namespace NDepCheck.Rendering {
                 return a - Math.Floor(a / twoPI) * twoPI;
             }
 
-            public Vector GetBestConnector(Vector farAway) {
+            public VariableVector GetBestConnector(VariableVector farAway) {
                 // Current algorithm: There are 360°/_connectors equal-sized sectors;
                 // the "best connector" is the intersection of a sector center line
                 // nearest to the line from center to farAway.
@@ -215,76 +427,108 @@ namespace NDepCheck.Rendering {
                 // - Like before, but with guaranteed connectors at corners.
                 // - Like before, but with additional guaranteed connectors at edge midpoints.
 
-                double sectorAngle = 2 * Math.PI / _connectors;
-                Func<Vector> findNearestConnector = () => {
-                    var d = farAway - _center;
-                    double angle = Math.Atan2(d.GetY(), d.GetX());
-                    double roundedAngle =
-                        NormalizedAngle(Math.Round(angle / sectorAngle) * sectorAngle);
-                    double diagX = _diagonal.GetX() / 2;
-                    double diagY = _diagonal.GetY() / 2;
-                    double diagonalAngle = NormalizedAngle(Math.Atan2(diagY, diagX));
-                    double x, y;
-                    if (roundedAngle < diagonalAngle) {
-                        x = diagX;
-                        y = x * Math.Tan(roundedAngle);
-                    } else if (roundedAngle < Math.PI - diagonalAngle) {
-                        y = diagY;
-                        x = y * Math.Tan(Math.PI / 2 - roundedAngle);
-                    } else if (roundedAngle < Math.PI + diagonalAngle) {
-                        x = -diagX;
-                        y = x * Math.Tan(roundedAngle);
-                    } else if (roundedAngle < 2 * Math.PI - diagonalAngle) {
-                        y = -diagY;
-                        x = y * Math.Tan(Math.PI / 2 - roundedAngle);
-                    } else {
-                        x = diagX;
-                        y = x * Math.Tan(roundedAngle);
-                    }
-                    return _center + F(x, y);
-                };
-                return new DependentVector(() => findNearestConnector().GetX(), () => findNearestConnector().GetY(), farAway.Name + ".NC()");
+                var result = new VariableVector("Connector", _solver);
+                new UnidirectionalComputationConstraint(
+                    input: new[] { farAway.X, farAway.Y, _center.X, _center.Y, _diagonal.X, _diagonal.Y },
+                    output: new[] { result.X, result.Y },
+                    computation: (input, output) => {
+                        // float[] inputValues = _input.Select(v => (float) v.Value.Lo).ToArray();
+                        // ... I ignore "input" here and use the fields and local variables ... well ... ... should work ...
+                        VectorF centerF = _center.AsVectorF();
+                        VectorF diagonalF = _diagonal.AsVectorF();
+                        var farAwayF = farAway.AsVectorF();
+
+                        VectorF d = farAwayF - centerF;
+                        double angle = Math.Atan2(d.GetY(), d.GetX());
+                        double roundedAngle =
+                            NormalizedAngle(Math.Round(angle / _sectorAngle) * _sectorAngle);
+                        double diagX = diagonalF.GetX() / 2;
+                        double diagY = diagonalF.GetY() / 2;
+                        double diagonalAngle = NormalizedAngle(Math.Atan2(diagY, diagX));
+                        double x, y;
+                        if (roundedAngle < diagonalAngle) {
+                            x = diagX;
+                            y = x * Math.Tan(roundedAngle);
+                        } else if (roundedAngle < Math.PI - diagonalAngle) {
+                            y = diagY;
+                            x = y * Math.Tan(Math.PI / 2 - roundedAngle);
+                        } else if (roundedAngle < Math.PI + diagonalAngle) {
+                            x = -diagX;
+                            y = x * Math.Tan(roundedAngle);
+                        } else if (roundedAngle < 2 * Math.PI - diagonalAngle) {
+                            y = -diagY;
+                            x = y * Math.Tan(Math.PI / 2 - roundedAngle);
+                        } else {
+                            x = diagX;
+                            y = x * Math.Tan(roundedAngle);
+                        }
+
+                        result.X.Set(centerF.GetX() + x);
+                        result.Y.Set(centerF.GetY() + y);
+                    });
+                return result;
             }
         }
 
-        private class ArrowBuilder : IBuilder, IArrow {
-            private readonly Vector _head;
-            private readonly Vector _tail;
+        private class ArrowBuilder : AbstractBuilder, IBuilder, IArrow {
+            private readonly VariableVector _head;
+            private readonly SimpleConstraintSolver _solver;
+            private readonly VariableVector _tail;
             private readonly double _width;
             private readonly Color _color;
             private readonly string _text;
-            private readonly BoundedVector _textBox;
+            private readonly VariableVector _textBox;
             private readonly LineTextPlacement _lineTextPlacement;
             private readonly Font _textFont;
             private readonly Color _textColor;
             private readonly float _textPadding;
             private readonly double _textLocation;
             private readonly string _tooltip;
+            private readonly string _name;
 
-            internal ArrowBuilder(Vector tail, Vector head, double width, Color color,
+            internal ArrowBuilder(SimpleConstraintSolver solver, string name,
+                              VariableVector tail, VariableVector head, double width, Color color,
                         string text, LineTextPlacement lineTextPlacement, Font textFont, Color textColor, double textPadding, double textLocation,
-                        string tooltip) {
-                _tail = tail;
-                _head = head;
+                        string tooltip, int drawingOrder, int fixingOrder) : base(drawingOrder, fixingOrder) {
+                // Simple stuff
+                _name = name;
+                _solver = solver;
                 _width = width;
                 _color = color;
                 _text = text;
-                _textBox = new BoundedVector($"${tail.Name}->{head.Name}['{text}']");
                 _lineTextPlacement = lineTextPlacement;
                 _textFont = textFont;
                 _textColor = textColor;
                 _textPadding = (float)textPadding;
                 _textLocation = textLocation;
                 _tooltip = tooltip;
+
+                // Vectors
+                _tail = tail.AlsoNamed(_name + ".T");
+                _head = head.AlsoNamed(_name + ".H");
+                _textBox = new VariableVector(_name + ".TXT", _solver);
             }
 
-            public Vector Tail => _tail;
+            public override string ToString() {
+                return "ArrowBuilder " + Name;
+            }
 
-            public Vector Head => _head;
+            public string Name => _name;
 
-            public IEnumerable<Vector> GetBoundingVectors() {
-                yield return _tail;
-                yield return _head;
+            public VariableVector Tail => _tail;
+
+            public VariableVector Head => _head;
+
+            public IEnumerable<NumericVariable> GetFixVariables() {
+                yield return _head.X;
+                yield return _head.Y;
+                yield return _tail.X;
+                yield return _tail.Y;
+            }
+
+            public IEnumerable<VectorF> GetBoundingVectors() {
+                yield return _tail.AsVectorF();
+                yield return _head.AsVectorF();
             }
 
             public void FullyRestrictBoundingVectors(Graphics graphics) {
@@ -292,16 +536,19 @@ namespace NDepCheck.Rendering {
                 // because it is hard to repair; and the usecases where another vector depends on the
                 // rotated text are too rare to spend effort on them ...
                 SizeF textSize = graphics.MeasureString(_text, _textFont);
-                _textBox.Set(Vector.Fixed(textSize.Width * (1 + _textPadding), textSize.Height * (1 + _textPadding), "|" + _text + "|"));
+                _textBox.Set(textSize.Width * (1 + _textPadding), textSize.Height * (1 + _textPadding));
             }
 
             public void Draw(Graphics graphics, StringBuilder htmlForTooltips) {
+                VectorF tailF = _tail.AsVectorF();
+                VectorF headF = _head.AsVectorF();
+                VectorF textBoxF = _textBox.AsVectorF();
                 float fWidth = (float)_width;
 
-                PointF tailPoint = _tail.AsMirroredPointF();
-                PointF headPoint = _head.AsMirroredPointF();
+                PointF tailPoint = tailF.AsMirroredPointF();
+                PointF headPoint = headF.AsMirroredPointF();
                 if (tailPoint != headPoint) {
-                    float absoluteArrowSize = Math.Min(10 * fWidth, (float)_head.To(_tail) / 4);
+                    float absoluteArrowSize = Math.Min(10 * fWidth, (headF - tailF).Length() / 4);
                     var pen = new Pen(_color, fWidth) {
                         StartCap = LineCap.RoundAnchor,
                         // arrowsize is relative to line width, therefore we divide by fWidth
@@ -317,11 +564,11 @@ namespace NDepCheck.Rendering {
                     graphics.FillEllipse(new SolidBrush(Color.Aqua), tailPoint.X - fWidth / 2, tailPoint.Y - fWidth / 2, fWidth, fWidth);
                 }
 
-                Vector textCenter =_textLocation >= 0 
-                    ? _tail * (1 - _textLocation) + _head * _textLocation
-                    : _tail + (_head - _tail).Unit() * -_textLocation;
-                float halfTextWidth = _textBox.GetX() / 2;
-                float lineAngleDegrees = (float)(-Math.Atan2(_head.GetY() - _tail.GetY(), _head.GetX() - _tail.GetX()) * 180 / Math.PI);
+                VectorF textCenterF = _textLocation >= 0
+                    ? tailF * (1 - _textLocation) + headF * _textLocation
+                    : tailF + (headF - tailF).Unit() * -_textLocation;
+                float halfTextWidth = textBoxF.GetX() / 2;
+                float lineAngleDegrees = (float)(-Math.Atan2(headF.GetY() - tailF.GetY(), headF.GetX() - tailF.GetX()) * 180 / Math.PI);
 
                 var textTransform = new Matrix();
                 switch (_lineTextPlacement) {
@@ -334,22 +581,22 @@ namespace NDepCheck.Rendering {
                         textTransform.Translate(halfTextWidth, 0);
                         break;
                     case LineTextPlacement.LeftInclined:
-                        textTransform.RotateAt(lineAngleDegrees, textCenter.AsMirroredPointF());
+                        textTransform.RotateAt(lineAngleDegrees, textCenterF.AsMirroredPointF());
                         textTransform.Translate(-halfTextWidth, 0);
                         break;
                     case LineTextPlacement.CenterInclined:
-                        textTransform.RotateAt(lineAngleDegrees, textCenter.AsMirroredPointF());
+                        textTransform.RotateAt(lineAngleDegrees, textCenterF.AsMirroredPointF());
                         break;
                     case LineTextPlacement.RightInclined:
-                        textTransform.RotateAt(lineAngleDegrees, textCenter.AsMirroredPointF());
+                        textTransform.RotateAt(lineAngleDegrees, textCenterF.AsMirroredPointF());
                         textTransform.Translate(halfTextWidth, 0);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
                 // Move text away form line; needs improvement for steeply inclined lines
-                textTransform.Translate(0, -_textBox.GetY() / 2);
-                DrawText(graphics, _text, _textFont, _textColor, textCenter, textTransform);
+                textTransform.Translate(0, -textBoxF.GetY() / 2);
+                DrawText(graphics, _text, _textFont, _textColor, textCenterF, textTransform);
 
                 // TODO: Get all these elements somehow and then do a "draw tooltip" ...
             }
@@ -358,9 +605,10 @@ namespace NDepCheck.Rendering {
         private readonly Font _defaultTextFont = new Font(FontFamily.GenericSansSerif, 10);
         private readonly List<IBuilder> _builders = new List<IBuilder>();
 
-        private static void DrawText(Graphics graphics, string text, Font textFont, Color textColor, Vector center, Matrix m) {
-            StringFormat centered = new StringFormat {Alignment = StringAlignment.Center};
-            PointF position = (center + F(0, textFont.GetHeight() / 2)).AsMirroredPointF();
+        private static void DrawText(Graphics graphics, string text, Font textFont, Color textColor, VectorF center, Matrix m) {
+            StringFormat centered = new StringFormat { Alignment = StringAlignment.Center };
+            var halfFontHeight = textFont.GetHeight() / 2;
+            PointF position = (center + new VectorF(0, halfFontHeight, "font/2 " + halfFontHeight)).AsMirroredPointF();
             if (DEBUG) {
                 graphics.FillEllipse(new SolidBrush(Color.Red), center.AsMirroredPointF().X - 3, center.AsMirroredPointF().Y - 3, 6, 6);
                 graphics.DrawString(text, textFont, new SolidBrush(Color.LightGray), position, centered);
@@ -374,69 +622,36 @@ namespace NDepCheck.Rendering {
             graphics.EndContainer(containerForTextPlacement);
         }
 
-        public IBox Box([NotNull] Vector anchor, [CanBeNull] string text, [CanBeNull] Vector minDiagonal = null,
-            BoxAnchoring boxAnchoring = BoxAnchoring.Center,
-            [CanBeNull] Color? boxColor = null /*White*/, int connectors = 8,
+        public IBox Box([NotNull] VariableVector anchor, [CanBeNull] string text, [CanBeNull] VariableVector minDiagonal = null,
+            BoxAnchoring boxAnchoring = BoxAnchoring.Center, [CanBeNull] Color? boxColor = null /*White*/, int connectors = 8,
             double borderWidth = 0, [CanBeNull] Color? borderColor = null /*Black*/,
             BoxTextPlacement boxTextPlacement = BoxTextPlacement.Center, [CanBeNull] Font textFont = null /*___*/, [CanBeNull] Color? textColor = null /*Black*/,
-            double textPadding = 0.2, [CanBeNull] string tooltip = null) {
+            double textPadding = 0.2, [CanBeNull] string tooltip = null, int drawingOrder = 0, int fixingOrder = 100, [CanBeNull] string name = null) {
             if (anchor == null) {
                 throw new ArgumentNullException(nameof(anchor));
             }
-            Vector center;
-            var diagonal = new BoundedVector("/" + (text ?? anchor.Name)).Restrict(minDiagonal);
-            var halfDiagonal = diagonal / 2;
-            switch (boxAnchoring) {
-                case BoxAnchoring.Center:
-                    center = anchor;
-                    break;
-                case BoxAnchoring.LowerLeft:
-                    center = anchor + halfDiagonal;
-                    break;
-                case BoxAnchoring.CenterLeft:
-                    center = anchor + halfDiagonal.Horizontal();
-                    break;
-                case BoxAnchoring.UpperLeft:
-                    center = anchor + ~halfDiagonal;
-                    break;
-                case BoxAnchoring.CenterTop:
-                    center = anchor - halfDiagonal.Vertical();
-                    break;
-                case BoxAnchoring.UpperRight:
-                    center = anchor - halfDiagonal;
-                    break;
-                case BoxAnchoring.CenterRight:
-                    center = anchor - halfDiagonal.Horizontal();
-                    break;
-                case BoxAnchoring.LowerRight:
-                    center = anchor - ~halfDiagonal;
-                    break;
-                case BoxAnchoring.CenterBottom:
-                    center = anchor + halfDiagonal.Vertical();
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(boxAnchoring), boxAnchoring, null);
-            }
 
-            var boxBuilder = new BoxBuilder(center, diagonal, boxColor ?? Color.White,
-                borderWidth, borderColor ?? Color.Black, connectors,
-                text ?? "", boxTextPlacement, textFont ?? _defaultTextFont, textColor ?? Color.Black, textPadding, tooltip ?? "");
+            var boxBuilder = new BoxBuilder(_solver, anchor, new VariableVector((text ?? anchor.Name) + "./", _solver).Restrict(minDiagonal),
+                boxAnchoring, boxColor ?? Color.White, borderWidth, borderColor ?? Color.Black, connectors,
+                text ?? "", boxTextPlacement, textFont ?? _defaultTextFont, textColor ?? Color.Black, textPadding, tooltip ?? "", drawingOrder, fixingOrder, name);
+
             _builders.Add(boxBuilder);
             return boxBuilder;
         }
 
-        public IArrow Arrow([NotNull] Vector tail, [NotNull] Vector head, double width, [CanBeNull] Color? color = null /*Black*/,
+        public IArrow Arrow([NotNull] VariableVector tail, [NotNull] VariableVector head, double width, [CanBeNull] Color? color = null /*Black*/,
             [CanBeNull] string text = null, LineTextPlacement placement = LineTextPlacement.Center, [CanBeNull] Font textFont = null /*___*/,
-            [CanBeNull] Color? textColor = null /*Black*/, double textPadding = 0.2, double textLocation = 0.5, [CanBeNull] string tooltip = null) {
+            [CanBeNull] Color? textColor = null /*Black*/, double textPadding = 0.2, double textLocation = 0.5, [CanBeNull] string tooltip = null,
+            int drawingOrder = 0, int fixingOrder = 200, string name = null) {
             if (tail == null) {
                 throw new ArgumentNullException(nameof(tail));
             }
             if (head == null) {
                 throw new ArgumentNullException(nameof(head));
             }
-            var arrowBuilder = new ArrowBuilder(tail, head, width, color ?? Color.Black,
+            var arrowBuilder = new ArrowBuilder(_solver, name ?? $"${tail.Name}->{head.Name}['{text}']", tail, head, width, color ?? Color.Black,
                 text ?? "", placement, textFont ?? _defaultTextFont, textColor ?? Color.Black,
-                textPadding, textLocation, tooltip);
+                textPadding, textLocation, tooltip, drawingOrder, fixingOrder);
             _builders.Add(arrowBuilder);
             return arrowBuilder;
         }
@@ -451,36 +666,45 @@ namespace NDepCheck.Rendering {
 
             var bitmap = new Bitmap(size.Width, size.Height);
             using (Graphics graphics = Graphics.FromImage(bitmap)) {
-                graphics.Clear(GetBackGroundColor);
-
-                double minX = double.MaxValue;
-                double maxX = -double.MaxValue;
-                double minY = double.MaxValue;
-                double maxY = -double.MaxValue;
-
-                StringBuilder errors = new StringBuilder();
                 foreach (var b in _builders) {
                     b.FullyRestrictBoundingVectors(graphics);
+                }
 
+                try {
+                    _solver.Solve();
+                } catch (SolverException) {
+                    Console.WriteLine(_solver.GetState());
+                    throw;
+                }
+
+                graphics.Clear(GetBackGroundColor);
+
+                float minX = float.MaxValue;
+                float maxX = -float.MaxValue;
+                float minY = float.MaxValue;
+                float maxY = -float.MaxValue;
+
+                StringBuilder errors = new StringBuilder();
+                foreach (var b in _builders.OrderBy(b => b.DrawingOrder).ThenBy(b => b.CreationOrder)) {
                     foreach (var v in b.GetBoundingVectors()) {
-                        double? x = v.X();
-                        if (!x.HasValue) {
-                            errors.AppendLine("No x value set in vector " + (v.Name ?? "dependent on other vectors"));
+                        float x = v.GetX();
+                        if (float.IsInfinity(x)) {
+                            errors.AppendLine($"Dimensions of {b.Name} not fully computed - no value for {v.Definition}.x");
                         } else {
-                            minX = Math.Min(minX, x.Value);
-                            maxX = Math.Max(maxX, x.Value);
+                            minX = Math.Min(minX, x);
+                            maxX = Math.Max(maxX, x);
                         }
-                        double? y = v.Y();
-                        if (!y.HasValue) {
-                            errors.AppendLine("No y value set in vector " + (v.Name ?? "dependent on other vectors"));
+                        float y = v.GetY();
+                        if (float.IsInfinity(y)) {
+                            errors.AppendLine($"Dimensions of {b.Name} not fully computed - no value for {v.Definition}.y");
                         } else {
-                            minY = Math.Min(minY, y.Value);
-                            maxY = Math.Max(maxY, y.Value);
+                            minY = Math.Min(minY, y);
+                            maxY = Math.Max(maxY, y);
                         }
                     }
                 }
                 if (errors.Length > 0) {
-                    throw new InvalidOperationException(errors.ToString());
+                    throw new InvalidOperationException(errors.ToString() + _solver.GetState());
                 }
 
                 StringBuilder htmlForTooltips = new StringBuilder();
@@ -494,23 +718,10 @@ namespace NDepCheck.Rendering {
                 graphics.Transform = new Matrix(scale, 0, 0, scale, (float)(-scale * minX + size.Width * BORDER),
                     (float)(scale * maxY + size.Height * BORDER));
 
-                List<IBuilder> openBuilders = _builders.ToList();
+                List<IBuilder> openBuilders = _builders.OrderBy(b => b.DrawingOrder).ThenBy(b => b.CreationOrder).ToList();
 
-                RETRY:
-                bool someRemoved = false;
-                try {
-                    foreach (var b in openBuilders.ToArray()) {
-                        b.Draw(graphics, htmlForTooltips);
-                        someRemoved = openBuilders.Remove(b);
-                    }
-                } catch (MissingValueException) {
-                    // Coordinates of one builder not set (probably not possible right now, but might be with more complex dependencies)
-                    if (someRemoved) {
-                        // A retry will not lead to an endless loop
-                        goto RETRY;
-                    } else {
-                        throw;
-                    }
+                foreach (var b in openBuilders.ToArray()) {
+                    b.Draw(graphics, htmlForTooltips);
                 }
             }
 
@@ -519,8 +730,7 @@ namespace NDepCheck.Rendering {
             //DrawText(graphics, "C|0", f, Color.Blue, C(100, 0), TextPlacing.Center);
             //DrawText(graphics, "O|C", f, Color.Blue, C(0, 100), TextPlacing.Center);
             //DrawText(graphics, "C|C", f, Color.Blue, C(100, 100), TextPlacing.Center);
-            Bitmap bitMap = bitmap;
-            return bitMap;
+            return bitmap;
         }
 
         public void RenderToFile(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, string baseFilename, int? optionsStringLength) {
@@ -555,6 +765,8 @@ namespace NDepCheck.Rendering {
         protected abstract Size GetSize();
 
         protected virtual Color GetBackGroundColor => Color.White;
+
+        protected SimpleConstraintSolver Solver => _solver;
 
         protected abstract void PlaceObjects(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies);
 

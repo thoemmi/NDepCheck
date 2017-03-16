@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using NDepCheck.ConstraintSolving;
 using NDepCheck.Rendering;
 
 namespace NDepCheck.TestRenderer {
@@ -9,29 +10,30 @@ namespace NDepCheck.TestRenderer {
         protected override Color GetBackGroundColor => Color.Yellow;
 
         protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
-            // Only for fun, I set the origin at the very end. This means that all placement vectors are
-            // DependentVectors, which do not not know their actual values throughout PlaceObjects.
-            var origin = new BoundedVector("origin");
             double deltaAngle = 2 * Math.PI / items.Count();
+            Func<int, double> r =
+                  items.Any(i => i.Name.StartsWith("star")) ? i => 100.0 + (i % 2 == 0 ? 60 : 0)
+                : items.Any(i => i.Name.StartsWith("spiral")) ? (Func<int, double>)(i => 80.0 + 20 * i)
+                : /*circle*/ i => 100;
 
             int n = 0;
             foreach (var i in items) {
                 int k = n++;
-                double angle = k * deltaAngle;
-                var pos = new DependentVector(() => origin.X() + 500 * Math.Sin(angle), () => origin.X() + 500 * Math.Cos(angle), "pos_" + k);
-                i.DynamicData.MainBox = Box(pos, i.Name, B(i.Name).Restrict(minY: () => 15), borderWidth: 2);
+                double phi = k * deltaAngle;
+                // Define position in polar coordinates with origin, radius (r) and angle (ohi).
+                var pos = new VariableVector("pos_" + k, Solver, r(k) * Math.Sin(phi), r(k) * Math.Cos(phi));
+
+                i.DynamicData.Box = Box(pos, i.Name, B(i.Name).Restrict(F(null, 15), F(null, 15)), borderWidth: 2);
             }
 
             foreach (var d in dependencies) {
-                IBox from = d.UsingItem.DynamicData.MainBox;
-                IBox to = d.UsedItem.DynamicData.MainBox;
+                IBox from = d.UsingItem.DynamicData.Box;
+                IBox to = d.UsedItem.DynamicData.Box;
 
                 if (d.Ct > 0 && !Equals(d.UsingItem, d.UsedItem)) {
                     Arrow(from.GetBestConnector(to.Center), to.GetBestConnector(from.Center), 1, text: "#=" + d.Ct, textLocation: 0.2);
                 }
             }
-
-            origin.Set(F(0, 0));
         }
 
         protected override Size GetSize() {

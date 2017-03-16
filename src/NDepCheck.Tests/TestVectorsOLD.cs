@@ -1,9 +1,9 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.Rendering;
+using NDepCheck.Rendering.OLD;
 
-namespace NDepCheck.Tests {
+namespace NDepCheck.Tests.OLD {
     [TestClass]
-    public class TestVectors {
+    public class TestVectorsOLD {
         [TestMethod]
         public void TestCaching() {
             var vv = new BoundedVector("a");

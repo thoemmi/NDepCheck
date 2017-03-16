@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using JetBrains.Annotations;
 
-namespace NDepCheck.Rendering {
+namespace NDepCheck.Rendering.OLD {
     public class MissingValueException : Exception {
         public MissingValueException(string message) : base(message) { }
     }

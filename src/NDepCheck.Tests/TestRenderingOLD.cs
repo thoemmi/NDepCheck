@@ -4,10 +4,9 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.ConstraintSolving;
-using NDepCheck.Rendering;
+using NDepCheck.Rendering.OLD;
 
-namespace NDepCheck.Tests {
+namespace NDepCheck.Tests.OLD {
 
     [TestClass]
     public class TestRendering {
@@ -52,24 +51,24 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestSingleBox() {
-            CreateAndRender(r => r.Box(r.F(100, 100), "B", r.F(70, 200),
+            CreateAndRender(r => r.Box(Vector.Fixed(100, 100), "B", Vector.Fixed(70, 200),
                 borderWidth: 10, textFont: new Font(FontFamily.GenericSansSerif, 30)));
         }
 
         [TestMethod]
         public void TestSingleBoxWithText() {
-            CreateAndRender(r => r.Box(r.F(100, 100), "A long text", r.F(null, 200),
+            CreateAndRender(r => r.Box(Vector.Fixed(100, 100), "A long text", Vector.Fixed(null, 200),
                 borderWidth: 10, textFont: new Font(FontFamily.GenericSansSerif, 30)));
         }
 
         [TestMethod]
         public void TestBoxesWithText() {
             CreateAndRender(r => {
-                var pos = r.F(0, 0);
+                var pos = Vector.Fixed(0, 0);
                 foreach (BoxTextPlacement e in typeof(BoxTextPlacement).GetEnumValues()) {
-                    r.Box(pos, e.ToString(), r.F(90, 200), borderWidth: 1,
+                    r.Box(pos, e.ToString(), Vector.Fixed(90, 200), borderWidth: 1,
                         boxTextPlacement: e, textFont: new Font(FontFamily.GenericSansSerif, 8));
-                    pos += r.F(100, 5);
+                    pos += Vector.Fixed(100, 5);
                 }
             }, 2000, 1500);
         }
@@ -77,13 +76,13 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestLinesWithText() {
             CreateAndRender(r => {
-                var tail = r.F(0, 0);
-                var head = r.F(100, 120);
+                var tail = Vector.Fixed(0, 0);
+                var head = Vector.Fixed(100, 120);
                 var delta = head;
                 foreach (LineTextPlacement e in typeof(LineTextPlacement).GetEnumValues()) {
                     r.Arrow(tail, head, 3, placement: e, text: e.ToString(), textFont: new Font(FontFamily.GenericSansSerif, 8), textPadding: 0.5);
                     tail = head;
-                    delta = !delta;
+                    delta = ~delta;
                     head += delta;
                 }
             }, 2000, 1500);
@@ -92,47 +91,39 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestLinesWithMovedText() {
             CreateAndRender(r => {
-                r.Arrow(r.F(0, 0, "Leg0"), r.F(100, 0, "Leg100"), 1, color: Color.Chartreuse);
+                r.Arrow(Vector.Fixed(0, 0), Vector.Fixed(100, 0), 1, color: Color.Chartreuse);
 
-                VariableVector tail = r.F(0, 0, "V0");
-                VariableVector head = r.F(100, 120, "V1");
-                VariableVector delta = head;
-                foreach (var e in typeof(LineTextPlacement).GetEnumValues().OfType<LineTextPlacement>()) {
-                    r.Arrow(tail, head, 3, placement: e, text: e.ToString(), textFont: new Font(FontFamily.GenericSansSerif, 8), textLocation: 0.3, name: "text at " + e);
+
+                var tail = Vector.Fixed(0, 0);
+                var head = Vector.Fixed(100, 120);
+                var delta = head;
+                foreach (LineTextPlacement e in typeof(LineTextPlacement).GetEnumValues()) {
+                    r.Arrow(tail, head, 3, placement: e, text: e.ToString(), textFont: new Font(FontFamily.GenericSansSerif, 8), textLocation: 0.3);
                     tail = head;
-                    delta = !delta;
+                    delta = ~delta;
                     head += delta;
                 }
             }, 2000, 1500);
         }
 
         [TestMethod]
-        public void TestSingleArrow() {
-            CreateAndRender(r => r.Arrow(r.F(30, -100), r.F(170, 300), 10, Color.Red));
-        }
-
-        [TestMethod]
-        public void TestThreeArrows() {
-            CreateAndRender(r => {
-                r.Arrow(r.F(0, 0), r.F(100, 0), 2, Color.Green);
-                r.Arrow(r.F(0, 0), r.F(0, 100), 2, Color.Green);
-                r.Arrow(r.F(30, -100), r.F(170, 300), 10, Color.Red);
-            });
+        public void TestSingleLine() {
+            CreateAndRender(r => r.Arrow(Vector.Fixed(30, -100), Vector.Fixed(170, 300), 10, Color.Red));
         }
 
         [TestMethod]
         public void TestSingleBoxWithAnchors() {
-            const int N = 1;//13;
-            const int ANCHORS = 5; //10;
+            const int N = 13;
+            const int ANCHORS = 10;
 
             CreateAndRender(r => {
-                var b = r.Box(r.F(0, 0), "A long text", r.F(null, 40), borderWidth: 10,
-                    textFont: new Font(FontFamily.GenericSansSerif, 30), connectors: ANCHORS-2, name: "BOX");
+                var b = r.Box(Vector.Fixed(0, 0), "A long text", Vector.Fixed(null, 40), borderWidth: 10,
+                    textFont: new Font(FontFamily.GenericSansSerif, 30), connectors: ANCHORS);
 
                 for (int i = 0; i < N; i++) {
                     var angle = 2 * Math.PI * i / N;
-                    var farAway = r.F(300 * Math.Sin(angle), 300 * Math.Cos(angle));
-                    r.Arrow(farAway, b.GetBestConnector(farAway), 2 + i, name: "LINE_" + i);
+                    var farAway = Vector.Fixed(300 * Math.Sin(angle), 300 * Math.Cos(angle));
+                    r.Arrow(farAway, b.GetBestConnector(farAway), 2 + i);
                 }
             });
         }
@@ -140,83 +131,40 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestSingleAnchor() {
             CreateAndRender(r => {
-                IBox box = r.Box(r.F(100, 100), "B", r.F(70, 200),
+                IBox box = r.Box(Vector.Fixed(100, 100), "B", Vector.Fixed(70, 200),
                     borderWidth: 10, textFont: new Font(FontFamily.GenericSansSerif, 100));
-                VariableVector far = r.F(300, 400);
+                Vector far = Vector.Fixed(300, 400);
                 r.Arrow(box.Center, far, width: 5, color: Color.Blue); // center to far point
-                r.Arrow(box.Center, r.F(400, 400), width: 2, color: Color.Green); // 45° diagonal from center
+                r.Arrow(box.Center, Vector.Fixed(400, 400), width: 2, color: Color.Green); // 45° diagonal from center
                 r.Arrow(box.GetBestConnector(far), far, width: 10, color: Color.Brown); // anchor to far point
             });
         }
 
         [TestMethod]
-        public void TestWindroseCenter() {
-            TestWindrose(BoxAnchoring.Center);
-        }
-
-        [TestMethod]
-        public void TestWindroseLowerLeft() {
-            TestWindrose(BoxAnchoring.LowerLeft);
-        }
-
-        [TestMethod]
-        public void TestWindroseCenterLeft() {
-            TestWindrose(BoxAnchoring.CenterLeft);
-        }
-
-        [TestMethod]
-        public void TestWindroseUpperLeft() {
-            TestWindrose(BoxAnchoring.UpperLeft);
-        }
-
-        [TestMethod]
-        public void TestWindroseCenterTop() {
-            TestWindrose(BoxAnchoring.CenterTop);
-        }
-
-        [TestMethod]
-        public void TestWindroseUpperRight() {
-            TestWindrose(BoxAnchoring.UpperRight);
-        }
-
-        [TestMethod]
-        public void TestWindroseCenterRight() {
-            TestWindrose(BoxAnchoring.CenterRight);
-        }
-
-        [TestMethod]
-        public void TestWindroseLowerRight() {
-            TestWindrose(BoxAnchoring.LowerRight);
-        }
-
-        [TestMethod]
-        public void TestWindroseCenterBottom() {
-            TestWindrose(BoxAnchoring.CenterBottom);
-        }
-
-        private static void TestWindrose(BoxAnchoring boxAnchoring) {
+        public void TestWindrose() {
             CreateAndRender(r => {
-                var b = r.Box(r.F(125, 125), "B", r.F(100, 100), borderWidth: 10, boxAnchoring: boxAnchoring,
+                var b = r.Box(Vector.Fixed(100, 100), "B", Vector.Fixed(100, 100), borderWidth: 10,
+                    boxAnchoring: BoxAnchoring.LowerLeft,
                     textFont: new Font(FontFamily.GenericSansSerif, 30));
-                r.Arrow(b.CenterBottom, r.F(150, 0), 4, text: "CenterBottom");
-                r.Arrow(b.LowerLeft, r.F(0, 0), 4, text: "LowerLeft");
-                r.Arrow(b.CenterLeft, r.F(0, 150), 4, text: "CenterLeft");
-                r.Arrow(b.UpperLeft, r.F(0, 230), 4, text: "UpperLeft");
-                r.Arrow(b.CenterTop, r.F(150, 230), 4, text: "CenterTop");
-                r.Arrow(b.UpperRight, r.F(230, 230), 4, text: "UpperRight");
-                r.Arrow(b.CenterRight, r.F(250, 150), 4, text: "CenterRight");
-                r.Arrow(b.LowerRight, r.F(250, 0), 4, text: "LowerRight");
+                r.Arrow(b.CenterBottom, Vector.Fixed(150, 0), 4, text: "CenterBottom");
+                r.Arrow(b.LowerLeft, Vector.Fixed(0, 0), 4, text: "LowerLeft");
+                r.Arrow(b.CenterLeft, Vector.Fixed(0, 150), 4, text: "CenterLeft");
+                r.Arrow(b.UpperLeft, Vector.Fixed(0, 230), 4, text: "UpperLeft");
+                r.Arrow(b.CenterTop, Vector.Fixed(150, 230), 4, text: "CenterTop");
+                r.Arrow(b.UpperRight, Vector.Fixed(230, 230), 4, text: "UpperRight");
+                r.Arrow(b.CenterRight, Vector.Fixed(250, 150), 4, text: "CenterRight");
+                r.Arrow(b.LowerRight, Vector.Fixed(250, 0), 4, text: "LowerRight");
             });
         }
 
         [TestMethod]
         public void TestTwoBoxes() {
             CreateAndRender(r => {
-                var b = r.Box(r.F(100, 100), "B", r.F(100, 100), borderWidth: 10,
+                var b = r.Box(Vector.Fixed(100, 100), "B", Vector.Fixed(100, 100), borderWidth: 10,
                     boxAnchoring: BoxAnchoring.LowerLeft,
                     textFont: new Font(FontFamily.GenericSansSerif, 30));
 
-                r.Box(b.UpperLeft, "C", r.F(50, 200), borderWidth: 5,
+                r.Box(b.UpperLeft, "C", Vector.Fixed(50, 200), borderWidth: 5,
                     boxAnchoring: BoxAnchoring.LowerLeft,
                     textFont: new Font(FontFamily.GenericSansSerif, 30));
             });
@@ -240,6 +188,7 @@ namespace NDepCheck.Tests {
             protected override Color GetBackGroundColor => Color.Yellow;
 
             protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
+                var origin = new BoundedVector("origin");
                 double deltaAngle = 2 * Math.PI / items.Count();
                 Func<int, double> r =
                       items.Any(i => i.Name.StartsWith("star")) ? i => 100.0 + (i % 2 == 0 ? 60 : 0)
@@ -251,9 +200,11 @@ namespace NDepCheck.Tests {
                     int k = n++;
                     double phi = k * deltaAngle;
                     // Define position in polar coordinates with origin, radius (r) and angle (ohi).
-                    var pos = new VariableVector("pos_" + k, Solver, r(k) * Math.Sin(phi), r(k) * Math.Cos(phi));
+                    var pos = new DependentVector(
+                        () => origin.X() + r(k) * Math.Sin(phi),
+                        () => origin.X() + r(k) * Math.Cos(phi), "pos_" + k);
 
-                    i.DynamicData.Box = Box(pos, i.Name, B(i.Name).Restrict(F(null, 15), F(null, 15)), borderWidth: 2);
+                    i.DynamicData.Box = Box(pos, i.Name, B(i.Name).Set(null, 15), borderWidth: 2);
                 }
 
                 foreach (var d in dependencies) {
@@ -264,6 +215,8 @@ namespace NDepCheck.Tests {
                         Arrow(from.GetBestConnector(to.Center), to.GetBestConnector(from.Center), 1, text: "#=" + d.Ct, textLocation: 0.2);
                     }
                 }
+
+                origin.Set(0, 0);
             }
 
             public static void CreateSomeTestItems(int n, string prefix, out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
@@ -333,15 +286,15 @@ namespace NDepCheck.Tests {
             Item i = Item.New(amo, "VKF", "VKF", "01");
 
             CreateAndRender(r => {
-                VariableVector pos = r.F(0, 0);
+                Vector pos = Vector.Fixed(0, 0);
 
                 string name = i.Values[0];
 
                 IBox mainBox = r.Box(pos, text: name, boxAnchoring: BoxAnchoring.LowerLeft,
-                    borderWidth: 5, boxColor: Color.Coral, name: name);
-                VariableVector interfacePos = mainBox.UpperLeft;
-                i.DynamicData.InterfaceBox = r.Box(interfacePos, text: name + ".I", minDiagonal: r.F(10, 200),
-                    boxAnchoring: BoxAnchoring.LowerLeft, borderWidth: 1, boxColor: Color.Coral, name: name + ".I");
+                    borderWidth: 5, boxColor: Color.Coral);
+                Vector interfacePos = mainBox.UpperLeft;
+                i.DynamicData.UpperInterfaceBox = r.Box(interfacePos, text: "", minDiagonal: Vector.Fixed(10, 200),
+                    boxAnchoring: BoxAnchoring.LowerLeft, borderWidth: 1, boxColor: Color.Coral);
             });
         }
 
@@ -389,17 +342,16 @@ namespace NDepCheck.Tests {
                 //    |         |         |<-----------------------|     |    |
                 //    |         |<---------------------------------| WLG |    |
                 //    |<-------------------------------------------+-----+    |
-                //    |         |         |             |          | | |      |
-                //    |         |         |<------------|          | | |      |
-                //    |         |         | |<::::::::::+-----+    | | |      |
-                //    |         |<----------|-----------| VKF |----|--------->|
-                //    |<--------------------|-----------+-----+    | | |      |
-                //    |         |         | |             | |      | | |      Imp.MI
-                //    |<--------------------|---------------|      | | |
-                //    |<--------------------|-------------| |      | | |
-                //    |         |         | |     ...     | |      | | |
-                //    |         |         | |             | |      | | |
-                //    |         |         +-----+=================>| | |
+                //    |         |         |             |            | |      |
+                //    |         |         |<------------+-----+      | |      |
+                //    |         |<----------------------| VKF |-------------->|
+                //    |<--------------------------------+-----+      | |      |
+                //    |         |         |               | |        | |      Imp.MI
+                //    |<------------------------------------|        | |
+                //    |<----------------------------------| |        | |
+                //    |         |         |       ...     | |        | |
+                //    |         |         |               | |        | |
+                //    |         |         +-----+         | |        | |
                 //    |         |         | KAH |---------->|        | |
                 //    |         |         +-----+-------->| |        | |
                 //    |         |           |             | |        | |
@@ -414,14 +366,6 @@ namespace NDepCheck.Tests {
                 //    +-----+              .MI          .MI .MI    .MI .MI
                 //    | BAC |
                 //    +-----+
-                //
-                // ===> is a dependency from a "lower" to a "higher" module
-                // that circumvents the MI. It should most probably be flagged
-                // as incorrect and then red in the diagram.
-                // :::> is a dependency from a "higher" to a "lower" module
-                // via an MI ("module interface"). This is ok, it is only
-                // highlighted to show that the Renderer must be able to deal
-                // with this.
 
                 // The itemtype is expected to have 3 fields Name:Module:Order.
                 // In the example diagram above, we would have items about like the following:
@@ -439,62 +383,45 @@ namespace NDepCheck.Tests {
                 //        Imp.MI :IMP:0601
                 //        Top    :TOP:0700
 
-                VariableVector itemDistance = new VariableVector(nameof(itemDistance), Solver);
-                VariableVector pos = F(0, 30);
-
-                //itemDistance.MaxY(80);
-                //itemDistance.SetX(300);
+                BoundedVector itemDistance = new BoundedVector(nameof(itemDistance));
+                Vector pos = F(0, 30);
 
                 Arrow(F(0, 0), F(100, 0), 1, Color.Chartreuse, "100px", textFont: _lineFont);
                 Box(F(200, 0), "IXOS-Architektur A (generiert " + DateTime.Now + ")", boxAnchoring: BoxAnchoring.LowerLeft);
-
-                const int DELTA_Y_MAIN = 8;
 
                 // Main modules along diagonal, separated by itemDistance
                 foreach (var i in items.Where(i => !IsMI(i)).OrderBy(GetOrder)) {
                     string name = GetName(i);
 
-                    pos.AlsoNamed(name);
-                    IBox mainBox = Box(pos, boxAnchoring: BoxAnchoring.LowerLeft, text: name, borderWidth: 3, boxColor: Color.Coral,
-                                       textFont: _boxFont, drawingOrder: 1, fixingOrder: 4);
-                    //mainBox.Diagonal.Y.Set(100);
-                    mainBox.Diagonal.Y.Max(30 + dependencies.Count(d => Equals(d.UsingItem, i)) * DELTA_Y_MAIN); // Help for solving
-                    mainBox.Diagonal.Y.Min(10 + dependencies.Count(d => Equals(d.UsingItem, i)) * DELTA_Y_MAIN); // Help for solving
+                    IBox mainBox = Box(pos, boxAnchoring: BoxAnchoring.LowerLeft, text: name, borderWidth: 3, boxColor: Color.Coral, 
+                                       textFont: _boxFont, drawingOrder: 1); // draw on top of all other boxes
                     i.DynamicData.MainBox = mainBox;
                     i.DynamicData.MainBoxNextFreePos = mainBox.LowerLeft;
                     {
-                        IBox interfaceBox = Box(new VariableVector(name + ".I", Solver).SetX(mainBox.LowerLeft.X),
-                                                text: "", boxAnchoring: BoxAnchoring.LowerLeft, borderWidth: 1, boxColor: Color.Coral, fixingOrder: 3);
-                        interfaceBox.Diagonal.SetX(10);
-
-                        interfaceBox.UpperLeft.MinY(mainBox.UpperLeft.Y + 7);
-                        interfaceBox.LowerLeft.MaxY(mainBox.LowerLeft.Y - 7);
-
+                        IBox interfaceBox = Box(new BoundedVector(name + ".I").Restrict(minX: mainBox.CenterLeft.X, maxX: mainBox.CenterLeft.X), 
+                                                text: "", boxAnchoring: BoxAnchoring.LowerLeft, borderWidth: 1, boxColor: Color.Coral);
+                        interfaceBox.Diagonal.Set(10, null);
                         i.DynamicData.InterfaceBox = interfaceBox;
 
                         i.DynamicData.InterfaceBoxNextFreePos = mainBox.LowerLeft - F(0, 10);
                     }
 
-                    NumericVariable interfacePos = Solver.CreateConstant("", 18);
+                    Vector interfacePos = mainBox.CenterLeft;
 
                     foreach (var mi in items.Where(mi => IsMI(mi) && GetModule(mi) == GetModule(i)).OrderBy(GetOrder)) {
-                        VariableVector miPos = new VariableVector(name + ".MI", Solver).SetX(mainBox.CenterLeft.X + interfacePos);
+                        Vector miPos = new BoundedVector(name + ".MI").Restrict(minX: interfacePos.X, maxX: interfacePos.X) + F(18, 0);
 
                         var miBox = Box(miPos, text: GetName(mi), boxAnchoring: BoxAnchoring.UpperLeft,
                             boxTextPlacement: BoxTextPlacement.LeftUp, borderWidth: 1, boxColor: Color.LemonChiffon,
-                            textFont: _interfaceFont, fixingOrder: 3);
+                            textFont: _interfaceFont);
                         mi.DynamicData.MainItem = i;
                         mi.DynamicData.InterfaceBox = miBox;
 
-                        miBox.UpperLeft.MinY(mainBox.UpperLeft.Y + 7);
-                        miBox.LowerLeft.MaxY(mainBox.LowerLeft.Y - miBox.TextBox.Y);
-
-                        interfacePos += 18;
+                        interfacePos += F(18, 0);
                     }
 
-                    mainBox.Diagonal.MinX(interfacePos);
-                    itemDistance.MinX(mainBox.Diagonal.X + 12);
-                    itemDistance.MinY(mainBox.Diagonal.Y + 15);
+                    mainBox.Diagonal.Restrict(minX: () => interfacePos.X() - mainBox.LowerLeft.X());
+                    itemDistance.Restrict(minX: () => mainBox.Diagonal.X() + 15, minY: () => mainBox.Diagonal.Y() + 15);
 
                     pos += itemDistance;
                 }
@@ -503,38 +430,41 @@ namespace NDepCheck.Tests {
                     Item from = d.UsingItem;
                     Item to = d.UsedItem;
                     if (IsMI(from)) {
-                        IBox fromBox = from.DynamicData.InterfaceBox;
+                        IBox fromBox = from.DynamicData.UpperInterfaceBox;
+                        // Separate local variable necessary - Dependent-lambdas are evaluated much later ...
                         Item mainItem = from.DynamicData.MainItem;
-                        VariableVector nextFreePos = mainItem.DynamicData.InterfaceBoxNextFreePos;
-
-                        VariableVector fromPos = new VariableVector(from + "->" + to, fromBox.LowerLeft.X, nextFreePos.Y);
+                        Vector nextFreePos  = mainItem.DynamicData.UpperInterfaceBoxNextFreePos;
+                        Vector fromPos = new DependentVector(() => fromBox.LowerLeft.X(), () => nextFreePos.Y(), from + "->" + to);
                         ArrowToInterfaceBox(fromBox, fromPos, to, d, "(MI)");
 
-                        mainItem.DynamicData.InterfaceBoxNextFreePos -= F(0, 15);
+                        mainItem.DynamicData.UpperInterfaceBoxNextFreePos -= F(0, 15);
                     } else {
                         IBox mainBox = from.DynamicData.MainBox;
-                        VariableVector fromPos = from.DynamicData.MainBoxNextFreePos;
-
+                        Vector fromPos = from.DynamicData.MainBoxNextFreePos;
                         ArrowToInterfaceBox(mainBox, fromPos, to, d, "");
 
-                        from.DynamicData.MainBoxNextFreePos += F(0, DELTA_Y_MAIN);
-
-                        itemDistance.MinY(fromPos.Y - mainBox.LowerLeft.Y);
-
-                        // mainBox.Diagonal.MinY(fromPos.Y - mainBox.LowerLeft.Y); ==> NO SOLUTION; therefore explcit computation above
+                        from.DynamicData.MainBoxNextFreePos += F(0, 8);
                     }
+                }
+
+                foreach (var i in items.Where(i => !IsMI(i)).OrderBy(GetOrder)) {
+                    IBox mainBox = i.DynamicData.MainBox;
+                    Vector mainBoxFreePos = i.DynamicData.MainBoxNextFreePos;
+                    mainBox.Diagonal.Restrict(null, () => mainBoxFreePos.Y() - mainBox.LowerLeft.Y());
                 }
             }
 
-            private void ArrowToInterfaceBox(IBox fromBox, VariableVector fromPos, Item to, Dependency d, string prefix) {
-                IBox toBox = to.DynamicData.InterfaceBox;
-                VariableVector toPos = toBox.GetBestConnector(fromPos).WithYOf(fromPos);
-                fromPos = fromBox.GetBestConnector(toPos).WithYOf(fromPos);
-                Arrow(fromPos, toPos, 1, color: d.NotOkCt > 0 ? Color.Red : Color.Black, text: prefix + "#=" + d.Ct, 
-                    textLocation: -20, textFont: _lineFont, fixingOrder: 2);
+            private void ArrowToInterfaceBox(IBox fromBox, Vector fromPos, Item to, Dependency d, string prefix) {
+                IBox toBox = to.DynamicData.UpperInterfaceBox;
+                Vector toPos = toBox.GetBestConnector(fromPos).WithHorizontalHeightOf(fromPos);
+                fromPos = fromBox.GetBestConnector(toPos).WithHorizontalHeightOf(fromPos);
+                Arrow(fromPos, toPos, 1, color: d.NotOkCt > 0 ? Color.Red : Color.Black, text: prefix + "#=" + d.Ct, textLocation: -20, textFont: _lineFont);
 
-                toBox.UpperLeft.MinY(fromPos.Y + 5);
-                toBox.LowerLeft.MaxY(fromPos.Y - toBox.TextBox.Y);
+                if (IsMI(to)) {
+                    toBox.Diagonal.Restrict(null, () => toBox.UpperLeft.Y() - toPos.Y() + toBox.TextBox.Y());
+                } else {
+                    toBox.Diagonal.Restrict(null, () => toPos.Y() - toBox.LowerLeft.Y() + toBox.TextBox.Y());
+                }
             }
 
             private static bool IsMI(Item mi) {
@@ -564,14 +494,14 @@ namespace NDepCheck.Tests {
 
                 dependencies = new[] {
                     FromTo(kst, bac), FromTo(kst, kah_mi), FromTo(kst, vkf1_mi), FromTo(kst, vkf2_mi), FromTo(kst, wlg1_mi), FromTo(kst, wlg2_mi),
-                    FromTo(kah, bac), FromTo(kah, vkf1_mi), FromTo(kah, vkf2_mi), FromTo(kah, wlg, 4, 3) /* ===> */,
-                    FromTo(vkf, bac), FromTo(vkf, kst), FromTo(vkf, kah, 3), FromTo(vkf, kah_mi, 2, 2) /* <:: */, FromTo(vkf, imp_mi), FromTo(vkf1_mi, bac), FromTo(vkf2_mi, bac),
+                    FromTo(kah, bac), FromTo(kah, vkf1_mi), FromTo(kah, vkf2_mi),
+                    FromTo(vkf, bac), FromTo(vkf, kst), FromTo(vkf, kah), FromTo(vkf, imp_mi), FromTo(vkf1_mi, bac), FromTo(vkf2_mi, bac),
                     // ... more to come
                 };
             }
 
-            private Dependency FromTo(Item from, Item to, int ct = 1, int notok = 0) {
-                return new Dependency(from, to, "Test", 0, 0, ct: ct, notOkCt:notok);
+            private Dependency FromTo(Item from, Item to) {
+                return new Dependency(from, to, "Test", 0, 0);
             }
         }
 
