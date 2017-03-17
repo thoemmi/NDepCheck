@@ -8,5 +8,6 @@ namespace NDepCheck.Rendering {
         void RenderToStreamForUnitTests([NotNull] [ItemNotNull] IEnumerable<Item> items, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
             Stream output);
         void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies);
+        string GetHelp();
     }
 }

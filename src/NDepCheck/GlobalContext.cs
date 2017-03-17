@@ -293,5 +293,21 @@ namespace NDepCheck {
             }
             return null; // if nothing found
         }
+
+        public void ShowAllRenderers() {
+            foreach (var t in GetType().Assembly
+                                       .GetExportedTypes()
+                                       .Where(t => typeof(IDependencyRenderer).IsAssignableFrom(t)
+                                                    && !t.IsAbstract && t.IsClass)
+                                       .OrderBy(t => t.FullName)) {
+                try {
+                    IDependencyRenderer renderer = (IDependencyRenderer) Activator.CreateInstance(t);
+                    Log.WriteInfo("=============================================\r\n" + t.FullName + ":\r\n" + renderer.GetHelp() + "\r\n");
+                } catch (Exception ex) {
+                    Log.WriteError("Cannot print help for Renderer " + t.FullName + "; reason: " + ex.Message);
+                }
+            }
+            Log.WriteInfo("=============================================\r\n");
+        }
     }
 }

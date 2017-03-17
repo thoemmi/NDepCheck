@@ -108,6 +108,7 @@ namespace NDepCheck.ConstraintSolving {
                 variablesWhoseDependentConstraintsShouldBePropagated = modifiedVariables;
             }
             _solved = true;
+            Log.WriteInfo("Solved constraints for " + _allVariables.Count + " variables.");
         }
 
         protected virtual IEnumerable<NumericVariable> CheckState(IEnumerable<NumericVariable> allVariables) {

@@ -737,14 +737,14 @@ namespace NDepCheck.Rendering {
             DoRender(items, dependencies, argsAsString);
         }
 
-        protected void DoRender(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, 
+        protected void DoRender(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies,
                                 string argsAsString, params OptionAction[] additionalOptions) {
             int width = 1000;
             int height = 1000;
             string baseFilename = null;
             Options.Parse(argsAsString,
                 arg => baseFilename = arg,
-                new [] {
+                new[] {
                 new OptionAction('w', (args, j) => {
                     if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out width)) {
                         Options.Throw("No valid width after w", args);
@@ -799,11 +799,15 @@ namespace NDepCheck.Rendering {
 
         public abstract void CreateSomeTestItems(out IEnumerable<TItem> items, out IEnumerable<TDependency> dependencies);
 
-        public string GetHelp() {
-            return $"{GetType().Name} usage: -___ outputfilename";
-        }
+        public abstract string GetHelp();
+
+        protected string GetHelpUsage() => "  [-w #] [-h #] -o filename | filename";
+        protected string GetHelpExplanations() =>
+@"    -w #          width of graphics in pixels
+    -h #          height of graphics in pixels
+    filename      output .gif file 
+";
     }
-
-
+    
     public abstract class GraphicsDependencyRenderer : GraphicsRenderer<Item, Dependency>, IDependencyRenderer { }
 }

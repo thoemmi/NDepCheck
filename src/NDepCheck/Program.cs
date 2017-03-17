@@ -50,13 +50,6 @@ namespace NDepCheck {
                         // -b        Break execution here; useful in -@ file
                         Log.WriteInfo("---- Stop reading options (-b)");
                         goto DONE;
-                    } else if (Options.ArgMatches(arg, 'c')) {
-                        // -c &      Write dip output (after lazy reading; after lazy dep->graph run)
-                        string filename = Options.ExtractOptionValue(args, ref i);
-                        if (string.IsNullOrWhiteSpace(filename)) {
-                            return UsageAndExit("Missing filename after " + arg);
-                        }
-                        state.ReadAll(options).ReduceGraph(options, false).WriteDipFile(options, filename);
                     } else if (arg == "-debug" || arg == "/debug") {
                         // -debug    Do start .Net debugger
                         Debugger.Launch();
@@ -127,30 +120,44 @@ namespace NDepCheck {
                     } else if (Options.ArgMatches(arg, 'q')) {
                         // -q        Set option to show unused questionable rules
                         options.ShowUnusedQuestionableRules = true;
-                    } else if (Options.ArgMatches(arg, 'r') || Options.ArgMatches(arg, 'g')) {
-                        // -g & $ &' Render the test data of renderer $ in assembly & to file &'
-                        // -r & $ &' Render with $ in assembly & to file &' (after lazy reading and lazy dep->graph run)
-                        string assemblyName = Options.ExtractOptionValue(args, ref i);
-                        if (string.IsNullOrWhiteSpace(assemblyName)) {
-                            return UsageAndExit("Missing assembly name after " + arg);
-                        } else if (assemblyName == ".") {
-                            // TODO: This should be moved to a separate option - maybe -c is free shortly!
-                            assemblyName = "";
-                        }
-                        string rendererClassName = Options.ExtractNextValue(args, ref i);
-                        if (string.IsNullOrWhiteSpace(rendererClassName)) {
-                            return UsageAndExit("Missing renderer class after " + arg + " " + assemblyName);
-                        }
-                        string rendererArgs = Options.ExtractNextValue(args, ref i);
-                        if (string.IsNullOrWhiteSpace(rendererArgs)) {
-                            return UsageAndExit("Missing filename after " + arg + " " + assemblyName + " " + rendererClassName);
-                        }
-                        if (Options.ArgMatches(arg, 'r')) {
-                            state.ReadAll(options)
-                                .ReduceGraph(options, false)
-                                .RenderToFile(options, assemblyName, rendererClassName, rendererArgs);
+                    } else if (Options.ArgMatches(arg, 'r') || Options.ArgMatches(arg, 'g') || Options.ArgMatches(arg, 'c')) {
+                        // -c   $ && Render the test data of renderer $ with options &&
+                        // -g & $ && Render the test data of renderer $ in assembly & with options &&
+                        // -r & $ && Render with $ in assembly & with options && (after lazy reading and lazy dep->graph run)
+                        string firstOptionValue = Options.ExtractOptionValue(args, ref i);
+                        if (Options.ArgMatches(firstOptionValue, '?')) {
+                            state.ShowAllRenderers();
                         } else {
-                            state.RenderTestDataToFile(options, assemblyName, rendererClassName, rendererArgs);
+                            string assemblyName;
+                            string rendererClassName;
+                            if (Options.ArgMatches(arg, 'c')) {
+                                assemblyName = "";
+                                rendererClassName = firstOptionValue;
+                            } else {
+                                assemblyName = firstOptionValue;
+                                if (string.IsNullOrWhiteSpace(assemblyName)) {
+                                    return UsageAndExit("Missing assembly name after " + arg);
+                                } else if (assemblyName == ".") {
+                                    assemblyName = "";
+                                }
+                                rendererClassName = Options.ExtractNextValue(args, ref i);
+                            }
+                            if (string.IsNullOrWhiteSpace(rendererClassName)) {
+                                return UsageAndExit("Missing renderer class after " + arg + " " + assemblyName);
+                            }
+                            string rendererArgs = Options.ExtractNextValue(args, ref i);
+                            if (string.IsNullOrWhiteSpace(rendererArgs)) {
+                                return
+                                    UsageAndExit("Missing filename after " + arg + " " + assemblyName + " " +
+                                                 rendererClassName);
+                            }
+                            if (Options.ArgMatches(arg, 'g')) {
+                                state.RenderTestDataToFile(options, assemblyName, rendererClassName, rendererArgs);
+                            } else {
+                                state.ReadAll(options)
+                                    .ReduceGraph(options, false)
+                                    .RenderToFile(options, assemblyName, rendererClassName, rendererArgs);
+                            }
                         }
                     } else if (Options.ArgMatches(arg, 's')) {
                         // -s &      Set directory tree search location for rule files
@@ -171,7 +178,7 @@ namespace NDepCheck {
                         Log.SetLevel(Log.Level.Chatty);
                         WriteVersion();
                     } else if (Options.ArgMatches(arg, 'x')) {
-                        // -x &      Set search location for default rule file; or pass default rules via {...}
+                        // -x &&     Set search location for default rule file; or pass default rules via {...}
                         string value = Options.ExtractOptionValue(args, ref i);
                         if (!string.IsNullOrEmpty(options.DefaultRuleSource)) {
                             return UsageAndExit("Only one default rule set can be specified with " + arg);
@@ -316,12 +323,12 @@ Options overview:
     -?        Do write help
     -@ &      Do read options from file
     -b        Ignore all remaining options (""break""); useful in -@ file
-    -c &      Write dependencies to .dip file (after lazy reading; after lazy dep->graph run)
+    -c $ &&   Render the test data of renderer $ with options && (after lazy reading and lazy dep->graph run)
     -d &      Set directory search locations for rule files
     -debug    Do start .Net debugger
     -e $ &    Set file location with defined reader $ (currently supported: dip, dll, exe)
     -f &      Set file location with reader defined by file extension
-    -g & $ &' Render the test data of renderer $ in assembly & to file &'
+    -g & $ &' Render the test data of renderer $ in assembly & with options && 
     -h        Do write extensive help
     -i        Set ignorecase option
     -j #      Set edge length for graph output
@@ -332,13 +339,13 @@ Options overview:
     -o &      Do write xml depcheck output (after lazy reading; after lazy depcheck)
     -p        Do write standard depcheck output (after lazy reading; after lazy depcheck)
     -q        Set option to show unused questionable rules
-    -r & $ &' Render with $ in assembly & to file &' (after lazy reading and lazy dep->graph run)
+    -r & $ &' Render with $ in assembly & with options && (after lazy reading and lazy dep->graph run)
     -s &      Set directory tree search location for rule files
     -t &      Set rule file extension (default .dep; specify before -s!)
     -u        Set option to show unused rules
     -v        Set verbose option
     -w        Set chatty option
-    -x &      Set search location for default rule file; or pass default rules via {...}
+    -x &&     Set search location for default rule file; or pass default rules via {...}
     -y <type> <type>     Set itemtypes for reductions; type=NAME:KEY1:KEY2:...
     -z        Remove all dependencies and graphs, clear search options (-d, -s, -x)
     &         If & ends with .dll, .exe, or. dip, or contains *: Remember 

@@ -19,6 +19,10 @@ namespace NDepCheck.Rendering {
         public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
             SomeRendererTestData.CreateSomeTestItems(out items, out dependencies);
         }
+
+        public string GetHelp() {
+            return new GenericDotRenderer().GetHelp();
+        }
     }
 
     public class GenericDotRenderer : IRenderer<INode, IEdge> {
@@ -75,7 +79,15 @@ namespace NDepCheck.Rendering {
         }
 
         public string GetHelp() {
-            return $"{GetType().Name} usage: -___ outputfilename";
+            return
+@"  Writes dependencies to file in .dot format (graphviz; see http://graphviz.org/).
+  This is helpful for smaller dependency graphs without any programming.
+  For larger graphs, it is better to use or define a renderer that creates a
+  specific structure, e.g., a ModulesAndInterfacesRenderer.
+
+  Options: [-e #] -o filename | filename
+    -e #          cutoff length of text for wrong dependencies; default: no cutoff
+    filename      output filename in .dot (graphviz) format";
         }
     }
 }

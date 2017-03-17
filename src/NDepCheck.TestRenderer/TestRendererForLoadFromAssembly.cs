@@ -43,6 +43,10 @@ namespace NDepCheck.TestRenderer {
                     (from, i) => localItems.Skip(i).Select(to => new Dependency(from, to, "Test", i, 0, ct: 10 * i))).ToArray();
             items = localItems;
         }
+
+        public override string GetHelp() {
+            return "TestRendererForLoadFromAssembly";
+        }
     }
 }
 

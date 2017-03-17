@@ -500,6 +500,11 @@ NDepCheck:Tests ---> **
         }
 
         [TestMethod]
+        public void TestExtendedCOptionHelp() {
+            Assert.AreEqual(1, Program.Main(new[] { "-c", "-?"}));
+        }
+
+        [TestMethod]
         public void TestExtendedXAndLocalROption() {
             string inFile = Path.GetTempFileName() + "IN.dip";
             string ndFile = Path.GetTempFileName() + "ND.nd";
@@ -523,7 +528,7 @@ NDepCheck:Tests ---> **
                         ! a:** ----> _a_:
                         ! b:** ----> _b_:
                     }}
-                    -c {outFile}");
+                    -c NDepCheck.Rendering.DipWriter {outFile}");
             }
 
             Assert.AreEqual(0, Program.Main(new[] { "-@", ndFile }));
@@ -561,7 +566,7 @@ NDepCheck:Tests ---> **
                         ! a:** ----> _a_:
                         ! b:** ----> _b_:
                     }}
-                    -r . NDepCheck.DipWriter {{ -n -o {outFile}}}");
+                    -r . NDepCheck.Rendering.DipWriter {{ -n -o {outFile}}}");
             }
 
             Assert.AreEqual(0, Program.Main(new[] { "-@", ndFile }));

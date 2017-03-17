@@ -9,6 +9,16 @@ namespace NDepCheck.Rendering {
         public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
             SomeRendererTestData.CreateSomeTestItems(out items, out dependencies);
         }
+
+        public string GetHelp() {
+            return
+@"  Write a textual matrix representation of dependencies.
+
+  Options: [-l #] [-n] -o filename | filename
+    -l #       maximal width of an item name
+    -n         also output count of bad dependencies
+    filename   output filename";
+        }
     }
 
     public abstract class AbstractGenericMatrixRenderer : IRenderer<INode, IEdge> {
@@ -19,7 +29,7 @@ namespace NDepCheck.Rendering {
             bool wct = false;
             Options.Parse(argsAsString, arg => fn = arg, new OptionAction('l', (args, j) => {
                 if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out lw)) {
-                    Options.Throw("No valid length after e", args);
+                    Options.Throw("No valid length after l", args);
                 }
                 return j;
             }), new OptionAction('n', (args, j) => {
