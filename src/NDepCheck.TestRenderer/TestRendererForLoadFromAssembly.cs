@@ -36,10 +36,6 @@ namespace NDepCheck.TestRenderer {
             }
         }
 
-        protected override Size GetSize() {
-            return new Size(2000, 1500);
-        }
-
         public override void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
             ItemType simple = ItemType.New("Simple:Name");
             Item[] localItems = Enumerable.Range(0, 5).Select(i => Item.New(simple, "Item " + i)).ToArray();

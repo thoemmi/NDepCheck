@@ -539,11 +539,11 @@ namespace NDepCheck.Rendering.OLD {
             return bitMap;
         }
 
-        public void RenderToFile(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, string baseFilename, int? optionsStringLength) {
-
+        public void Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, string argsAsString) {
             Size size = GetSize();
             Bitmap bitMap = Render(items, dependencies, size);
 
+            string baseFilename = argsAsString;
             string gifFilename = Path.ChangeExtension(baseFilename, ".gif");
             bitMap.Save(gifFilename, ImageFormat.Gif);
             using (var tw = new StreamWriter(Path.ChangeExtension(baseFilename, ".html"))) {
@@ -561,7 +561,7 @@ namespace NDepCheck.Rendering.OLD {
 
         }
 
-        public void RenderToStream(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, Stream stream, int? optionsStringLength) {
+        public void RenderToStreamForUnitTests(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, Stream stream) {
             Size size = GetSize();
             Bitmap bitMap = Render(items, dependencies, size);
 
@@ -575,6 +575,10 @@ namespace NDepCheck.Rendering.OLD {
         protected abstract void PlaceObjects(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies);
 
         public abstract void CreateSomeTestItems(out IEnumerable<TItem> items, out IEnumerable<TDependency> dependencies);
+
+        public string GetHelp() {
+            return $"{GetType().Name} usage: -___ outputfilename";
+        }
     }
 
     public abstract class GraphicsDependencyRenderer : GraphicsRenderer<Item, Dependency>, IDependencyRenderer { }

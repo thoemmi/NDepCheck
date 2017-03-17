@@ -8,12 +8,12 @@ namespace NDepCheck.Rendering {
     /// Class that creates AT&amp;T DOT (graphviz) output from dependencies - see <a href="http://graphviz.org/">http://graphviz.org/</a>.
     /// </summary>
     public class DotRenderer : IDependencyRenderer {
-        public void RenderToFile(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string baseFilename, int? optionsStringLength) {
-            new GenericDotRenderer().RenderToFile(items, dependencies, baseFilename, optionsStringLength);
+        public void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString) {
+            new GenericDotRenderer().Render(items, dependencies, argsAsString);
         }
 
-        public void RenderToStream(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, Stream output, int? optionsStringLength) {
-            new GenericDotRenderer().RenderToStream(items, dependencies, output, optionsStringLength);
+        public void RenderToStreamForUnitTests(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, Stream output) {
+            new GenericDotRenderer().RenderToStreamForUnitTests(items, dependencies, output);
         }
 
         public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
@@ -45,17 +45,37 @@ namespace NDepCheck.Rendering {
             output.WriteLine("}");
         }
 
-        public void RenderToFile(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string baseFilename, int? optionsStringLength) {
+        public void Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString) {
+            int stringLengthForIllegalEdges = -1;
+            string baseFilename = null;
+            Options.Parse(argsAsString, arg => baseFilename = arg,
+                new Options.OptionAction('e', (args, j) => {
+                    if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out stringLengthForIllegalEdges)) {
+                        Options.Throw("No valid length after e", args);
+                    }
+                    return j;
+                }), new Options.OptionAction('o', (args, j) => {
+                    baseFilename = Options.ExtractOptionValue(args, ref j);
+                    return j;
+                }));
+            if (baseFilename == null) {
+                Options.Throw("No filename set with option o", argsAsString);
+            }
             string filename = Path.ChangeExtension(baseFilename, ".dot");
+
             using (var sw = new StreamWriter(filename)) {
-                Render(/*items,*/ dependencies, sw, optionsStringLength);
+                Render(/*items,*/ dependencies, sw, stringLengthForIllegalEdges);
             }
         }
 
-        public void RenderToStream(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, Stream stream, int? optionsStringLength) {
+        public void RenderToStreamForUnitTests(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, Stream stream) {
             using (var sw = new StreamWriter(stream)) {
-                Render(/*items,*/ dependencies, sw, optionsStringLength);
+                Render(/*items,*/ dependencies, sw, null);
             }
+        }
+
+        public string GetHelp() {
+            return $"{GetType().Name} usage: -___ outputfilename";
         }
     }
 }

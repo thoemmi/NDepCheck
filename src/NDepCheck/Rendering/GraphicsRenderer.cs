@@ -733,9 +733,32 @@ namespace NDepCheck.Rendering {
             return bitmap;
         }
 
-        public void RenderToFile(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, string baseFilename, int? optionsStringLength) {
+        public void Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, string argsAsString) {
+            int width = 1000;
+            int height = 1000;
+            string baseFilename = null;
+            Options.Parse(argsAsString,
+                arg => baseFilename = arg,
+                new Options.OptionAction('w', (args, j) => {
+                    if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out width)) {
+                        Options.Throw("No valid width after w", args);
+                    }
+                    return j;
+                }), new Options.OptionAction('h', (args, j) => {
+                    if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out height)) {
+                        Options.Throw("No valid height after h", args);
+                    }
+                    return j;
+                }), new Options.OptionAction('o', (args, j) => {
+                    baseFilename = Options.ExtractOptionValue(args, ref j);
+                    return j;
+                }));
 
-            Size size = GetSize();
+            if (baseFilename == null) {
+                Options.Throw("No filename set with option o", argsAsString);
+            }
+
+            Size size = new Size(width, height);
             Bitmap bitMap = Render(items, dependencies, size);
 
             string gifFilename = Path.ChangeExtension(baseFilename, ".gif");
@@ -755,14 +778,12 @@ namespace NDepCheck.Rendering {
 
         }
 
-        public void RenderToStream(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, Stream stream, int? optionsStringLength) {
-            Size size = GetSize();
+        public void RenderToStreamForUnitTests(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, Stream stream) {
+            Size size = new Size(1000, 1000);
             Bitmap bitMap = Render(items, dependencies, size);
 
             bitMap.Save(stream, ImageFormat.Gif);
         }
-
-        protected abstract Size GetSize();
 
         protected virtual Color GetBackGroundColor => Color.White;
 
@@ -771,7 +792,12 @@ namespace NDepCheck.Rendering {
         protected abstract void PlaceObjects(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies);
 
         public abstract void CreateSomeTestItems(out IEnumerable<TItem> items, out IEnumerable<TDependency> dependencies);
+
+        public string GetHelp() {
+            return $"{GetType().Name} usage: -___ outputfilename";
+        }
     }
+
 
     public abstract class GraphicsDependencyRenderer : GraphicsRenderer<Item, Dependency>, IDependencyRenderer { }
 }

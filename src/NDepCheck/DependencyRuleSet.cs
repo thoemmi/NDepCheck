@@ -70,20 +70,34 @@ namespace NDepCheck {
             FileIncludeStack = fileIncludeStack;
         }
 
-        public DependencyRuleSet([NotNull] IGlobalContext globalContext, [NotNull] Options options, [NotNull] string fullRuleFilename,
-                                 [NotNull] IDictionary<string, string> defines, [NotNull] IDictionary<string, Macro> macros, bool ignoreCase,
-                                 [NotNull] string fileIncludeStack)
+        public DependencyRuleSet([NotNull] IGlobalContext globalContext, [NotNull] Options options,
+            [NotNull] string ruleSource, [NotNull] IDictionary<string, string> defines,
+            [NotNull] IDictionary<string, Macro> macros, bool ignoreCase, [NotNull] string fileIncludeStack)
             : this(ignoreCase, fileIncludeStack) {
-            FullSourceFilename = fullRuleFilename;
             _defines = new SortedDictionary<string, string>(defines, new LengthComparer());
             _macros = new SortedDictionary<string, Macro>(macros, new LengthComparer());
-            if (!LoadRules(globalContext, fullRuleFilename, options, ignoreCase, fileIncludeStack)) {
-                throw new ApplicationException("Could not load rules from " + fullRuleFilename + " (in " + fileIncludeStack + ")");
+            if (ruleSource.StartsWith("{")) {
+                FullSourceName = "-x";
+                using (var reader = new StringReader(ruleSource.Trim().TrimStart('{').TrimEnd('}'))) {
+                    Read(globalContext, options, "-x", reader, ignoreCase, fileIncludeStack);
+                }
+            } else {
+                FullSourceName = ruleSource;
+                using (var reader = new StreamReader(ruleSource, Encoding.Default)) {
+                    Read(globalContext, options, ruleSource, reader, ignoreCase, fileIncludeStack);
+                }
+            }
+        }
+
+        private void Read(IGlobalContext globalContext, Options options, string ruleSourceName, TextReader reader, bool ignoreCase, string fileIncludeStack) {
+            bool success = ProcessText(globalContext, ruleSourceName, 0, reader, options, LEFT_PARAM, RIGHT_PARAM, ignoreCase, fileIncludeStack);
+            if (!success) {
+                throw new ApplicationException("Could not load rules from " + ruleSourceName + " (in " + fileIncludeStack + ")");
             }
         }
 
         [CanBeNull]
-        public string FullSourceFilename {
+        public string FullSourceName {
             get;
         }
 
@@ -94,25 +108,16 @@ namespace NDepCheck {
 
         #region Loading
 
-        /// <summary>
-        /// Load a rule file.
-        /// </summary>
-        private bool LoadRules(IGlobalContext globalContext, string fullRuleFilename, Options options, bool ignoreCase, string fileIncludeStack) {
-            using (TextReader tr = new StreamReader(fullRuleFilename, Encoding.Default)) {
-                return ProcessText(globalContext, fullRuleFilename, 0, tr, options, LEFT_PARAM, RIGHT_PARAM, ignoreCase, fileIncludeStack);
-            }
-        }
-
-        private bool ProcessText(IGlobalContext globalContext, string fullRuleFilename, int startLineNo, TextReader tr,
+        private bool ProcessText(IGlobalContext globalContext, string ruleSourceName, int startLineNo, TextReader tr,
             [CanBeNull] Options options, string leftParam, string rightParam, bool ignoreCase, string fileIncludeStack) {
-            ItemType usingItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename, options?.RuleFileExtension);
-            ItemType usedItemType = AbstractReaderFactory.GetDefaultDescriptor(fullRuleFilename, options?.RuleFileExtension);
+            ItemType usingItemType = AbstractReaderFactory.GetDefaultDescriptor(ruleSourceName, options?.RuleFileExtension);
+            ItemType usedItemType = AbstractReaderFactory.GetDefaultDescriptor(ruleSourceName, options?.RuleFileExtension);
 
-            return ProcessText(globalContext, fullRuleFilename, startLineNo, tr, options, leftParam, rightParam,
+            return ProcessText(globalContext, ruleSourceName, startLineNo, tr, options, leftParam, rightParam,
                                ignoreCase, fileIncludeStack, usingItemType, usedItemType);
         }
 
-        private bool ProcessText(IGlobalContext globalContext, string fullRuleFilename, int startLineNo, TextReader tr,
+        private bool ProcessText(IGlobalContext globalContext, string ruleSourceName, int startLineNo, TextReader tr,
             [CanBeNull] Options options, string leftParam, string rightParam, bool ignoreCase, string fileIncludeStack,
             ItemType usingItemType, ItemType usedItemType) {
 
@@ -140,7 +145,7 @@ namespace NDepCheck {
                         // ignore;
                     } else if (line.StartsWith("@")) {
                         if (options == null) {
-                            Log.WriteError($"{fullRuleFilename}: @-line encountered while processing macro - this is not allowed", fullRuleFilename, lineNo);
+                            Log.WriteError($"{ruleSourceName}: @-line encountered while processing macro - this is not allowed", ruleSourceName, lineNo);
                             textIsOk = false;
                         } else {
                             string[] args = line.Substring(1).Trim().Split(' ', '\t');
@@ -155,14 +160,14 @@ namespace NDepCheck {
                         string typeLine = line.Substring(1).Trim();
                         int i = typeLine.IndexOf(MAYUSE, StringComparison.Ordinal);
                         if (i < 0) {
-                            Log.WriteError($"{line}: $-line must contain " + MAYUSE, fullRuleFilename, lineNo);
+                            Log.WriteError($"{line}: $-line must contain " + MAYUSE, ruleSourceName, lineNo);
                         }
                         usingItemType = AbstractReaderFactory.GetItemType(ExpandDefines(typeLine.Substring(0, i).Trim()));
                         usedItemType = AbstractReaderFactory.GetItemType(ExpandDefines(typeLine.Substring(i + MAYUSE.Length).Trim()));
                     } else if (line.StartsWith("+")) {
                         string includeFilename = line.Substring(1).Trim();
                         DependencyRuleSet included = globalContext.GetOrCreateDependencyRuleSet_MayBeCalledInParallel(
-                                new FileInfo(fullRuleFilename).Directory,
+                                new FileInfo(ruleSourceName).Directory,
                                 includeFilename, options, _defines, _macros, ignoreCase,
                                 fileIncludeStack: fileIncludeStack);
                         if (included != null) {
@@ -179,12 +184,12 @@ namespace NDepCheck {
                                 _macros[kvp.Key] = kvp.Value;
                             }
                         } else {
-                            Log.WriteError($"{line}: Could not load rule set from file {includeFilename}", fullRuleFilename, lineNo);
+                            Log.WriteError($"{line}: Could not load rule set from file {includeFilename}", ruleSourceName, lineNo);
                             textIsOk = false;
                         }
                     } else if (line.EndsWith("{")) {
                         if (currentGroup.Group != "") {
-                            Log.WriteError($"{fullRuleFilename}: Nested '... {{' not possible", fullRuleFilename, lineNo);
+                            Log.WriteError($"{ruleSourceName}: Nested '... {{' not possible", ruleSourceName, lineNo);
                             textIsOk = false;
                         } else {
                             currentGroup = new DependencyRuleGroup(usingItemType, line.TrimEnd('{').TrimEnd(), ignoreCase);
@@ -194,7 +199,7 @@ namespace NDepCheck {
                         if (currentGroup.Group != "") {
                             currentGroup = _mainRuleGroup;
                         } else {
-                            Log.WriteError($"{fullRuleFilename}: '}}' without corresponding '... {{'", fullRuleFilename, lineNo);
+                            Log.WriteError($"{ruleSourceName}: '}}' without corresponding '... {{'", ruleSourceName, lineNo);
                             textIsOk = false;
                         }
                     } else if (ProcessMacroIfFound(globalContext, line, ignoreCase)) {
@@ -202,14 +207,14 @@ namespace NDepCheck {
                     } else if (line.StartsWith(ABSTRACT_IT) || line.StartsWith(ABSTRACT_IT_AS_INNER)) {
                         string rule = line.Substring(1).Trim();
                         bool ok = AddProjections(usingItemType, usedItemType, isInner: line.StartsWith(ABSTRACT_IT_AS_INNER),
-                                                 ruleFileName: fullRuleFilename, lineNo: lineNo, rule: rule, ignoreCase: ignoreCase);
+                                                 ruleFileName: ruleSourceName, lineNo: lineNo, rule: rule, ignoreCase: ignoreCase);
                         if (!ok) {
                             textIsOk = false;
                         }
                     } else if (line.Contains(MAYUSE) || line.Contains(MUSTNOTUSE) ||
                                line.Contains(MAYUSE_WITH_WARNING) || line.Contains(MAYUSE_RECURSIVE)) {
                         string currentRawUsingPattern;
-                        bool ok = currentGroup.AddDependencyRules(this, usingItemType, usedItemType, fullRuleFilename, lineNo, line, ignoreCase, previousRawUsingPattern, out currentRawUsingPattern);
+                        bool ok = currentGroup.AddDependencyRules(this, usingItemType, usedItemType, ruleSourceName, lineNo, line, ignoreCase, previousRawUsingPattern, out currentRawUsingPattern);
                         if (!ok) {
                             textIsOk = false;
                         } else {
@@ -217,7 +222,7 @@ namespace NDepCheck {
                         }
                     } else if (line.EndsWith(MACRO_DEFINE)) {
                         string macroName = line.Substring(0, line.Length - MACRO_DEFINE.Length).Trim();
-                        if (!CheckDefinedName(macroName, fullRuleFilename, lineNo)) {
+                        if (!CheckDefinedName(macroName, ruleSourceName, lineNo)) {
                             textIsOk = false;
                         }
                         string macroText = "";
@@ -226,15 +231,15 @@ namespace NDepCheck {
                             line = tr.ReadLine();
                             lineNo++;
                             if (line == null) {
-                                Log.WriteError($"{fullRuleFilename}: Missing {MACRO_END} at end", fullRuleFilename, lineNo);
+                                Log.WriteError($"{ruleSourceName}: Missing {MACRO_END} at end", ruleSourceName, lineNo);
                                 textIsOk = false;
                                 break;
                             }
                             line = line.Trim();
                             if (line == MACRO_END) {
-                                var macro = new Macro(macroText, fullRuleFilename, macroStartLineNo, usingItemType, usedItemType);
+                                var macro = new Macro(macroText, ruleSourceName, macroStartLineNo, usingItemType, usedItemType);
                                 if (_macros.ContainsKey(macroName) && !_macros[macroName].Equals(macro)) {
-                                    throw new ApplicationException("Macro '" + macroName + "' cannot be redefined differently at " + fullRuleFilename + ":" + lineNo);
+                                    throw new ApplicationException("Macro '" + macroName + "' cannot be redefined differently at " + ruleSourceName + ":" + lineNo);
                                 }
                                 _macros[macroName] = macro;
                                 break;
@@ -243,13 +248,13 @@ namespace NDepCheck {
                             }
                         }
                     } else if (line.Contains(DEFINE)) {
-                        AddDefine(fullRuleFilename, lineNo, line);
+                        AddDefine(ruleSourceName, lineNo, line);
                     } else {
-                        Log.WriteError(fullRuleFilename + ": Cannot parse line " + lineNo + ": " + line, fullRuleFilename, lineNo);
+                        Log.WriteError(ruleSourceName + ": Cannot parse line " + lineNo + ": " + line, ruleSourceName, lineNo);
                         textIsOk = false;
                     }
                 } catch (Exception ex) {
-                    Log.WriteError($"{fullRuleFilename}: {ex.Message}", fullRuleFilename, lineNo);
+                    Log.WriteError($"{ruleSourceName}: {ex.Message}", ruleSourceName, lineNo);
                     textIsOk = false;
                 }
             }

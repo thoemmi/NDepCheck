@@ -16,23 +16,15 @@ namespace NDepCheck.Tests {
 
         internal class DelegteTestRenderer : GraphicsRenderer<Item, Dependency> {
             private readonly Action<DelegteTestRenderer> _placeObjects;
-            private readonly int _width;
-            private readonly int _height;
 
-            public DelegteTestRenderer(Action<DelegteTestRenderer> placeObjects, int width, int height) {
+            public DelegteTestRenderer(Action<DelegteTestRenderer> placeObjects) {
                 _placeObjects = placeObjects;
-                _width = width;
-                _height = height;
             }
 
             protected override Color GetBackGroundColor => Color.Yellow;
 
             protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
                 _placeObjects(this);
-            }
-
-            protected override Size GetSize() {
-                return new Size(_width, _height);
             }
 
             public override void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
@@ -44,10 +36,10 @@ namespace NDepCheck.Tests {
             }
         }
 
-        private static void CreateAndRender(Action<DelegteTestRenderer> placeObjects, int width = 300, int height = 400) {
+        private static void CreateAndRender(Action<DelegteTestRenderer> placeObjects) {
             string tempFile = Path.GetTempFileName();
             Console.WriteLine(Path.ChangeExtension(tempFile, ".gif"));
-            new DelegteTestRenderer(placeObjects, width, height).RenderToFile(Enumerable.Empty<Item>(), Enumerable.Empty<Dependency>(), tempFile, null);
+            new DelegteTestRenderer(placeObjects).Render(Enumerable.Empty<Item>(), Enumerable.Empty<Dependency>(), tempFile);
         }
 
         [TestMethod]
@@ -71,7 +63,7 @@ namespace NDepCheck.Tests {
                         boxTextPlacement: e, textFont: new Font(FontFamily.GenericSansSerif, 8));
                     pos += r.F(100, 5);
                 }
-            }, 2000, 1500);
+            });
         }
 
         [TestMethod]
@@ -86,7 +78,7 @@ namespace NDepCheck.Tests {
                     delta = !delta;
                     head += delta;
                 }
-            }, 2000, 1500);
+            });
         }
 
         [TestMethod]
@@ -103,7 +95,7 @@ namespace NDepCheck.Tests {
                     delta = !delta;
                     head += delta;
                 }
-            }, 2000, 1500);
+            });
         }
 
         [TestMethod]
@@ -227,17 +219,12 @@ namespace NDepCheck.Tests {
         #region Somewhat complex tests
 
         internal class SomewhatComplexTestRenderer : GraphicsRenderer<Item, Dependency> {
-            private readonly Size _size;
-
-            public SomewhatComplexTestRenderer(Size size) {
-                _size = size;
-            }
-
-            protected override Size GetSize() {
-                return _size;
-            }
-
+            private readonly int _boxHeight;
             protected override Color GetBackGroundColor => Color.Yellow;
+
+            public SomewhatComplexTestRenderer(int boxHeight) {
+                _boxHeight = boxHeight;
+            }
 
             protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
                 double deltaAngle = 2 * Math.PI / items.Count();
@@ -253,7 +240,7 @@ namespace NDepCheck.Tests {
                     // Define position in polar coordinates with origin, radius (r) and angle (ohi).
                     var pos = new VariableVector("pos_" + k, Solver, r(k) * Math.Sin(phi), r(k) * Math.Cos(phi));
 
-                    i.DynamicData.Box = Box(pos, i.Name, B(i.Name).Restrict(F(null, 15), F(null, 15)), borderWidth: 2);
+                    i.DynamicData.Box = Box(pos, i.Name, B(i.Name).Restrict(F(null, _boxHeight), F(null, _boxHeight)), borderWidth: 2);
                 }
 
                 foreach (var d in dependencies) {
@@ -280,7 +267,7 @@ namespace NDepCheck.Tests {
             }
         }
 
-        private void CreateAndRender(int n, string prefix, int width = 300, int height = 400) {
+        private void CreateAndRender(int n, string prefix, int boxHeight = 15) {
             ItemType simple = ItemType.New("Simple:Name");
             var items = Enumerable.Range(0, n).Select(i => Item.New(simple, prefix + i)).ToArray();
             var dependencies =
@@ -289,7 +276,7 @@ namespace NDepCheck.Tests {
 
             string tempFile = Path.GetTempFileName();
             Console.WriteLine(Path.ChangeExtension(tempFile, ".gif"));
-            new SomewhatComplexTestRenderer(new Size(width, height)).RenderToFile(items, dependencies, tempFile, null);
+            new SomewhatComplexTestRenderer(boxHeight).Render(items, dependencies, tempFile);
         }
 
         [TestMethod]
@@ -305,6 +292,11 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestSquare() {
             CreateAndRender(4, "circle");
+        }
+
+        [TestMethod]
+        public void TestSquareWithLargerBoxHeightWorks() {
+            CreateAndRender(4, "circle", 30);
         }
 
         [TestMethod]
@@ -324,7 +316,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestLargeSpiral() {
-            CreateAndRender(20, "spiral", 2000, 2000);
+            CreateAndRender(20, "spiral");
         }
 
         [TestMethod]
@@ -350,10 +342,6 @@ namespace NDepCheck.Tests {
         #region IXOS-Rendering
 
         internal class IXOSApplicationRenderer : GraphicsDependencyRenderer {
-            protected override Size GetSize() {
-                return new Size(2000, 1600);
-            }
-
             private static string GetName(Item i) {
                 return i.Values[0];
             }

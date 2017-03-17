@@ -8,7 +8,7 @@ namespace NDepCheck {
         DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel([NotNull]Options options, [NotNull]string dependencyFilename, [NotNull] string fileIncludeStack);
 
         [CanBeNull]
-        DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel([NotNull]DirectoryInfo relativeRoot, [NotNull]string rulefilename,
+        DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel([NotNull]DirectoryInfo relativeRoot, [NotNull]string ruleSource,
             [NotNull]Options options, [NotNull]IDictionary<string, string> defines, [NotNull]IDictionary<string, Macro> macros, bool ignoreCase, [NotNull] string fileIncludeStack);
 
         int Run([NotNull] string[] args);

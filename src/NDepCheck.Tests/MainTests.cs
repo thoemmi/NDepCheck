@@ -16,7 +16,8 @@ namespace NDepCheck.Tests {
     [TestClass]
     public class MainTests {
         // ReSharper disable once AssignNullToNotNullAttribute - certainly ok in this test
-        private static readonly string TestAssemblyPath = Path.Combine(Path.GetDirectoryName(typeof(MainTests).Assembly.Location), "NDepCheck.TestAssembly.dll");
+        private static readonly string TestAssemblyPath =
+            Path.Combine(Path.GetDirectoryName(typeof(MainTests).Assembly.Location), "NDepCheck.TestAssembly.dll");
 
         // ReSharper disable UnusedParameter.Local - Das ist ein Assert, daher die "Nur-Verwendung" in Assert ok :-)
         private static void AssertNotContains(string path, string s) {
@@ -31,8 +32,7 @@ namespace NDepCheck.Tests {
         public void GeneralSucceedingTest() {
             string depFile = CreateTempDotNetDepFileName();
             using (TextWriter tw = new StreamWriter(depFile, false, Encoding.Default)) {
-                tw.Write(
-                    @"
+                tw.Write(@"
 // Test dependencies for NDepCheck
 
 $ DOTNETCALL ---> DOTNETCALL
@@ -163,17 +163,21 @@ NDepCheck:Tests ---> **
             new HideTransitiveEdges<Dependency>(new[] { "a" }).Run(edges.Values);
 
             using (var sw = new MemoryStream()) {
-                new GenericDotRenderer().RenderToStream(nodes.Values, edges.Values, sw, null);
+                new GenericDotRenderer().RenderToStreamForUnitTests(nodes.Values, edges.Values, sw);
 
                 // what to assert??
             }
         }
 
-        private static readonly ItemType ITEMTYPE = ItemType.New("TEST", new[] { "AS", "NS", "CL" }, new string[] { null, null, null });
+        private static readonly ItemType ITEMTYPE = ItemType.New("TEST", new[] { "AS", "NS", "CL" },
+            new string[] { null, null, null });
+
         private const bool _ignoreCase = false;
 
-        private Dependency NewDependency(string usingA, string usingN, string usingC, string usedA, string usedN, string usedC) {
-            return new Dependency(Item.New(ITEMTYPE, usingA, usingN, usingC), Item.New(ITEMTYPE, usedA, usedN, usedC), null, 0, 0, 0, 0);
+        private Dependency NewDependency(string usingA, string usingN, string usingC, string usedA, string usedN,
+            string usedC) {
+            return new Dependency(Item.New(ITEMTYPE, usingA, usingN, usingC), Item.New(ITEMTYPE, usedA, usedN, usedC),
+                null, 0, 0, 0, 0);
         }
 
         [TestMethod]
@@ -203,7 +207,7 @@ NDepCheck:Tests ---> **
             new HideTransitiveEdges<Dependency>(new[] { "a" }).Run(edges.Values);
 
             using (var s = new MemoryStream()) {
-                new DotRenderer().RenderToStream(nodes.Values, edges.Values, s, null);
+                new DotRenderer().RenderToStreamForUnitTests(nodes.Values, edges.Values, s);
 
                 // what to assert??
             }
@@ -404,8 +408,7 @@ NDepCheck:Tests ---> **
             {
                 string depFile = CreateTempDotNetDepFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
-                    tw.Write(
-                        @"$ DOTNETCALL ---> DOTNETCALL
+                    tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
 
                     =---> :=    
                        : ---> blabla
@@ -421,8 +424,7 @@ NDepCheck:Tests ---> **
             {
                 string depFile = CreateTempDotNetDepFileName();
                 using (TextWriter tw = new StreamWriter(depFile)) {
-                    tw.Write(
-                        @"$ DOTNETCALL ---> DOTNETCALL
+                    tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
 
                     --> :=    
                        ** ---> blabla
@@ -460,10 +462,11 @@ NDepCheck:Tests ---> **
             string gifFile = Path.GetTempFileName() + ".gif";
             Console.WriteLine("Writing GIF to " + gifFile);
             // typeof(FullName) forces copying to known directory ...
-            Assert.AreEqual(0, Program.Main(new[] {
-                "-x=" + depFile,
-                TestAssemblyPath,
-                "-r", "NDepCheck.TestRenderer.dll", typeof(TestRendererForLoadFromAssembly).FullName, gifFile }));
+            Assert.AreEqual(0,
+                Program.Main(new[] {
+                    "-x=" + depFile, TestAssemblyPath, "-r", "NDepCheck.TestRenderer.dll",
+                    typeof(TestRendererForLoadFromAssembly).FullName, gifFile
+                }));
 
             File.Delete(depFile);
             File.Delete(gifFile);
@@ -474,23 +477,65 @@ NDepCheck:Tests ---> **
             string gifFile = Path.GetTempFileName() + ".gif";
             Console.WriteLine("Writing GIF to " + gifFile);
             // The usage typeof(...).FullName forces copying of assembly to bin directory.
-            Assert.AreEqual(0, Program.Main(new[] {
-                TestAssemblyPath,
-                "-g", "NDepCheck.TestRenderer.dll", typeof(TestRendererForLoadFromAssembly).FullName, gifFile }));
+            Assert.AreEqual(0,
+                Program.Main(new[] {
+                    TestAssemblyPath, "-g", "NDepCheck.TestRenderer.dll",
+                    typeof(TestRendererForLoadFromAssembly).FullName, gifFile
+                }));
 
             File.Delete(gifFile);
         }
-
 
         [TestMethod]
         public void TestGOptionWithIXOSRenderer() {
             string gifFile = Path.GetTempFileName() + ".gif";
             Console.WriteLine(gifFile);
-            Assert.AreEqual(0, Program.Main(new[] {
-                TestAssemblyPath,
-                "-g", "NDepCheck.Tests.dll", typeof(TestRendering.IXOSApplicationRenderer).FullName, gifFile }));
+            Assert.AreEqual(0,
+                Program.Main(new[] {
+                    TestAssemblyPath, "-g", "NDepCheck.Tests.dll",
+                    typeof(TestRendering.IXOSApplicationRenderer).FullName, gifFile
+                }));
 
             File.Delete(gifFile);
         }
+
+        [TestMethod]
+        public void TestExtendedXOption() {
+            string inFile = Path.GetTempFileName() + "IN.dip";
+            string ndFile = Path.GetTempFileName() + "ND.nd";
+            string outFile = Path.GetTempFileName() + "OUT.dip";
+            using (TextWriter tw = new StreamWriter(inFile)) {
+                tw.Write($@"AB A B
+                AB:a:1 -> 1;0            -> AB:a:1
+                AB:a:1 -> 2;1;example123 -> AB:a:2
+                AB:a:2 -> 3;0            -> AB:a:1
+                AB:a:2 -> 4;0            -> AB:a:2
+                AB:a:2 -> 5;1            -> AB:b:
+                AB:b:  -> 6;0            -> AB:a:1
+                AB:b:  -> 7;0            -> AB:a:2");
+            }
+
+            using (TextWriter tw = new StreamWriter(ndFile)) {
+                tw.Write($@"
+                    {inFile}
+                    -x {{
+                        $ AB ---> AB
+                        ! a:** ----> _a_:
+                        ! b:** ----> _b_:
+                    }}
+                    -c {outFile}");
+            }
+
+            Assert.AreEqual(0, Program.Main(new[] { "-@", ndFile }));
+
+            using (var sw = new StreamReader(outFile)) {
+                var o = sw.ReadToEnd();
+
+                Assert.IsTrue(o.Contains("AB:_a_: -> 10;1; -> AB:_a_:"));
+                Assert.IsTrue(o.Contains("AB:_a_: -> 5;1; -> AB:_b_:"));
+                Assert.IsTrue(o.Contains("AB:_b_: -> 13;0; -> AB:_a_:"));
+            }
+        }
+
     }
 }

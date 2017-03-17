@@ -68,7 +68,7 @@ namespace NDepCheck {
 
             var renderer = GetRenderer(assemblyName, rendererClassName);
 
-            renderer.RenderToFile(items, dependencies, filename, options.StringLength);
+            renderer.Render(items, dependencies, filename);
 
             options.GraphingDone = true;
             return this;
@@ -78,7 +78,7 @@ namespace NDepCheck {
             IDependencyRenderer renderer;
             try {
                 var a = Assembly.LoadFrom(assemblyName);
-                renderer = (IDependencyRenderer) Activator.CreateInstance(a.GetType(rendererClassName, true, ignoreCase: true));
+                renderer = (IDependencyRenderer)Activator.CreateInstance(a.GetType(rendererClassName, true, ignoreCase: true));
             } catch (Exception ex) {
                 throw new ApplicationException(
                     $"Cannot create renderer {rendererClassName} from assembly {assemblyName} running in working directory {Environment.CurrentDirectory}; problem: " +
@@ -95,7 +95,7 @@ namespace NDepCheck {
 
             renderer.CreateSomeTestItems(out items, out dependencies);
 
-            renderer.RenderToFile(items, dependencies, filename, options.StringLength);
+            renderer.Render(items, dependencies, filename);
 
             options.GraphingDone = true;
         }
@@ -210,36 +210,50 @@ namespace NDepCheck {
 
         [CanBeNull]
         private DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel([NotNull]DirectoryInfo relativeRoot,
-                [NotNull]string rulefilename, [NotNull]Options options, bool ignoreCase, string fileIncludeStack) {
-            return GetOrCreateDependencyRuleSet_MayBeCalledInParallel(relativeRoot, rulefilename, options,
+                [NotNull]string ruleSource, [NotNull]Options options, bool ignoreCase, string fileIncludeStack) {
+            return GetOrCreateDependencyRuleSet_MayBeCalledInParallel(relativeRoot, ruleSource, options,
                             new Dictionary<string, string>(), new Dictionary<string, Macro>(), ignoreCase, fileIncludeStack);
         }
 
         public DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel(DirectoryInfo relativeRoot,
-                string rulefilename, Options options, IDictionary<string, string> defines,
+                string ruleSource, Options options, IDictionary<string, string> defines,
                 IDictionary<string, Macro> macros, bool ignoreCase,
                 string fileIncludeStack) {
-            string fullCanonicalRuleFilename = new Uri(Path.Combine(relativeRoot.FullName, rulefilename)).LocalPath;
             DependencyRuleSet result;
-            if (!_fullFilename2RulesetCache.TryGetValue(fullCanonicalRuleFilename, out result)) {
-                try {
-                    long start = Environment.TickCount;
-                    result = new DependencyRuleSet(this, options, fullCanonicalRuleFilename, defines, macros, ignoreCase,
-                        (string.IsNullOrEmpty(fileIncludeStack) ? "" : fileIncludeStack + " + ") + fullCanonicalRuleFilename);
-                    Log.WriteDebug("Completed reading " + fullCanonicalRuleFilename + " in " + (Environment.TickCount - start) + " ms");
+            if (ruleSource.StartsWith("{")) {
+                if (!_fullFilename2RulesetCache.TryGetValue("-x", out result)) {
+                    result = new DependencyRuleSet(this, options, ruleSource, defines, macros, ignoreCase,
+                        (string.IsNullOrEmpty(fileIncludeStack) ? "" : fileIncludeStack + " + ") + "-x");
+                    Log.WriteDebug("Completed reading -x rule set");
+                }
+            } else {
+                string fullCanonicalRuleFilename =
+                    new Uri(Path.Combine(relativeRoot.FullName, ruleSource)).LocalPath;
+                if (!_fullFilename2RulesetCache.TryGetValue(fullCanonicalRuleFilename, out result)) {
+                    try {
+                        long start = Environment.TickCount;
+                        result = new DependencyRuleSet(this, options, fullCanonicalRuleFilename, defines, macros,
+                            ignoreCase,
+                            (string.IsNullOrEmpty(fileIncludeStack) ? "" : fileIncludeStack + " + ") +
+                            fullCanonicalRuleFilename);
+                        Log.WriteDebug("Completed reading " + fullCanonicalRuleFilename + " in " +
+                                       (Environment.TickCount - start) + " ms");
 
-                    if (!_fullFilename2RulesetCache.ContainsKey(fullCanonicalRuleFilename)) {
-                        // If the set is already in the cache, we drop the set we just read (it's the same anyway).
-                        _fullFilename2RulesetCache.AddOrUpdate(fullCanonicalRuleFilename,
-                            result, (filename, existingRuleSet) => result = existingRuleSet);
+                        if (!_fullFilename2RulesetCache.ContainsKey(fullCanonicalRuleFilename)) {
+                            // If the set is already in the cache, we drop the set we just read (it's the same anyway).
+                            _fullFilename2RulesetCache.AddOrUpdate(fullCanonicalRuleFilename, result,
+                                (filename, existingRuleSet) => result = existingRuleSet);
+                        }
+                    } catch (FileNotFoundException) {
+                        Log.WriteError("File " + fullCanonicalRuleFilename + " not found");
+                        return null;
                     }
-                } catch (FileNotFoundException) {
-                    Log.WriteError("File " + fullCanonicalRuleFilename + " not found");
-                    return null;
+
                 }
             }
             return result;
         }
+
 
         public int Run(string[] args) {
             return _program.Run(args);
@@ -248,9 +262,9 @@ namespace NDepCheck {
         public DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel(Options options, string dependencyFilename,
                                                                                     string fileIncludeStack) {
             DependencyRuleSet ruleSetForAssembly = Load(dependencyFilename, options.Directories, options, options.IgnoreCase, fileIncludeStack);
-            if (ruleSetForAssembly == null && !string.IsNullOrEmpty(options.DefaultRuleSetFile)) {
+            if (ruleSetForAssembly == null && !string.IsNullOrEmpty(options.DefaultRuleSource)) {
                 ruleSetForAssembly = GetOrCreateDependencyRuleSet_MayBeCalledInParallel(
-                                            new DirectoryInfo("."), options.DefaultRuleSetFile, options, options.IgnoreCase, fileIncludeStack);
+                                            new DirectoryInfo("."), options.DefaultRuleSource, options, options.IgnoreCase, fileIncludeStack);
             }
             return ruleSetForAssembly;
         }

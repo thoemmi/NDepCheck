@@ -12,6 +12,31 @@ namespace NDepCheck.Rendering {
     }
 
     public abstract class AbstractGenericMatrixRenderer : IRenderer<INode, IEdge> {
+        protected static void ParseOptions(string argsAsString, out string filename, out int? labelWidthOrNull,
+            out bool withNotOkCt) {
+            string fn = null;
+            int lw = -1;
+            bool wct = false;
+            Options.Parse(argsAsString, arg => fn = arg, new Options.OptionAction('l', (args, j) => {
+                if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out lw)) {
+                    Options.Throw("No valid length after e", args);
+                }
+                return j;
+            }), new Options.OptionAction('n', (args, j) => {
+                wct = true;
+                return j;
+            }), new Options.OptionAction('o', (args, j) => {
+                fn = Options.ExtractOptionValue(args, ref j);
+                return j;
+            }));
+            if (fn == null) {
+                Options.Throw("No filename set with option o", argsAsString);
+            }
+            filename = fn;
+            labelWidthOrNull = lw < 0 ? default(int?) : lw;
+            withNotOkCt = wct;
+        }
+
         private static List<INode> MoreOrLessTopologicalSort(IEnumerable<IEdge> edges) {
             Dictionary<INode, List<IEdge>> nodesAndEdges = DependencyGrapher.Edges2NodesAndEdgesList(edges);
 
@@ -92,7 +117,7 @@ namespace NDepCheck.Rendering {
         }
 
         protected void Render(IEnumerable<INode> nodes, IEnumerable<IEdge> edges,
-            [NotNull] StreamWriter output, int? stringLength) {
+            [NotNull] StreamWriter output, int? labelWidthOrNull, bool withNotOkCt) {
             IEnumerable<IEdge> visibleEdges = edges.Where(e => !e.Hidden);
             IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges = DependencyGrapher.Edges2NodesAndEdges(visibleEdges);
 
@@ -108,13 +133,11 @@ namespace NDepCheck.Rendering {
 
                 IEnumerable<INode> topNodes = sortedNodes.Where(n => n.IsInner);
 
-                int labelWidth = stringLength ?? Math.Max(Math.Min(sortedNodes.Max(n => n.Name.Length), 30), 4);
+                int labelWidth = labelWidthOrNull ?? Math.Max(Math.Min(sortedNodes.Max(n => n.Name.Length), 30), 4);
                 int colWidth = Math.Max(1 + ("" + visibleEdges.Max(e => e.Ct)).Length, // 1+ because of loop prefix
                     1 + ("" + sortedNodes.Count()).Length); // 1+ because of ! or % marker
                 string nodeFormat = "{0," + (colWidth - 1) + ":" + Repeat('0', colWidth - 1) + "}";
                 string ctFormat = "{0}{1," + (colWidth - 1) + ":" + Repeat('#', colWidth) + "}";
-
-                bool withNotOkCt = true; // TODO: WOHER????????????????????????? - war: bool withNotOkCount = InputContexts.Any(c => c.RuleViolations.Any());
 
                 Write(output, colWidth, labelWidth, topNodes, nodeFormat, node2Index, withNotOkCt, sortedNodes, ctFormat, nodesAndEdges);
             } else {
@@ -126,7 +149,12 @@ namespace NDepCheck.Rendering {
             string nodeFormat, Dictionary<INode, int> node2Index, bool withNotOkCt, IEnumerable<INode> sortedNodes,
             string ctFormat, IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges);
 
-        public abstract void RenderToFile(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string baseFilename, int? optionsStringLength);
-        public abstract void RenderToStream(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, Stream stream, int? optionsStringLength);
+        public abstract void Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString);
+
+        public abstract void RenderToStreamForUnitTests(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, Stream stream);
+
+        public string GetHelp() {
+            return $"{GetType().Name} usage: -___ outputfilename";
+        }
     }
 }

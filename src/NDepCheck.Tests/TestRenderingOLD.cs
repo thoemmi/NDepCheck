@@ -46,7 +46,7 @@ namespace NDepCheck.Tests.OLD {
         private static void CreateAndRender(Action<DelegteTestRenderer> placeObjects, int width = 300, int height = 400) {
             string tempFile = Path.GetTempFileName();
             Console.WriteLine(Path.ChangeExtension(tempFile, ".gif"));
-            new DelegteTestRenderer(placeObjects, width, height).RenderToFile(Enumerable.Empty<Item>(), Enumerable.Empty<Dependency>(), tempFile, null);
+            new DelegteTestRenderer(placeObjects, width, height).Render(Enumerable.Empty<Item>(), Enumerable.Empty<Dependency>(), tempFile);
         }
 
         [TestMethod]
@@ -242,7 +242,7 @@ namespace NDepCheck.Tests.OLD {
 
             string tempFile = Path.GetTempFileName();
             Console.WriteLine(Path.ChangeExtension(tempFile, ".gif"));
-            new SomewhatComplexTestRenderer(new Size(width, height)).RenderToFile(items, dependencies, tempFile, null);
+            new SomewhatComplexTestRenderer(new Size(width, height)).Render(items, dependencies, tempFile);
         }
 
         [TestMethod]

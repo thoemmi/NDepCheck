@@ -4,12 +4,12 @@ using System.Linq;
 
 namespace NDepCheck.Rendering {
     public class MatrixRenderer1 : AbstractMatrixRenderer, IDependencyRenderer {
-        public void RenderToFile(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string baseFilename, int? optionsStringLength) {
-            new GenericMatrixRenderer1().RenderToFile(items, dependencies, baseFilename, optionsStringLength);
+        public void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString) {
+            new GenericMatrixRenderer1().Render(items, dependencies, argsAsString);
         }
 
-        public void RenderToStream(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, Stream output, int? optionsStringLength) {
-            new GenericMatrixRenderer1().RenderToStream(items, dependencies, output, optionsStringLength);
+        public void RenderToStreamForUnitTests(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, Stream output) {
+            new GenericMatrixRenderer1().RenderToStreamForUnitTests(items, dependencies, output);
         }
     }
 
@@ -42,16 +42,19 @@ namespace NDepCheck.Rendering {
             output.WriteLine();
         }
 
-        public override void RenderToStream(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, Stream stream, int? optionsStringLength) {
+        public override void RenderToStreamForUnitTests(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, Stream stream) {
             using (var sw = new StreamWriter(stream)) {
-                Render(items, dependencies, sw, optionsStringLength);
+                Render(items, dependencies, sw, null, true);
             }
         }
 
-        public override void RenderToFile(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string baseFilename, int? optionsStringLength) {
-            string filename = Path.ChangeExtension(baseFilename, ".csv");
-            using (var sw = new StreamWriter(filename)) {
-                Render(items, dependencies, sw, optionsStringLength);
+        public override void Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString) {
+            string filename;
+            int? labelWidthOrNull;
+            bool withNotOkCt;
+            ParseOptions(argsAsString, out filename, out labelWidthOrNull, out withNotOkCt);
+            using (var sw = new StreamWriter(Path.ChangeExtension(filename, ".csv"))) {
+                Render(items, dependencies, sw, labelWidthOrNull, withNotOkCt);
             }
         }
     }
