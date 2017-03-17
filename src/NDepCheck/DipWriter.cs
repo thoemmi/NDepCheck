@@ -38,19 +38,20 @@ namespace NDepCheck {
         }
 
         public void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString) {
-            int stringLengthForIllegalEdges = -1;
+            //int stringLengthForIllegalEdges = -1;
             string baseFilename = null;
             bool withNotOkExampleInfo = false;
             Options.Parse(argsAsString, arg => baseFilename = arg,
-                new Options.OptionAction('e', (args, j) => {
-                    if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out stringLengthForIllegalEdges)) {
-                        Options.Throw("No valid length after e", args);
-                    }
-                    return j;
-                }), new Options.OptionAction('n', (args, j) => {
+                //new OptionAction('e', (args, j) => {
+                //    if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out stringLengthForIllegalEdges)) {
+                //        Options.Throw("No valid length after e", args);
+                //    }
+                //    return j;
+                //}), 
+                new OptionAction('n', (args, j) => {
                     withNotOkExampleInfo = true;
                     return j;
-                }), new Options.OptionAction('o', (args, j) => {
+                }), new OptionAction('o', (args, j) => {
                     baseFilename = Options.ExtractOptionValue(args, ref j);
                     return j;
                 }));

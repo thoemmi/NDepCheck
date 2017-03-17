@@ -7,6 +7,16 @@ using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 
 namespace NDepCheck {
+    public class OptionAction {
+        public readonly char Option;
+        public readonly Func<string[], int, int> Action;
+
+        public OptionAction(char option, Func<string[], int, int> action) {
+            Option = option;
+            Action = action;
+        }
+    }
+
     public class Options {
         private readonly List<DirectoryOption> _directories = new List<DirectoryOption>();
         private readonly List<InputFileOption> _itemFiles = new List<InputFileOption>();
@@ -127,15 +137,12 @@ namespace NDepCheck {
         private static string CollectMultipleArgs(string[] args, ref int i, string value) {
             // Collect everything up to }
             var sb = new StringBuilder(value);
-            for (;;) {
-                if (i >= args.Length) {
+            while (!value.EndsWith("}")) {
+                if (i >= args.Length - 1) {
                     throw new ArgumentException("Missing } at end of options");
                 }
-                string a = args[++i];
-                sb.AppendLine(a);
-                if (a.EndsWith("}")) {
-                    break;
-                }
+                value = args[++i];
+                sb.AppendLine(value);
             }
             return sb.ToString();
         }
@@ -185,16 +192,6 @@ namespace NDepCheck {
                 }
             } else {
                 simpleStringAction(argsAsString);
-            }
-        }
-
-        internal class OptionAction {
-            public readonly char Option;
-            public readonly Func<string[], int, int> Action;
-
-            public OptionAction(char option, Func<string[], int, int> action) {
-                Option = option;
-                Action = action;
             }
         }
     }

@@ -17,15 +17,15 @@ namespace NDepCheck.Rendering {
             string fn = null;
             int lw = -1;
             bool wct = false;
-            Options.Parse(argsAsString, arg => fn = arg, new Options.OptionAction('l', (args, j) => {
+            Options.Parse(argsAsString, arg => fn = arg, new OptionAction('l', (args, j) => {
                 if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out lw)) {
                     Options.Throw("No valid length after e", args);
                 }
                 return j;
-            }), new Options.OptionAction('n', (args, j) => {
+            }), new OptionAction('n', (args, j) => {
                 wct = true;
                 return j;
-            }), new Options.OptionAction('o', (args, j) => {
+            }), new OptionAction('o', (args, j) => {
                 fn = Options.ExtractOptionValue(args, ref j);
                 return j;
             }));

@@ -68,6 +68,7 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="Mono.Cecil, Version=0.9.5.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\Mono.Cecil.0.9.6\Mono.Cecil.dll</HintPath>
@@ -95,6 +96,7 @@
     <Compile Include="ConstraintSolving\Range.cs" />
     <Compile Include="ConstraintSolving\SimpleConstraintSolver.cs" />
     <Compile Include="DipReaderFactory.cs" />
+    <Compile Include="Rendering\ModulesAndInterfacesRenderer.cs" />
     <Compile Include="Rendering\AbstractGenericMatrixRenderer.cs" />
     <Compile Include="ConstraintSolving\Constraints.cs" />
     <Compile Include="ConstraintSolving\NumericVariable.cs" />

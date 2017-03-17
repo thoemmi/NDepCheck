@@ -487,13 +487,13 @@ NDepCheck:Tests ---> **
         }
 
         [TestMethod]
-        public void TestGOptionWithIXOSRenderer() {
+        public void TestGOptionWithModulesAndInterfacesRenderer() {
             string gifFile = Path.GetTempFileName() + ".gif";
             Console.WriteLine(gifFile);
             Assert.AreEqual(0,
                 Program.Main(new[] {
-                    TestAssemblyPath, "-g", "NDepCheck.Tests.dll",
-                    typeof(TestRendering.IXOSApplicationRenderer).FullName, gifFile
+                    TestAssemblyPath, "-g", ".",
+                    typeof(ModulesAndInterfacesRenderer).FullName, $"{{-w 1500 -h 1000 -t TestGOption -i MI -o {gifFile}}}"
                 }));
 
             File.Delete(gifFile);

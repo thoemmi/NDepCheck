@@ -733,26 +733,32 @@ namespace NDepCheck.Rendering {
             return bitmap;
         }
 
-        public void Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, string argsAsString) {
+        public virtual void Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, string argsAsString) {
+            DoRender(items, dependencies, argsAsString);
+        }
+
+        protected void DoRender(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, 
+                                string argsAsString, params OptionAction[] additionalOptions) {
             int width = 1000;
             int height = 1000;
             string baseFilename = null;
             Options.Parse(argsAsString,
                 arg => baseFilename = arg,
-                new Options.OptionAction('w', (args, j) => {
+                new [] {
+                new OptionAction('w', (args, j) => {
                     if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out width)) {
                         Options.Throw("No valid width after w", args);
                     }
                     return j;
-                }), new Options.OptionAction('h', (args, j) => {
+                }), new OptionAction('h', (args, j) => {
                     if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out height)) {
                         Options.Throw("No valid height after h", args);
                     }
                     return j;
-                }), new Options.OptionAction('o', (args, j) => {
+                }), new OptionAction('o', (args, j) => {
                     baseFilename = Options.ExtractOptionValue(args, ref j);
                     return j;
-                }));
+                })}.Concat(additionalOptions).ToArray());
 
             if (baseFilename == null) {
                 Options.Throw("No filename set with option o", argsAsString);

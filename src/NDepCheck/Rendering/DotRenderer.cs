@@ -49,12 +49,12 @@ namespace NDepCheck.Rendering {
             int stringLengthForIllegalEdges = -1;
             string baseFilename = null;
             Options.Parse(argsAsString, arg => baseFilename = arg,
-                new Options.OptionAction('e', (args, j) => {
+                new OptionAction('e', (args, j) => {
                     if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out stringLengthForIllegalEdges)) {
                         Options.Throw("No valid length after e", args);
                     }
                     return j;
-                }), new Options.OptionAction('o', (args, j) => {
+                }), new OptionAction('o', (args, j) => {
                     baseFilename = Options.ExtractOptionValue(args, ref j);
                     return j;
                 }));
