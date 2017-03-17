@@ -50,6 +50,8 @@ namespace NDepCheck {
                         // -b        Break execution here; useful in -@ file
                         Log.WriteInfo("---- Stop reading options (-b)");
                         goto DONE;
+
+                        // -c & $ & Render the test data of renderer $ in assembly & to file & -> see below at -r
                     } else if (arg == "-debug" || arg == "/debug") {
                         // -debug    Do start .Net debugger
                         Debugger.Launch();
@@ -250,12 +252,12 @@ namespace NDepCheck {
                             break;
                         }
                         string trimmedLine = Regex.Replace(line, "//.*$", "").Trim();
-                        var a = trimmedLine.Split(' ', '\t').Select(s => s.Trim()).Where(s => s != "");
+                        IEnumerable<string> a = trimmedLine.Split(' ', '\t').Select(s => s.Trim()).Where(s => s != "");
 
-                        if (a.Contains("{")) {
+                        if (a.Any() && a.Last() == "{") {
                             args.AddRange(a);
                             splitLines = false;
-                        } else if (a.Contains("}")) {
+                        } else if (a.Any() && a.First() == "}") {
                             splitLines = true;
                             args.AddRange(a);
                         } else if (splitLines) {

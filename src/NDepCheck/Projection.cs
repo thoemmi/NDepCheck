@@ -38,6 +38,7 @@ namespace NDepCheck {
         public Projection([NotNull]ItemType sourceItemType, [NotNull]ItemType targetItemType, [NotNull]string pattern, [CanBeNull]string[] targetSegments, bool isInner, bool ignoreCase) {
             if (targetSegments != null) {
                 if (targetItemType.Length != targetSegments.Length) {
+                    Log.WriteError($"Targettype {targetItemType.Name} has {targetItemType.Length} segments, but only {targetSegments.Length} are defined in projection: {string.Join(",", targetSegments)}");
                     throw new ArgumentException("targetSegments length != targetItemType.Length", nameof(targetSegments));
                 }
                 if (targetSegments.Any(s => s == null)) {
