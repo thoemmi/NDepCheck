@@ -37,7 +37,7 @@ namespace NDepCheck {
                 Dependency reducedEdge;
                 if (!result.TryGetValue(key, out reducedEdge)) {
                     reducedEdge = new Dependency(usingNode, usedNode, d.Source, d.StartLine, d.StartColumn,
-                                                 d.EndLine, d.EndColumn, d.Ct, d.NotOkCt, d.NotOkExample);
+                                                 d.EndLine, d.EndColumn, d.Ct, d.NotOkCt, d.NotOkExampleInfo);
                     result.Add(key, reducedEdge);
                 } else {
                     reducedEdge.AggregateCounts(d);

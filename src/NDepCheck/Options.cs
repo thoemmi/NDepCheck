@@ -170,7 +170,7 @@ namespace NDepCheck {
             }
             if (argsAsString.StartsWith("{")) {
                 string[] args =
-                    argsAsString.Split(' ')
+                    argsAsString.Split(' ', '\r', '\n')
                         .Select(a => a.TrimStart('{').TrimEnd('}').Trim())
                         .Where(a => a != "")
                         .ToArray();

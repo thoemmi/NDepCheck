@@ -18,7 +18,7 @@ namespace NDepCheck {
         private int _ct;
         private int _notOkCt;
         [CanBeNull]
-        private Dependency _notOkExample;
+        private string _notOkExampleInfo;
 
         private bool _onCycle;
         private bool _carrysTransitive;
@@ -35,10 +35,10 @@ namespace NDepCheck {
         /// <param name="endColumn">The end column.</param>
         /// <param name="ct"></param>
         /// <param name="notOkCt"></param>
-        /// <param name="notOkExample"></param>
+        /// <param name="notOkExampleInfo"></param>
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem,
             string source, int startLine, int startColumn, int endLine = 0, int endColumn = 0,
-            int ct = 1, int notOkCt = 0, [CanBeNull] Dependency notOkExample = null) {
+            int ct = 1, int notOkCt = 0, [CanBeNull] string notOkExampleInfo = null) {
             if (usingItem == null) {
                 throw new ArgumentNullException(nameof(usingItem));
             }
@@ -55,7 +55,7 @@ namespace NDepCheck {
 
             _ct = ct;
             _notOkCt = notOkCt;
-            _notOkExample = notOkExample;
+            _notOkExampleInfo = notOkExampleInfo;
         }
 
         /// <summary>
@@ -99,7 +99,7 @@ namespace NDepCheck {
 
         public int NotOkCt => _notOkCt;
 
-        public Dependency NotOkExample => _notOkExample;
+        public string NotOkExampleInfo => _notOkExampleInfo;
 
         /// <summary>
         /// String representation of a Dependency.
@@ -149,9 +149,8 @@ namespace NDepCheck {
         }
 
         private string GetLabel(int? stringLengthForIllegalEdges) {
-            return "label=\"" + (stringLengthForIllegalEdges.HasValue && NotOkExample != null
-                                ? LimitWidth(NotOkExample.UsingItem.AsString()/*???*/, stringLengthForIllegalEdges.Value) + " --->\\n" +
-                                  LimitWidth(NotOkExample.UsedItem.AsString()/*???*/, stringLengthForIllegalEdges.Value) + "\\n"
+            return "label=\"" + (stringLengthForIllegalEdges.HasValue && NotOkExampleInfo != null
+                                ? LimitWidth(NotOkExampleInfo, stringLengthForIllegalEdges.Value) + "\\n"
                                 : "") +
                             " (" + CountsAsString() + ")" +
                             (_carrysTransitive ? "+" : "") +
@@ -181,8 +180,8 @@ namespace NDepCheck {
             _carrysTransitive = true;
         }
 
-        public string AsStringWithTypes() {
-            string notOk = _notOkExample == null ? null : $"({_notOkExample})";
+        public string AsStringWithTypes(bool withNotOkExampleInfo) {
+            string notOk = withNotOkExampleInfo && _notOkExampleInfo != null ? $"{_notOkExampleInfo}" : null;
             return $"{_usingItem.AsStringWithType()} -> {_ct};{_notOkCt};{notOk} -> {_usedItem.AsStringWithType()}";
         }
 
@@ -194,14 +193,14 @@ namespace NDepCheck {
         public void MarkOkOrNotOk(bool ok) {
             if (!ok) {
                 _notOkCt = _ct;
-                _notOkExample = _notOkExample ?? this;
+                _notOkExampleInfo = _notOkExampleInfo ?? UsingItemAsString + " ---?" + UsedItemAsString;
             }
         }
 
         public void AggregateCounts(Dependency d) {
             _ct += d.Ct;
             _notOkCt += d.NotOkCt;
-            _notOkExample = _notOkExample ?? d.NotOkExample;
+            _notOkExampleInfo = _notOkExampleInfo ?? d.NotOkExampleInfo;
         }
     }
 }

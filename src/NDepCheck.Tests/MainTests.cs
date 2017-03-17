@@ -500,7 +500,7 @@ NDepCheck:Tests ---> **
         }
 
         [TestMethod]
-        public void TestExtendedXOption() {
+        public void TestExtendedXAndLocalROption() {
             string inFile = Path.GetTempFileName() + "IN.dip";
             string ndFile = Path.GetTempFileName() + "ND.nd";
             string outFile = Path.GetTempFileName() + "OUT.dip";
@@ -537,5 +537,42 @@ NDepCheck:Tests ---> **
             }
         }
 
+        [TestMethod]
+        public void TestExtendedXAndROption() {
+            string inFile = Path.GetTempFileName() + "IN.dip";
+            string ndFile = Path.GetTempFileName() + "ND.nd";
+            string outFile = Path.GetTempFileName() + "OUT.dip";
+            using (TextWriter tw = new StreamWriter(inFile)) {
+                tw.Write($@"AB A B
+                AB:a:1 -> 1;0            -> AB:a:1
+                AB:a:1 -> 2;1;example123 -> AB:a:2
+                AB:a:2 -> 3;0            -> AB:a:1
+                AB:a:2 -> 4;0            -> AB:a:2
+                AB:a:2 -> 5;1            -> AB:b:
+                AB:b:  -> 6;0            -> AB:a:1
+                AB:b:  -> 7;0            -> AB:a:2");
+            }
+
+            using (TextWriter tw = new StreamWriter(ndFile)) {
+                tw.Write($@"
+                    {inFile}
+                    -x {{
+                        $ AB ---> AB
+                        ! a:** ----> _a_:
+                        ! b:** ----> _b_:
+                    }}
+                    -r . NDepCheck.DipWriter {{ -n -o {outFile}}}");
+            }
+
+            Assert.AreEqual(0, Program.Main(new[] { "-@", ndFile }));
+
+            using (var sw = new StreamReader(outFile)) {
+                var o = sw.ReadToEnd();
+
+                Assert.IsTrue(o.Contains("AB:_a_: -> 10;1;example123 -> AB:_a_:"));
+                Assert.IsTrue(o.Contains("AB:_a_: -> 5;1; -> AB:_b_:"));
+                Assert.IsTrue(o.Contains("AB:_b_: -> 13;0; -> AB:_a_:"));
+            }
+        }
     }
 }

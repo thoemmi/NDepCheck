@@ -59,7 +59,8 @@ namespace NDepCheck {
                                 throw new DipReaderException("Cannot parse notOkCount: " + properties[1]);
                             }
 
-                            var dependency = new Dependency(foundUsingItem, foundUsedItem, _filename, lineNo, 0, lineNo, line.Length, ct, notOkCt);
+                            var dependency = new Dependency(foundUsingItem, foundUsedItem, _filename, lineNo, 0, lineNo, line.Length, 
+                                ct, notOkCt, properties.Length >= 3 ? properties[2] : null);
 
                             result.Add(dependency);
                         } catch (DipReaderException ex) {

@@ -74,11 +74,11 @@ namespace NDepCheck {
             return this;
         }
 
-        private static IDependencyRenderer GetRenderer(string assemblyName, string rendererClassName) {
+        private IDependencyRenderer GetRenderer(string assemblyName, string rendererClassName) {
             IDependencyRenderer renderer;
             try {
-                var a = Assembly.LoadFrom(assemblyName);
-                renderer = (IDependencyRenderer)Activator.CreateInstance(a.GetType(rendererClassName, true, ignoreCase: true));
+                Assembly assembly = string.IsNullOrWhiteSpace(assemblyName) ? GetType().Assembly : Assembly.LoadFrom(assemblyName);
+                renderer = (IDependencyRenderer)Activator.CreateInstance(assembly.GetType(rendererClassName, throwOnError: true, ignoreCase: true));
             } catch (Exception ex) {
                 throw new ApplicationException(
                     $"Cannot create renderer {rendererClassName} from assembly {assemblyName} running in working directory {Environment.CurrentDirectory}; problem: " +
@@ -87,8 +87,8 @@ namespace NDepCheck {
             return renderer;
         }
 
-        public static void RenderTestDataToFile([NotNull] Options options, [NotNull] string assemblyName, [NotNull] string rendererClassName, [NotNull] string filename) {
-            var renderer = GetRenderer(assemblyName, rendererClassName);
+        public void RenderTestDataToFile([NotNull] Options options, [NotNull] string assemblyName, [NotNull] string rendererClassName, [NotNull] string filename) {
+            IDependencyRenderer renderer = GetRenderer(assemblyName, rendererClassName);
 
             IEnumerable<Item> items;
             IEnumerable<Dependency> dependencies;
@@ -189,10 +189,17 @@ namespace NDepCheck {
         }
 
         [NotNull]
+        // [Obsolete("Use -r option instead")]
         public GlobalContext WriteDipFile([NotNull]Options options, [NotNull]string filename) {
-            Log.WriteInfo("Writing " + filename);
-            DipWriter.Write(_reducedGraph, filename);
-            options.GraphingDone = true;
+            if (_reducedGraph == null) {
+                Log.WriteError("No graph to write to " + filename);
+            } else {
+                Log.WriteInfo("Writing " + filename);
+
+                new DipWriter().Render(Enumerable.Empty<Item>(), _reducedGraph, filename);
+
+                options.GraphingDone = true;
+            }
             return this;
         }
 

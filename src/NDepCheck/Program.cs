@@ -133,6 +133,9 @@ namespace NDepCheck {
                         string assemblyName = Options.ExtractOptionValue(args, ref i);
                         if (string.IsNullOrWhiteSpace(assemblyName)) {
                             return UsageAndExit("Missing assembly name after " + arg);
+                        } else if (assemblyName == ".") {
+                            // TODO: This should be moved to a separate option - maybe -c is free shortly!
+                            assemblyName = "";
                         }
                         string rendererClassName = Options.ExtractNextValue(args, ref i);
                         if (string.IsNullOrWhiteSpace(rendererClassName)) {
@@ -147,7 +150,7 @@ namespace NDepCheck {
                                 .ReduceGraph(options, false)
                                 .RenderToFile(options, assemblyName, rendererClassName, rendererArgs);
                         } else {
-                            GlobalContext.RenderTestDataToFile(options, assemblyName, rendererClassName, rendererArgs);
+                            state.RenderTestDataToFile(options, assemblyName, rendererClassName, rendererArgs);
                         }
                     } else if (Options.ArgMatches(arg, 's')) {
                         // -s &      Set directory tree search location for rule files
