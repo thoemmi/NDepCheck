@@ -496,7 +496,7 @@ NDepCheck:Tests ---> **
                     typeof(ModulesAndInterfacesRenderer).FullName, $"{{-w 1500 -h 1000 -t TestGOption -i MI -o {gifFile}}}"
                 }));
 
-            File.Delete(gifFile);
+            //File.Delete(gifFile);
         }
 
         [TestMethod]

@@ -119,7 +119,8 @@ namespace NDepCheck.Rendering {
                 IBox mainBox = Box(pos, boxAnchoring: BoxAnchoring.LowerLeft, text: name + countText, borderWidth: 3, boxColor: Color.Coral,
                                    textFont: _boxFont, drawingOrder: 1, fixingOrder: 4);
                 //mainBox.Diagonal.Y.Set(100);
-                mainBox.Diagonal.Y.Max(30 + dependencies.Count(d => Equals(d.UsingItem, i)) * DELTA_Y_MAIN); // Help for solving
+                //mainBox.Diagonal.Y.Min(40);
+                mainBox.Diagonal.Y.Max(40 + dependencies.Count(d => Equals(d.UsingItem, i)) * DELTA_Y_MAIN); // Help for solving
                 mainBox.Diagonal.Y.Min(10 + dependencies.Count(d => Equals(d.UsingItem, i)) * DELTA_Y_MAIN); // Help for solving
                 i.DynamicData.MainBox = mainBox;
                 i.DynamicData.MainBoxNextFreePos = mainBox.LowerLeft;
@@ -196,7 +197,7 @@ namespace NDepCheck.Rendering {
             IBox toBox = to.DynamicData.InterfaceBox;
             VariableVector toPos = toBox.GetBestConnector(fromPos).WithYOf(fromPos);
             fromPos = fromBox.GetBestConnector(toPos).WithYOf(fromPos);
-            Arrow(fromPos, toPos, 1, color: d.NotOkCt > 0 ? Color.Red : 
+            Arrow(fromPos, toPos, 1, color: d.NotOkCt > 0 ? Color.Red :
                 d.QuestionableCt > 0 ? Color.Blue : Color.Black, text: prefix + "#=" + d.Ct,
                 textLocation: -20, textFont: _lineFont, fixingOrder: 2);
 

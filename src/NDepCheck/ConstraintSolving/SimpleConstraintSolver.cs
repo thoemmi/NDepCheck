@@ -115,13 +115,17 @@ namespace NDepCheck.ConstraintSolving {
             return null;
         }
 
-        public string GetState() {
+        public string GetState(int maxLine) {
             var sb = new StringBuilder();
             foreach (var v in _allVariables.Values) {
                 sb.AppendLine(v.ToString());
                 foreach (var c in v.ActiveConstraints) {
                     sb.Append("   ");
                     sb.AppendLine(c.ToString());
+                    if (maxLine-- < 0) {
+                        sb.AppendLine($"...output cut after {maxLine} lines");
+                        return sb.ToString();
+                    }
                 }
             }
             return sb.ToString();

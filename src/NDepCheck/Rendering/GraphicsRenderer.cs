@@ -11,26 +11,52 @@ using NDepCheck.ConstraintSolving;
 
 namespace NDepCheck.Rendering {
     public interface IBox {
-        VariableVector Center { get; }
+        VariableVector Center {
+            get;
+        }
 
-        VariableVector LowerLeft { get; }
-        VariableVector CenterLeft { get; }
-        VariableVector UpperLeft { get; }
-        VariableVector CenterTop { get; }
-        VariableVector UpperRight { get; }
-        VariableVector CenterRight { get; }
-        VariableVector LowerRight { get; }
-        VariableVector CenterBottom { get; }
+        VariableVector LowerLeft {
+            get;
+        }
+        VariableVector CenterLeft {
+            get;
+        }
+        VariableVector UpperLeft {
+            get;
+        }
+        VariableVector CenterTop {
+            get;
+        }
+        VariableVector UpperRight {
+            get;
+        }
+        VariableVector CenterRight {
+            get;
+        }
+        VariableVector LowerRight {
+            get;
+        }
+        VariableVector CenterBottom {
+            get;
+        }
 
-        VariableVector Diagonal { get; }
-        VariableVector TextBox { get; }
+        VariableVector Diagonal {
+            get;
+        }
+        VariableVector TextBox {
+            get;
+        }
 
         VariableVector GetBestConnector(VariableVector farAway);
     }
 
     public interface IArrow {
-        VariableVector Head { get; }
-        VariableVector Tail { get; }
+        VariableVector Head {
+            get;
+        }
+        VariableVector Tail {
+            get;
+        }
     }
 
     public enum BoxTextPlacement {
@@ -74,7 +100,7 @@ namespace NDepCheck.Rendering {
 
         private static readonly bool DEBUG = false;
 
-        public GraphicsRenderer() {
+        protected GraphicsRenderer() {
             _solver = new GraphicsRendererSolver(this);
         }
 
@@ -87,10 +113,18 @@ namespace NDepCheck.Rendering {
         }
 
         private interface IBuilder {
-            string Name { get; }
-            int CreationOrder { get; }
-            int DrawingOrder { get; }
-            int FixingOrder { get; }
+            string Name {
+                get;
+            }
+            int CreationOrder {
+                get;
+            }
+            int DrawingOrder {
+                get;
+            }
+            int FixingOrder {
+                get;
+            }
             IEnumerable<VectorF> GetBoundingVectors();
             void FullyRestrictBoundingVectors(Graphics graphics);
             void Draw(Graphics graphics, StringBuilder htmlForTooltips);
@@ -98,27 +132,31 @@ namespace NDepCheck.Rendering {
         }
 
         private abstract class AbstractBuilder {
-            private static int _creationOrder = 0; // or use Renderer as parent and place ct there ...
-
-            protected AbstractBuilder(int drawingOrder, int fixingOrder) {
+            protected AbstractBuilder(int creationOrder, int drawingOrder, int fixingOrder) {
                 DrawingOrder = drawingOrder;
                 FixingOrder = fixingOrder;
-                _creationOrder++;
+                CreationOrder = creationOrder;
             }
 
-            public int DrawingOrder { get; }
-            public int FixingOrder { get; }
-            public int CreationOrder => _creationOrder;
+            public int DrawingOrder {
+                get;
+            }
+            public int FixingOrder {
+                get;
+            }
+            public int CreationOrder {
+                get;
+            }
         }
 
         private class BoxBuilder : AbstractBuilder, IBuilder, IBox {
             private readonly SimpleConstraintSolver _solver;
-            private VariableVector _anchor;
+            private readonly VariableVector _anchor;
             [NotNull]
             private readonly VariableVector _diagonal;
             private readonly VariableVector _textBox;
             private readonly float _borderWidth;
-            private readonly string _text;
+            private readonly string[] _text;
             private readonly BoxTextPlacement _boxTextPlacement;
             private readonly string _tooltip;
             private readonly Color _textColor;
@@ -126,7 +164,7 @@ namespace NDepCheck.Rendering {
             private readonly Font _textFont;
             private readonly Color _borderColor;
             private readonly Color _color;
-            private double _sectorAngle;
+            private readonly double _sectorAngle;
 
             private readonly VariableVector _center;
             private readonly VariableVector _lowerLeft;
@@ -143,7 +181,8 @@ namespace NDepCheck.Rendering {
                              BoxAnchoring boxAnchoring, Color color,
                               double borderWidth, Color borderColor, int connectors, string text,
                               BoxTextPlacement boxTextPlacement, Font textFont, Color textColor, double textPadding,
-                              string tooltip, int drawingOrder, int fixingOrder, string name) : base(drawingOrder, fixingOrder) {
+                              string tooltip, int creationOrder, int drawingOrder, int fixingOrder,
+                              string name) : base(creationOrder, drawingOrder, fixingOrder) {
                 _solver = solver;
                 Name = name ?? anchor.Name;
 
@@ -283,8 +322,8 @@ namespace NDepCheck.Rendering {
 
                 // Simple stuff
                 _color = color;
-                _borderWidth = (float)borderWidth;
-                _text = text;
+                _borderWidth = (float) borderWidth;
+                _text = text.Split('\r', '\n');
                 _boxTextPlacement = boxTextPlacement;
                 _tooltip = tooltip;
                 _textColor = textColor;
@@ -317,12 +356,15 @@ namespace NDepCheck.Rendering {
             public VariableVector Diagonal => _diagonal;
             public VariableVector TextBox => _textBox;
 
-            public string Name { get; }
+            public string Name {
+                get;
+            }
 
             public void FullyRestrictBoundingVectors(Graphics graphics) {
                 // Textbox is set here, because it is needed for restricting the Diagonal.
 
-                SizeF size = graphics.MeasureString(_text, _textFont);
+                SizeF size = ComputeTextSize(graphics);
+
                 switch (_boxTextPlacement) {
                     case BoxTextPlacement.Left:
                     case BoxTextPlacement.Center:
@@ -341,6 +383,17 @@ namespace NDepCheck.Rendering {
                         throw new ArgumentOutOfRangeException();
                 }
                 _textBox.Set(size.Width * (1 + _textPadding) + 2 * _borderWidth, size.Height * (1 + _textPadding) + 2 * _borderWidth);
+            }
+
+            private SizeF ComputeTextSize(Graphics graphics) {
+                float textWidth = 0;
+                float textHeight = 0;
+                foreach (var line in _text) {
+                    SizeF lineSize = graphics.MeasureString(line, _textFont);
+                    textWidth = Math.Max(textWidth, lineSize.Width);
+                    textHeight += lineSize.Height;
+                }
+                return new SizeF(textWidth, textHeight);
             }
 
             public void Draw(Graphics graphics, StringBuilder htmlForTooltips) {
@@ -393,7 +446,12 @@ namespace NDepCheck.Rendering {
                         throw new ArgumentOutOfRangeException(nameof(_boxTextPlacement), _boxTextPlacement, null);
                 }
 
-                DrawText(graphics, _text, _textFont, _textColor, _center.AsVectorF(), m);
+                var lineHeight = new VectorF(0, _textFont.GetHeight() * 1.1f, "lineHeight");
+                VectorF textLocation = centerF + new VectorF(0, lineHeight.GetY() / 2 * (_text.Length - 1), "textOffset");
+                for (int i = 0; i < _text.Length; i++, textLocation -= lineHeight) {
+                    DrawText(graphics, _text[i], _textFont, _textColor, textLocation, m);
+                }
+
 
                 // Get all these elements somehow and then do a "draw tooltip" ...
             }
@@ -414,8 +472,8 @@ namespace NDepCheck.Rendering {
             /// <param name="a"></param>
             /// <returns></returns>
             private static double NormalizedAngle(double a) {
-                const double twoPI = 2 * Math.PI;
-                return a - Math.Floor(a / twoPI) * twoPI;
+                const double twoPi = 2 * Math.PI;
+                return a - Math.Floor(a / twoPi) * twoPi;
             }
 
             public VariableVector GetBestConnector(VariableVector farAway) {
@@ -472,7 +530,6 @@ namespace NDepCheck.Rendering {
 
         private class ArrowBuilder : AbstractBuilder, IBuilder, IArrow {
             private readonly VariableVector _head;
-            private readonly SimpleConstraintSolver _solver;
             private readonly VariableVector _tail;
             private readonly double _width;
             private readonly Color _color;
@@ -489,24 +546,23 @@ namespace NDepCheck.Rendering {
             internal ArrowBuilder(SimpleConstraintSolver solver, string name,
                               VariableVector tail, VariableVector head, double width, Color color,
                         string text, LineTextPlacement lineTextPlacement, Font textFont, Color textColor, double textPadding, double textLocation,
-                        string tooltip, int drawingOrder, int fixingOrder) : base(drawingOrder, fixingOrder) {
+                        string tooltip, int creationOrder, int drawingOrder, int fixingOrder) : base(creationOrder, drawingOrder, fixingOrder) {
                 // Simple stuff
                 _name = name;
-                _solver = solver;
                 _width = width;
                 _color = color;
                 _text = text;
                 _lineTextPlacement = lineTextPlacement;
                 _textFont = textFont;
                 _textColor = textColor;
-                _textPadding = (float)textPadding;
+                _textPadding = (float) textPadding;
                 _textLocation = textLocation;
                 _tooltip = tooltip;
 
                 // Vectors
                 _tail = tail.AlsoNamed(_name + ".T");
                 _head = head.AlsoNamed(_name + ".H");
-                _textBox = new VariableVector(_name + ".TXT", _solver);
+                _textBox = new VariableVector(_name + ".TXT", solver);
             }
 
             public override string ToString() {
@@ -543,7 +599,7 @@ namespace NDepCheck.Rendering {
                 VectorF tailF = _tail.AsVectorF();
                 VectorF headF = _head.AsVectorF();
                 VectorF textBoxF = _textBox.AsVectorF();
-                float fWidth = (float)_width;
+                float fWidth = (float) _width;
 
                 PointF tailPoint = tailF.AsMirroredPointF();
                 PointF headPoint = headF.AsMirroredPointF();
@@ -568,7 +624,7 @@ namespace NDepCheck.Rendering {
                     ? tailF * (1 - _textLocation) + headF * _textLocation
                     : tailF + (headF - tailF).Unit() * -_textLocation;
                 float halfTextWidth = textBoxF.GetX() / 2;
-                float lineAngleDegrees = (float)(-Math.Atan2(headF.GetY() - tailF.GetY(), headF.GetX() - tailF.GetX()) * 180 / Math.PI);
+                float lineAngleDegrees = (float) (-Math.Atan2(headF.GetY() - tailF.GetY(), headF.GetX() - tailF.GetX()) * 180 / Math.PI);
 
                 var textTransform = new Matrix();
                 switch (_lineTextPlacement) {
@@ -605,12 +661,12 @@ namespace NDepCheck.Rendering {
         private readonly Font _defaultTextFont = new Font(FontFamily.GenericSansSerif, 10);
         private readonly List<IBuilder> _builders = new List<IBuilder>();
 
-        private static void DrawText(Graphics graphics, string text, Font textFont, Color textColor, VectorF center, Matrix m) {
+        private static void DrawText(Graphics graphics, string text, Font textFont, Color textColor, VectorF textCenter, Matrix m) {
             StringFormat centered = new StringFormat { Alignment = StringAlignment.Center };
-            var halfFontHeight = textFont.GetHeight() / 2;
-            PointF position = (center + new VectorF(0, halfFontHeight, "font/2 " + halfFontHeight)).AsMirroredPointF();
+            float halfFontHeight = textFont.GetHeight() / 2;
+            PointF position = (textCenter + new VectorF(0, halfFontHeight, "font/2 " + halfFontHeight)).AsMirroredPointF();
             if (DEBUG) {
-                graphics.FillEllipse(new SolidBrush(Color.Red), center.AsMirroredPointF().X - 3, center.AsMirroredPointF().Y - 3, 6, 6);
+                graphics.FillEllipse(new SolidBrush(Color.Red), textCenter.AsMirroredPointF().X - 3, textCenter.AsMirroredPointF().Y - 3, 6, 6);
                 graphics.DrawString(text, textFont, new SolidBrush(Color.LightGray), position, centered);
             }
 
@@ -633,7 +689,8 @@ namespace NDepCheck.Rendering {
 
             var boxBuilder = new BoxBuilder(_solver, anchor, new VariableVector((text ?? anchor.Name) + "./", _solver).Restrict(minDiagonal),
                 boxAnchoring, boxColor ?? Color.White, borderWidth, borderColor ?? Color.Black, connectors,
-                text ?? "", boxTextPlacement, textFont ?? _defaultTextFont, textColor ?? Color.Black, textPadding, tooltip ?? "", drawingOrder, fixingOrder, name);
+                text ?? "", boxTextPlacement, textFont ?? _defaultTextFont, textColor ?? Color.Black, textPadding, tooltip ?? "",
+                _builders.Count, drawingOrder, fixingOrder, name);
 
             _builders.Add(boxBuilder);
             return boxBuilder;
@@ -651,7 +708,7 @@ namespace NDepCheck.Rendering {
             }
             var arrowBuilder = new ArrowBuilder(_solver, name ?? $"${tail.Name}->{head.Name}['{text}']", tail, head, width, color ?? Color.Black,
                 text ?? "", placement, textFont ?? _defaultTextFont, textColor ?? Color.Black,
-                textPadding, textLocation, tooltip, drawingOrder, fixingOrder);
+                textPadding, textLocation, tooltip, _builders.Count, drawingOrder, fixingOrder);
             _builders.Add(arrowBuilder);
             return arrowBuilder;
         }
@@ -673,7 +730,7 @@ namespace NDepCheck.Rendering {
                 try {
                     _solver.Solve();
                 } catch (SolverException) {
-                    Console.WriteLine(_solver.GetState());
+                    Console.WriteLine(_solver.GetState(20000));
                     throw;
                 }
 
@@ -704,19 +761,18 @@ namespace NDepCheck.Rendering {
                     }
                 }
                 if (errors.Length > 0) {
-                    throw new InvalidOperationException(errors.ToString() + _solver.GetState());
+                    throw new InvalidOperationException(errors + _solver.GetState(20000));
                 }
 
                 StringBuilder htmlForTooltips = new StringBuilder();
 
                 // 5% margin on all sides
-                float BORDER = 0.1f;
+                const float BORDER = 0.1f;
                 double scaleX = size.Width * (1 - 2 * BORDER) / (maxX - minX);
                 double scaleY = size.Height * (1 - 2 * BORDER) / (maxY - minY);
-                float scale = (float)Math.Min(scaleX, scaleY); // No distortion!
+                float scale = (float) Math.Min(scaleX, scaleY); // No distortion!
 
-                graphics.Transform = new Matrix(scale, 0, 0, scale, (float)(-scale * minX + size.Width * BORDER),
-                    (float)(scale * maxY + size.Height * BORDER));
+                graphics.Transform = new Matrix(scale, 0, 0, scale, -scale * minX + size.Width * BORDER, scale * maxY + size.Height * BORDER);
 
                 List<IBuilder> openBuilders = _builders.OrderBy(b => b.DrawingOrder).ThenBy(b => b.CreationOrder).ToList();
 
@@ -768,7 +824,13 @@ namespace NDepCheck.Rendering {
             Bitmap bitMap = Render(items, dependencies, size);
 
             string gifFilename = Path.ChangeExtension(baseFilename, ".gif");
-            bitMap.Save(gifFilename, ImageFormat.Gif);
+
+            try {
+                bitMap.Save(gifFilename, ImageFormat.Gif);
+            } catch (Exception ex) {
+                Log.WriteError("Cannot save GIF image to file " + gifFilename + ". Make sure the file can be written. Internal message: " + ex.Message);
+                throw;
+            }
             using (var tw = new StreamWriter(Path.ChangeExtension(baseFilename, ".html"))) {
                 tw.WriteLine($@"
 <html>
@@ -808,6 +870,7 @@ namespace NDepCheck.Rendering {
     filename      output .gif file 
 ";
     }
-    
-    public abstract class GraphicsDependencyRenderer : GraphicsRenderer<Item, Dependency>, IDependencyRenderer { }
+
+    public abstract class GraphicsDependencyRenderer : GraphicsRenderer<Item, Dependency>, IDependencyRenderer {
+    }
 }
