@@ -18,7 +18,10 @@ namespace NDepCheck {
         }
 
         public void WriteViolation(RuleViolation ruleViolation) {
-            Console.ForegroundColor = ruleViolation.ViolationType == ViolationType.Warning ? ConsoleColor.Yellow : ConsoleColor.Red;
+            Console.ForegroundColor = 
+                ruleViolation.ViolationType == DependencyCheckResult.Ok ? ConsoleColor.Green
+                : ruleViolation.ViolationType == DependencyCheckResult.Questionable ? ConsoleColor.Yellow 
+                : ConsoleColor.Red;
             Console.Out.WriteLine(FormatMessage(ruleViolation.Dependency, ruleViolation.ViolationType));
             Console.ResetColor();
         }
@@ -47,8 +50,11 @@ namespace NDepCheck {
             Console.ResetColor();
         }
 
-        private static string FormatMessage(Dependency dependency, ViolationType violationType) {
-            var message = violationType == ViolationType.Warning ? dependency.QuestionableMessage() : dependency.IllegalMessage();
+        private static string FormatMessage(Dependency dependency, DependencyCheckResult violationType) {
+            var message = 
+                  violationType == DependencyCheckResult.Ok ? ""
+                : violationType == DependencyCheckResult.Questionable ? dependency.QuestionableMessage() 
+                : dependency.IllegalMessage();
             if (dependency.Source != null) {
                 var sb = new StringBuilder(message);
                 sb.Append(" (probably at ").Append(dependency.Source);

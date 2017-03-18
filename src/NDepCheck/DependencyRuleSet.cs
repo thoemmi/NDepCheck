@@ -150,7 +150,7 @@ namespace NDepCheck {
                         } else {
                             string[] args = line.Substring(1).Trim().Split(' ', '\t');
 
-                            int exitCode = globalContext.Run(args);
+                            int exitCode = globalContext.Run(args, options);
 
                             if (exitCode != 0) {
                                 textIsOk = false;

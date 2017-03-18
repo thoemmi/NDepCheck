@@ -20,7 +20,9 @@ namespace NDepCheck.MSBuild {
 
         public void WriteViolation(RuleViolation ruleViolation) {
             switch (ruleViolation.ViolationType) {
-                case ViolationType.Warning:
+                case DependencyCheckResult.Ok:
+                    break;
+                case DependencyCheckResult.Questionable:
                     _log.LogWarning(
                         null,
                         null,
@@ -32,7 +34,7 @@ namespace NDepCheck.MSBuild {
                         ruleViolation.Dependency.EndColumn,
                         ruleViolation.Dependency.QuestionableMessage());
                     break;
-                case ViolationType.Error:
+                case DependencyCheckResult.Bad:
                     _log.LogError(
                         null,
                         null,

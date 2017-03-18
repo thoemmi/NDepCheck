@@ -13,8 +13,8 @@ namespace NDepCheck {
         private readonly Dependency[] _dependencies;
 
         private List<RuleViolation> _violations;
-        private int _warningCt;
-        private int _errorCt;
+        private int _questionableCt;
+        private int _badCt;
 
         public InputContext([NotNull]string filename, [NotNull]Dependency[] dependencies) {
             _filename = filename;
@@ -54,6 +54,8 @@ namespace NDepCheck {
                                 if (!success) {
                                     result = 3;
                                 }
+                            } else {
+                                Log.WriteInfo("No rule groups found for " + _filename + " - no dependency checking is done");
                             }
                         } catch (FileNotFoundException ex) {
                             checkedGroups = null;
@@ -90,11 +92,13 @@ namespace NDepCheck {
         public void Add(RuleViolation ruleViolation) {
             _violations.Add(ruleViolation);
             switch (ruleViolation.ViolationType) {
-                case ViolationType.Warning:
-                    _warningCt++;
+                case DependencyCheckResult.Ok:
                     break;
-                case ViolationType.Error:
-                    _errorCt++;
+                case DependencyCheckResult.Questionable:
+                    _questionableCt++;
+                    break;
+                case DependencyCheckResult.Bad:
+                    _badCt++;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(ruleViolation), "Internal error - unknown ViolationType " + ruleViolation.ViolationType);
@@ -105,9 +109,9 @@ namespace NDepCheck {
 
         public string Filename => _filename;
 
-        public int ErrorCount => _errorCt;
+        public int ErrorCount => _badCt;
 
-        public int WarningCount => _warningCt;
+        public int WarningCount => _questionableCt;
 
         public IEnumerable<Dependency> Dependencies => _dependencies;
     }

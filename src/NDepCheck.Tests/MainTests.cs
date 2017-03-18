@@ -177,7 +177,7 @@ NDepCheck:Tests ---> **
         private Dependency NewDependency(string usingA, string usingN, string usingC, string usedA, string usedN,
             string usedC) {
             return new Dependency(Item.New(ITEMTYPE, usingA, usingN, usingC), Item.New(ITEMTYPE, usedA, usedN, usedC),
-                null, 0, 0, 0, 0);
+                null, 0, 0, 0, 0, ct: 1);
         }
 
         [TestMethod]
@@ -511,13 +511,13 @@ NDepCheck:Tests ---> **
             string outFile = Path.GetTempFileName() + "OUT.dip";
             using (TextWriter tw = new StreamWriter(inFile)) {
                 tw.Write($@"AB A B
-                AB:a:1 -> 1;0            -> AB:a:1
-                AB:a:1 -> 2;1;example123 -> AB:a:2
-                AB:a:2 -> 3;0            -> AB:a:1
-                AB:a:2 -> 4;0            -> AB:a:2
-                AB:a:2 -> 5;1            -> AB:b:
-                AB:b:  -> 6;0            -> AB:a:1
-                AB:b:  -> 7;0            -> AB:a:2");
+                AB:a:1 => 1;0;0            => AB:a:1
+                AB:a:1 => 2;1;0;example123 => AB:a:2
+                AB:a:2 => 3;0;0            => AB:a:1
+                AB:a:2 => 4;0;0            => AB:a:2
+                AB:a:2 => 5;1;0            => AB:b:
+                AB:b:  => 6;0;0            => AB:a:1
+                AB:b:  => 7;0;0            => AB:a:2");
             }
 
             using (TextWriter tw = new StreamWriter(ndFile)) {
@@ -536,9 +536,9 @@ NDepCheck:Tests ---> **
             using (var sw = new StreamReader(outFile)) {
                 var o = sw.ReadToEnd();
 
-                Assert.IsTrue(o.Contains("AB:_a_: -> 10;1; -> AB:_a_:"));
-                Assert.IsTrue(o.Contains("AB:_a_: -> 5;1; -> AB:_b_:"));
-                Assert.IsTrue(o.Contains("AB:_b_: -> 13;0; -> AB:_a_:"));
+                Assert.IsTrue(o.Contains("AB:_a_: => 10;1;0; => AB:_a_:"));
+                Assert.IsTrue(o.Contains("AB:_a_: => 5;1;0; => AB:_b_:"));
+                Assert.IsTrue(o.Contains("AB:_b_: => 13;0;0; => AB:_a_:"));
             }
         }
 
@@ -549,13 +549,13 @@ NDepCheck:Tests ---> **
             string outFile = Path.GetTempFileName() + "OUT.dip";
             using (TextWriter tw = new StreamWriter(inFile)) {
                 tw.Write($@"AB A B
-                AB:a:1 -> 1;0            -> AB:a:1
-                AB:a:1 -> 2;1;example123 -> AB:a:2
-                AB:a:2 -> 3;0            -> AB:a:1
-                AB:a:2 -> 4;0            -> AB:a:2
-                AB:a:2 -> 5;1            -> AB:b:
-                AB:b:  -> 6;0            -> AB:a:1
-                AB:b:  -> 7;0            -> AB:a:2");
+                AB:a:1 => 1;0;0            => AB:a:1
+                AB:a:1 => 2;1;0;example123 => AB:a:2
+                AB:a:2 => 3;0;0            => AB:a:1
+                AB:a:2 => 4;0;0            => AB:a:2
+                AB:a:2 => 5;1;0            => AB:b:
+                AB:b:  => 6;0;0            => AB:a:1
+                AB:b:  => 7;0;0            => AB:a:2");
             }
 
             using (TextWriter tw = new StreamWriter(ndFile)) {
@@ -574,9 +574,9 @@ NDepCheck:Tests ---> **
             using (var sw = new StreamReader(outFile)) {
                 var o = sw.ReadToEnd();
 
-                Assert.IsTrue(o.Contains("AB:_a_: -> 10;1;example123 -> AB:_a_:"));
-                Assert.IsTrue(o.Contains("AB:_a_: -> 5;1; -> AB:_b_:"));
-                Assert.IsTrue(o.Contains("AB:_b_: -> 13;0; -> AB:_a_:"));
+                Assert.IsTrue(o.Contains("AB:_a_: => 10;1;0;example123 => AB:_a_:"));
+                Assert.IsTrue(o.Contains("AB:_a_: => 5;1;0; => AB:_b_:"));
+                Assert.IsTrue(o.Contains("AB:_b_: => 13;0;0; => AB:_a_:"));
             }
         }
     }

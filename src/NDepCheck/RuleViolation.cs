@@ -7,18 +7,13 @@ namespace NDepCheck {
             get;
         }
 
-        public ViolationType ViolationType {
+        public DependencyCheckResult ViolationType {
             get;
         }
 
-        public RuleViolation([NotNull]Dependency dependency, ViolationType violationType) {
+        public RuleViolation([NotNull]Dependency dependency, DependencyCheckResult violationType) {
             Dependency = dependency;
             ViolationType = violationType;
         }
-    }
-
-    public enum ViolationType {
-        Warning,
-        Error,
     }
 }

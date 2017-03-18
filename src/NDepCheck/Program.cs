@@ -12,17 +12,16 @@ namespace NDepCheck {
     /// All static methods may run in parallel.
     /// </remarks>
     public class Program {
-        private const string VERSION = "V.3.0c";
+        private const string VERSION = "V.3.1";
 
         ////private class ThreadLoopData_ {
         ////    public CheckerContext Context { get; set; }
         ////    public int MaxErrorCode { get; set; }
         ////}
 
-        public int Run(string[] args) {
+        public int Run(string[] args, Options options) {
             Log.SetLevel(Log.Level.Standard);
 
-            Options options = new Options();
             GlobalContext state = new GlobalContext(this);
 
             if (args.Length == 0) {
@@ -42,7 +41,7 @@ namespace NDepCheck {
                     } else if (Options.ArgMatches(arg, '@')) {
                         // -@ &      Do read options from file
                         string filename = Options.ExtractOptionValue(args, ref i);
-                        result = RunFrom(filename);
+                        result = RunFrom(filename, options);
 
                         // @ file is also an input file - and if there are no input files in @, the error will come up there.
                         options.InputFilesSpecified = true;
@@ -91,7 +90,7 @@ namespace NDepCheck {
                         // -l &      Set file location with reader defined by file extension
                         CreateInputOption(args, ref i, null, options, readOnlyItems: true);
                     } else if (Options.ArgMatches(arg, 'm')) {
-                        // -m $      Do graph transformation $ (after lazy reading; after lazy depcheck; and lazy dep->graph run)
+                        // -m $      Do graph transformation $ (after lazy reading; after lazy dependency rule check  and lazy graph reduction)
                         string transformationOption = Options.ExtractOptionValue(args, ref i);
                         state.ReadAll(options).ReduceGraph(options, true).TransformGraph(transformationOption);
                     } else if (Options.ArgMatches(arg, 'n')) {
@@ -123,12 +122,12 @@ namespace NDepCheck {
                         // -q        Set option to show unused questionable rules
                         options.ShowUnusedQuestionableRules = true;
                     } else if (Options.ArgMatches(arg, 'r') || Options.ArgMatches(arg, 'g') || Options.ArgMatches(arg, 'c')) {
-                        // -c   $ && Render the test data of renderer $ with options &&
+                        // -c   $ && Render the test data of standard renderer $ with options && (after lazy reading, lazy dep-check and lazy graph reduction run)
                         // -g & $ && Render the test data of renderer $ in assembly & with options &&
-                        // -r & $ && Render with $ in assembly & with options && (after lazy reading and lazy dep->graph run)
+                        // -r & $ && Render with $ in assembly & with options && (after lazy reading, lazy dep-check and lazy graph reduction run)
                         string firstOptionValue = Options.ExtractOptionValue(args, ref i);
                         if (Options.ArgMatches(firstOptionValue, '?')) {
-                            state.ShowAllRenderers();
+                            state.ShowAllRenderersAndTheirHelp();
                         } else {
                             string assemblyName;
                             string rendererClassName;
@@ -157,7 +156,7 @@ namespace NDepCheck {
                                 state.RenderTestDataToFile(options, assemblyName, rendererClassName, rendererArgs);
                             } else {
                                 state.ReadAll(options)
-                                    .ReduceGraph(options, false)
+                                    .ReduceGraph(options, true)
                                     .RenderToFile(options, assemblyName, rendererClassName, rendererArgs);
                             }
                         }
@@ -239,7 +238,7 @@ namespace NDepCheck {
             return result;
         }
 
-        private int RunFrom(string filename) {
+        private int RunFrom(string filename, Options options) {
             int lineNo = 0;
             try {
                 var args = new List<string>();
@@ -271,7 +270,7 @@ namespace NDepCheck {
                 string previousCurrentDirectory = Environment.CurrentDirectory;
                 try {
                     Environment.CurrentDirectory = Path.GetDirectoryName(filename);
-                    return Run(args.ToArray());
+                    return Run(args.ToArray(), options);
                 } finally {
                     Environment.CurrentDirectory = previousCurrentDirectory;
                 }
@@ -325,7 +324,8 @@ Options overview:
     -?        Do write help
     -@ &      Do read options from file
     -b        Ignore all remaining options (""break""); useful in -@ file
-    -c $ &&   Render the test data of renderer $ with options && (after lazy reading and lazy dep->graph run)
+    -c $ &&   -c   $ && Render the test data of standard renderer $ with options && 
+              (after lazy reading, lazy dependency rule check and lazy graph reduction)
     -d &      Set directory search locations for rule files
     -debug    Do start .Net debugger
     -e $ &    Set file location with defined reader $ (currently supported: dip, dll, exe)
@@ -336,12 +336,14 @@ Options overview:
     -j #      Set edge length for graph output
     -k $ &    Set file location with defined reader $ (currently supported: dip, dll, exe)
     -l &      Set file location with reader defined by file extension
-    -m $      Do graph transformation (after lazy reading; after lazy depcheck; and lazy dep->graph run)
+    -m $      Do graph transformation 
+              (after lazy reading, after lazy dependency rule check and lazy graph reduction)
     -n #|all  Set cpu count (currently no-op)
     -o &      Do write xml depcheck output (after lazy reading; after lazy depcheck)
     -p        Do write standard depcheck output (after lazy reading; after lazy depcheck)
     -q        Set option to show unused questionable rules
-    -r & $ &' Render with $ in assembly & with options && (after lazy reading and lazy dep->graph run)
+    -r & $ &' Render with $ in assembly & with options && 
+              (after lazy reading and lazy graph reduction)
     -s &      Set directory tree search location for rule files
     -t &      Set rule file extension (default .dep; specify before -s!)
     -u        Set option to show unused rules
@@ -350,9 +352,7 @@ Options overview:
     -x &&     Set search location for default rule file; or pass default rules via {...}
     -y <type> <type>     Set itemtypes for reductions; type=NAME:KEY1:KEY2:...
     -z        Remove all dependencies and graphs, clear search options (-d, -s, -x)
-    &         If & ends with .dll, .exe, or. dip, or contains *: Remember 
-              reading file - heuristics; should be removed.
-
+    &         If & ends with .dll, .exe, or. dip, or contains *: Input file 
 
 ");
             if (completeHelp) {
@@ -659,7 +659,7 @@ using the wildcardpath syntax):
 
             var program = new Program();
             try {
-                return program.Run(args);
+                return program.Run(args, new Options());
             } catch (FileNotFoundException ex) {
                 Log.WriteWarning(ex.Message);
                 return 4;

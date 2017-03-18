@@ -32,7 +32,7 @@ namespace NDepCheck.Tests {
                 Item i1 = Item.New(simple, "I1");
                 Item i2 = Item.New(simple, "I2");
                 items = new[] { i1, Item.New(simple, "I2") };
-                dependencies = new[] { new Dependency(i1, i1, "Test", 0, 0), new Dependency(i1, i2, "Test", 0, 0) };
+                dependencies = new[] { new Dependency(i1, i1, "Test", 0, 0, 0, 0, ct: 1), new Dependency(i1, i2, "Test", 0, 0, 0, 0, ct: 1) };
             }
 
             public override string GetHelp() {

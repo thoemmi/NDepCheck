@@ -5,6 +5,10 @@ using System.Globalization;
 using JetBrains.Annotations;
 
 namespace NDepCheck {
+    public enum DependencyCheckResult {
+        Ok, Questionable, Bad
+    }
+
     /// <remarks>Class <c>Dependency</c> stores
     /// knowledge about a concrete dependency
     /// (one "using item" uses one "used item").
@@ -16,7 +20,8 @@ namespace NDepCheck {
         private readonly Item _usedItem;
 
         private int _ct;
-        private int _notOkCt;
+        private int _questionableCt;
+        private int _badCt;
         [CanBeNull]
         private string _notOkExampleInfo;
 
@@ -34,11 +39,12 @@ namespace NDepCheck {
         /// <param name="endLine">The end line.</param>
         /// <param name="endColumn">The end column.</param>
         /// <param name="ct"></param>
-        /// <param name="notOkCt"></param>
+        /// <param name="questionableCt"></param>
+        /// <param name="badCt"></param>
         /// <param name="notOkExampleInfo"></param>
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem,
-            string source, int startLine, int startColumn, int endLine = 0, int endColumn = 0,
-            int ct = 1, int notOkCt = 0, [CanBeNull] string notOkExampleInfo = null) {
+            string source, int startLine, int startColumn, int endLine, int endColumn,
+            int ct, int questionableCt = 0, int badCt = 0, [CanBeNull] string notOkExampleInfo = null) {
             if (usingItem == null) {
                 throw new ArgumentNullException(nameof(usingItem));
             }
@@ -54,7 +60,8 @@ namespace NDepCheck {
             EndColumn = endColumn;
 
             _ct = ct;
-            _notOkCt = notOkCt;
+            _questionableCt = questionableCt;
+            _badCt = badCt;
             _notOkExampleInfo = notOkExampleInfo;
         }
 
@@ -74,20 +81,30 @@ namespace NDepCheck {
         /// A guess where the use occurs in the
         /// original source file.
         /// </value>
-        public string Source { get; }
+        public string Source {
+            get;
+        }
 
         /// <summary>
         /// Gets a guess of the line number in the original
         /// source file.
         /// </summary>
         /// <value>The line number.</value>
-        public int StartLine { get; }
+        public int StartLine {
+            get;
+        }
 
-        public int EndLine { get; }
+        public int EndLine {
+            get;
+        }
 
-        public int StartColumn { get; }
+        public int StartColumn {
+            get;
+        }
 
-        public int EndColumn { get; }
+        public int EndColumn {
+            get;
+        }
 
         [NotNull]
         public Item UsingItem => _usingItem;
@@ -97,7 +114,13 @@ namespace NDepCheck {
 
         public int Ct => _ct;
 
-        public int NotOkCt => _notOkCt;
+        public int NotOkCt => _questionableCt + _badCt;
+
+        public int OkCt => _ct - _questionableCt - _badCt;
+
+        public int QuestionableCt => _questionableCt;
+
+        public int BadCt => _badCt;
 
         public string NotOkExampleInfo => _notOkExampleInfo;
 
@@ -126,33 +149,35 @@ namespace NDepCheck {
         public INode UsingNode => _usingItem;
         public INode UsedNode => _usedItem;
 
-        public bool Hidden { get; set; }
+        public bool Hidden {
+            get; set;
+        }
 
         public string GetDotRepresentation(int? stringLengthForIllegalEdges) {
             // TODO: ?? And there should be a flag (in Edge?) "hasNotOkInfo", depending on whether dependency checking was done or not.
             return "\"" + _usingItem.Name + "\" -> \"" + _usedItem.Name + "\" ["
-                       + GetLabel(stringLengthForIllegalEdges)
-                       + GetFontSize()
-                       + GetEdgePenWidthAndWeight()
-                       + GetStyle() + "];";
+                       + GetDotLabel(stringLengthForIllegalEdges)
+                       + GetDotFontSize()
+                       + GetDotEdgePenWidthAndWeight()
+                       + GetDotStyle() + "];";
         }
 
-        private string GetFontSize() {
+        private string GetDotFontSize() {
             return " fontsize=" + (10 + 5 * Math.Round(Math.Log10(Ct)));
         }
 
-        private string GetEdgePenWidthAndWeight() {
+        private string GetDotEdgePenWidthAndWeight() {
             double v = 1 + Math.Round(3 * Math.Log10(Ct));
             return " penwidth=" + v.ToString(CultureInfo.InvariantCulture) + (v < 5 ? " constraint=false" : "");
             //return " penwidth=" + v;
             //return " penwidth=" + v + " weight=" + v;
         }
 
-        private string GetLabel(int? stringLengthForIllegalEdges) {
+        private string GetDotLabel(int? stringLengthForIllegalEdges) {
             return "label=\"" + (stringLengthForIllegalEdges.HasValue && NotOkExampleInfo != null
                                 ? LimitWidth(NotOkExampleInfo, stringLengthForIllegalEdges.Value) + "\\n"
                                 : "") +
-                            " (" + CountsAsString() + ")" +
+                            " (" + Ct + (QuestionableCt + BadCt > 0 ? "(" + QuestionableCt + "?," + BadCt + "!)" : "") + ")" +
                             (_carrysTransitive ? "+" : "") +
                             "\"";
         }
@@ -164,11 +189,7 @@ namespace NDepCheck {
             return s;
         }
 
-        private string CountsAsString() {
-            return (NotOkCt > 0 ? NotOkCt + " bad of " : "") + Ct;
-        }
-
-        private string GetStyle() {
+        private string GetDotStyle() {
             return _onCycle ? " style=bold" : "";
         }
 
@@ -180,26 +201,45 @@ namespace NDepCheck {
             _carrysTransitive = true;
         }
 
-        public string AsStringWithTypes(bool withNotOkExampleInfo) {
-            string notOk = withNotOkExampleInfo && _notOkExampleInfo != null ? $"{_notOkExampleInfo}" : null;
-            return $"{_usingItem.AsStringWithType()} -> {_ct};{_notOkCt};{notOk} -> {_usedItem.AsStringWithType()}";
+        public string AsDipStringWithTypes(bool withNotOkExampleInfo) {
+            string notOkInfo = withNotOkExampleInfo && _notOkExampleInfo != null ? $"{_notOkExampleInfo}" : null;
+            return $"{_usingItem.AsStringWithType()}"
+                 + $" {EdgeConstants.DIP_ARROW} {_ct};{_questionableCt};{_badCt};{notOkInfo} {EdgeConstants.DIP_ARROW} "
+                 + $"{_usedItem.AsStringWithType()}";
         }
 
         public IEdge CreateEdgeFromUsingTo(INode usedNode) {
             // Brutal cast INode --> Item ... I'm not sure about this; but except for TestNode there is no other INode around ____
-            return new Dependency(_usingItem, (Item) usedNode, "associative edge", 0, 0, 0, 0);
+            return new Dependency(_usingItem, (Item) usedNode, "associative edge", 0, 0, 0, 0,0, 1);
         }
 
-        public void MarkOkOrNotOk(bool ok) {
-            if (!ok) {
-                _notOkCt = _ct;
-                _notOkExampleInfo = _notOkExampleInfo ?? UsingItemAsString + " ---?" + UsedItemAsString;
+        public void AddCheckResult(DependencyCheckResult result) {
+            switch (result) {
+                case DependencyCheckResult.Ok:
+                    _ct++;
+                    break;
+                case DependencyCheckResult.Questionable:
+                    _notOkExampleInfo = _notOkExampleInfo ?? UsingItemAsString + " ---?" + UsedItemAsString;
+                    _questionableCt++;
+                    break;
+                case DependencyCheckResult.Bad:
+                    if (_badCt == 0) {
+                        // First bad example
+                        _notOkExampleInfo = UsingItemAsString + " ---?" + UsedItemAsString;
+                    } else {
+                        _notOkExampleInfo = _notOkExampleInfo ?? UsingItemAsString + " ---?" + UsedItemAsString;
+                    }
+                    _badCt++;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(result), result, null);
             }
         }
 
         public void AggregateCounts(Dependency d) {
             _ct += d.Ct;
-            _notOkCt += d.NotOkCt;
+            _questionableCt += d.QuestionableCt;
+            _badCt += d.BadCt;
             _notOkExampleInfo = _notOkExampleInfo ?? d.NotOkExampleInfo;
         }
     }

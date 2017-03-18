@@ -186,7 +186,8 @@ namespace NDepCheck.Rendering {
             IBox toBox = to.DynamicData.InterfaceBox;
             VariableVector toPos = toBox.GetBestConnector(fromPos).WithYOf(fromPos);
             fromPos = fromBox.GetBestConnector(toPos).WithYOf(fromPos);
-            Arrow(fromPos, toPos, 1, color: d.NotOkCt > 0 ? Color.Red : Color.Black, text: prefix + "#=" + d.Ct,
+            Arrow(fromPos, toPos, 1, color: d.NotOkCt > 0 ? Color.Red : 
+                d.QuestionableCt > 0 ? Color.Blue : Color.Black, text: prefix + "#=" + d.Ct,
                 textLocation: -20, textFont: _lineFont, fixingOrder: 2);
 
             toBox.UpperLeft.MinY(fromPos.Y + 5);
@@ -226,8 +227,8 @@ namespace NDepCheck.Rendering {
                 };
         }
 
-        private Dependency FromTo(Item from, Item to, int ct = 1, int notok = 0) {
-            return new Dependency(from, to, "Test", 0, 0, ct: ct, notOkCt: notok);
+        private Dependency FromTo(Item from, Item to, int ct = 1, int questionableCt = 0) {
+            return new Dependency(from, to, "Test", 0, 0, 0, 0, ct: ct, questionableCt: questionableCt);
         }
 
         public override void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString) {

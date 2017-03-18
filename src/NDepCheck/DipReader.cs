@@ -20,7 +20,7 @@ namespace NDepCheck {
         }
 
         protected override IEnumerable<Dependency> ReadDependencies(int depth) {
-            Regex arrow = new Regex(@"\s*->\s*");
+            Regex dipArrow = new Regex($@"\s*{EdgeConstants.DIP_ARROW}\s*");
 
             var result = new List<Dependency>(10000);
             using (var sr = new StreamReader(_filename)) {
@@ -36,11 +36,11 @@ namespace NDepCheck {
                     if (line == "") {
                         continue;
                     }
-                    if (!arrow.IsMatch(line)) {
+                    if (!dipArrow.IsMatch(line)) {
                         string[] parts = line.Split(' ', '\t', ':');
                         RegisterType(parts[0], parts.Skip(1).Select(p => p.Split('.')));
                     } else {
-                        string[] parts = arrow.Split(line);
+                        string[] parts = dipArrow.Split(line);
 
                         if (parts.Length != 3) {
                             WriteError(_filename, lineNo, "Line is not ... -> #;#;... -> ..., but " + parts.Length, line);
@@ -50,17 +50,20 @@ namespace NDepCheck {
                             Item foundUsingItem = GetOrCreateItem(parts[0].Trim(), itemsDictionary);
                             Item foundUsedItem = GetOrCreateItem(parts[2].Trim(), itemsDictionary);
 
-                            string[] properties = parts[1].Split(new[] { ';' }, 3);
-                            int ct, notOkCt;
+                            string[] properties = parts[1].Split(new[] { ';' }, 4);
+                            int ct, questionableCt, badCt;
                             if (!int.TryParse(properties[0], out ct)) {
                                 throw new DipReaderException("Cannot parse count: " + properties[0]);
                             }
-                            if (!int.TryParse(properties[1], out notOkCt)) {
-                                throw new DipReaderException("Cannot parse notOkCount: " + properties[1]);
+                            if (!int.TryParse(properties[1], out questionableCt)) {
+                                throw new DipReaderException("Cannot parse questionableCt: " + properties[1]);
+                            }
+                            if (!int.TryParse(properties[2], out badCt)) {
+                                throw new DipReaderException("Cannot parse badCt: " + properties[2]);
                             }
 
                             var dependency = new Dependency(foundUsingItem, foundUsedItem, _filename, lineNo, 0, lineNo, line.Length, 
-                                ct, notOkCt, properties.Length >= 3 ? properties[2] : null);
+                                ct, questionableCt, badCt, properties.Length >= 4 ? properties[3] : null);
 
                             result.Add(dependency);
                         } catch (DipReaderException ex) {

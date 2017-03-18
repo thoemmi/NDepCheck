@@ -39,7 +39,7 @@ namespace NDepCheck.Tests.OLD {
                 Item i1 = Item.New(simple, "I1");
                 Item i2 = Item.New(simple, "I2");
                 items = new[] { i1, Item.New(simple, "I2") };
-                dependencies = new[] { new Dependency(i1, i1, "Test", 0, 0), new Dependency(i1, i2, "Test", 0, 0) };
+                dependencies = new[] { new Dependency(i1, i1, "Test", 0, 0, 0, 0, ct: 1), new Dependency(i1, i2, "Test", 0, 0, 0,0, ct: 1) };
             }
         }
 
@@ -501,7 +501,7 @@ namespace NDepCheck.Tests.OLD {
             }
 
             private Dependency FromTo(Item from, Item to) {
-                return new Dependency(from, to, "Test", 0, 0);
+                return new Dependency(from, to, "Test", 0, 0, 0,0, ct: 1);
             }
         }
 

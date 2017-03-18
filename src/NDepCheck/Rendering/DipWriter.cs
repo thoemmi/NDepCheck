@@ -7,6 +7,8 @@ namespace NDepCheck.Rendering {
     /// Writer for dependencies ("Edges") in standard "DIP" format
     /// </summary>
     public class DipWriter : IDependencyRenderer {
+
+
         public static void Write(IEnumerable<IEdge> edges, StreamWriter sw, bool withNotOkExampleInfo) {
 
                 var writtenTypes = new HashSet<ItemType>();
@@ -17,7 +19,7 @@ namespace NDepCheck.Rendering {
                     WriteItemType(writtenTypes, e.UsingNode.Type, sw);
                     WriteItemType(writtenTypes, e.UsedNode.Type, sw);
 
-                    sw.WriteLine(e.AsStringWithTypes(withNotOkExampleInfo));
+                    sw.WriteLine(e.AsDipStringWithTypes(withNotOkExampleInfo));
                 }            
         }
 
@@ -87,8 +89,8 @@ namespace NDepCheck.Rendering {
                 };
         }
 
-        private Dependency FromTo(Item from, Item to, int ct = 1, int notok = 0) {
-            return new Dependency(from, to, "Test", 0, 0, ct: ct, notOkCt: notok);
+        private Dependency FromTo(Item from, Item to, int ct = 1, int questionable = 0) {
+            return new Dependency(from, to, "Test", 0, 0, 0, 0, ct: ct, questionableCt: questionable);
         }
 
         public string GetHelp() {

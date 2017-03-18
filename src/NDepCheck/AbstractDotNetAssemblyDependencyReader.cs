@@ -296,9 +296,9 @@ namespace NDepCheck {
             [NotNull]
             private Dependency ToDependency(Item usedItem) {
                 return _sequencePoint == null
-                    ? new Dependency(UsingItem.ToItem(_type), usedItem, null, 0, 0, 0, 0)
+                    ? new Dependency(UsingItem.ToItem(_type), usedItem, null, 0, 0, 0, 0, 1)
                     : new Dependency(UsingItem.ToItem(_type), usedItem,
-                        _sequencePoint.Document.Url, _sequencePoint.StartLine, _sequencePoint.StartColumn, _sequencePoint.EndLine, _sequencePoint.EndColumn);
+                        _sequencePoint.Document.Url, _sequencePoint.StartLine, _sequencePoint.StartColumn, _sequencePoint.EndLine, _sequencePoint.EndColumn, 1);
             }
 
             [NotNull]

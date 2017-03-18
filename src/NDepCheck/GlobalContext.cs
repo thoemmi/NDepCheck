@@ -175,7 +175,7 @@ namespace NDepCheck {
                     return new UnhideCycles<Dependency>(args.Skip(1));
                 case "ah":
                     return new AssociativeHull<Dependency>(args.Skip(1),
-                        (e1, e2) => new Dependency(e1.UsingItem, e2.UsedItem, e2.Source, e2.StartLine, e2.StartColumn, e2.EndLine, e2.EndColumn)
+                        (e1, e2) => new Dependency(e1.UsingItem, e2.UsedItem, e2.Source, e2.StartLine, e2.StartColumn, e2.EndLine, e2.EndColumn, 1)
                         );
                 default:
                     throw new ArgumentException("Graph transformation '" + args[0] + "' not implemented");
@@ -261,9 +261,8 @@ namespace NDepCheck {
             return result;
         }
 
-
-        public int Run(string[] args) {
-            return _program.Run(args);
+        public int Run(string[] args, Options options) {
+            return _program.Run(args, options);
         }
 
         public DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel(Options options, string dependencyFilename,
@@ -294,7 +293,7 @@ namespace NDepCheck {
             return null; // if nothing found
         }
 
-        public void ShowAllRenderers() {
+        public void ShowAllRenderersAndTheirHelp() {
             foreach (var t in GetType().Assembly
                                        .GetExportedTypes()
                                        .Where(t => typeof(IDependencyRenderer).IsAssignableFrom(t)

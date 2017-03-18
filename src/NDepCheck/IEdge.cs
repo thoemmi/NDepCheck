@@ -1,6 +1,10 @@
 using JetBrains.Annotations;
 
 namespace NDepCheck {
+    public static class EdgeConstants {
+        public const string DIP_ARROW = "=>";
+    }
+
     public interface IWithCt {
         int Ct { get; }
         int NotOkCt { get; }
@@ -17,6 +21,6 @@ namespace NDepCheck {
         void MarkOnCycle();
         void MarkCarrysTransitive();
         [NotNull]
-        string AsStringWithTypes(bool withNotOkExampleInfo);
+        string AsDipStringWithTypes(bool withNotOkExampleInfo);
     }
 }

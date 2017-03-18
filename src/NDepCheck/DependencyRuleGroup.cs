@@ -151,30 +151,31 @@ namespace NDepCheck {
         }
 
         private bool Check([CanBeNull] IInputContext inputContext, [NotNull] Dependency d) {
-            bool ok = false;
+            DependencyCheckResult result;
+
             if (_forbidden.Any(r => r.IsMatch(d))) {
-                goto DONE;
+                // First we check for forbidden - "if it is forbidden, it IS forbidden"
+                result = DependencyCheckResult.Bad;
+            } else if (_allowed.Any(r => r.IsMatch(d))) {
+                // Then, we check for allwoed - "if it is not forbidden and allowed, then it IS allowed (and never questionable)"
+                result = DependencyCheckResult.Ok;
+            } else if (_questionable.Any(r => r.IsMatch(d))) {
+                // Last, we check for questionable - "if it is questionable, it is questionable"
+                result = DependencyCheckResult.Questionable;
+            } else {
+                // If no rule matches, it is bad!
+                result = DependencyCheckResult.Bad;
             }
-            if (_allowed.Any(r => r.IsMatch(d))) {
-                ok = true;
-                goto DONE;
-            }
-            if (_questionable.Any(r => r.IsMatch(d))) {
-                var ruleViolation = new RuleViolation(d, ViolationType.Warning);
-                //Log.WriteViolation(ruleViolation);
-                inputContext?.Add(ruleViolation);
-                ok = true;
-            }
-            DONE:
-            if (!ok) {
-                var ruleViolation = new RuleViolation(d, ViolationType.Error);
+
+            if (result != DependencyCheckResult.Ok) {
+                var ruleViolation = new RuleViolation(d, result);
                 //Log.WriteViolation(ruleViolation);
                 inputContext?.Add(ruleViolation);
             }
 
-            d.MarkOkOrNotOk(ok);
+            d.AddCheckResult(result);
 
-            return ok;
+            return result != DependencyCheckResult.Bad;
         }
 
         [NotNull]
