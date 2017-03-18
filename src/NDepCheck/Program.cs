@@ -7,6 +7,10 @@ using System.Text.RegularExpressions;
 using Gibraltar;
 
 namespace NDepCheck {
+    // TODO: The following things should be more beautiful:
+    // TODO: - The option "commands" are not orthogonal - e.g., there is no separate command for "CheckViolations"
+    // TODO: - Output is arbitrary - "Analyzing" writes a time (in ms) afterwards, reducing does not (even though it is often slower)
+
     /// <remarks>
     /// Main class of NDepCheck.
     /// All static methods may run in parallel.

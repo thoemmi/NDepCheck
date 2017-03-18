@@ -219,15 +219,15 @@ namespace NDepCheck {
                     _ct++;
                     break;
                 case DependencyCheckResult.Questionable:
-                    _notOkExampleInfo = _notOkExampleInfo ?? UsingItemAsString + " ---?" + UsedItemAsString;
+                    _notOkExampleInfo = _notOkExampleInfo ?? UsingItemAsString + " ---? " + UsedItemAsString;
                     _questionableCt++;
                     break;
                 case DependencyCheckResult.Bad:
                     if (_badCt == 0) {
-                        // First bad example
-                        _notOkExampleInfo = UsingItemAsString + " ---?" + UsedItemAsString;
+                        // First bad example overrides any previous bad example
+                        _notOkExampleInfo = UsingItemAsString + " ---! " + UsedItemAsString;
                     } else {
-                        _notOkExampleInfo = _notOkExampleInfo ?? UsingItemAsString + " ---?" + UsedItemAsString;
+                        _notOkExampleInfo = _notOkExampleInfo ?? UsingItemAsString + " ---! " + UsedItemAsString;
                     }
                     _badCt++;
                     break;

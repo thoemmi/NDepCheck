@@ -110,8 +110,13 @@ namespace NDepCheck.Rendering {
             foreach (var i in items.Where(i => !IsMI(i)).OrderBy(GetOrder)) {
                 string name = GetName(i);
 
+                string countText = "\n<" + Sum(dependencies, d => d.UsingItem.Equals(i) && !d.UsedItem.Equals(i))
+                                   + " =" + Sum(dependencies, d => d.UsingItem.Equals(i) && d.UsedItem.Equals(i))
+                                   + " >" + Sum(dependencies, d => !d.UsingItem.Equals(i) && d.UsedItem.Equals(i));
+                // TODO: Add option and computation to split this into .,?,!
+
                 pos.AlsoNamed(name);
-                IBox mainBox = Box(pos, boxAnchoring: BoxAnchoring.LowerLeft, text: name, borderWidth: 3, boxColor: Color.Coral,
+                IBox mainBox = Box(pos, boxAnchoring: BoxAnchoring.LowerLeft, text: name + countText, borderWidth: 3, boxColor: Color.Coral,
                                    textFont: _boxFont, drawingOrder: 1, fixingOrder: 4);
                 //mainBox.Diagonal.Y.Set(100);
                 mainBox.Diagonal.Y.Max(30 + dependencies.Count(d => Equals(d.UsingItem, i)) * DELTA_Y_MAIN); // Help for solving
@@ -180,6 +185,11 @@ namespace NDepCheck.Rendering {
                     // mainBox.Diagonal.MinY(fromPos.Y - mainBox.LowerLeft.Y); ==> NO SOLUTION; therefore explcit computation above
                 }
             }
+        }
+
+        private string Sum(IEnumerable<Dependency> dependencies, Func<Dependency, bool> filter) {
+            var ct = dependencies.Where(d => filter(d)).Sum(d => d.Ct);
+            return ct >= 1000000 ? ct / 1000 + "M" : ct >= 1000 ? ct / 1000 + "K" : "" + ct;
         }
 
         private void ArrowToInterfaceBox(IBox fromBox, VariableVector fromPos, Item to, Dependency d, string prefix) {
