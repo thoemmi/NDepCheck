@@ -120,7 +120,7 @@ namespace NDepCheck.Rendering {
                                    textFont: _boxFont, drawingOrder: 1, fixingOrder: 4);
                 //mainBox.Diagonal.Y.Set(100);
                 //mainBox.Diagonal.Y.Min(40);
-                mainBox.Diagonal.Y.Max(40 + dependencies.Count(d => Equals(d.UsingItem, i)) * DELTA_Y_MAIN); // Help for solving
+                mainBox.Diagonal.Y.Max(60 + dependencies.Count(d => Equals(d.UsingItem, i)) * DELTA_Y_MAIN); // Help for solving
                 mainBox.Diagonal.Y.Min(10 + dependencies.Count(d => Equals(d.UsingItem, i)) * DELTA_Y_MAIN); // Help for solving
                 i.DynamicData.MainBox = mainBox;
                 i.DynamicData.MainBoxNextFreePos = mainBox.LowerLeft;
@@ -199,7 +199,7 @@ namespace NDepCheck.Rendering {
             fromPos = fromBox.GetBestConnector(toPos).WithYOf(fromPos);
             Arrow(fromPos, toPos, 1, color: d.NotOkCt > 0 ? Color.Red :
                 d.QuestionableCt > 0 ? Color.Blue : Color.Black, text: prefix + "#=" + d.Ct,
-                textLocation: -20, textFont: _lineFont, fixingOrder: 2);
+                textLocation: -20, textFont: _lineFont, fixingOrder: 2, edgeInfo: d.NotOkExampleInfo);
 
             toBox.UpperLeft.MinY(fromPos.Y + 5);
             toBox.LowerLeft.MaxY(fromPos.Y - toBox.TextBox.Y);
@@ -239,7 +239,7 @@ namespace NDepCheck.Rendering {
         }
 
         private Dependency FromTo(Item from, Item to, int ct = 1, int questionableCt = 0) {
-            return new Dependency(from, to, "Test", 0, 0, 0, 0, ct: ct, questionableCt: questionableCt);
+            return new Dependency(from, to, "Test", 0, 0, 0, 0, ct: ct, questionableCt: questionableCt, notOkExampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
         public override void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString) {

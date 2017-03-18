@@ -158,7 +158,7 @@ namespace NDepCheck.Rendering {
             private readonly float _borderWidth;
             private readonly string[] _text;
             private readonly BoxTextPlacement _boxTextPlacement;
-            private readonly string _tooltip;
+            private readonly string _edgeInfo;
             private readonly Color _textColor;
             private readonly double _textPadding;
             private readonly Font _textFont;
@@ -181,7 +181,7 @@ namespace NDepCheck.Rendering {
                              BoxAnchoring boxAnchoring, Color color,
                               double borderWidth, Color borderColor, int connectors, string text,
                               BoxTextPlacement boxTextPlacement, Font textFont, Color textColor, double textPadding,
-                              string tooltip, int creationOrder, int drawingOrder, int fixingOrder,
+                              string edgeInfo, int creationOrder, int drawingOrder, int fixingOrder,
                               string name) : base(creationOrder, drawingOrder, fixingOrder) {
                 _solver = solver;
                 Name = name ?? anchor.Name;
@@ -325,7 +325,7 @@ namespace NDepCheck.Rendering {
                 _borderWidth = (float) borderWidth;
                 _text = text.Split('\r', '\n');
                 _boxTextPlacement = boxTextPlacement;
-                _tooltip = tooltip;
+                _edgeInfo = edgeInfo;
                 _textColor = textColor;
                 _textPadding = textPadding;
                 _textFont = textFont;
@@ -451,9 +451,6 @@ namespace NDepCheck.Rendering {
                 for (int i = 0; i < _text.Length; i++, textLocation -= lineHeight) {
                     DrawText(graphics, _text[i], _textFont, _textColor, textLocation, m);
                 }
-
-
-                // Get all these elements somehow and then do a "draw tooltip" ...
             }
 
             private void FillBox(Graphics graphics, SolidBrush b, float x, float y, float width, float height) {
@@ -540,13 +537,13 @@ namespace NDepCheck.Rendering {
             private readonly Color _textColor;
             private readonly float _textPadding;
             private readonly double _textLocation;
-            private readonly string _tooltip;
+            private readonly string _edgeInfo;
             private readonly string _name;
 
             internal ArrowBuilder(SimpleConstraintSolver solver, string name,
                               VariableVector tail, VariableVector head, double width, Color color,
                         string text, LineTextPlacement lineTextPlacement, Font textFont, Color textColor, double textPadding, double textLocation,
-                        string tooltip, int creationOrder, int drawingOrder, int fixingOrder) : base(creationOrder, drawingOrder, fixingOrder) {
+                        string edgeInfo, int creationOrder, int drawingOrder, int fixingOrder) : base(creationOrder, drawingOrder, fixingOrder) {
                 // Simple stuff
                 _name = name;
                 _width = width;
@@ -557,7 +554,7 @@ namespace NDepCheck.Rendering {
                 _textColor = textColor;
                 _textPadding = (float) textPadding;
                 _textLocation = textLocation;
-                _tooltip = tooltip;
+                _edgeInfo = edgeInfo;
 
                 // Vectors
                 _tail = tail.AlsoNamed(_name + ".T");
@@ -654,7 +651,24 @@ namespace NDepCheck.Rendering {
                 textTransform.Translate(0, -textBoxF.GetY() / 2);
                 DrawText(graphics, _text, _textFont, _textColor, textCenterF, textTransform);
 
-                // TODO: Get all these elements somehow and then do a "draw tooltip" ...
+                if (!string.IsNullOrWhiteSpace(_edgeInfo)) {
+                    WriteToolTipHtml(graphics, htmlForTooltips, _edgeInfo, tailPoint, headPoint);
+                }
+            }
+
+            private static void WriteToolTipHtml(Graphics graphics, StringBuilder htmlForTooltips, string edgeInfo, PointF tailPoint, PointF headPoint) {
+                PointF[] tailAndHead = { tailPoint, headPoint };
+                graphics.Transform.TransformPoints(tailAndHead);
+                int tx = (int) tailAndHead[0].X;
+                int ty = (int) tailAndHead[0].Y;
+                int hx = (int) tailAndHead[1].X;
+                int hy = (int) tailAndHead[1].Y;
+                edgeInfo = edgeInfo.Replace('\'', ' ').Replace('\"', ' ');
+                const int d = 4;
+
+                htmlForTooltips.AppendLine(
+                    $@"<area shape=""poly"" coords=""{tx},{ty - d},{tx},{ty + d},{hx},{hy + d},{hx},{hy - d}"" " +
+                    $@"href=""default.htm"" onClick=""alert('{edgeInfo}');return false""/>");
             }
         }
 
@@ -682,14 +696,14 @@ namespace NDepCheck.Rendering {
             BoxAnchoring boxAnchoring = BoxAnchoring.Center, [CanBeNull] Color? boxColor = null /*White*/, int connectors = 8,
             double borderWidth = 0, [CanBeNull] Color? borderColor = null /*Black*/,
             BoxTextPlacement boxTextPlacement = BoxTextPlacement.Center, [CanBeNull] Font textFont = null /*___*/, [CanBeNull] Color? textColor = null /*Black*/,
-            double textPadding = 0.2, [CanBeNull] string tooltip = null, int drawingOrder = 0, int fixingOrder = 100, [CanBeNull] string name = null) {
+            double textPadding = 0.2, [CanBeNull] string edgeInfo = null, int drawingOrder = 0, int fixingOrder = 100, [CanBeNull] string name = null) {
             if (anchor == null) {
                 throw new ArgumentNullException(nameof(anchor));
             }
 
             var boxBuilder = new BoxBuilder(_solver, anchor, new VariableVector((text ?? anchor.Name) + "./", _solver).Restrict(minDiagonal),
                 boxAnchoring, boxColor ?? Color.White, borderWidth, borderColor ?? Color.Black, connectors,
-                text ?? "", boxTextPlacement, textFont ?? _defaultTextFont, textColor ?? Color.Black, textPadding, tooltip ?? "",
+                text ?? "", boxTextPlacement, textFont ?? _defaultTextFont, textColor ?? Color.Black, textPadding, edgeInfo ?? "",
                 _builders.Count, drawingOrder, fixingOrder, name);
 
             _builders.Add(boxBuilder);
@@ -698,7 +712,7 @@ namespace NDepCheck.Rendering {
 
         public IArrow Arrow([NotNull] VariableVector tail, [NotNull] VariableVector head, double width, [CanBeNull] Color? color = null /*Black*/,
             [CanBeNull] string text = null, LineTextPlacement placement = LineTextPlacement.Center, [CanBeNull] Font textFont = null /*___*/,
-            [CanBeNull] Color? textColor = null /*Black*/, double textPadding = 0.2, double textLocation = 0.5, [CanBeNull] string tooltip = null,
+            [CanBeNull] Color? textColor = null /*Black*/, double textPadding = 0.2, double textLocation = 0.5, [CanBeNull] string edgeInfo = null,
             int drawingOrder = 0, int fixingOrder = 200, string name = null) {
             if (tail == null) {
                 throw new ArgumentNullException(nameof(tail));
@@ -708,17 +722,17 @@ namespace NDepCheck.Rendering {
             }
             var arrowBuilder = new ArrowBuilder(_solver, name ?? $"${tail.Name}->{head.Name}['{text}']", tail, head, width, color ?? Color.Black,
                 text ?? "", placement, textFont ?? _defaultTextFont, textColor ?? Color.Black,
-                textPadding, textLocation, tooltip, _builders.Count, drawingOrder, fixingOrder);
+                textPadding, textLocation, edgeInfo, _builders.Count, drawingOrder, fixingOrder);
             _builders.Add(arrowBuilder);
             return arrowBuilder;
         }
 
-        private Bitmap Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, Size size) {
+        private Bitmap Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, Size size, StringBuilder htmlForTooltips) {
             PlaceObjects(items, dependencies);
 
             // I tried it with SVG - but SVG support in .Net seems to be non-existent.
             // The library at https://github.com/managed-commons/SvgNet is a nice attempet (a 2015 resurrection of a 2003 attempt),
-            // but it closes off the SVG objects in such a way that adding tooltips ("mouse hoverings") seems very hard.
+            // but it closes off the SVG objects in such a way that adding edgeInfos ("mouse hoverings") seems very hard.
             // If someone knows more about SVG than I (who doesn't know a bit ...), feel free to try it with SVG!
 
             var bitmap = new Bitmap(size.Width, size.Height);
@@ -764,8 +778,6 @@ namespace NDepCheck.Rendering {
                     throw new InvalidOperationException(errors + _solver.GetState(20000));
                 }
 
-                StringBuilder htmlForTooltips = new StringBuilder();
-
                 // 5% margin on all sides
                 const float BORDER = 0.1f;
                 double scaleX = size.Width * (1 - 2 * BORDER) / (maxX - minX);
@@ -780,12 +792,6 @@ namespace NDepCheck.Rendering {
                     b.Draw(graphics, htmlForTooltips);
                 }
             }
-
-            //var f = new Font(FontFamily.GenericSansSerif, 10);
-            //DrawText(graphics, "0|0", f, Color.Blue, C(0, 0), TextPlacing.Center);
-            //DrawText(graphics, "C|0", f, Color.Blue, C(100, 0), TextPlacing.Center);
-            //DrawText(graphics, "O|C", f, Color.Blue, C(0, 100), TextPlacing.Center);
-            //DrawText(graphics, "C|C", f, Color.Blue, C(100, 100), TextPlacing.Center);
             return bitmap;
         }
 
@@ -821,7 +827,8 @@ namespace NDepCheck.Rendering {
             }
 
             Size size = new Size(width, height);
-            Bitmap bitMap = Render(items, dependencies, size);
+            StringBuilder htmlForTooltips = new StringBuilder();
+            Bitmap bitMap = Render(items, dependencies, size, htmlForTooltips);
 
             string gifFilename = Path.ChangeExtension(baseFilename, ".gif");
 
@@ -835,20 +842,19 @@ namespace NDepCheck.Rendering {
                 tw.WriteLine($@"
 <html>
 <body>
-<img src = ""{ Path.GetFileName(gifFilename)}"" width = ""{size.Width}"" height = ""{size.Height}"" usemap = ""#map"" alt = ""Webdesign Group"">
+<img src=""{ Path.GetFileName(gifFilename)}"" width=""{size.Width}"" height=""{size.Height}"" usemap=""#map""/>
+<map name=""map"">
+{htmlForTooltips}
+</map>
 </ body>
 </ html>
-"); // ______{htmlForTooltips}___
+");
             }
-
-
-            //< area shape = "poly" coords = "x1,y1,x2,y2,..,xn,yn" title = ".." >< area shape = "poly" coords = "2,5,32,1,33,22,51,36,33,57" title = "The Americas" >< area shape = "poly" coords = "57,14,70,2,111,3,114,23,97,34" title = "Eurasia" >< area shape = "poly" coords = "57,14,86,29,73,52,66,49,50,28" title = "Africa" >< area shape = "poly" coords = "105,40,108,49,122,52,127,41,117,34" title = "Australia" >
-
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, Stream stream) {
             Size size = new Size(1000, 1000);
-            Bitmap bitMap = Render(items, dependencies, size);
+            Bitmap bitMap = Render(items, dependencies, size, null);
 
             bitMap.Save(stream, ImageFormat.Gif);
         }

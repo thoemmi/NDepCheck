@@ -85,7 +85,7 @@ namespace NDepCheck.Rendering.OLD {
             private readonly double _borderWidth;
             private readonly string _text;
             private readonly BoxTextPlacement _boxTextPlacement;
-            private readonly string _tooltip;
+            private readonly string _edgeInfo;
             private readonly Color _textColor;
             private readonly double _textPadding;
             private readonly Font _textFont;
@@ -96,7 +96,7 @@ namespace NDepCheck.Rendering.OLD {
             public BoxBuilder(Vector center, BoundedVector diagonal, Color color,
                               double borderWidth, Color borderColor, int connectors, string text,
                               BoxTextPlacement boxTextPlacement, Font textFont, Color textColor, double textPadding, 
-                              string tooltip, int drawingOrder) : base(drawingOrder) {
+                              string edgeInfo, int drawingOrder) : base(drawingOrder) {
                 _center = center;
                 _textBox = new BoundedVector($"${_center.Name}['{text}']");
                 _diagonal = diagonal.Restrict(_textBox);
@@ -104,7 +104,7 @@ namespace NDepCheck.Rendering.OLD {
                 _borderWidth = borderWidth;
                 _text = text;
                 _boxTextPlacement = boxTextPlacement;
-                _tooltip = tooltip;
+                _edgeInfo = edgeInfo;
                 _textColor = textColor;
                 _textPadding = textPadding;
                 _textFont = textFont;
@@ -198,7 +198,7 @@ namespace NDepCheck.Rendering.OLD {
 
                 DrawText(graphics, _text, _textFont, _textColor, _center, m);
 
-                // Get all these elements somehow and then do a "draw tooltip" ...
+                // Get all these elements somehow and then do a "draw edgeInfo" ...
             }
 
             private void FillBox(Graphics graphics, SolidBrush b, float x, float y, float width, float height) {
@@ -274,11 +274,11 @@ namespace NDepCheck.Rendering.OLD {
             private readonly Color _textColor;
             private readonly float _textPadding;
             private readonly double _textLocation;
-            private readonly string _tooltip;
+            private readonly string _edgeInfo;
 
             internal ArrowBuilder(Vector tail, Vector head, double width, Color color,
                         string text, LineTextPlacement lineTextPlacement, Font textFont, Color textColor, double textPadding, double textLocation,
-                        string tooltip, int drawingOrder) : base(drawingOrder) {
+                        string edgeInfo, int drawingOrder) : base(drawingOrder) {
                 _tail = tail;
                 _head = head;
                 _width = width;
@@ -290,7 +290,7 @@ namespace NDepCheck.Rendering.OLD {
                 _textColor = textColor;
                 _textPadding = (float)textPadding;
                 _textLocation = textLocation;
-                _tooltip = tooltip;
+                _edgeInfo = edgeInfo;
             }
 
             public Vector Tail => _tail;
@@ -366,7 +366,7 @@ namespace NDepCheck.Rendering.OLD {
                 textTransform.Translate(0, -_textBox.GetY() / 2);
                 DrawText(graphics, _text, _textFont, _textColor, textCenter, textTransform);
 
-                // TODO: Get all these elements somehow and then do a "draw tooltip" ...
+                // TODO: Get all these elements somehow and then do a "draw edgeInfo" ...
             }
         }
 
@@ -394,7 +394,7 @@ namespace NDepCheck.Rendering.OLD {
             [CanBeNull] Color? boxColor = null /*White*/, int connectors = 8,
             double borderWidth = 0, [CanBeNull] Color? borderColor = null /*Black*/,
             BoxTextPlacement boxTextPlacement = BoxTextPlacement.Center, [CanBeNull] Font textFont = null /*___*/, [CanBeNull] Color? textColor = null /*Black*/,
-            double textPadding = 0.2, [CanBeNull] string tooltip = null, int drawingOrder = 0) {
+            double textPadding = 0.2, [CanBeNull] string edgeInfo = null, int drawingOrder = 0) {
             if (anchor == null) {
                 throw new ArgumentNullException(nameof(anchor));
             }
@@ -435,14 +435,14 @@ namespace NDepCheck.Rendering.OLD {
 
             var boxBuilder = new BoxBuilder(center, diagonal, boxColor ?? Color.White,
                 borderWidth, borderColor ?? Color.Black, connectors,
-                text ?? "", boxTextPlacement, textFont ?? _defaultTextFont, textColor ?? Color.Black, textPadding, tooltip ?? "", drawingOrder);
+                text ?? "", boxTextPlacement, textFont ?? _defaultTextFont, textColor ?? Color.Black, textPadding, edgeInfo ?? "", drawingOrder);
             _builders.Add(boxBuilder);
             return boxBuilder;
         }
 
         public IArrow Arrow([NotNull] Vector tail, [NotNull] Vector head, double width, [CanBeNull] Color? color = null /*Black*/,
             [CanBeNull] string text = null, LineTextPlacement placement = LineTextPlacement.Center, [CanBeNull] Font textFont = null /*___*/,
-            [CanBeNull] Color? textColor = null /*Black*/, double textPadding = 0.2, double textLocation = 0.5, [CanBeNull] string tooltip = null, 
+            [CanBeNull] Color? textColor = null /*Black*/, double textPadding = 0.2, double textLocation = 0.5, [CanBeNull] string edgeInfo = null, 
             int drawingOrder = 0) {
             if (tail == null) {
                 throw new ArgumentNullException(nameof(tail));
@@ -452,7 +452,7 @@ namespace NDepCheck.Rendering.OLD {
             }
             var arrowBuilder = new ArrowBuilder(tail, head, width, color ?? Color.Black,
                 text ?? "", placement, textFont ?? _defaultTextFont, textColor ?? Color.Black,
-                textPadding, textLocation, tooltip, drawingOrder);
+                textPadding, textLocation, edgeInfo, drawingOrder);
             _builders.Add(arrowBuilder);
             return arrowBuilder;
         }
@@ -462,7 +462,7 @@ namespace NDepCheck.Rendering.OLD {
 
             // I tried it with SVG - but SVG support in .Net seems to be non-existent.
             // The library at https://github.com/managed-commons/SvgNet is a nice attempet (a 2015 resurrection of a 2003 attempt),
-            // but it closes off the SVG objects in such a way that adding tooltips ("mouse hoverings") seems very hard.
+            // but it closes off the SVG objects in such a way that adding edgeInfos ("mouse hoverings") seems very hard.
             // If someone knows more about SVG than I (who doesn't know a bit ...), feel free to try it with SVG!
 
             var bitmap = new Bitmap(size.Width, size.Height);
