@@ -176,7 +176,7 @@ namespace NDepCheck.Rendering {
         }
 
         private Dependency FromTo(Item from, Item to, int ct = 1, int questionableCt = 0) {
-            return new Dependency(from, to, "Test", 0, 0, 0, 0, ct: ct, questionableCt: questionableCt, notOkExampleInfo: questionableCt > 0 ? from + "==>" + to : "");
+            return new Dependency(from, to, "Test", 0, 0, 0, 0, "Use", ct: ct, questionableCt: questionableCt, notOkExampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
         public override void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString) {

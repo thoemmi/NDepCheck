@@ -38,12 +38,13 @@ namespace NDepCheck {
         /// <param name="startColumn">The start column.</param>
         /// <param name="endLine">The end line.</param>
         /// <param name="endColumn">The end column.</param>
+        /// <param name="usage"></param>
         /// <param name="ct"></param>
         /// <param name="questionableCt"></param>
         /// <param name="badCt"></param>
         /// <param name="notOkExampleInfo"></param>
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem,
-            string source, int startLine, int startColumn, int endLine, int endColumn,
+            string source, int startLine, int startColumn, int endLine, int endColumn, string usage,
             int ct, int questionableCt = 0, int badCt = 0, [CanBeNull] string notOkExampleInfo = null) {
             if (usingItem == null) {
                 throw new ArgumentNullException(nameof(usingItem));
@@ -58,7 +59,7 @@ namespace NDepCheck {
             StartColumn = startColumn;
             EndLine = endLine;
             EndColumn = endColumn;
-
+            Usage = usage;
             _ct = ct;
             _questionableCt = questionableCt;
             _badCt = badCt;
@@ -104,6 +105,10 @@ namespace NDepCheck {
 
         public int EndColumn {
             get;
+        }
+
+        public string Usage {
+            get; private set;
         }
 
         [NotNull]
@@ -204,14 +209,14 @@ namespace NDepCheck {
         public string AsDipStringWithTypes(bool withNotOkExampleInfo) {
             string notOkInfo = withNotOkExampleInfo && _notOkExampleInfo != null ? $"{_notOkExampleInfo}" : null;
             return $"{_usingItem.AsStringWithType()}"
-                 + $" {EdgeConstants.DIP_ARROW} {_ct};{_questionableCt};{_badCt};{notOkInfo} {EdgeConstants.DIP_ARROW} "
+                 + $" {EdgeConstants.DIP_ARROW} {Usage};{_ct};{_questionableCt};{_badCt};{notOkInfo} {EdgeConstants.DIP_ARROW} "
                  + $"{_usedItem.AsStringWithType()}";
         }
 
-        public IEdge CreateEdgeFromUsingTo(INode usedNode) {
-            // Brutal cast INode --> Item ... I'm not sure about this; but except for TestNode there is no other INode around ____
-            return new Dependency(_usingItem, (Item) usedNode, "associative edge", 0, 0, 0, 0,0, 1);
-        }
+        ////public IEdge CreateEdgeFromUsingTo(INode usedNode) {
+        ////    // Brutal cast INode --> Item ... I'm not sure about this; but except for TestNode there is no other INode around ____
+        ////    return new Dependency(_usingItem, (Item) usedNode, "associative edge", 0, 0, 0, 0, 0, 1);
+        ////}
 
         public void AddCheckResult(DependencyCheckResult result) {
             switch (result) {
@@ -237,6 +242,11 @@ namespace NDepCheck {
         }
 
         public void AggregateCounts(Dependency d) {
+            if (string.IsNullOrWhiteSpace(Usage)) {
+                Usage = d.Usage;
+            } else if (!string.IsNullOrWhiteSpace(d.Usage) && !Usage.Contains(d.Usage)) {
+                Usage += "+" + d.Usage;
+            }
             _ct += d.Ct;
             _questionableCt += d.QuestionableCt;
             _badCt += d.BadCt;

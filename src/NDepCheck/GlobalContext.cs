@@ -177,7 +177,7 @@ namespace NDepCheck {
                     return new UnhideCycles<Dependency>(args.Skip(1));
                 case "ah":
                     return new AssociativeHull<Dependency>(args.Skip(1),
-                        (e1, e2) => new Dependency(e1.UsingItem, e2.UsedItem, e2.Source, e2.StartLine, e2.StartColumn, e2.EndLine, e2.EndColumn, 1)
+                        (e1, e2) => new Dependency(e1.UsingItem, e2.UsedItem, e2.Source, e2.StartLine, e2.StartColumn, e2.EndLine, e2.EndColumn, "Hull", 1)
                         );
                 default:
                     throw new ArgumentException("Graph transformation '" + args[0] + "' not implemented");

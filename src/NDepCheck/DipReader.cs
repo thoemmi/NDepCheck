@@ -50,20 +50,21 @@ namespace NDepCheck {
                             Item foundUsingItem = GetOrCreateItem(parts[0].Trim(), itemsDictionary);
                             Item foundUsedItem = GetOrCreateItem(parts[2].Trim(), itemsDictionary);
 
-                            string[] properties = parts[1].Split(new[] { ';' }, 4);
+                            string[] properties = parts[1].Split(new[] { ';' }, 5);
                             int ct, questionableCt, badCt;
-                            if (!int.TryParse(properties[0], out ct)) {
-                                throw new DipReaderException("Cannot parse count: " + properties[0]);
+                            var usage = properties[0];
+                            if (!int.TryParse(properties[1], out ct)) {
+                                throw new DipReaderException("Cannot parse count: " + properties[1]);
                             }
-                            if (!int.TryParse(properties[1], out questionableCt)) {
-                                throw new DipReaderException("Cannot parse questionableCt: " + properties[1]);
+                            if (!int.TryParse(properties[2], out questionableCt)) {
+                                throw new DipReaderException("Cannot parse questionableCt: " + properties[2]);
                             }
-                            if (!int.TryParse(properties[2], out badCt)) {
-                                throw new DipReaderException("Cannot parse badCt: " + properties[2]);
+                            if (!int.TryParse(properties[3], out badCt)) {
+                                throw new DipReaderException("Cannot parse badCt: " + properties[3]);
                             }
 
-                            var dependency = new Dependency(foundUsingItem, foundUsedItem, _filename, lineNo, 0, lineNo, line.Length, 
-                                ct, questionableCt, badCt, properties.Length >= 4 ? properties[3] : null);
+                            var dependency = new Dependency(foundUsingItem, foundUsedItem, _filename, lineNo, 0, lineNo, line.Length,
+                                usage, ct, questionableCt, badCt, properties.Length >= 5 ? properties[4] : null);
 
                             result.Add(dependency);
                         } catch (DipReaderException ex) {

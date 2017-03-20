@@ -40,7 +40,7 @@ namespace NDepCheck.TestRenderer {
             ItemType simple = ItemType.New("Simple:Name");
             Item[] localItems = Enumerable.Range(0, 5).Select(i => Item.New(simple, "Item " + i)).ToArray();
             dependencies = localItems.SelectMany(
-                    (from, i) => localItems.Skip(i).Select(to => new Dependency(from, to, "Test", i, 0, 0, 0, ct: 10 * i))).ToArray();
+                    (from, i) => localItems.Skip(i).Select(to => new Dependency(from, to, "Test", i, 0, 0, 0, "Test", ct: 10 * i))).ToArray();
             items = localItems;
         }
 

@@ -16,7 +16,7 @@ namespace NDepCheck {
     /// All static methods may run in parallel.
     /// </remarks>
     public class Program {
-        private const string VERSION = "V.3.1";
+        private const string VERSION = "V.3.2";
 
         ////private class ThreadLoopData_ {
         ////    public CheckerContext Context { get; set; }

@@ -254,14 +254,29 @@ namespace NDepCheck {
             return result;
         }
 
+        protected enum Usage {
+            DeclareField,
+            DeclareEvent,
+            DeclareParameter,
+            DeclareReturnType,
+            Declaration,
+            DeclareVariable,
+            Use,
+            Inherit,
+            Implement,
+            UseAsGenericArgument,
+        }
+
         protected sealed class RawDependency {
             private readonly ItemType _type;
             public readonly RawUsingItem UsingItem;
             public readonly RawUsedItem UsedItem;
+            public readonly Usage Usage;
             private readonly SequencePoint _sequencePoint;
             private readonly AbstractDotNetAssemblyDependencyReader _reader;
 
-            public RawDependency([NotNull] ItemType type, [NotNull] RawUsingItem usingItem, [NotNull] RawUsedItem usedItem, [CanBeNull] SequencePoint sequencePoint, Options options) {
+            public RawDependency([NotNull] ItemType type, [NotNull] RawUsingItem usingItem, [NotNull] RawUsedItem usedItem, 
+                Usage usage, [CanBeNull] SequencePoint sequencePoint, Options options) {
                 if (usingItem == null) {
                     throw new ArgumentNullException(nameof(usingItem));
                 }
@@ -270,6 +285,7 @@ namespace NDepCheck {
                 }
                 UsingItem = usingItem;
                 UsedItem = usedItem;
+                Usage = usage;
                 _reader = options.GetDotNetAssemblyReaderFor(UsedItem.AssemblyName);
                 _sequencePoint = sequencePoint;
                 _type = type;
@@ -296,9 +312,10 @@ namespace NDepCheck {
             [NotNull]
             private Dependency ToDependency(Item usedItem) {
                 return _sequencePoint == null
-                    ? new Dependency(UsingItem.ToItem(_type), usedItem, null, 0, 0, 0, 0, 1)
+                    ? new Dependency(UsingItem.ToItem(_type), usedItem, null, 0, 0, 0, 0, Usage.ToString(), 1)
                     : new Dependency(UsingItem.ToItem(_type), usedItem,
-                        _sequencePoint.Document.Url, _sequencePoint.StartLine, _sequencePoint.StartColumn, _sequencePoint.EndLine, _sequencePoint.EndColumn, 1);
+                        _sequencePoint.Document.Url, _sequencePoint.StartLine, _sequencePoint.StartColumn, 
+                        _sequencePoint.EndLine, _sequencePoint.EndColumn, Usage.ToString(), 1);
             }
 
             [NotNull]

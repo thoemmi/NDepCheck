@@ -20,6 +20,7 @@ namespace NDepCheck {
         }
 
         private IEnumerable<RawDependency> GetOrReadRawDependencies(int depth) {
+            // ReSharper disable once ConvertIfStatementToNullCoalescingExpression
             if (_rawDependencies == null) {
                 _rawDependencies = ReadRawDependencies(depth).ToArray();
                 //_tempAll.AddRange(_rawDependencies); // -------------------------------------------
@@ -76,13 +77,13 @@ namespace NDepCheck {
                 }
 
                 if (type.BaseType != null && !IsLinked(type.BaseType, type.DeclaringType)) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, type.BaseType, sequencePoint: null)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, type.BaseType, usage: Usage.Inherit, sequencePoint: null)) {
                         yield return dependency_;
                     }
                 }
 
                 foreach (TypeReference interfaceRef in type.Interfaces) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, interfaceRef, sequencePoint: null)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, interfaceRef, usage: Usage.Implement, sequencePoint: null)) {
                         yield return dependency_;
                     }
                 }
@@ -92,7 +93,7 @@ namespace NDepCheck {
                     ItemTail fieldCustomSections = GetCustomSections(field.CustomAttributes, typeCustomSections);
                     // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, field.Name, "", fieldCustomSections), null, null);
 
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, field.FieldType, sequencePoint: null)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, field.FieldType, usage: Usage.DeclareField, sequencePoint: null)) {
                         yield return dependency_;
                     }
                     //}
@@ -102,7 +103,7 @@ namespace NDepCheck {
                     ItemTail eventCustomSections = GetCustomSections(@event.CustomAttributes, typeCustomSections);
                     // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, @event.Name, "", eventCustomSections), null, null);
 
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, @event.EventType, sequencePoint: null)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, @event.EventType, usage: Usage.DeclareEvent, sequencePoint: null)) {
                         yield return dependency_;
                     }
                 }
@@ -144,13 +145,13 @@ namespace NDepCheck {
             }
 
             foreach (ParameterDefinition parameter in property.Parameters) {
-                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, parameter.ParameterType, sequencePoint: null)) {
+                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, parameter.ParameterType, usage: Usage.DeclareParameter, sequencePoint: null)) {
                     yield return dependency_;
                 }
             }
 
             if (property.PropertyType != null) {
-                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, property.PropertyType, sequencePoint: null)) {
+                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, property.PropertyType, usage: Usage.DeclareReturnType, sequencePoint: null)) {
                     yield return dependency_;
                 }
             }
@@ -167,12 +168,10 @@ namespace NDepCheck {
         private IEnumerable<RawDependency> AnalyzeCustomAttributes([NotNull] RawUsingItem usingItem, 
                                                                    [NotNull] IEnumerable<CustomAttribute> customAttributes) {
             foreach (CustomAttribute customAttribute in customAttributes) {
-                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, customAttribute.Constructor.DeclaringType,
-                    sequencePoint: null)) {
+                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, customAttribute.Constructor.DeclaringType, usage: Usage.Declaration, sequencePoint: null)) {
                     yield return dependency_;
                 }
-                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, customAttribute.Constructor.DeclaringType,
-                    memberName: customAttribute.Constructor.Name, sequencePoint: null)) {
+                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, customAttribute.Constructor.DeclaringType, usage: Usage.Use, sequencePoint: null, memberName: customAttribute.Constructor.Name)) {
                     yield return dependency_;
                 }
             }
@@ -198,13 +197,13 @@ namespace NDepCheck {
             }
 
             foreach (ParameterDefinition parameter in method.Parameters) {
-                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, parameter.ParameterType, sequencePoint: null)) {
+                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, parameter.ParameterType, usage: Usage.DeclareParameter, sequencePoint: null)) {
                     yield return dependency_;
                 }
             }
 
             if (method.ReturnType != null && !IsLinked(method.ReturnType, method.DeclaringType.DeclaringType)) {
-                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, method.ReturnType, sequencePoint: null)) {
+                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, method.ReturnType, usage: Usage.DeclareReturnType, sequencePoint: null)) {
                     yield return dependency_;
                 }
             }
@@ -212,7 +211,7 @@ namespace NDepCheck {
             if (method.HasBody) {
                 foreach (var variable in method.Body.Variables) {
                     if (!IsLinked(variable.VariableType, method.DeclaringType.DeclaringType)) {
-                        foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, variable.VariableType, sequencePoint: null)) {
+                        foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, variable.VariableType, usage: Usage.DeclareVariable, sequencePoint: null)) {
                             yield return dependency_;
                         }
                     }
@@ -240,12 +239,11 @@ namespace NDepCheck {
                 // werden ...
                 // WIESO SOLL DAS SO SEIN? - bitte um Erklärung! ==> SIehe nun temporäre Änderung an IsLinked - IST DAS OK?
                 if (methodReference != null && !IsLinked(methodReference.DeclaringType, owner)) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, methodReference.DeclaringType,
-                        memberName: methodReference.Name, sequencePoint: sequencePoint)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, methodReference.DeclaringType, usage: Usage.Use, sequencePoint: sequencePoint, memberName: methodReference.Name)) {
                         yield return dependency_;
                     }
                     foreach (var dependency_ in
-                            CreateTypeAndMethodDependencies(usingItem, methodReference.ReturnType, sequencePoint: sequencePoint)) {
+                            CreateTypeAndMethodDependencies(usingItem, methodReference.ReturnType, usage: Usage.Use, sequencePoint: sequencePoint)) {
                         yield return dependency_;
                     }
                 }
@@ -254,11 +252,10 @@ namespace NDepCheck {
                 var field = instruction.Operand as FieldDefinition;
                 if (field != null && !IsLinked(field.DeclaringType, owner)) {
                     foreach (var dependency_ in
-                        CreateTypeAndMethodDependencies(usingItem, field.FieldType, sequencePoint: sequencePoint)) {
+                        CreateTypeAndMethodDependencies(usingItem, field.FieldType, usage: Usage.Use, sequencePoint: sequencePoint)) {
                         yield return dependency_;
                     }
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, field.DeclaringType,
-                        memberName: field.Name, sequencePoint: sequencePoint)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, field.DeclaringType, usage: Usage.Use, sequencePoint: sequencePoint, memberName: field.Name)) {
                         yield return dependency_;
                     }
                 }
@@ -267,11 +264,10 @@ namespace NDepCheck {
 
                 var property = instruction.Operand as PropertyDefinition;
                 if (property != null && !IsLinked(property.DeclaringType, owner)) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, property.PropertyType, sequencePoint: sequencePoint)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, property.PropertyType, usage: Usage.Use, sequencePoint: sequencePoint)) {
                         yield return dependency_;
                     }
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, property.DeclaringType,
-                                                                        memberName: property.Name, sequencePoint: sequencePoint)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, property.DeclaringType, usage: Usage.Use, sequencePoint: sequencePoint, memberName: property.Name)) {
                         yield return dependency_;
                     }
                 }
@@ -280,7 +276,7 @@ namespace NDepCheck {
             {
                 var typeref = instruction.Operand as TypeReference;
                 if (typeref != null && !IsLinked(typeref, owner)) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, typeref, sequencePoint: sequencePoint)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, typeref, usage: Usage.Use, sequencePoint: sequencePoint)) {
                         yield return dependency_;
                     }
                 }
@@ -325,9 +321,8 @@ namespace NDepCheck {
         /// Create a single dependency to the calledType or (if passed) calledType+method.
         /// Create additional dependencies for each generic parameter type of calledType.
         /// </summary>
-        private IEnumerable<RawDependency> CreateTypeAndMethodDependencies([NotNull] RawUsingItem usingItem, [NotNull] TypeReference usedType,
-                                                               [CanBeNull] SequencePoint sequencePoint, [NotNull] string memberName = "",
-                                                               [NotNull] string memberSort = "") {
+        private IEnumerable<RawDependency> CreateTypeAndMethodDependencies([NotNull] RawUsingItem usingItem, [NotNull] TypeReference usedType, 
+            Usage usage, [CanBeNull] SequencePoint sequencePoint, [NotNull] string memberName = "") {
             if (usedType is TypeSpecification) {
                 // E.g. the reference type System.Int32&, which is used for out parameters.
                 // or an arraytype?!?
@@ -338,14 +333,16 @@ namespace NDepCheck {
                 // untangle the usage of an actual (non-type-parameter) type's member
                 // to get a useful Dependency_ for the user.
 
-                RawUsedItem usedItem = GetFullnameItem(usedType, memberName, memberSort);
-                yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, usedItem, sequencePoint, _options);
+                RawUsedItem usedItem = GetFullnameItem(usedType, memberName, "");
+                yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, usedItem, 
+                    usage, sequencePoint, _options);
             }
 
             var genericInstanceType = usedType as GenericInstanceType;
             if (genericInstanceType != null) {
                 foreach (TypeReference genericArgument in genericInstanceType.GenericArguments) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, genericArgument, sequencePoint: sequencePoint)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, genericArgument, 
+                                                                                usage: Usage.UseAsGenericArgument, sequencePoint: sequencePoint)) {
                         yield return dependency_;
                     }
                 }

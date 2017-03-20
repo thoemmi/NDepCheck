@@ -88,7 +88,7 @@ namespace NDepCheck.Rendering {
         }
 
         private Dependency FromTo(Item from, Item to, int ct = 1, int questionable = 0) {
-            return new Dependency(from, to, "Test", 0, 0, 0, 0, ct: ct, questionableCt: questionable);
+            return new Dependency(from, to, "Test", 0, 0, 0, 0, "Use", ct: ct, questionableCt: questionable);
         }
 
         public string GetHelp() {
