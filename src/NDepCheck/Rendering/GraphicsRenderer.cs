@@ -833,12 +833,16 @@ namespace NDepCheck.Rendering {
             string gifFilename = Path.ChangeExtension(baseFilename, ".gif");
 
             try {
+                Log.WriteInfo("Writing " + gifFilename);
                 bitMap.Save(gifFilename, ImageFormat.Gif);
             } catch (Exception ex) {
                 Log.WriteError("Cannot save GIF image to file " + gifFilename + ". Make sure the file can be written. Internal message: " + ex.Message);
                 throw;
             }
-            using (var tw = new StreamWriter(Path.ChangeExtension(baseFilename, ".html"))) {
+
+            string htmlFileName = Path.ChangeExtension(baseFilename, ".html");
+            using (var tw = new StreamWriter(htmlFileName)) {
+                Log.WriteInfo("Writing " + htmlFileName);
                 tw.WriteLine($@"
 <html>
 <body>

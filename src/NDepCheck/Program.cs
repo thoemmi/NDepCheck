@@ -34,9 +34,8 @@ namespace NDepCheck {
 
             int result = 0;
 
-            int i;
             try {
-                for (i = 0; i < args.Length; i++) {
+                for (int i = 0; i < args.Length; i++) {
                     string arg = args[i];
 
                     if (Options.ArgMatches(arg, '?')) {
@@ -668,7 +667,10 @@ using the wildcardpath syntax):
                 Log.WriteWarning(ex.Message);
                 return 4;
             } catch (Exception ex) {
-                Log.WriteError("Exception occurred: " + ex.Message);
+                Log.WriteError("Exception occurred: " + ex.Message + " (" + ex.GetType().FullName + ")");
+                if (Log.IsChattyEnabled) {
+                    Console.WriteLine(ex);
+                }
                 return 5;
             } finally {
                 DateTime end = DateTime.Now;

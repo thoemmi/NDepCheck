@@ -96,6 +96,7 @@
     <Compile Include="ConstraintSolving\Range.cs" />
     <Compile Include="ConstraintSolving\SimpleConstraintSolver.cs" />
     <Compile Include="DipReaderFactory.cs" />
+    <Compile Include="Rendering\MatrixGraphicsRenderer.cs" />
     <Compile Include="Rendering\ModulesAndInterfacesRenderer.cs" />
     <Compile Include="Rendering\AbstractGenericMatrixRenderer.cs" />
     <Compile Include="ConstraintSolving\Constraints.cs" />

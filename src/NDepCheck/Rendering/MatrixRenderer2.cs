@@ -54,7 +54,10 @@ namespace NDepCheck.Rendering {
             int? labelWidthOrNull;
             bool withNotOkCt;
             ParseOptions(argsAsString, out filename, out labelWidthOrNull, out withNotOkCt);
-            using (var sw = new StreamWriter(Path.ChangeExtension(filename, ".csv"))) {
+
+            string csvFilename = Path.ChangeExtension(filename, ".csv");
+            Log.WriteInfo("Writing " + csvFilename);
+            using (var sw = new StreamWriter(csvFilename)) {
                 Render(items, dependencies, sw, labelWidthOrNull, withNotOkCt);
             }
         }

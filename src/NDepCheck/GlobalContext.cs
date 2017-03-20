@@ -114,7 +114,9 @@ namespace NDepCheck {
                         result = checkResult;
                     }
                 } else {
-                    allCheckedGroups.UnionWith(checkedGroups);
+                    if (checkedGroups != null) {
+                        allCheckedGroups.UnionWith(checkedGroups);
+                    }
                 }
             }
 

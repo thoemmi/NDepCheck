@@ -7,20 +7,17 @@ namespace NDepCheck.Rendering {
     /// Writer for dependencies ("Edges") in standard "DIP" format
     /// </summary>
     public class DipWriter : IDependencyRenderer {
-
-
         public static void Write(IEnumerable<IEdge> edges, StreamWriter sw, bool withNotOkExampleInfo) {
+            var writtenTypes = new HashSet<ItemType>();
 
-                var writtenTypes = new HashSet<ItemType>();
+            sw.WriteLine("// Written " + DateTime.Now);
+            sw.WriteLine();
+            foreach (var e in edges) {
+                WriteItemType(writtenTypes, e.UsingNode.Type, sw);
+                WriteItemType(writtenTypes, e.UsedNode.Type, sw);
 
-                sw.WriteLine("// Written " + DateTime.Now);
-                sw.WriteLine();
-                foreach (var e in edges) {
-                    WriteItemType(writtenTypes, e.UsingNode.Type, sw);
-                    WriteItemType(writtenTypes, e.UsedNode.Type, sw);
-
-                    sw.WriteLine(e.AsDipStringWithTypes(withNotOkExampleInfo));
-                }            
+                sw.WriteLine(e.AsDipStringWithTypes(withNotOkExampleInfo));
+            }
         }
 
         private static void WriteItemType(HashSet<ItemType> writtenTypes, ItemType itemType, StreamWriter sw) {
@@ -61,6 +58,7 @@ namespace NDepCheck.Rendering {
             }
             string filename = Path.ChangeExtension(baseFilename, ".dip");
 
+            Log.WriteInfo("Writing " + filename);
             using (var sw = new StreamWriter(filename)) {
                 Write(dependencies, sw, withNotOkExampleInfo);
             }
@@ -81,7 +79,7 @@ namespace NDepCheck.Rendering {
             var kah_mi = Item.New(amo, "Kah.MI:KAH:0301".Split(':'));
             var vkf = Item.New(amo, "VKF:VKF:0400".Split(':'));
 
-            items = new[] { bac, kst, kah, kah_mi, vkf};
+            items = new[] { bac, kst, kah, kah_mi, vkf };
 
             dependencies = new[] {
                     FromTo(kst, bac), FromTo(kst, kah_mi), FromTo(kah, bac), FromTo(vkf, bac), FromTo(vkf, kst), FromTo(vkf, kah, 3), FromTo(vkf, kah_mi, 2, 2)
@@ -94,7 +92,7 @@ namespace NDepCheck.Rendering {
         }
 
         public string GetHelp() {
-            return 
+            return
 @"  Writes dependencies to .dip files, which can be read in by NDepCheck.
   This is very helpful for building pipelines that process dependencies
   for different purposes.
