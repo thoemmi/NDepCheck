@@ -10,7 +10,7 @@ namespace NDepCheck.Rendering {
             SomeRendererTestData.CreateSomeTestItems(out items, out dependencies);
         }
 
-        public string GetHelp() {
+        public string GetHelp(bool detailedHelp) {
             return
 @"  Write a textual matrix representation of dependencies.
 
@@ -22,12 +22,10 @@ namespace NDepCheck.Rendering {
     }
 
     public abstract class AbstractGenericMatrixRenderer : IRenderer<INode, IEdge> {
-        protected static void ParseOptions(string argsAsString, out string filename, out int? labelWidthOrNull,
-            out bool withNotOkCt) {
-            string fn = null;
+        protected static void ParseOptions(string argsAsString, out int? labelWidthOrNull, out bool withNotOkCt) {
             int lw = -1;
             bool wct = false;
-            Options.Parse(argsAsString, arg => fn = arg, new OptionAction('l', (args, j) => {
+            Options.Parse(argsAsString, new OptionAction('l', (args, j) => {
                 if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out lw)) {
                     Options.Throw("No valid length after l", args);
                 }
@@ -35,20 +33,13 @@ namespace NDepCheck.Rendering {
             }), new OptionAction('n', (args, j) => {
                 wct = true;
                 return j;
-            }), new OptionAction('o', (args, j) => {
-                fn = Options.ExtractOptionValue(args, ref j);
-                return j;
             }));
-            if (fn == null) {
-                Options.Throw("No filename set with option o", argsAsString);
-            }
-            filename = fn;
             labelWidthOrNull = lw < 0 ? default(int?) : lw;
             withNotOkCt = wct;
         }
 
         private static List<INode> MoreOrLessTopologicalSort(IEnumerable<IEdge> edges) {
-            Dictionary<INode, List<IEdge>> nodesAndEdges = DependencyGrapher.Edges2NodesAndEdgesList(edges);
+            Dictionary<INode, List<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdgesList(edges);
 
             var result = new List<INode>();
             var resultAsHashSet = new HashSet<INode>();
@@ -127,9 +118,9 @@ namespace NDepCheck.Rendering {
         }
 
         protected void Render(IEnumerable<INode> nodes, IEnumerable<IEdge> edges,
-            [NotNull] StreamWriter output, int? labelWidthOrNull, bool withNotOkCt) {
+            [NotNull] TextWriter output, int? labelWidthOrNull, bool withNotOkCt) {
             IEnumerable<IEdge> visibleEdges = edges.Where(e => !e.Hidden);
-            IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges = DependencyGrapher.Edges2NodesAndEdges(visibleEdges);
+            IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdges(visibleEdges);
 
             var innerAndReachableOuterNodes =
                 new HashSet<INode>(nodesAndEdges.Where(n => n.Key.IsInner).SelectMany(kvp => new[] { kvp.Key }.Concat(kvp.Value.Select(e => e.UsedNode))));
@@ -155,11 +146,11 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        protected abstract void Write(StreamWriter output, int colWidth, int labelWidth, IEnumerable<INode> topNodes,
+        protected abstract void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<INode> topNodes,
             string nodeFormat, Dictionary<INode, int> node2Index, bool withNotOkCt, IEnumerable<INode> sortedNodes,
             string ctFormat, IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges);
 
-        public abstract void Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString);
+        public abstract void Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString, string baseFilename);
 
         public abstract void RenderToStreamForUnitTests(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, Stream stream);
 

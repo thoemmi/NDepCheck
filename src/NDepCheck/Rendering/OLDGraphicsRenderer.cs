@@ -539,11 +539,10 @@ namespace NDepCheck.Rendering.OLD {
             return bitMap;
         }
 
-        public void Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, string argsAsString) {
+        public void Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, string argsAsString, string baseFilename) {
             Size size = GetSize();
             Bitmap bitMap = Render(items, dependencies, size);
 
-            string baseFilename = argsAsString;
             string gifFilename = Path.ChangeExtension(baseFilename, ".gif");
             bitMap.Save(gifFilename, ImageFormat.Gif);
             using (var tw = new StreamWriter(Path.ChangeExtension(baseFilename, ".html"))) {
@@ -576,7 +575,7 @@ namespace NDepCheck.Rendering.OLD {
 
         public abstract void CreateSomeTestItems(out IEnumerable<TItem> items, out IEnumerable<TDependency> dependencies);
 
-        public string GetHelp() {
+        public string GetHelp(bool detailedHelp) {
             return $"{GetType().Name} usage: -___ outputfilename";
         }
     }

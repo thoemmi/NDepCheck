@@ -1,12 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Gibraltar;
 using JetBrains.Annotations;
 
 namespace NDepCheck {
     public class ItemType : IEquatable<ItemType> {
-        internal static readonly ItemType SIMPLE = new ItemType("SIMPLE", new[] { "Data " }, new[] { "" });
+        private static readonly Dictionary<string, ItemType> _allTypes = new Dictionary<string, ItemType>();
+
+        internal static readonly ItemType SIMPLE = New("SIMPLE", new[] { "Data " }, new[] { "" });
 
         [NotNull]
         public readonly string Name;
@@ -18,6 +20,9 @@ namespace NDepCheck {
         public readonly string[] SubKeys;
 
         private ItemType([NotNull]string name, [NotNull]string[] keys, [NotNull]string[] subKeys) {
+            if (keys.Length == 0) {
+                throw new ArgumentException("keys.Length must be > 0", nameof(keys));
+            }
             if (keys.Length != subKeys.Length) {
                 throw new ArgumentException("keys.Length != subKeys.Length", nameof(subKeys));
             }
@@ -31,7 +36,11 @@ namespace NDepCheck {
         }
 
         public static ItemType New([NotNull] string name, [NotNull, ItemNotNull] string[] keys, [NotNull, ItemNotNull] string[] subKeys) {
-            return Intern<ItemType>.GetReference(new ItemType(name, keys, subKeys));
+            ItemType result;
+            if (!_allTypes.TryGetValue(name, out result)) {
+                _allTypes.Add(name, result = new ItemType(name, keys, subKeys));
+            }
+            return result;
         }
 
         public int Length => Keys.Length;
@@ -78,10 +87,13 @@ namespace NDepCheck {
 
         public static ItemType New(string format) {
             string[] parts = format.Split(':');
-            string name = parts[0];
-            string[] keys = parts.Skip(1).ToArray();
-            string[] subKeys = Enumerable.Repeat("", keys.Length).ToArray();
-            return New(name, keys, subKeys);
+            return New(parts[0], parts.Skip(1).ToArray());
+        }
+
+        public static ItemType New(string name, IEnumerable<string> keysAndSubKeys) {
+            string[] keys = keysAndSubKeys.Select(k => k.Split('.')[0]).ToArray();
+            string[] subkeys = keysAndSubKeys.Select(k => k.Split('.').Length > 1 ? "." + k.Split('.')[1] : "").ToArray();
+            return New(name, keys, subkeys);
         }
     }
 }

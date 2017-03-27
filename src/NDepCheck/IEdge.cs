@@ -21,6 +21,6 @@ namespace NDepCheck {
         void MarkOnCycle();
         void MarkCarrysTransitive();
         [NotNull]
-        string AsDipStringWithTypes(bool withNotOkExampleInfo);
+        string AsDipStringWithTypes(bool withExampleInfo);
     }
 }

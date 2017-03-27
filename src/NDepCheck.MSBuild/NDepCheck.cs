@@ -50,19 +50,20 @@ namespace NDepCheck.MSBuild {
 
             //Directories?.Select(GetDirectoryOptionFromTaskItem).AddTo(options.Directories);
 
-            ExitCode = new Program().Run(args.ToArray(), new Options());
+            var program = new Program();
+            ExitCode = program.Run(args.ToArray(), new GlobalContext());
 
             return ExitCode == 0;
         }
 
-        private static DirectoryOption GetDirectoryOptionFromTaskItem(ITaskItem taskItem) {
-            bool recursive = true;
-            bool tmp;
-            var recursiveString = taskItem.GetMetadata("Recursive");
-            if (!string.IsNullOrEmpty(recursiveString) && Boolean.TryParse(recursiveString, out tmp)) {
-                recursive = tmp;
-            }
-            return new DirectoryOption(taskItem.ItemSpec, recursive, ".dep");
-        }
+        //private static DirectoryOption GetDirectoryOptionFromTaskItem(ITaskItem taskItem) {
+        //    bool recursive = true;
+        //    bool tmp;
+        //    var recursiveString = taskItem.GetMetadata("Recursive");
+        //    if (!string.IsNullOrEmpty(recursiveString) && Boolean.TryParse(recursiveString, out tmp)) {
+        //        recursive = tmp;
+        //    }
+        //    return new DirectoryOption(taskItem.ItemSpec, recursive, ".dep");
+        //}
     }
 }

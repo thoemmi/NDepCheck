@@ -5,6 +5,11 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Gibraltar;
+using JetBrains.Annotations;
+using NDepCheck.Reading;
+using NDepCheck.Rendering;
+using NDepCheck.Transforming;
+using NDepCheck.Transforming.ViolationChecking;
 
 namespace NDepCheck {
     // TODO: The following things should be more beautiful:
@@ -16,187 +21,142 @@ namespace NDepCheck {
     /// All static methods may run in parallel.
     /// </remarks>
     public class Program {
-        private const string VERSION = "V.3.2";
+        private const string VERSION = "V.3.3";
 
-        ////private class ThreadLoopData_ {
-        ////    public CheckerContext Context { get; set; }
-        ////    public int MaxErrorCode { get; set; }
-        ////}
+        public const int OK_RESULT = 0;
+        public const int OPTIONS_PROBLEM = 1;
+        public const int DEPENDENCIES_NOT_OK = 3; // Used in InputContext.CheckDependencies - mhm - TODO: Concept for Transformers that check ...
+        public const int FILE_NOT_FOUND_RESULT = 4;
+        public const int NO_RULE_GROUPS_FOUND = 5;
+        public const int NO_RULE_SET_FOUND_FOR_FILE = 6;
+        public const int EXCEPTION_RESULT = 7;
 
-        public int Run(string[] args, Options options) {
+        public int Run(string[] args, GlobalContext globalContext) {
             Log.SetLevel(Log.Level.Standard);
-
-            GlobalContext state = new GlobalContext(this);
 
             if (args.Length == 0) {
                 return UsageAndExit("No options or files specified");
             }
 
-            int result = 0;
+            int result = OK_RESULT;
 
             try {
                 for (int i = 0; i < args.Length; i++) {
                     string arg = args[i];
 
                     if (Options.ArgMatches(arg, '?')) {
-                        // -?        Do write help
-                        return UsageAndExit(null, completeHelp: false);
-                    } else if (Options.ArgMatches(arg, '@')) {
-                        // -@ &      Do read options from file
-                        string filename = Options.ExtractOptionValue(args, ref i);
-                        result = RunFrom(filename, options);
-
-                        // @ file is also an input file - and if there are no input files in @, the error will come up there.
-                        options.InputFilesSpecified = true;
+                        // -?                      Write help
+                        return UsageAndExit(null, extensiveHelp: false);
+                    } else if (Options.ArgMatches(arg, 'a')) {
+                        // -a                      Write extensive help
+                        return UsageAndExit(null, extensiveHelp: true);
                     } else if (Options.ArgMatches(arg, 'b')) {
-                        // -b        Break execution here; useful in -@ file
+                        // -b        Stop execution here; useful in -o file
                         Log.WriteInfo("---- Stop reading options (-b)");
                         goto DONE;
-
-                        // -c & $ & Render the test data of renderer $ in assembly & to file & -> see below at -r
+                    } else if (Options.ArgMatches(arg, 'c')) {
+                        // -c                      Ignore case in rules
+                        globalContext.IgnoreCase = true;
                     } else if (arg == "-debug" || arg == "/debug") {
-                        // -debug    Do start .Net debugger
+                        // -debug                  Start .Net debugger
                         Debugger.Launch();
-                    } else if (Options.ArgMatches(arg, 'd')) {
-                        // -d &      Set directory search locations for rule files
-                        string path = Options.ExtractOptionValue(args, ref i);
-                        options.CreateDirectoryOption(path, recurse: false);
-                    } else if (Options.ArgMatches(arg, 'e')) {
-                        // -e $ &    Set file location with defined reader $ (currently supported: dip, dll, exe)
-                        string extension = Options.ExtractOptionValue(args, ref i);
-                        CreateInputOption(args, ref i, extension, options, readOnlyItems: false);
-                    } else if (Options.ArgMatches(arg, 'f')) {
-                        // -f &      Set file location with reader defined by file extension
-                        CreateInputOption(args, ref i, null, options, readOnlyItems: false);
+                    } else if (Options.ArgMatches(arg, 'e', 'f')) {
+                        // -e     assembly transformer { options }
+                        // -f              transformer { options }
 
-                        // -g & $ &Render the test data of renderer $ in assembly & to file & -> see below at -r
-                    } else if (arg == "-h" || arg == "/h") {
-                        // -h        Do write extensive help
-                        return UsageAndExit(null, completeHelp: true);
-                    } else if (arg == "-i" || arg == "/i") {
-                        // -i        Set ignorecase option
-                        options.IgnoreCase = true;
+                        string assembly, rendererClass;
+                        if (ExtractAssemblyAndClass(args, new[] { 'e' }, 'f', out assembly, out rendererClass, ref i)) {
+                            result = globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>(assembly);
+                        } else {
+                            string transformerOptions = Options.ExtractNextValue(args, ref i);
+                            globalContext.ConfigureTransformer(assembly, rendererClass, transformerOptions);
+                        }
+                    } else if (Options.ArgMatches(arg, 'h', 'i')) {
+                        // -h     assembly reader filepattern [- filepattern]
+                        // -i              reader filepattern [- filepattern]
+                        string assembly, readerClass;
+                        if (ExtractAssemblyAndClass(args, assemblyAndClassOpt: new[] { 'h' }, classOnlyOpt: 'i',
+                            assembly: out assembly, @class: out readerClass, i: ref i)) {
+                            globalContext.ShowAllPluginsAndTheirHelp<IReaderFactory>(assembly);
+                        } else {
+                            string filePattern = Options.ExtractNextValue(args, ref i);
+                            if (Options.ArgMatches(filePattern, '?')) {
+                                globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, readerClass);
+                            } else {
+                                globalContext.CreateInputOption(args, ref i, filePattern, assembly, readerClass);
+                            }
+                        }
                     } else if (Options.ArgMatches(arg, 'j')) {
-                        // -j #      Set edge length for graph output
-                        string optionValue = Options.ExtractOptionValue(args, ref i);
-                        int lg;
-                        if (int.TryParse(optionValue, out lg) && lg > 0) {
-                            options.StringLength = lg;
-                        } else {
-                            return UsageAndExit("Cannot parse value for edge text '" + optionValue + "' as number");
-                        }
-                    } else if (Options.ArgMatches(arg, 'k')) {
-                        // -k $ &    Set file location with defined reader $ (currently supported: dip, dll, exe)
-                        string extension = Options.ExtractOptionValue(args, ref i);
-                        CreateInputOption(args, ref i, extension, options, readOnlyItems: true);
+                        // -j      filepattern [- filepattern]
+                        string filePattern = Options.ExtractNextValue(args, ref i);
+                        globalContext.CreateInputOption(args, ref i, filePattern, assembly: "",
+                            readerClass: IsDllOrExeFile(filePattern)
+                                ? typeof(DotNetAssemblyDependencyReaderFactory).FullName
+                                : IsDipFile(filePattern) ? typeof(DipReaderFactory).FullName : null);
                     } else if (Options.ArgMatches(arg, 'l')) {
-                        // -l &      Set file location with reader defined by file extension
-                        CreateInputOption(args, ref i, null, options, readOnlyItems: true);
+                        // -l                      Execute readers and transformers lazily 
+                        //                         (lazy reading and transforming NOT YET IMPLEMENTED)
+                        globalContext.WorkLazily = true;
                     } else if (Options.ArgMatches(arg, 'm')) {
-                        // -m $      Do graph transformation $ (after lazy reading; after lazy dependency rule check  and lazy graph reduction)
-                        string transformationOption = Options.ExtractOptionValue(args, ref i);
-                        state.ReadAll(options).ReduceGraph(options, true).TransformGraph(transformationOption);
-                    } else if (Options.ArgMatches(arg, 'n')) {
-                        // -n #|all  Set cpu count (currently no-op)
-                        string ms = Options.ExtractOptionValue(args, ref i);
-                        if (ms == "all" || ms == "*") {
-                            options.MaxCpuCount = Environment.ProcessorCount;
-                        } else {
-                            int m;
-                            if (int.TryParse(ms, out m)) {
-                                options.MaxCpuCount = m;
-                            } else {
-                                return UsageAndExit("/n value " + ms + " is neither * nor a number", completeHelp: false);
-                            }
-                        }
+                        // -m name value           Define name as value; a redefinition with a different value is not possible
+                        string varname = Options.ExtractOptionValue(args, ref i);
+                        string varvalue = Options.ExtractNextValue(args, ref i);
+                        globalContext.GlobalVars[varname] = varvalue;
                     } else if (Options.ArgMatches(arg, 'o')) {
-                        // -o &      Do write xml depcheck output (after lazy reading; after lazy depcheck)
-                        string xmlfile = Options.ExtractOptionValue(args, ref i);
-                        if (xmlfile == null) {
-                            return UsageAndExit("Missing =filename after " + arg);
-                        }
-                        result = state.ReadAll(options).ComputeViolations(options);
-                        state.WriteViolations(xmlfile);
-                    } else if (Options.ArgMatches(arg, 'p')) {
-                        // -p        Do write standard depcheck output (after lazy reading; after lazy depcheck)
-                        result = state.ReadAll(options).ComputeViolations(options);
-                        state.WriteViolations(null);
-                    } else if (Options.ArgMatches(arg, 'q')) {
-                        // -q        Set option to show unused questionable rules
-                        options.ShowUnusedQuestionableRules = true;
-                    } else if (Options.ArgMatches(arg, 'r') || Options.ArgMatches(arg, 'g') || Options.ArgMatches(arg, 'c')) {
-                        // -c   $ && Render the test data of standard renderer $ with options && (after lazy reading, lazy dep-check and lazy graph reduction run)
-                        // -g & $ && Render the test data of renderer $ in assembly & with options &&
-                        // -r & $ && Render with $ in assembly & with options && (after lazy reading, lazy dep-check and lazy graph reduction run)
-                        string firstOptionValue = Options.ExtractOptionValue(args, ref i);
-                        if (Options.ArgMatches(firstOptionValue, '?')) {
-                            state.ShowAllRenderersAndTheirHelp();
+                        // -o filename             Read options from file
+                        string filename = Options.ExtractOptionValue(args, ref i);
+                        result = RunFrom(filename, globalContext);
+
+                        // file is also an input file - and if there are no input files in -o, the error will come up there.
+                        globalContext.InputFilesSpecified = true;
+                    } else if (Options.ArgMatches(arg, 'p', 'q', 'r')) {
+                        // -p     assembly renderer [{ options }] filename
+                        // -q     assembly renderer [{ options }] filename
+                        // -r              renderer [{ options }] filename
+
+                        string assembly, rendererClass;
+                        if (ExtractAssemblyAndClass(args, new[] { 'p', 'q' }, 'r', out assembly, out rendererClass, ref i)) {
+                            result = globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>(assembly);
                         } else {
-                            string assemblyName;
-                            string rendererClassName;
-                            if (Options.ArgMatches(arg, 'c')) {
-                                assemblyName = "";
-                                rendererClassName = firstOptionValue;
+                            string classOptions, filename;
+                            if (ExtractClassOptions(args, out classOptions, out filename, ref i)) {
+                                globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, rendererClass);
+                            } else if (Options.ArgMatches(arg, 'p')) {
+                                globalContext.RenderTestData(assembly, rendererClass, classOptions, filename);
                             } else {
-                                assemblyName = firstOptionValue;
-                                if (string.IsNullOrWhiteSpace(assemblyName)) {
-                                    return UsageAndExit("Missing assembly name after " + arg);
-                                } else if (assemblyName == ".") {
-                                    assemblyName = "";
-                                }
-                                rendererClassName = Options.ExtractNextValue(args, ref i);
-                            }
-                            if (string.IsNullOrWhiteSpace(rendererClassName)) {
-                                return UsageAndExit("Missing renderer class after " + arg + " " + assemblyName);
-                            }
-                            string rendererArgs = Options.ExtractNextValue(args, ref i);
-                            if (string.IsNullOrWhiteSpace(rendererArgs)) {
-                                return
-                                    UsageAndExit("Missing filename after " + arg + " " + assemblyName + " " +
-                                                 rendererClassName);
-                            }
-                            if (Options.ArgMatches(arg, 'g')) {
-                                state.RenderTestDataToFile(options, assemblyName, rendererClassName, rendererArgs);
-                            } else {
-                                state.ReadAll(options)
-                                    .ReduceGraph(options, true)
-                                    .RenderToFile(options, assemblyName, rendererClassName, rendererArgs);
+                                globalContext.RenderToFile(assembly, rendererClass, classOptions, filename);
                             }
                         }
-                    } else if (Options.ArgMatches(arg, 's')) {
-                        // -s &      Set directory tree search location for rule files
-                        string path = Options.ExtractOptionValue(args, ref i);
-                        options.CreateDirectoryOption(path, recurse: true);
-                    } else if (Options.ArgMatches(arg, 't')) {
-                        // -t &      Set rule file extension (default .dep)
-                        options.RuleFileExtension = "." + Options.ExtractOptionValue(args, ref i).TrimStart('.');
-                    } else if (Options.ArgMatches(arg, 'u')) {
-                        // -u        Set option to show unused rules
-                        options.ShowUnusedRules = true;
+                    } else if (Options.ArgMatches(arg, 's', 't', 'u')) {
+                        // -s     assembly transformer [{ options }]
+                        // -t     assembly transformer [{ options }]
+                        // -u              transformer [{ options }]
+
+                        string assembly, transformerClass;
+                        if (ExtractAssemblyAndClass(args, new[] { 's', 't' }, 'u', out assembly, out transformerClass, ref i)) {
+                            globalContext.ShowAllPluginsAndTheirHelp<ITransformer>(assembly);
+                        } else {
+                            if (Options.ArgMatches(args[i], '?')) {
+                                globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, transformerClass);
+                            } else {
+                                string transformerOptions = i < args.Length - 1 && args[i + 1].StartsWith("{")
+                                    ? Options.ExtractNextValue(args, ref i)
+                                    : "";
+                                if (Options.ArgMatches(arg, 's')) {
+                                    globalContext.TransformTestData(assembly, transformerClass, transformerOptions);
+                                } else {
+                                    result = globalContext.Transform(assembly, transformerClass, transformerOptions);
+                                }
+                            }
+                        }
                     } else if (Options.ArgMatches(arg, 'v')) {
-                        // -v        Set verbose option
+                        // -v        verbose output
                         Log.SetLevel(Log.Level.Verbose);
                         WriteVersion();
                     } else if (Options.ArgMatches(arg, 'w')) {
-                        // -w        Set chatty option
+                        // -w        chatty output
                         Log.SetLevel(Log.Level.Chatty);
                         WriteVersion();
-                    } else if (Options.ArgMatches(arg, 'x')) {
-                        // -x &&     Set search location for default rule file; or pass default rules via {...}
-                        string value = Options.ExtractOptionValue(args, ref i);
-                        if (!string.IsNullOrEmpty(options.DefaultRuleSource)) {
-                            return UsageAndExit("Only one default rule set can be specified with " + arg);
-                        }
-                        if (!value.StartsWith("{") && !File.Exists(value)) {
-                            return UsageAndExit("Cannot find the default rule set file '" + value + "'", exitValue: 2);
-                        }
-                        options.DefaultRuleSource = value;
-                    } else if (Options.ArgMatches(arg, 'y')) {
-                        // -y <type> <type>        Set itemtypes for reductions
-                        string usingFormat = Options.ExtractOptionValue(args, ref i);
-                        string usedFormat = Options.ExtractNextValue(args, ref i);
-                        options.UsingItemType = ItemType.New(usingFormat);
-                        options.UsedItemType = ItemType.New(usedFormat);
                     } else if (Options.ArgMatches(arg, 'z')) {
                         // -z        Remove all dependencies and graphs and caches
                         Log.WriteInfo("---- Reset of input options (-z)");
@@ -205,15 +165,11 @@ namespace NDepCheck {
                         Intern<ItemTail>.Reset();
                         Intern<Item>.Reset();
                         AbstractDotNetAssemblyDependencyReader.Reset();
-                        state.Reset();
-                        options.Reset();
-                    } else if (arg.EndsWith(".dll", StringComparison.InvariantCultureIgnoreCase)
-                            || arg.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase)
-                            || arg.EndsWith(".dip", StringComparison.InvariantCultureIgnoreCase)
-                            || arg.Contains("*")) {
-                        // &         If & ends with .dll, .exe, or. dip, or contains *: Remember 
-                        //           reading file - heuristics; should be removed.
-                        options.InputFilesSpecified |= CreateInputOption(args, ref i, null, arg, options, false);
+                        globalContext.Reset();
+                    } else if (IsDllOrExeFile(arg)) {
+                        globalContext.CreateInputOption(args, ref i, arg, "", typeof(DotNetAssemblyDependencyReaderFactory).FullName);
+                    } else if (IsDipFile(arg)) {
+                        globalContext.CreateInputOption(args, ref i, arg, "", typeof(DipReaderFactory).FullName);
                     } else {
                         return UsageAndExit("Unsupported option '" + arg + "'");
                     }
@@ -222,14 +178,15 @@ namespace NDepCheck {
                 return UsageAndExit(ex.Message);
             }
 
-            if (!options.GraphingDone && !options.CheckingDone) {
-                // Default action at end if nothing was done
-                result = state.ReadAll(options).ComputeViolations(options);
-                state.WriteViolations(null);
+            if (!globalContext.InputFilesSpecified) {
+                return UsageAndExit("No input files specified");
             }
 
-            if (!options.InputFilesSpecified) {
-                return UsageAndExit("No input files specified");
+            if (result == OK_RESULT && !globalContext.TransformingDone && !globalContext.RenderingDone) {
+                // Default action at end if nothing was done
+                globalContext.ReadAllNotYetReadIn();
+                result = globalContext.Transform("", typeof(ViolationsChecker).FullName, "");
+                globalContext.RenderToFile(".", typeof(RuleViolationRenderer).FullName, "", null);
             }
 
             DONE:
@@ -241,7 +198,57 @@ namespace NDepCheck {
             return result;
         }
 
-        private int RunFrom(string filename, Options options) {
+        private static bool IsDipFile(string arg) {
+            return arg.EndsWith(".dip", StringComparison.InvariantCultureIgnoreCase);
+        }
+
+        private static bool IsDllOrExeFile(string arg) {
+            return arg.EndsWith(".dll", StringComparison.InvariantCultureIgnoreCase) ||
+                   arg.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns><c>true</c> if classOptions is /? for 'help'</returns>
+        private static bool ExtractClassOptions(string[] args, out string classOptions, out string filename, ref int i) {
+            string o = Options.ExtractNextValue(args, ref i);
+            if (Options.ArgMatches(o, '?')) {
+                classOptions = "";
+                filename = "";
+                return true;
+            } else if (o.StartsWith("{")) {
+                classOptions = o;
+                filename = Options.ExtractNextValue(args, ref i);
+                return false;
+            } else {
+                classOptions = "";
+                filename = o;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns><c>true</c> if option after assembly is /? for 'help'</returns>
+        private static bool ExtractAssemblyAndClass([NotNull] string[] args, char[] assemblyAndClassOpt, char classOnlyOpt,
+                                                    [NotNull] out string assembly, out string @class, ref int i) {
+            string arg = args[i];
+            if (Options.ArgMatches(arg, assemblyAndClassOpt)) {
+                assembly = Options.ExtractOptionValue(args, ref i);
+                @class = Options.ExtractNextValue(args, ref i);
+            } else if (Options.ArgMatches(arg, classOnlyOpt)) {
+                assembly = ".";
+                @class = Options.ExtractOptionValue(args, ref i);
+            } else {
+                assembly = ".";
+                @class = null;
+            }
+            return @class == null || Options.ArgMatches(@class, '?', 'h');
+        }
+
+        private int RunFrom(string filename, GlobalContext state) {
             int lineNo = 0;
             try {
                 var args = new List<string>();
@@ -273,29 +280,18 @@ namespace NDepCheck {
                 string previousCurrentDirectory = Environment.CurrentDirectory;
                 try {
                     Environment.CurrentDirectory = Path.GetDirectoryName(filename);
-                    return Run(args.ToArray(), options);
+                    return Run(args.ToArray(), state);
                 } finally {
                     Environment.CurrentDirectory = previousCurrentDirectory;
                 }
 
             } catch (Exception ex) {
                 Log.WriteError("Cannot run commands in " + filename + " (" + ex.Message + ")", filename, lineNo);
-                return 7;
+                return EXCEPTION_RESULT;
             }
         }
 
-        private void CreateInputOption(string[] args, ref int i, string extension, Options options, bool readOnlyItems) {
-            string filePattern = Options.ExtractOptionValue(args, ref i);
-            options.InputFilesSpecified |= CreateInputOption(args, ref i, extension, filePattern, options, readOnlyItems);
-        }
-
-        private bool CreateInputOption(string[] args, ref int i, string extension, string filePattern, Options options, bool readOnlyItems) {
-            options.CreateInputOption(extension, filePattern, negativeFilePattern: i + 2 < args.Length && args[i + 1] == "-" ? args[i += 2] : null, readOnlyItems: readOnlyItems);
-
-            return true;
-        }
-
-        private static int UsageAndExit(string message, int exitValue = 1, bool completeHelp = false) {
+        private static int UsageAndExit(string message, int exitValue = OPTIONS_PROBLEM, bool extensiveHelp = false) {
             if (message != null) {
                 Log.WriteInfo("**** " + message);
                 Log.WriteInfo("");
@@ -310,69 +306,112 @@ Usage:
 Typical uses:
 
 * Check dependencies in My.DLL; My.dll.dep is somewhere below SourceDir:
-      NDepCheck /s=SourceDir /f=My.dll
+      NDepCheck /d=SourceDir My.dll
 
-* Produce graph of dependencies in My.DLL:
-      NDepCheck /s=SourceDir /f=My.DLL /g=My.dot
+* Produce graph of dependencies in My.DLL via built-in renderer:
+      NDepCheck /d=SourceDir My.DLL _______ (UNDER WORK)
+
+
+* Produce graph of dependencies in My.DLL via dot (graphviz):
+      NDepCheck /d=SourceDir My.DLL _______ (UNDER WORK)
       dot -Tgif -oMy.gif My.dot
 
 All messages of NDepCheck are written to Console.Out.
 
 Options overview:
-    & in the following is a filename.
-    $ in the following is a name.
-    # in the following is a positive integer number.
     Options can be written with leading - or /
 
-    -?        Do write help
-    -@ &      Do read options from file
-    -b        Ignore all remaining options (""break""); useful in -@ file
-    -c $ &&   -c   $ && Render the test data of standard renderer $ with options && 
-              (after lazy reading, lazy dependency rule check and lazy graph reduction)
-    -d &      Set directory search locations for rule files
-    -debug    Do start .Net debugger
-    -e $ &    Set file location with defined reader $ (currently supported: dip, dll, exe)
-    -f &      Set file location with reader defined by file extension
-    -g & $ &' Render the test data of renderer $ in assembly & with options && 
-    -h        Do write extensive help
-    -i        Set ignorecase option
-    -j #      Set edge length for graph output
-    -k $ &    Set file location with defined reader $ (currently supported: dip, dll, exe)
-    -l &      Set file location with reader defined by file extension
-    -m $      Do graph transformation 
-              (after lazy reading, after lazy dependency rule check and lazy graph reduction)
-    -n #|all  Set cpu count (currently no-op)
-    -o &      Do write xml depcheck output (after lazy reading; after lazy depcheck)
-    -p        Do write standard depcheck output (after lazy reading; after lazy depcheck)
-    -q        Set option to show unused questionable rules
-    -r & $ &' Render with $ in assembly & with options && 
-              (after lazy reading and lazy graph reduction)
-    -s &      Set directory tree search location for rule files
-    -t &      Set rule file extension (default .dep; specify before -s!)
-    -u        Set option to show unused rules
-    -v        Set verbose option
-    -w        Set chatty option
-    -x &&     Set search location for default rule file; or pass default rules via {...}
-    -y <type> <type>     Set itemtypes for reductions; type=NAME:KEY1:KEY2:...
-    -z        Remove all dependencies and graphs, clear search options (-d, -s, -x)
-    &         If & ends with .dll, .exe, or. dip, or contains *: Input file 
+     READ
+-h     assembly reader filepattern [- filepattern]
+-i              reader filepattern [- filepattern]
+[-j]                   filepattern [- filepattern]
 
+       Built-in readers:
+        - DipReader      (.dip)
+        - AssemblyReader (.dll, .exe)
+       
+     CONFIGURE TRANSFORMER
+-e     assembly transformer { options }
+-f              transformer { options }
+
+     TRANSFORM TESTDATA
+-s     assembly transformer [{ options }]
+
+     TRANSFORM
+-t     assembly transformer [{ options }]
+-u              transformer [{ options }]
+     
+       Built-in transformers:  
+       - CheckDependencies [-q | -u]
+           Copies dependency's count to bad count or 
+           questionable count depending on matched rules
+                -q show questionable rules
+                -u show all unused rules
+       - Projector
+           Replaces all edges by edges computed from
+           projections (! or % rules)
+       - (AssociativeHull - UNDER WORK)
+            adds all associative edges
+            cts are set to 1;0;0
+       - (RemoveTransitiveEdges - UNDER WORK)
+            Hide edges
+       - (RemoveLocalLoops - UNDER WORK)
+            Hide edges
+       - (KeepOnlyCycleEdges - UNDER WORK)
+            Hide edges
+
+     RENDER TESTDATA
+-p     assembly renderer [{ options }] filename
+
+     RENDER
+-q     assembly renderer [{ options }] filename
+-r              renderer [{ options }] filename 
+
+                Built-in renderers:
+                - DotRenderer [-e edgelength]
+                    -e
+                - MatrixRenderer1
+                - MatrixRenderer2
+                - MatrixGraphicsRenderer  [-x] [-y] [-b regex] [-t text] [-w width] [-h height] [-f height]
+                    -t text
+                    -w width
+                    -h height
+                    -f height
+                    -x
+                    -y
+                    -b regex
+                - ModuleAndInterfaceGraphicsRenderer [-t text] [-w width] [-h height] [-f height]
+                - RuleViolationRenderer [-x]
+                        -x as XML output
+     
+     OTHER
+-?              Write help
+-a              Write extensive help  
+-l              Execute readers and transformers lazily (lazy reading and transforming NOT YET IMPLEMENTED)
+-m name value   Define name as value; a redefinition with a different value is not possible
+-z              Reset state
+-b              Stop execution here; useful in -o file
+-debug          Start .Net debugger 
+-c              Ignore case in rules
+-v              Verbose
+-w              Chatty
+-o filename     Read options from file
 ");
-            if (completeHelp) {
+            if (extensiveHelp) {
                 Console.Out.WriteLine(@"
 
 ############# NOT YET UPDATED ##################
 
-   /d=<directory>    For each assembly file A.dll, look for corresponding 
+   /_=<directory>    For each assembly file A.dll, look for corresponding 
          rule file A.dll.dep in this directory (multiple /d options are 
          supported). This is especially useful with + lines.
 
-   /s=<directory>    Like /d, but also look in all subdirectories. Mixing
-         /s and /d options is supported.
+   /d=<directory>    Like /_, but also look in all subdirectories. Mixing
+         /_ and /_ options is supported.
 
-   /x=<rule file>    Use this rule file if no matching rule file is found
-         via /s and /d  This is also useful if no /s and /d options
-         are specified.
+   /f=<rule file>    Use this rule file if no matching rule file is found
+         via /_ and /d.  This is espeically useful if no /s and /d options
+         are specified. __________________-
 
    /i[=<N>]        For each illegal edge (i.e., edge not allowed by 
          the dependency file), show an example of a concrete illegal 
@@ -658,32 +697,21 @@ using the wildcardpath syntax):
         public static int Main(string[] args) {
             Log.Logger = new ConsoleLogger();
 
-            DateTime start = DateTime.Now;
-
             var program = new Program();
             try {
-                return program.Run(args, new Options());
+                return program.Run(args, new GlobalContext());
             } catch (FileNotFoundException ex) {
                 Log.WriteWarning(ex.Message);
-                return 4;
+                return FILE_NOT_FOUND_RESULT;
             } catch (Exception ex) {
                 Log.WriteError("Exception occurred: " + ex.Message + " (" + ex.GetType().FullName + ")");
                 if (Log.IsChattyEnabled) {
                     Console.WriteLine(ex);
                 }
-                return 5;
+                return EXCEPTION_RESULT;
             } finally {
-                DateTime end = DateTime.Now;
-                TimeSpan runtime = end.Subtract(start);
-                if (runtime < new TimeSpan(0, 0, 1)) {
-                    Log.WriteInfo("DC took " + runtime.Milliseconds + " ms.");
-                } else if (runtime < new TimeSpan(0, 1, 0)) {
-                    Log.WriteInfo("DC took " + runtime.TotalSeconds + " s.");
-                } else if (runtime < new TimeSpan(1, 0, 0)) {
-                    Log.WriteInfo("DC took " + runtime.Minutes + " min and " + runtime.Seconds + " s.");
-                } else {
-                    Log.WriteInfo("DC took " + runtime.TotalHours + " hours.");
-                }
+                // Main may be called multiple times; therefore we clear all caches
+                Intern.ResetAll();
             }
         }
     }

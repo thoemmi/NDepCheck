@@ -29,60 +29,25 @@ namespace NDepCheck.Tests {
         }
 
         [TestMethod]
-        public void TestSOk() {
+        public void TestDOk() {
             WriteDep1To(@"a\b");
             WriteDep2To(@"a\c");
-            Assert.AreEqual(0, Run(@"-s=%%\a"));
-        }
-
-        [TestMethod]
-        public void TestDNotOk() {
-            WriteDep1To(@"a\b");
-            WriteDep2To(@"a\c");
-            Assert.AreEqual(6, Run(@"-d=%%\a"));
+            Assert.AreEqual(Program.OK_RESULT, Run(@"-f ViolationsChecker { -s %%\a }".Split(' ')));
         }
 
         [TestMethod]
         public void TestDDOk() {
-            WriteDep1To(@"a\b");
-            WriteDep2To(@"a\c");
-            Assert.AreEqual(0, Run(@"-d=%%\a\b", @"-d=%%\a\xx", @"-d=%%\a\c"));
-        }
-
-        [TestMethod]
-        public void TestSSOk() {
             WriteDep1To(@"a\b\x\y");
             WriteDep2To(@"a\c\x\y\z");
-            Assert.AreEqual(0, Run(@"-s=%%\a\b", @"-s=%%\a\x", @"-s=%%\a\c"));
-        }
-
-        [TestMethod]
-        public void TestDDNotOk() {
-            WriteDep1To(@"a\b");
-            WriteDep2To(@"a\c");
-            Assert.AreEqual(6, Run(@"-d=%%\a\yy", @"-d=%%\a\xx", @"-d=%%\a\b"));
-        }
-
-        [TestMethod]
-        public void TestDDXOk() {
-            WriteDep1To(@"a\b");
-            WriteDep2To(@"a\c");
-            WriteXTo(@"a\x");
-            Assert.AreEqual(0, Run(@"-x=%%\a\x\Defaults.dep", @"-d=%%\a\yy", @"-d=%%\a\xx", @"-d=%%\a\b", "-w"));
+            Assert.AreEqual(Program.OK_RESULT, Run(
+                @"-f ViolationsChecker { -s %%\a\b -s %%\a\x -s %%\a\c }".Split(' ')));
         }
 
         [TestMethod]
         public void TestDPlusOk() {
             WriteDep1PlusTo(@"a\b");
-            WriteDep2PlusTo(@"a\b");
-            Assert.AreEqual(0, Run(@"-d=%%\a\xx", @"-d=%%\a\b"));
-        }
-
-        [TestMethod]
-        public void TestSPlusOk() {
-            WriteDep1PlusTo(@"a\b");
             WriteDep2PlusTo(@"a\b\c");
-            Assert.AreEqual(0, Run(@"-s=%%\a\b"));
+            Assert.AreEqual(Program.OK_RESULT, Run(@"-f ViolationsChecker { -s %%\a\b }".Split(' ')));
         }
 
         [TestMethod]
@@ -104,7 +69,7 @@ namespace NDepCheck.Tests {
                   * ---> *
                 ");
             WriteDep2To(@"a\b\c");
-            Assert.AreEqual(0, Run(@"-s=%%\a\b"));
+            Assert.AreEqual(Program.OK_RESULT, Run(@"-f ViolationsChecker { -s %%\a\b }".Split(' ')));
         }
 
         [TestMethod]
@@ -122,26 +87,26 @@ namespace NDepCheck.Tests {
                 @"+ ..\A.dep
                 ");
             WriteDep2To(@"a\b\c");
-            Assert.AreEqual(0, Run(@"-s=%%\a\b"));
+            Assert.AreEqual(Program.OK_RESULT, Run(@"-f ViolationsChecker { -s %%\a\b }".Split(' ')));
         }
 
         [TestMethod]
         public void TestExcept() {
             WriteDep1To(@"a\b");
-            WriteXTo(@"a\c");
+            WriteDefaultSetTo(@"a\c");
 
             int result = Program.Main(new List<string> {
-                    @"-s=" + _basePath + @"\a",
-                    @"-f=" + GetPath("NDepCheck.TestAssembly.dll"),
-                    @"-f=" + "NDepCheck.TestAssemblyÄÖÜß.*", "-", "NDepCheck.TestAssemblyÄÖÜß.dll",
-                }.ToArray());
-            Assert.AreEqual(0, result);
+                    "-j=" + GetPath("NDepCheck.TestAssembly.dll"),
+                    "-j=" + "NDepCheck.TestAssemblyÄÖÜß.*.dll", "-", "NDepCheck.TestAssemblyÄÖÜß.dll",
+                    "-f", "ViolationsChecker", "{", "-s=" + _basePath + @"\a", "}"
+            }.ToArray());
+            Assert.AreEqual(Program.OK_RESULT, result);
         }
 
         private int Run(params string[] args) {
             return Program.Main(new List<string>(args.Select(s => s.Replace("%%", _basePath))) {
                     GetPath("NDepCheck.TestAssembly.dll"),
-                    "NDepCheck.TestAssemblyÄÖÜß.*"
+                    "NDepCheck.TestAssemblyÄÖÜß.*.dll"
                 }.ToArray());
         }
 
@@ -189,7 +154,7 @@ namespace NDepCheck.Tests {
                 ASSEMBLY.NAME=** ---> ASSEMBLY.NAME=**");
         }
 
-        private void WriteXTo(string directory) {
+        private void WriteDefaultSetTo(string directory) {
             Write(directory, "Defaults.dep", @"
                 $ DOTNETCALL ---> DOTNETCALL
                 ** ---? **
@@ -198,9 +163,9 @@ namespace NDepCheck.Tests {
                 * ---> *");
         }
 
-        private void Write(string directory, string depFileName, string data) {
+        private void Write(string directory, string ruleFileName, string data) {
             DirectoryInfo di = Directory.CreateDirectory(Path.Combine(_basePath, directory));
-            using (TextWriter tw = new StreamWriter(Path.Combine(di.FullName, depFileName), false, Encoding.UTF8)) {
+            using (TextWriter tw = new StreamWriter(Path.Combine(di.FullName, ruleFileName), false, Encoding.UTF8)) {
                 tw.WriteLine(data);
             }
         }

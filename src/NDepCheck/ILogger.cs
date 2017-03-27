@@ -6,7 +6,7 @@
         void WriteWarning(string msg, string nestedFilenames, int lineNumber);
         void WriteInfo(string msg);
         void WriteDebug(string msg);
-        void WriteViolation(RuleViolation ruleViolation);
+        void WriteViolation(Dependency dependency);
     }
 
     public static class Log {
@@ -14,7 +14,7 @@
 
         public static ILogger Logger {
             get; set;
-        }
+        } = new ConsoleLogger();
 
         private static Level _level = Level.Standard;
 
@@ -56,8 +56,8 @@
             Logger.WriteDebug(msg);
         }
 
-        internal static void WriteViolation(RuleViolation ruleViolation) {
-            Logger.WriteViolation(ruleViolation);
+        internal static void WriteViolation(Dependency dependency) {
+            Logger.WriteViolation(dependency);
         }
     }
 }

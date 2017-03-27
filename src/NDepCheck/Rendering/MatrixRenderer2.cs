@@ -4,8 +4,8 @@ using System.Linq;
 
 namespace NDepCheck.Rendering {
     public class MatrixRenderer2 : AbstractMatrixRenderer, IDependencyRenderer {
-        public void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString) {
-            new GenericMatrixRenderer2().Render(items, dependencies, argsAsString);
+        public void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
+            new GenericMatrixRenderer2().Render(items, dependencies, argsAsString, baseFilename);
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, Stream output) {
@@ -14,7 +14,7 @@ namespace NDepCheck.Rendering {
     }
 
     public class GenericMatrixRenderer2 : AbstractGenericMatrixRenderer {
-        protected override void Write(StreamWriter output, int colWidth, int labelWidth, IEnumerable<INode> topNodes, string nodeFormat,
+        protected override void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<INode> topNodes, string nodeFormat,
             Dictionary<INode, int> node2Index, bool withNotOkCt, IEnumerable<INode> sortedNodes, string ctFormat, IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges) {
             var emptyCtCols = Repeat(' ', colWidth) + (withNotOkCt ? ";" + Repeat(' ', colWidth) : "");
             WriteFormat2Line(output, Limit("Id", colWidth), Limit("Name", labelWidth), Limit("Id", colWidth), Limit("Name", labelWidth), emptyCtCols);
@@ -49,15 +49,12 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public override void Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString) {
-            string filename;
+        public override void Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString, string baseFilename) {
             int? labelWidthOrNull;
             bool withNotOkCt;
-            ParseOptions(argsAsString, out filename, out labelWidthOrNull, out withNotOkCt);
+            ParseOptions(argsAsString, out labelWidthOrNull, out withNotOkCt);
 
-            string csvFilename = Path.ChangeExtension(filename, ".csv");
-            Log.WriteInfo("Writing " + csvFilename);
-            using (var sw = new StreamWriter(csvFilename)) {
+            using (var sw = GlobalContext.CreateTextWriter(baseFilename, ".csv")) {
                 Render(items, dependencies, sw, labelWidthOrNull, withNotOkCt);
             }
         }

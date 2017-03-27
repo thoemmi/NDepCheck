@@ -17,15 +17,6 @@ namespace NDepCheck {
             }
         }
 
-        public void WriteViolation(RuleViolation ruleViolation) {
-            Console.ForegroundColor = 
-                ruleViolation.ViolationType == DependencyCheckResult.Ok ? ConsoleColor.Green
-                : ruleViolation.ViolationType == DependencyCheckResult.Questionable ? ConsoleColor.Yellow 
-                : ConsoleColor.Red;
-            Console.Out.WriteLine(FormatMessage(ruleViolation.Dependency, ruleViolation.ViolationType));
-            Console.ResetColor();
-        }
-
         public void WriteWarning(string msg) {
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.Out.WriteLine(msg);
@@ -50,21 +41,17 @@ namespace NDepCheck {
             Console.ResetColor();
         }
 
-        private static string FormatMessage(Dependency dependency, DependencyCheckResult violationType) {
-            var message = 
-                  violationType == DependencyCheckResult.Ok ? ""
-                : violationType == DependencyCheckResult.Questionable ? dependency.QuestionableMessage() 
-                : dependency.IllegalMessage();
-            if (dependency.Source != null) {
-                var sb = new StringBuilder(message);
-                sb.Append(" (probably at ").Append(dependency.Source);
-                if (dependency.StartLine > 0) {
-                    sb.Append(":").Append(dependency.StartLine);
-                }
-                sb.Append(")");
-                return sb.ToString();
-            } else {
-                return message;
+        private static string FormatMessage(Dependency dependency, string message) {
+            return dependency.Source != null 
+                ? new StringBuilder(message).Append(" (probably at ").Append(dependency.Source).Append(")").ToString() 
+                : message;
+        }
+
+        public void WriteViolation(Dependency dependency) {
+            if (dependency.BadCt > 0) {
+                WriteError(FormatMessage(dependency, dependency.BadDependencyMessage()));
+            } else if (dependency.QuestionableCt > 0) {
+                WriteWarning(FormatMessage(dependency, dependency.BadDependencyMessage()));
             }
         }
     }

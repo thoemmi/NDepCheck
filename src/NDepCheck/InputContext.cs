@@ -1,118 +1,41 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck {
-    internal class InputContext : IInputContext {
+    public class InputContext {
         [NotNull]
-        private readonly string _filename;
+        private readonly List<Dependency> _dependencies = new List<Dependency>();
+
+        public InputContext([NotNull] string filename) {
+            Filename = filename;
+        }
+
+        internal void AddDependency(Dependency d) {
+            if (d.InputContext != this) {
+                throw new ArgumentException(nameof(d));
+            }
+            _dependencies.Add(d);
+        }
+
+        //////public DependencyRuleSet GetOrCreateDependencyRuleSet(string fileIncludeStack) {
+        //////    string dependencyFilename = Path.GetFileName(_filename) + _globalContext.RuleFileExtension;
+        //////    return _globalContext.GetOrCreateDependencyRuleSet(_globalContext, dependencyFilename, fileIncludeStack);
+        //////}
+
         [NotNull]
-        private readonly Dependency[] _dependencies;
+        public string Filename { get; }
 
-        private List<RuleViolation> _violations;
-        private int _questionableCt;
-        private int _badCt;
+        public int BadDependenciesCount => _dependencies.Sum(d => d.BadCt);
 
-        public InputContext([NotNull]string filename, [NotNull]Dependency[] dependencies) {
-            _filename = filename;
-            _dependencies = dependencies;
-        }
-
-        public int CheckDependencies([NotNull]IGlobalContext checkerContext, [NotNull]Options options, out IEnumerable<DependencyRuleGroup> checkedGroups) {
-            int result = 0;
-            if (_violations == null) {
-                // We check only once - an input context can be checked multiple times depending on the command line options.
-                _violations = new List<RuleViolation>();
-
-                try {
-                    DependencyRuleSet ruleSetForAssembly = GetOrCreateDependencyRuleSetMayBeCalledInParallel(checkerContext, options, "" /*???*/);
-                    if (ruleSetForAssembly == null) {
-                        checkedGroups = null;
-                        Log.WriteError("No rule set found for file " + _filename);
-                        if (Log.IsChattyEnabled) {
-                            Log.WriteInfo("Looked at " + _filename);
-                        }
-                        result = 6;
-                    } else {
-                        try {
-                            checkedGroups = ruleSetForAssembly.ExtractDependencyGroups(options.IgnoreCase).Where(g => g.IsNotEmpty).ToArray();
-                            if (checkedGroups.Any()) {
-                                Log.WriteInfo("Analyzing " + _filename);
-
-                                var sw = new Stopwatch();
-                                sw.Start();
-
-                                bool success = CheckDependencies(checkedGroups, _dependencies);
-
-                                sw.Stop();
-                                int elapsed = (int) sw.Elapsed.TotalMilliseconds;
-                                Log.WriteInfo($"Analyzing {_filename} took {elapsed} ms{(elapsed > 5000 ? " (longer than 5s)" : "")}");
-
-                                if (!success) {
-                                    result = 3;
-                                }
-                            } else {
-                                Log.WriteInfo("No rule groups found for " + _filename + " - no dependency checking is done");
-                            }
-                        } catch (FileNotFoundException ex) {
-                            checkedGroups = null;
-                            Log.WriteError("Input file " + ex.FileName + " not found");
-                            result = 4;
-                        }
-                    }
-
-                } catch (FileLoadException ex2) {
-                    checkedGroups = null;
-                    Log.WriteError(ex2.Message);
-                    result = 2;
-                }
-            } else {
-                checkedGroups = null;
-            }
-            return result;
-        }
-
-        public DependencyRuleSet GetOrCreateDependencyRuleSetMayBeCalledInParallel(IGlobalContext checkerContext, Options options, string fileIncludeStack) {
-            string dependencyFilename = Path.GetFileName(_filename) + options.RuleFileExtension;
-            return checkerContext.GetOrCreateDependencyRuleSet_MayBeCalledInParallel(options, dependencyFilename, fileIncludeStack);
-        }
-
-        /// <summary>
-        /// Check all dependencies against dependency rules created
-        /// with <c>AddDependencyRules</c>.
-        /// </summary>
-        /// <returns>true if no dependencies is illegal according to our rules</returns>
-        public bool CheckDependencies(IEnumerable<DependencyRuleGroup> groups, IEnumerable<Dependency> dependencies) {
-            return groups.All(g => g.Check(this, dependencies));
-        }
-
-        public void Add(RuleViolation ruleViolation) {
-            _violations.Add(ruleViolation);
-            switch (ruleViolation.ViolationType) {
-                case DependencyCheckResult.Ok:
-                    break;
-                case DependencyCheckResult.Questionable:
-                    _questionableCt++;
-                    break;
-                case DependencyCheckResult.Bad:
-                    _badCt++;
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(ruleViolation), "Internal error - unknown ViolationType " + ruleViolation.ViolationType);
-            }
-        }
-
-        public IEnumerable<RuleViolation> RuleViolations => _violations;
-
-        public string Filename => _filename;
-
-        public int ErrorCount => _badCt;
-
-        public int WarningCount => _questionableCt;
+        public int QuestionableDependenciesCount => _dependencies.Sum(d => d.QuestionableCt);
 
         public IEnumerable<Dependency> Dependencies => _dependencies;
+
+        public void SetDependencies(IEnumerable<Dependency> dependencies) {
+            _dependencies.Clear();
+            _dependencies.AddRange(dependencies);
+        }
     }
 }

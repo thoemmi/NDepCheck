@@ -199,7 +199,7 @@ namespace NDepCheck.Rendering {
             fromPos = fromBox.GetBestConnector(toPos).WithYOf(fromPos);
             Arrow(fromPos, toPos, 1, color: d.NotOkCt > 0 ? Color.Red :
                 d.QuestionableCt > 0 ? Color.Blue : Color.Black, text: prefix + "#=" + d.Ct,
-                textLocation: -20, textFont: _lineFont, fixingOrder: 2, edgeInfo: d.NotOkExampleInfo);
+                textLocation: -20, textFont: _lineFont, fixingOrder: 2, edgeInfo: d.ExampleInfo);
 
             toBox.UpperLeft.MinY(fromPos.Y + 5);
             toBox.LowerLeft.MaxY(fromPos.Y - toBox.TextBox.Y);
@@ -239,11 +239,11 @@ namespace NDepCheck.Rendering {
         }
 
         private Dependency FromTo(Item from, Item to, int ct = 1, int questionableCt = 0) {
-            return new Dependency(from, to, "Test", 0, 0, 0, 0, "Use", ct: ct, questionableCt: questionableCt, notOkExampleInfo: questionableCt > 0 ? from + "==>" + to : "");
+            return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
-        public override void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString) {
-            DoRender(items, dependencies, argsAsString,
+        public override void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
+            DoRender(items, dependencies, argsAsString, baseFilename,
                 new OptionAction('i', (args, j) => {
                     _interfaceMarker = new Regex(Options.ExtractOptionValue(args, ref j));
                     return j;
@@ -254,7 +254,7 @@ namespace NDepCheck.Rendering {
                 }));
         }
 
-        public override string GetHelp() {
+        public override string GetHelp(bool detailedHelp) {
             return @"  A GIF renderer that depicts modules and their interfaces as
   vertical bars that are connected by horizontal arrows.
 

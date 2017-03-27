@@ -7,7 +7,7 @@ namespace NDepCheck.Rendering {
     /// Writer for dependencies ("Edges") in standard "DIP" format
     /// </summary>
     public class DipWriter : IDependencyRenderer {
-        public static void Write(IEnumerable<IEdge> edges, StreamWriter sw, bool withNotOkExampleInfo) {
+        public static void Write(IEnumerable<IEdge> edges, TextWriter sw, bool withExampleInfo) {
             var writtenTypes = new HashSet<ItemType>();
 
             sw.WriteLine("// Written " + DateTime.Now);
@@ -16,11 +16,11 @@ namespace NDepCheck.Rendering {
                 WriteItemType(writtenTypes, e.UsingNode.Type, sw);
                 WriteItemType(writtenTypes, e.UsedNode.Type, sw);
 
-                sw.WriteLine(e.AsDipStringWithTypes(withNotOkExampleInfo));
+                sw.WriteLine(e.AsDipStringWithTypes(withExampleInfo));
             }
         }
 
-        private static void WriteItemType(HashSet<ItemType> writtenTypes, ItemType itemType, StreamWriter sw) {
+        private static void WriteItemType(HashSet<ItemType> writtenTypes, ItemType itemType, TextWriter sw) {
             if (writtenTypes.Add(itemType)) {
                 sw.Write("// ITEMTYPE ");
                 sw.WriteLine(itemType.Name);
@@ -35,11 +35,10 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString) {
+        public void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
             //int stringLengthForIllegalEdges = -1;
-            string baseFilename = null;
-            bool withNotOkExampleInfo = false;
-            Options.Parse(argsAsString, arg => baseFilename = arg,
+            bool withExampleInfo = false;
+            Options.Parse(argsAsString, 
                 //new OptionAction('e', (args, j) => {
                 //    if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out stringLengthForIllegalEdges)) {
                 //        Options.Throw("No valid length after e", args);
@@ -47,20 +46,14 @@ namespace NDepCheck.Rendering {
                 //    return j;
                 //}), 
                 new OptionAction('n', (args, j) => {
-                    withNotOkExampleInfo = true;
-                    return j;
-                }), new OptionAction('o', (args, j) => {
-                    baseFilename = Options.ExtractOptionValue(args, ref j);
+                    withExampleInfo = true;
                     return j;
                 }));
-            if (baseFilename == null) {
-                Options.Throw("No filename set with option o", argsAsString);
-            }
             string filename = Path.ChangeExtension(baseFilename, ".dip");
 
             Log.WriteInfo("Writing " + filename);
-            using (var sw = new StreamWriter(filename)) {
-                Write(dependencies, sw, withNotOkExampleInfo);
+            using (var sw = filename == null ? Console.Out : new StreamWriter(filename)) {
+                Write(dependencies, sw, withExampleInfo);
             }
         }
 
@@ -88,19 +81,17 @@ namespace NDepCheck.Rendering {
         }
 
         private Dependency FromTo(Item from, Item to, int ct = 1, int questionable = 0) {
-            return new Dependency(from, to, "Test", 0, 0, 0, 0, "Use", ct: ct, questionableCt: questionable);
+            return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: ct, questionableCt: questionable);
         }
 
-        public string GetHelp() {
-            return
-@"  Writes dependencies to .dip files, which can be read in by NDepCheck.
-  This is very helpful for building pipelines that process dependencies
-  for different purposes.
+        public string GetHelp(bool detailedHelp) {
+            return 
+@"  Writes dependencies to .dip files, which can be read in by 
+  NDepCheck's DipReader. This is very helpful for building pipelines 
+  that process dependencies for different purposes.
 
-  Options: [-n] -o filename | filename
-    -n       ... each edge contains an example of a bad dependency
-                 (if there is one); default: do not write bad example
-    filename ... output file in .dip format";
+  Options: [-n]
+    -n       ... each edge contains an example of a dependency; default: do not write example";
         }
     }
 }

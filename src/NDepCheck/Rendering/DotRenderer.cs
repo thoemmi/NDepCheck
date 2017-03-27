@@ -8,8 +8,8 @@ namespace NDepCheck.Rendering {
     /// Class that creates AT&amp;T DOT (graphviz) output from dependencies - see <a href="http://graphviz.org/">http://graphviz.org/</a>.
     /// </summary>
     public class DotRenderer : IDependencyRenderer {
-        public void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString) {
-            new GenericDotRenderer().Render(items, dependencies, argsAsString);
+        public void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
+            new GenericDotRenderer().Render(items, dependencies, argsAsString, baseFilename);
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, Stream output) {
@@ -20,16 +20,16 @@ namespace NDepCheck.Rendering {
             SomeRendererTestData.CreateSomeTestItems(out items, out dependencies);
         }
 
-        public string GetHelp() {
+        public string GetHelp(bool detailedHelp) {
             return new GenericDotRenderer().GetHelp();
         }
     }
 
     public class GenericDotRenderer : IRenderer<INode, IEdge> {
-        private void Render(/*IEnumerable<INode> nodes, */IEnumerable<IEdge> edges, [NotNull] StreamWriter output, int? stringLengthForIllegalEdges) {
+        private void Render(/*IEnumerable<INode> nodes, */IEnumerable<IEdge> edges, [NotNull] TextWriter output, int? stringLengthForIllegalEdges) {
             IEnumerable<IEdge> visibleEdges = edges.Where(e => !e.Hidden);
 
-            IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges = DependencyGrapher.Edges2NodesAndEdges(visibleEdges);
+            IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdges(visibleEdges);
 
             output.WriteLine("digraph D {");
             output.WriteLine("ranksep = 1.5;");
@@ -49,32 +49,25 @@ namespace NDepCheck.Rendering {
             output.WriteLine("}");
         }
 
-        public void Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString) {
+        public void Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString, [CanBeNull] string baseFilename) {
             int stringLengthForIllegalEdges = -1;
-            string baseFilename = null;
-            Options.Parse(argsAsString, arg => baseFilename = arg,
+            Options.Parse(argsAsString,
                 new OptionAction('e', (args, j) => {
                     if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out stringLengthForIllegalEdges)) {
                         Options.Throw("No valid length after e", args);
                     }
                     return j;
-                }), new OptionAction('o', (args, j) => {
-                    baseFilename = Options.ExtractOptionValue(args, ref j);
-                    return j;
                 }));
-            if (baseFilename == null) {
-                Options.Throw("No filename set with option o", argsAsString);
-            }
             string filename = Path.ChangeExtension(baseFilename, ".dot");
 
-            using (var sw = new StreamWriter(filename)) {
-                Render(/*items,*/ dependencies, sw, stringLengthForIllegalEdges);
+            using (var sw = GlobalContext.CreateTextWriter(filename)) {
+                Render(dependencies, sw, stringLengthForIllegalEdges);
             }
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, Stream stream) {
             using (var sw = new StreamWriter(stream)) {
-                Render(/*items,*/ dependencies, sw, null);
+                Render(dependencies, sw, null);
             }
         }
 

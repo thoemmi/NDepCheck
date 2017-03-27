@@ -2,29 +2,34 @@
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using NDepCheck.Reading;
 
 namespace NDepCheck {
     public class InputFileOption {
-        private readonly string _extension;
+        [NotNull]
         private readonly string _positive;
+        [NotNull]
         private readonly string _negativeOrNull;
+        [NotNull]
+        private readonly IReaderFactory _readerFactory;
+
         private IEnumerable<AbstractDependencyReader> _readers;
 
-        public InputFileOption([NotNull]string extension, [NotNull]string positive, [CanBeNull]string negativeOrNull) {
-            _extension = extension;
+        public InputFileOption([NotNull] string positive, [CanBeNull] string negativeOrNull, [NotNull] IReaderFactory readerFactory) {
+            _readerFactory = readerFactory;
             _positive = positive;
             _negativeOrNull = negativeOrNull;
         }
 
         [NotNull]
-        internal IEnumerable<AbstractDependencyReader> CreateOrGetReaders([NotNull]Options options, bool needsOnlyItemTails) {
+        public IEnumerable<AbstractDependencyReader> CreateOrGetReaders([NotNull]GlobalContext options, bool needsOnlyItemTails) {
             if (_readers == null) {
                 var filenames = new List<string>(ExpandFilename(_positive));
                 if (_negativeOrNull != null) {
                     var negative = new List<string>(ExpandFilename(_negativeOrNull)).ConvertAll(Path.GetFullPath);
                     filenames.RemoveAll(f => negative.Contains(Path.GetFullPath(f)));
                 }
-                _readers = filenames.Select(filename => AbstractReaderFactory.CreateReader(filename, _extension, options, needsOnlyItemTails)).ToArray();
+                _readers = filenames.Select(filename => _readerFactory.CreateReader(filename, options, needsOnlyItemTails)).ToArray();
             }
             return _readers;
         }

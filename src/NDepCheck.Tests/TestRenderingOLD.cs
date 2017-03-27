@@ -39,15 +39,15 @@ namespace NDepCheck.Tests.OLD {
                 Item i1 = Item.New(simple, "I1");
                 Item i2 = Item.New(simple, "I2");
                 items = new[] { i1, Item.New(simple, "I2") };
-                dependencies = new[] { new Dependency(i1, i1, "Test", 0, 0, 0, 0, "Test", ct: 1),
-                                       new Dependency(i1, i2, "Test", 0, 0, 0, 0, "Test", ct: 1) };
+                dependencies = new[] { new Dependency(i1, i1, new TextFileSource("Test", 1), "Use", ct: 1),
+                                       new Dependency(i1, i2, new TextFileSource("Test", 2), "Test", ct: 1) };
             }
         }
 
         private static void CreateAndRender(Action<DelegteTestRenderer> placeObjects, int width = 300, int height = 400) {
             string tempFile = Path.GetTempFileName();
             Console.WriteLine(Path.ChangeExtension(tempFile, ".gif"));
-            new DelegteTestRenderer(placeObjects, width, height).Render(Enumerable.Empty<Item>(), Enumerable.Empty<Dependency>(), tempFile);
+            new DelegteTestRenderer(placeObjects, width, height).Render(Enumerable.Empty<Item>(), Enumerable.Empty<Dependency>(), "", tempFile);
         }
 
         [TestMethod]
@@ -225,7 +225,7 @@ namespace NDepCheck.Tests.OLD {
                 var localItems = Enumerable.Range(0, n).Select(i => Item.New(simple, prefix + i)).ToArray();
                 dependencies =
                     localItems.SelectMany(
-                        (from, i) => localItems.Skip(i).Select(to => new Dependency(from, to, prefix, i, 0, i, 100, "Test", 10 * i))).ToArray();
+                        (from, i) => localItems.Skip(i).Select(to => new Dependency(from, to, new TextFileSource(prefix, i), "Use", 10 * i))).ToArray();
                 items = localItems;
             }
 
@@ -239,11 +239,11 @@ namespace NDepCheck.Tests.OLD {
             var items = Enumerable.Range(0, n).Select(i => Item.New(simple, prefix + i)).ToArray();
             var dependencies =
                 items.SelectMany(
-                    (from, i) => items.Skip(i).Select(to => new Dependency(from, to, prefix, i, 0, i, 100, "Test", 10 * i))).ToArray();
+                    (from, i) => items.Skip(i).Select(to => new Dependency(from, to, new TextFileSource(prefix, i), "Use", 10 * i))).ToArray();
 
             string tempFile = Path.GetTempFileName();
             Console.WriteLine(Path.ChangeExtension(tempFile, ".gif"));
-            new SomewhatComplexTestRenderer(new Size(width, height)).Render(items, dependencies, tempFile);
+            new SomewhatComplexTestRenderer(new Size(width, height)).Render(items, dependencies, "", tempFile);
         }
 
         [TestMethod]
@@ -303,7 +303,7 @@ namespace NDepCheck.Tests.OLD {
 
         #region IXOS-Rendering
 
-        internal class IXOSApplicationRenderer : GraphicsDependencyRenderer {
+        public class IXOSApplicationRenderer : GraphicsDependencyRenderer {
             protected override Size GetSize() {
                 return new Size(2000, 1600);
             }
@@ -502,7 +502,7 @@ namespace NDepCheck.Tests.OLD {
             }
 
             private Dependency FromTo(Item from, Item to) {
-                return new Dependency(from, to, "Test", 0, 0, 0, 0, "Test", ct: 1);
+                return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: 1);
             }
         }
 

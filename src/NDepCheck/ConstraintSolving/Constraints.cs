@@ -111,9 +111,13 @@ namespace NDepCheck.ConstraintSolving {
     }
 
     public sealed class RangeConstraint : UnaryConstraint {
+        public static RangeConstraint CreateRangeConstraint(NumericVariable inputVariable, Range range) {
+            return new RangeConstraint(inputVariable, range);
+        }
+
         private readonly Range _range;
 
-        public RangeConstraint(NumericVariable inputVariable, Range range) : base(inputVariable) {
+        private RangeConstraint(NumericVariable inputVariable, Range range) : base(inputVariable) {
             _range = range;
         }
 
@@ -166,7 +170,11 @@ namespace NDepCheck.ConstraintSolving {
     }
 
     public sealed class EqualityConstraint : BinaryConstraint {
-        public EqualityConstraint(NumericVariable variable1, NumericVariable variable2) : base(variable1, variable2) {
+        public static EqualityConstraint CreateEqualityConstraint(NumericVariable variable1, NumericVariable variable2) {
+            return new EqualityConstraint(variable1, variable2);
+        }
+
+        private EqualityConstraint(NumericVariable variable1, NumericVariable variable2) : base(variable1, variable2) {
         }
 
         protected override bool Update(NumericVariable v) {
@@ -188,7 +196,11 @@ namespace NDepCheck.ConstraintSolving {
     }
 
     public sealed class IsInverseConstraint : BinaryConstraint {
-        public IsInverseConstraint(NumericVariable variable1, NumericVariable variable2) : base(variable1, variable2) {
+        public static IsInverseConstraint CreateIsInverseConstraint(NumericVariable variable1, NumericVariable variable2) {
+            return new IsInverseConstraint(variable1, variable2);
+        }
+
+        private IsInverseConstraint(NumericVariable variable1, NumericVariable variable2) : base(variable1, variable2) {
         }
 
         protected override bool Update(NumericVariable v) {
@@ -210,7 +222,11 @@ namespace NDepCheck.ConstraintSolving {
     }
 
     public sealed class AtLeastConstraint : BinaryConstraint {
-        public AtLeastConstraint(NumericVariable variable1, NumericVariable variable2) : base(variable1, variable2) {
+        public static AtLeastConstraint CreateAtLeastConstraint(NumericVariable variable1, NumericVariable variable2) {
+            return new AtLeastConstraint(variable1, variable2);
+        }
+
+        private AtLeastConstraint(NumericVariable variable1, NumericVariable variable2) : base(variable1, variable2) {
         }
 
         protected override bool Update(NumericVariable v) {
@@ -238,10 +254,14 @@ namespace NDepCheck.ConstraintSolving {
     }
 
     public sealed class ProportionalConstraint : BinaryConstraint {
+        public static ProportionalConstraint CreateProportionalConstraint(double d, NumericVariable variable1, NumericVariable variable2) {
+            return new ProportionalConstraint(d, variable1, variable2);
+        }
+
         // d * variable1 = variable2
         private readonly double _d;
 
-        public ProportionalConstraint(double d, NumericVariable variable1, NumericVariable variable2) : base(variable1, variable2) {
+        private ProportionalConstraint(double d, NumericVariable variable1, NumericVariable variable2) : base(variable1, variable2) {
             _d = d;
         }
 
@@ -268,13 +288,17 @@ namespace NDepCheck.ConstraintSolving {
     }
 
     public sealed class SumIs0Constraint : AbstractConstraint {
+        public static SumIs0Constraint CreateSumIs0Constraint(params NumericVariable[] inputVariables) {
+            return new SumIs0Constraint(inputVariables);
+        }
+
         private readonly NumericVariable[] _inputVariables;
 
         //public SumIs0Constraint(IEnumerable<DoubleHolder> plus) {
         //    _plus = plus.ToArray();
         //}
 
-        public SumIs0Constraint(params NumericVariable[] inputVariables) : base(inputVariables) {
+        private SumIs0Constraint(params NumericVariable[] inputVariables) : base(inputVariables) {
             _inputVariables = inputVariables;
         }
 
@@ -354,16 +378,24 @@ namespace NDepCheck.ConstraintSolving {
     }
 
     public class UnidirectionalComputationConstraint : AbstractConstraint {
+        public static UnidirectionalComputationConstraint CreateUnidirectionalComputationConstraint(NumericVariable[] input, NumericVariable[] output, Action<NumericVariable[], NumericVariable[]> computation) {
+            return new UnidirectionalComputationConstraint(input, output, computation);
+        }
+
+        public static UnidirectionalComputationConstraint CreateUnidirectionalComputationConstraint(NumericVariable[] input, NumericVariable[] output, Action computation) {
+            return new UnidirectionalComputationConstraint(input, output, computation);
+        }
+
         private readonly NumericVariable[] _input;
         private readonly NumericVariable[] _output;
         private readonly Action<NumericVariable[], NumericVariable[]> _computation;
         private readonly double _solverEps;
 
-        public UnidirectionalComputationConstraint(NumericVariable[] input, NumericVariable[] output,
+        private UnidirectionalComputationConstraint(NumericVariable[] input, NumericVariable[] output,
             Action computation) : this(input, output, (i, o) => computation()) {
         }
 
-        public UnidirectionalComputationConstraint(NumericVariable[] input, NumericVariable[] output,
+        private UnidirectionalComputationConstraint(NumericVariable[] input, NumericVariable[] output,
             Action<NumericVariable[], NumericVariable[]> computation) : base(input, output) {
             if (input == null || input.Length == 0) {
                 throw new ArgumentNullException(nameof(input));

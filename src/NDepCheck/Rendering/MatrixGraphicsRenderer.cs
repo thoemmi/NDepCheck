@@ -119,7 +119,7 @@ namespace NDepCheck.Rendering {
                     Arrow(yPos, new VariableVector(name + "->...", usedBox.LowerLeft.X, yPos.Y), width: 2,
                         color: d.NotOkCt > 0 ? Color.Red : d.QuestionableCt > 0 ? Color.Blue : Color.Black,
                         text: "#=" + d.Ct, placement: LineTextPlacement.Left, textLocation: -40,
-                        edgeInfo: d.NotOkExampleInfo, drawingOrder: 1);
+                        edgeInfo: d.ExampleInfo, drawingOrder: 1);
                     usedBox.UpperRight.MinY(yPos.Y + 5);
                     yPos += F(0, DELTA_Y_MAIN);
                     minBoxHeight += DELTA_Y_MAIN;
@@ -141,7 +141,7 @@ namespace NDepCheck.Rendering {
         //}
 
         private static int Sum(IEnumerable<Dependency> dependencies, Func<Dependency, bool> filter) {
-            return dependencies.Where(d => filter(d)).Sum(d => d.Ct);
+            return dependencies.Where(filter).Sum(d => d.Ct);
         }
 
         public override void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
@@ -176,11 +176,11 @@ namespace NDepCheck.Rendering {
         }
 
         private Dependency FromTo(Item from, Item to, int ct = 1, int questionableCt = 0) {
-            return new Dependency(from, to, "Test", 0, 0, 0, 0, "Use", ct: ct, questionableCt: questionableCt, notOkExampleInfo: questionableCt > 0 ? from + "==>" + to : "");
+            return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
-        public override void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString) {
-            DoRender(items, dependencies, argsAsString,
+        public override void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
+            DoRender(items, dependencies, argsAsString, baseFilename,
                 new OptionAction('b', (args, j) => {
                     _bottomRegex = new Regex(Options.ExtractOptionValue(args, ref j));
                     return j;
@@ -199,7 +199,7 @@ namespace NDepCheck.Rendering {
                 }));
         }
 
-        public override string GetHelp() {
+        public override string GetHelp(bool detailedHelp) {
             return @"  A GIF renderer that depicts modules and their interfaces as
   vertical bars that are connected by horizontal arrows.
 

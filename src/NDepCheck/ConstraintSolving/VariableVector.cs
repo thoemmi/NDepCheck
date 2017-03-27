@@ -1,5 +1,3 @@
-using System;
-using System.Drawing;
 using JetBrains.Annotations;
 
 namespace NDepCheck.ConstraintSolving {
@@ -24,16 +22,16 @@ namespace NDepCheck.ConstraintSolving {
 
         public VariableVector Restrict([CanBeNull] VariableVector lowerBound) {
             if (lowerBound != null) {
-                new AtLeastConstraint(_x, lowerBound._x);
-                new AtLeastConstraint(_y, lowerBound._y);
+                AtLeastConstraint.CreateAtLeastConstraint(_x, lowerBound._x);
+                AtLeastConstraint.CreateAtLeastConstraint(_y, lowerBound._y);
             }
             return this;
         }
 
         public VariableVector Restrict([CanBeNull] VariableVector lowerBound, [CanBeNull] VariableVector upperBound) {
             if (upperBound != null) {
-                new AtLeastConstraint(upperBound._x, _x);
-                new AtLeastConstraint(upperBound._y, _y);
+                AtLeastConstraint.CreateAtLeastConstraint(upperBound._x, _x);
+                AtLeastConstraint.CreateAtLeastConstraint(upperBound._y, _y);
             }
             return Restrict(lowerBound);
         }

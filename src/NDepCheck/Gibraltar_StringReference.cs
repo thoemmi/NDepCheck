@@ -10,13 +10,31 @@ using System.Diagnostics;
 
 // ReSharper disable once CheckNamespace -- derived from ___
 namespace Gibraltar {
+    public class Intern {
+        private static readonly List<Dictionary<int, LinkedList<WeakReference>>> _allReferences = new List<Dictionary<int, LinkedList<WeakReference>>> ();
+
+        protected static void AddForClearing(Dictionary<int, LinkedList<WeakReference>> references) {
+            _allReferences.Add(references);
+        }
+
+        public static void ResetAll() {
+            foreach (var d in _allReferences) {
+                d.Clear();
+            }
+        }
+    }
+
     /// <summary>
     /// Provides a way to ensure a string is a reference to a single copy instead of creating multiple copies.
     /// </summary>
-    public class Intern<T> where T : class {
+    public class Intern<T> : Intern where T : class {
         // ReSharper disable StaticMemberInGenericType
         private static readonly Dictionary<int, LinkedList<WeakReference>> _references = new Dictionary<int, LinkedList<WeakReference>>(1024);
         private static readonly object _lock = new object(); //Multithread Protection lock
+
+        static Intern() {
+            AddForClearing(_references);
+        }
 
         private static volatile bool _disableCache;
         // ReSharper restore StaticMemberInGenericType

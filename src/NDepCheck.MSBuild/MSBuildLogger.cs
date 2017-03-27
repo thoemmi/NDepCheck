@@ -1,4 +1,3 @@
-using System;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 
@@ -18,36 +17,21 @@ namespace NDepCheck.MSBuild {
             _log.LogError(null, null, null, nestedFilenames, startLine, 0, 0, 0, msg);
         }
 
-        public void WriteViolation(RuleViolation ruleViolation) {
-            switch (ruleViolation.ViolationType) {
-                case DependencyCheckResult.Ok:
-                    break;
-                case DependencyCheckResult.Questionable:
-                    _log.LogWarning(
-                        null,
-                        null,
-                        null,
-                        ruleViolation.Dependency.Source,
-                        ruleViolation.Dependency.StartLine,
-                        ruleViolation.Dependency.StartColumn,
-                        ruleViolation.Dependency.EndLine,
-                        ruleViolation.Dependency.EndColumn,
-                        ruleViolation.Dependency.QuestionableMessage());
-                    break;
-                case DependencyCheckResult.Bad:
-                    _log.LogError(
-                        null,
-                        null,
-                        null,
-                        ruleViolation.Dependency.Source,
-                        ruleViolation.Dependency.StartLine,
-                        ruleViolation.Dependency.StartColumn,
-                        ruleViolation.Dependency.EndLine,
-                        ruleViolation.Dependency.EndColumn,
-                        ruleViolation.Dependency.IllegalMessage());
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
+        public void WriteViolation(Dependency dependency) {
+            if (dependency.BadCt > 0) {
+                _log.LogError(
+                    "Bad dependency",
+                    null,
+                    null,
+                    dependency.Source,
+                    dependency.BadDependencyMessage());
+            } else if (dependency.QuestionableCt > 0) {
+                _log.LogWarning(
+                    "Questionable dependency",
+                    null,
+                    null,
+                    dependency.Source,
+                    dependency.QuestionableDependencyMessage());
             }
         }
 

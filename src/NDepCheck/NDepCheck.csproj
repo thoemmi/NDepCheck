@@ -95,7 +95,10 @@
     <Compile Include="Annotations.cs" />
     <Compile Include="ConstraintSolving\Range.cs" />
     <Compile Include="ConstraintSolving\SimpleConstraintSolver.cs" />
-    <Compile Include="DipReaderFactory.cs" />
+    <Compile Include="Reading\DipReaderFactory.cs" />
+    <Compile Include="IPlugin.cs" />
+    <Compile Include="SourceLocation.cs" />
+    <Compile Include="Rendering\RuleViolationRenderer.cs" />
     <Compile Include="Rendering\MatrixGraphicsRenderer.cs" />
     <Compile Include="Rendering\ModulesAndInterfacesRenderer.cs" />
     <Compile Include="Rendering\AbstractGenericMatrixRenderer.cs" />
@@ -106,53 +109,55 @@
     <Compile Include="Rendering\IRenderer.cs" />
     <Compile Include="Rendering\MatrixRenderer1.cs" />
     <Compile Include="Rendering\DotRenderer.cs" />
-    <Compile Include="FullDotNetAssemblyDependencyReader.cs" />
+    <Compile Include="Reading\FullDotNetAssemblyDependencyReader.cs" />
     <Compile Include="Gibraltar_StringReference.cs" />
-    <Compile Include="GraphTransformations\HideOuterGraph.cs" />
-    <Compile Include="GraphTransformations\AssociativeHull.cs" />
-    <Compile Include="IgnoreReader.cs" />
-    <Compile Include="AbstractDotNetAssemblyDependencyReader.cs" />
-    <Compile Include="GraphTransformations\IGraphTransformation.cs" />
+    <Compile Include="Transforming\GraphTransformations\HideOuterGraph.cs" />
+    <Compile Include="Transforming\GraphTransformations\AssociativeHull.cs" />
+    <Compile Include="Reading\IgnoreReader.cs" />
+    <Compile Include="Reading\AbstractDotNetAssemblyDependencyReader.cs" />
+    <Compile Include="Transforming\GraphTransformations\IGraphTransformation.cs" />
     <Compile Include="InputContext.cs" />
     <Compile Include="InputFileOption.cs" />
     <Compile Include="GlobalContext.cs" />
-    <Compile Include="DependencyGrapher.cs" />
-    <Compile Include="AbstractDependencyReader.cs" />
-    <Compile Include="DependencyRuleGroup.cs" />
-    <Compile Include="DependencyRuleSet.cs" />
-    <Compile Include="DependencyRule.cs" />
+    <Compile Include="DependencyHelper..cs" />
+    <Compile Include="Reading\AbstractDependencyReader.cs" />
+    <Compile Include="Transforming\IMatcher.cs" />
+    <Compile Include="Transforming\Projecting\IProjectionSetElement.cs" />
+    <Compile Include="Transforming\Projecting\ProjectionSet.cs" />
+    <Compile Include="Transforming\ViolationChecking\DependencyRuleGroup.cs" />
+    <Compile Include="Transforming\ViolationChecking\DependencyRuleSet.cs" />
+    <Compile Include="Transforming\ViolationChecking\DependencyRule.cs" />
     <Compile Include="Dependency.cs" />
-    <Compile Include="DependencyRuleRepresentation.cs" />
+    <Compile Include="Transforming\ViolationChecking\DependencyRuleRepresentation.cs" />
     <Compile Include="ConsoleLogger.cs" />
-    <Compile Include="DipReader.cs" />
+    <Compile Include="Reading\DipReader.cs" />
     <Compile Include="Rendering\DipWriter.cs" />
-    <Compile Include="Projection.cs" />
-    <Compile Include="GraphTransformations\HidePureSinks.cs" />
-    <Compile Include="GraphTransformations\HidePureSources.cs" />
-    <Compile Include="Interfaces\IGlobalContext.cs" />
-    <Compile Include="Interfaces\IInputContext.cs" />
+    <Compile Include="Transforming\Projecting\Projection.cs" />
+    <Compile Include="Transforming\GraphTransformations\HidePureSinks.cs" />
+    <Compile Include="Transforming\GraphTransformations\HidePureSources.cs" />
     <Compile Include="IEdge.cs" />
     <Compile Include="INode.cs" />
     <Compile Include="Item.cs" />
-    <Compile Include="ItemsOnlyDotNetAssemblyDependencyReader.cs" />
+    <Compile Include="Reading\ItemsOnlyDotNetAssemblyDependencyReader.cs" />
     <Compile Include="ItemType.cs" />
-    <Compile Include="Macro.cs" />
-    <Compile Include="Pattern.cs" />
+    <Compile Include="Transforming\Pattern.cs" />
     <Compile Include="Program.cs" />
-    <Compile Include="DirectoryOption.cs" />
     <Compile Include="ILogger.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="GraphTransformations\UnhideCycles.cs" />
-    <Compile Include="GraphTransformations\HideTransitiveEdges.cs" />
+    <Compile Include="Transforming\GraphTransformations\UnhideCycles.cs" />
+    <Compile Include="Transforming\GraphTransformations\HideTransitiveEdges.cs" />
     <Compile Include="Rendering\IDependencyRenderer.cs" />
     <Compile Include="Rendering\SomeRendererTestData.cs" />
     <Compile Include="ConstraintSolving\VariableVector.cs" />
     <Compile Include="Rendering\Vector.cs" />
     <Compile Include="Rendering\VectorF.cs" />
-    <Compile Include="RuleViolation.cs" />
-    <Compile Include="XmlViolationsWriter.cs" />
     <Compile Include="Rendering\GraphicsRenderer.cs" />
+    <Compile Include="Transforming\AbstractTransformer.cs" />
+    <Compile Include="Transforming\FromTo.cs" />
+    <Compile Include="Transforming\ITransformer.cs" />
+    <Compile Include="Transforming\Projecting\Projector.cs" />
+    <Compile Include="Transforming\ViolationChecking\ViolationsChecker.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config">
@@ -189,6 +194,7 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Import Project="..\packages\CreateAssemblyInfoFromGit.1.0.0-beta0025\build\CreateAssemblyInfoFromGit.targets" Condition="Exists('..\packages\CreateAssemblyInfoFromGit.1.0.0-beta0025\build\CreateAssemblyInfoFromGit.targets')" />

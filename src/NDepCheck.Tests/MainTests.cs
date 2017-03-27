@@ -1,13 +1,14 @@
 // (c) HMMüller 2006...2017
 
 using System;
-using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.GraphTransformations;
 using NDepCheck.Rendering;
 using NDepCheck.TestRenderer;
+using NDepCheck.Transforming.Projecting;
+using NDepCheck.Transforming.ViolationChecking;
 
 namespace NDepCheck.Tests {
     /// <remarks>
@@ -30,9 +31,9 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void GeneralSucceedingTest() {
-            string depFile = CreateTempDotNetDepFileName();
-            using (TextWriter tw = new StreamWriter(depFile, false, Encoding.Default)) {
-                tw.Write(@"
+            using (var ruleFile = new FileProvider(CreateTempDotNetDepFileName())) {
+                using (TextWriter tw = new StreamWriter(ruleFile.Filename, false, Encoding.Default)) {
+                    tw.Write(@"
 // Test dependencies for NDepCheck
 
 $ DOTNETCALL ---> DOTNETCALL
@@ -52,20 +53,15 @@ $ DOTNETCALL ---> DOTNETCALL
     // Every class may use all of System.
 ** ---> System.**:
 
-=---> :=
-    \L.** ---> \R.**
-    \L.** ---> \L.**
-=:
-
 
     // NDepCheck may use antlr and itself.
-NDepCheck =---> antlr
+NDepCheck ---> antlr
 
     // NDepCheck must not use Windows Forms.
 NDepCheck.** ---! System.Windows.Forms.**
 
 _TES  := asdasdasdasdasdasd
-_TESTS := NDepCheck.Tests
+_TESTS := NDepCheck.TestAssembly
 _TEST_OTHERS := xxxxxxxxxxxxx
 _TEST := asdasdasdasdasdasd
 
@@ -103,121 +99,122 @@ _TESTS.** ---> Microsoft.VisualStudio.TestTools.**
     // current test class.
 NDepCheck:Tests ---> **
 
-// ------------------
+//////// ------------------
 
-    // All of system is ignored
-% ()System.**
+//////    // All of system is ignored
+//////% ()System.**
 
-    // Classes in NDepCheck.Tests are shown separately, without the namespace
-% NDepCheck.Tests.(**)
+//////    // Classes in NDepCheck.Tests are shown separately, without the namespace
+//////% NDepCheck.Tests.(**)
 
-    // Classes in NDepCheck are also shown separately, but with the namespace
-% (NDepCheck)
+//////    // Classes in NDepCheck are also shown separately, but with the namespace
+//////% (NDepCheck)
 
-    // antlr classes are shown by namespace
-% (antlr)
-% (antlr.**)
+//////    // antlr classes are shown by namespace
+//////% (antlr)
+//////% (antlr.**)
 
-    // Top level classes are shown as their class name
-% -:(*)
+//////    // Top level classes are shown as their class name
+//////% -:(*)
                 ");
-            }
-            string outFile = Path.GetTempFileName();
-            //string workingDir = Path.GetTempPath();
-            using (TextWriter tw = new StreamWriter(outFile)) {
-                TextWriter oldOut = Console.Out;
-                Console.SetOut(tw);
-                string[] args = { "/v", "/x", depFile, "/f", TestAssemblyPath };
-                Program.Main(args);
-                Console.SetOut(oldOut);
-            }
-            AssertNotContains(outFile, "****");
-            File.Delete(outFile);
-            File.Delete(depFile);
-        }
-
-        [TestMethod]
-        public void SmallGrapherTest() {
-            var rs = new DependencyRuleSet(_ignoreCase, "in test");
-            rs.AddProjections(ITEMTYPE, ITEMTYPE, false, "<test>", 0, "% (**)", _ignoreCase);
-
-            var deps = new List<Dependency> {
-                NewDependency("A", "a1", "a1", "A", "a2", "a2"),
-                NewDependency("A", "a1", "a1", "A", "a4", "a4"),
-                NewDependency("A", "a2", "a2", "A", "a3", "a3"),
-                NewDependency("A", "a2", "a2", "A", "a4", "a4"),
-                NewDependency("A", "a3", "a3", "A", "a4", "a4"),
-                NewDependency("B", "b1", "b1", "B", "b2", "b2"),
-                NewDependency("B", "b1", "b1", "B", "b4", "b4"),
-                NewDependency("B", "b2", "b2", "B", "b3", "b3"),
-                NewDependency("B", "b2", "b2", "B", "b4", "b4"),
-                NewDependency("B", "b3", "b3", "B", "b2", "b2"),
-                NewDependency("B", "b3", "b3", "B", "b4", "b4")
-            };
-
-            var nodes = new Dictionary<Item, Item>();
-            var edges = new Dictionary<DependencyGrapher.FromTo, Dependency>();
-
-            DependencyGrapher.ReduceGraph(new Options { IgnoreCase = _ignoreCase }, rs, deps, nodes, edges);
-
-            new HideTransitiveEdges<Dependency>(new[] { "a" }).Run(edges.Values);
-
-            using (var sw = new MemoryStream()) {
-                new GenericDotRenderer().RenderToStreamForUnitTests(nodes.Values, edges.Values, sw);
-
-                // what to assert??
+                }
+                string outFile = Path.GetTempFileName();
+                int result;
+                //string workingDir = Path.GetTempPath();
+                using (TextWriter tw = new StreamWriter(outFile)) {
+                    TextWriter oldOut = Console.Out;
+                    Console.SetOut(tw);
+                    string[] args = { "/v",
+                        "/f", typeof(ViolationsChecker).Name, "{", "-f", ruleFile.Filename, "}",
+                        "/j", TestAssemblyPath };
+                    result = Program.Main(args);
+                    Console.SetOut(oldOut);
+                }
+                AssertNotContains(outFile, "****");
+                File.Delete(outFile);
+                Assert.AreEqual(Program.OK_RESULT, result);
             }
         }
+
+        ////[TestMethod]
+        ////public void SmallGrapherTest() {
+        ////    var rs = new DependencyRuleSet(_ignoreCase, "in test");
+        ////    rs.AddProjections(ITEMTYPE, ITEMTYPE, false, "<test>", 0, "% (**)", _ignoreCase);
+
+        ////    var deps = new List<Dependency> {
+        ////        NewDependency("A", "a1", "a1", "A", "a2", "a2"),
+        ////        NewDependency("A", "a1", "a1", "A", "a4", "a4"),
+        ////        NewDependency("A", "a2", "a2", "A", "a3", "a3"),
+        ////        NewDependency("A", "a2", "a2", "A", "a4", "a4"),
+        ////        NewDependency("A", "a3", "a3", "A", "a4", "a4"),
+        ////        NewDependency("B", "b1", "b1", "B", "b2", "b2"),
+        ////        NewDependency("B", "b1", "b1", "B", "b4", "b4"),
+        ////        NewDependency("B", "b2", "b2", "B", "b3", "b3"),
+        ////        NewDependency("B", "b2", "b2", "B", "b4", "b4"),
+        ////        NewDependency("B", "b3", "b3", "B", "b2", "b2"),
+        ////        NewDependency("B", "b3", "b3", "B", "b4", "b4")
+        ////    };
+
+        ////    var nodes = new Dictionary<Item, Item>();
+        ////    var edges = new Dictionary<FromTo, Dependency>();
+
+        ////    DependencyGrapher.ReduceGraph(new Options { IgnoreCase = _ignoreCase }, rs, deps, nodes, edges);
+
+        ////    new HideTransitiveEdges<Dependency>(new[] { "a" }).Run(edges.Values);
+
+        ////    using (var sw = new MemoryStream()) {
+        ////        new GenericDotRenderer().RenderToStreamForUnitTests(nodes.Values, edges.Values, sw);
+
+        ////        // what to assert??
+        ////    }
+        ////}
 
         private static readonly ItemType ITEMTYPE = ItemType.New("TEST", new[] { "AS", "NS", "CL" },
             new string[] { null, null, null });
 
-        private const bool _ignoreCase = false;
-
         private Dependency NewDependency(string usingA, string usingN, string usingC, string usedA, string usedN,
             string usedC) {
             return new Dependency(Item.New(ITEMTYPE, usingA, usingN, usingC), Item.New(ITEMTYPE, usedA, usedN, usedC),
-                null, 0, 0, 0, 0, "Test", ct: 1);
+                null, "Test", ct: 1);
         }
 
-        [TestMethod]
-        public void TransitiveReductionGrapherTest() {
-            var rs = new DependencyRuleSet(_ignoreCase, "in test");
-            rs.AddProjections(ITEMTYPE, ITEMTYPE, true, "<test>", 0, "% (**)", _ignoreCase);
+        ////[TestMethod]
+        ////public void TransitiveReductionGrapherTest() {
+        ////    var rs = new DependencyRuleSet(_ignoreCase, "in test");
+        ////    rs.AddProjections(ITEMTYPE, ITEMTYPE, true, "<test>", 0, "% (**)", _ignoreCase);
 
-            var deps = new List<Dependency> {
-                NewDependency("A", "a1", "a1", "A", "a2", "a2"),
-                NewDependency("A", "a1", "a1", "A", "a4", "a4"),
-                NewDependency("A", "a2", "a2", "A", "a3", "a3"),
-                NewDependency("A", "a2", "a2", "A", "a4", "a4"),
-                NewDependency("A", "a3", "a3", "A", "a4", "a4"),
-                NewDependency("B", "b1", "b1", "B", "b2", "b2"),
-                NewDependency("B", "b1", "b1", "B", "b4", "b4"),
-                NewDependency("B", "b2", "b2", "B", "b3", "b3"),
-                NewDependency("B", "b2", "b2", "B", "b4", "b4"),
-                NewDependency("B", "b3", "b3", "B", "b2", "b2"),
-                NewDependency("B", "b3", "b3", "B", "b4", "b4")
-            };
+        ////    var deps = new List<Dependency> {
+        ////        NewDependency("A", "a1", "a1", "A", "a2", "a2"),
+        ////        NewDependency("A", "a1", "a1", "A", "a4", "a4"),
+        ////        NewDependency("A", "a2", "a2", "A", "a3", "a3"),
+        ////        NewDependency("A", "a2", "a2", "A", "a4", "a4"),
+        ////        NewDependency("A", "a3", "a3", "A", "a4", "a4"),
+        ////        NewDependency("B", "b1", "b1", "B", "b2", "b2"),
+        ////        NewDependency("B", "b1", "b1", "B", "b4", "b4"),
+        ////        NewDependency("B", "b2", "b2", "B", "b3", "b3"),
+        ////        NewDependency("B", "b2", "b2", "B", "b4", "b4"),
+        ////        NewDependency("B", "b3", "b3", "B", "b2", "b2"),
+        ////        NewDependency("B", "b3", "b3", "B", "b4", "b4")
+        ////    };
 
-            var nodes = new Dictionary<Item, Item>();
-            var edges = new Dictionary<DependencyGrapher.FromTo, Dependency>();
+        ////    var nodes = new Dictionary<Item, Item>();
+        ////    var edges = new Dictionary<DependencyGrapher.FromTo, Dependency>();
 
-            DependencyGrapher.ReduceGraph(new Options { IgnoreCase = _ignoreCase }, rs, deps, nodes, edges);
+        ////    DependencyGrapher.ReduceGraph(new Options { IgnoreCase = _ignoreCase }, rs, deps, nodes, edges);
 
-            new HideTransitiveEdges<Dependency>(new[] { "a" }).Run(edges.Values);
+        ////    new HideTransitiveEdges<Dependency>(new[] { "a" }).Run(edges.Values);
 
-            using (var s = new MemoryStream()) {
-                new DotRenderer().RenderToStreamForUnitTests(nodes.Values, edges.Values, s);
+        ////    using (var s = new MemoryStream()) {
+        ////        new DotRenderer().RenderToStreamForUnitTests(nodes.Values, edges.Values, s);
 
-                // what to assert??
-            }
-        }
+        ////        // what to assert??
+        ////    }
+        ////}
 
         [TestMethod]
         public void Exit0() {
-            {
-                string depFile = CreateTempDotNetDepFileName();
-                using (TextWriter tw = new StreamWriter(depFile)) {
+            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+                using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
                     $ DOTNETCALL ---> DOTNETCALL
                   
@@ -231,9 +228,12 @@ NDepCheck:Tests ---> **
                     * ---> *
                 ");
                 }
-                Assert.AreEqual(0, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
-                File.Delete(depFile);
+                Assert.AreEqual(Program.OK_RESULT, Program.Main(CreateViolationCheckerArgs(d)));
             }
+        }
+
+        private static string[] CreateViolationCheckerArgs(FileProvider d) {
+            return new[] { "-f", "ViolationsChecker", "{", "-f="+ d.Filename, "}", TestAssemblyPath };
         }
 
         private static string CreateTempDotNetDepFileName() {
@@ -242,9 +242,8 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void Exit0Aspects() {
-            {
-                string depFile = CreateTempDotNetDepFileName();
-                using (TextWriter tw = new StreamWriter(depFile)) {
+            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+                using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
                     $ DOTNETCALL ---> DOTNETCALL
                   
@@ -263,16 +262,14 @@ NDepCheck:Tests ---> **
                     * ---> *
                     ");
                 }
-                Assert.AreEqual(0, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
-                File.Delete(depFile);
+                Assert.AreEqual(Program.OK_RESULT, Program.Main(CreateViolationCheckerArgs(d)));
             }
         }
 
         [TestMethod]
         public void NestedMacroTest1() {
-            {
-                string depFile = CreateTempDotNetDepFileName();
-                using (TextWriter tw = new StreamWriter(depFile)) {
+            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+                using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
                     $ DOTNETCALL ---> DOTNETCALL
                   
@@ -286,32 +283,21 @@ NDepCheck:Tests ---> **
                     $ DOTNETREF ---> DOTNETREF
                     * ---> *");
                 }
-                Assert.AreEqual(0, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
-                File.Delete(depFile);
+                Assert.AreEqual(Program.OK_RESULT, Program.Main(CreateViolationCheckerArgs(d)));
             }
         }
 
-
         [TestMethod]
-        public void MacroRedefinitionTest() {
-            {
-                string depFile = CreateTempDotNetDepFileName();
-                using (TextWriter tw = new StreamWriter(depFile)) {
+        public void AnotherOlderTest() {
+            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+                using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
-                    -!-> :=
-                        \L ---> \R
-                    =:
-
-                    -!-> :=
-                        \L ---> \R
-                    =:
-
                     $ DOTNETCALL ---> DOTNETCALL
                     
                     _A := NDepCheck.TestAssembly
                     _B := _A
-                    _B.** -!-> _B.**
-                    _B.** -!-> System.**
+                    _B.** ---> _B.**
+                    _B.** ---> System.**
 
                     _B.dir1.dir2:SomeClass ---? -:NamespacelessTestClassForNDepCheck::I
                     -:* ---? System:*
@@ -320,57 +306,57 @@ NDepCheck:Tests ---> **
                     * ---> *
                 ");
                 }
-                Assert.AreEqual(0, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
-                File.Delete(depFile);
+                Assert.AreEqual(Program.OK_RESULT, Program.Main(CreateViolationCheckerArgs(d)));
             }
         }
 
-
+        ////[TestMethod]
+        ////public void Exit1() {
+        ////    Assert.AreEqual(1, Program.Main(new string[] { }));
+        ////    Assert.AreEqual(1, Program.Main(new[] { "/w" }));
+        ////    ____
+        ////    Assert.AreEqual(1, Program.Main(new[] { "/v", "-v", "-i", "/i=100", "-t", "/t", "-g=someDotFile.dot" }));
+        ////}
 
         [TestMethod]
-        public void Exit1() {
-            Assert.AreEqual(1, Program.Main(new string[] { }));
-            Assert.AreEqual(1, Program.Main(new[] { "/w" }));
-            Assert.AreEqual(1, Program.Main(new[] { "/v", "-v", "-i", "/i=100", "-t", "/t", "-g=someDotFile.dot" }));
-        }
-
-        [TestMethod]
-        public void Exit2() {
-            {
-                Assert.AreEqual(2, Program.Main(new[] { "/xnonexistingfile.dep" }));
-            }
+        public void Exit7OnMissingDefaultSet() {
+            Assert.AreEqual(Program.EXCEPTION_RESULT, Program.Main(
+                new[] { "-f", "ViolationsChecker", "{", "-fnonexistingfile.dep", "}", TestAssemblyPath }
+            ));
         }
 
         [TestMethod]
         public void Exit3() {
-            string depFile = CreateTempDotNetDepFileName();
-            using (TextWriter tw = new StreamWriter(depFile)) {
-                tw.Write(@"
+            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+                // The rules are not enough for the test assembly - we expect return result 3
+                using (TextWriter tw = new StreamWriter(d.Filename)) {
+                    tw.Write(@"
                    $ DOTNETCALL ---> DOTNETCALL
                   
                    ** ---> blabla
                 ");
+                }
+
+                Assert.AreEqual(Program.DEPENDENCIES_NOT_OK, Program.Main(CreateViolationCheckerArgs(d)));
             }
-            Assert.AreEqual(3, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
-            File.Delete(depFile);
         }
 
         [TestMethod]
-        public void Exit0ForEmptyDepFile() {
-            string depFile = CreateTempDotNetDepFileName();
-            using (TextWriter tw = new StreamWriter(depFile)) {
-                tw.Write("");
+        public void Exit5ForEmptyDepFile() {
+            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+                using (TextWriter tw = new StreamWriter(d.Filename)) {
+                    tw.Write("");
+                }
+                Assert.AreEqual(Program.NO_RULE_GROUPS_FOUND, Program.Main(CreateViolationCheckerArgs(d)));
             }
-            Assert.AreEqual(0, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
-            File.Delete(depFile);
         }
 
 
         [TestMethod]
         public void Exit3Aspects() {
-            {
-                string depFile = CreateTempDotNetDepFileName();
-                using (TextWriter tw = new StreamWriter(depFile)) {
+
+            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+                using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
 
                     NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
@@ -385,45 +371,50 @@ NDepCheck:Tests ---> **
                     }
                     ");
                 }
-                Assert.AreEqual(3, Program.Main(new[] { "-w", "-x=" + depFile, TestAssemblyPath }));
-                File.Delete(depFile);
+
+                Assert.AreEqual(Program.DEPENDENCIES_NOT_OK, Program.Main(
+                    new [] { "-w" }.Concat(CreateViolationCheckerArgs(d)).ToArray()
+                ));
             }
+
         }
 
         [TestMethod]
         public void Exit4() {
-            string depFile = CreateTempDotNetDepFileName();
-            using (TextWriter tw = new StreamWriter(depFile)) {
-                tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
+            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+                using (TextWriter tw = new StreamWriter(d.Filename)) {
+                    tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
 
                     : ---> blabla
                 ");
+                }
+                Assert.AreEqual(Program.FILE_NOT_FOUND_RESULT, Program.Main(
+                   CreateViolationCheckerArgs(d).Concat(new [] { "nonexistingfile.dll" }).ToArray()
+                ));
             }
-            Assert.AreEqual(4, Program.Main(new[] { "/x=" + depFile, "nonexistingfile.dll" }));
-            File.Delete(depFile);
         }
 
         [TestMethod]
-        public void Exit5() {
-            {
-                string depFile = CreateTempDotNetDepFileName();
-                using (TextWriter tw = new StreamWriter(depFile)) {
+        public void Exit7() {
+            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+                using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
 
+                    // Bad - contains --->
                     =---> :=    
                        : ---> blabla
                     =:
+
+                    // Bad - contains --->
                     --->> :=    
                        ** ---> blabla
                     =:
                 ");
                 }
-                Assert.AreEqual(5, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
-                File.Delete(depFile);
+                Assert.AreEqual(Program.EXCEPTION_RESULT, Program.Main(CreateViolationCheckerArgs(d)));
             }
-            {
-                string depFile = CreateTempDotNetDepFileName();
-                using (TextWriter tw = new StreamWriter(depFile)) {
+            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+                using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
 
                     --> :=    
@@ -431,16 +422,34 @@ NDepCheck:Tests ---> **
                     =:
                 ");
                 }
-                Assert.AreEqual(5, Program.Main(new[] { "-x=" + depFile, TestAssemblyPath }));
-                File.Delete(depFile);
+                Assert.AreEqual(7, Program.Main(CreateViolationCheckerArgs(d)));
+            }
+        }
+
+        public class FileProvider : IDisposable {
+            private bool _doDelete = true;
+            public string Filename { get; }
+
+            public FileProvider Keep {
+                get { _doDelete = false; return this; }
+            }
+
+            public FileProvider(string filename) {
+                Filename = filename;
+            }
+
+            public void Dispose() {
+                if (_doDelete) {
+                    File.Delete(Filename);
+                }
             }
         }
 
         [TestMethod]
         public void TestROption() {
-            string depFile = CreateTempDotNetDepFileName();
-            using (TextWriter tw = new StreamWriter(depFile)) {
-                tw.Write(@"
+            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+                using (TextWriter tw = new StreamWriter(d.Filename)) {
+                    tw.Write(@"
                     $ DOTNETCALL ---> DOTNETCALL
                   
                     NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
@@ -457,126 +466,128 @@ NDepCheck:Tests ---> **
                     ! Microsoft**:**  ---> .Net
                     ! (**):(**)       ---> \1#\2
                 ");
+                }
+
+                using (var e = new FileProvider(Path.GetTempFileName() + ".gif")) {
+                    // typeof(FullName) forces copying to known directory ...
+                    Assert.AreEqual(0,
+                        Program.Main(
+                            CreateViolationCheckerArgs(d).Concat(                           
+                            new [] {
+                                "-q", "NDepCheck.TestRenderer.dll", typeof(TestRendererForLoadFromAssembly).FullName, e.Filename
+                            }).ToArray()
+                        ));
+                }
             }
-
-            string gifFile = Path.GetTempFileName() + ".gif";
-            Console.WriteLine("Writing GIF to " + gifFile);
-            // typeof(FullName) forces copying to known directory ...
-            Assert.AreEqual(0,
-                Program.Main(new[] {
-                    "-x=" + depFile, TestAssemblyPath, "-r", "NDepCheck.TestRenderer.dll",
-                    typeof(TestRendererForLoadFromAssembly).FullName, gifFile
-                }));
-
-            File.Delete(depFile);
-            File.Delete(gifFile);
         }
 
         [TestMethod]
-        public void TestGOption() {
-            string gifFile = Path.GetTempFileName() + ".gif";
-            Console.WriteLine("Writing GIF to " + gifFile);
-            // The usage typeof(...).FullName forces copying of assembly to bin directory.
-            Assert.AreEqual(0,
-                Program.Main(new[] {
-                    TestAssemblyPath, "-g", "NDepCheck.TestRenderer.dll",
-                    typeof(TestRendererForLoadFromAssembly).FullName, gifFile
-                }));
-
-            File.Delete(gifFile);
+        public void TestPOption() {
+            using (var d = new FileProvider(Path.GetTempFileName() + ".gif").Keep) {
+                // The usage typeof(...).FullName forces copying of assembly to bin directory.
+                Assert.AreEqual(0,
+                    Program.Main(new[] {
+                        TestAssemblyPath, "-p", "NDepCheck.TestRenderer.dll",
+                        typeof(TestRendererForLoadFromAssembly).Name, d.Filename
+                    }));
+            }
         }
 
         [TestMethod]
-        public void TestGOptionWithModulesAndInterfacesRenderer() {
+        public void TestPOptionWithModulesAndInterfacesRenderer() {
             string gifFile = Path.GetTempFileName() + ".gif";
             Console.WriteLine(gifFile);
             Assert.AreEqual(0,
                 Program.Main(new[] {
-                    TestAssemblyPath, "-g", ".",
-                    typeof(ModulesAndInterfacesRenderer).FullName, $"{{-w 1500 -h 1000 -t TestGOption -i MI -o {gifFile}}}"
+                    TestAssemblyPath, "-p", ".",
+                    typeof(ModulesAndInterfacesRenderer).Name, "{{ -w 1500 -h 1000 -t TestGOption -i MI }}", gifFile
                 }));
 
             //File.Delete(gifFile);
         }
 
         [TestMethod]
-        public void TestExtendedCOptionHelp() {
-            Assert.AreEqual(1, Program.Main(new[] { "-c", "-?"}));
+        public void TestExtendedROptionHelp() {
+            Assert.AreEqual(1, Program.Main(new[] { "-r", "-?" }));
         }
 
         [TestMethod]
-        public void TestExtendedXAndLocalROption() {
+        public void TestExtendedFAndUAndROption() {
             string inFile = Path.GetTempFileName() + "IN.dip";
             string ndFile = Path.GetTempFileName() + "ND.nd";
             string outFile = Path.GetTempFileName() + "OUT.dip";
             using (TextWriter tw = new StreamWriter(inFile)) {
-                tw.Write($@"AB A B
-                AB:a:1 => ;1;0;0            => AB:a:1
-                AB:a:1 => ;2;1;0;example123 => AB:a:2
-                AB:a:2 => ;3;0;0            => AB:a:1
-                AB:a:2 => ;4;0;0            => AB:a:2
-                AB:a:2 => ;5;1;0            => AB:b:
-                AB:b:  => ;6;0;0            => AB:a:1
-                AB:b:  => ;7;0;0            => AB:a:2");
+                tw.Write(@"AB A B
+                AB:a:1 => ;1;0;0;src.abc|1            => AB:a:1
+                AB:a:1 => ;2;1;0;src.abc|3;example123 => AB:a:2
+                AB:a:2 => ;3;0;0;src.abc|5            => AB:a:1
+                AB:a:2 => ;4;0;0;src.abc|7            => AB:a:2
+                AB:a:2 => ;5;1;0;src.abc|9            => AB:b:
+                AB:b:  => ;6;0;0;src.abc|11           => AB:a:1
+                AB:b:  => ;7;0;0;src.abc|13           => AB:a:2");
             }
 
             using (TextWriter tw = new StreamWriter(ndFile)) {
                 tw.Write($@"
                     {inFile}
-                    -x {{
-                        $ AB ---> AB
-                        ! a:** ----> _a_:
-                        ! b:** ----> _b_:
+                    -f Projector {{ 
+                        -p
+                          $ AB(A:B) ---% AB
+                          ! a:** ----% _a_:
+                          ! b:** ----% _b_:
                     }}
-                    -c NDepCheck.Rendering.DipWriter {outFile}");
+                    -u Projector
+                    -r DipWriter {outFile}");
             }
 
-            Assert.AreEqual(0, Program.Main(new[] { "-@", ndFile }));
+            Assert.AreEqual(0, Program.Main(new[] { "-o", ndFile }));
 
             using (var sw = new StreamReader(outFile)) {
                 var o = sw.ReadToEnd();
 
-                Assert.IsTrue(o.Contains("AB:_a_: => ;10;1;0; => AB:_a_:"));
-                Assert.IsTrue(o.Contains("AB:_a_: => ;5;1;0; => AB:_b_:"));
-                Assert.IsTrue(o.Contains("AB:_b_: => ;13;0;0; => AB:_a_:"));
+                Assert.IsTrue(o.Contains("AB:_a_: => ;10;1;0;src.abc|1;=> AB:_a_:"));
+                Assert.IsTrue(o.Contains("AB:_a_: => ;5;1;0;src.abc|9;=> AB:_b_:"));
+                Assert.IsTrue(o.Contains("AB:_b_: => ;13;0;0;src.abc|11;=> AB:_a_:"));
             }
         }
 
         [TestMethod]
-        public void TestExtendedXAndROption() {
+        public void TestExtendedFAndTAndQOption() {
             string inFile = Path.GetTempFileName() + "IN.dip";
             string ndFile = Path.GetTempFileName() + "ND.nd";
             string outFile = Path.GetTempFileName() + "OUT.dip";
             using (TextWriter tw = new StreamWriter(inFile)) {
-                tw.Write($@"AB A B
-                AB:a:1 => ;1;0;0            => AB:a:1
-                AB:a:1 => ;2;1;0;example123 => AB:a:2
-                AB:a:2 => ;3;0;0            => AB:a:1
-                AB:a:2 => ;4;0;0            => AB:a:2
-                AB:a:2 => ;5;1;0            => AB:b:
-                AB:b:  => ;6;0;0            => AB:a:1
-                AB:b:  => ;7;0;0            => AB:a:2");
+                tw.Write(@"AB A B
+                AB:a:1 => ;1;0;0;src.txt|1            => AB:a:1
+                AB:a:1 => ;2;1;0;src.txt|2;example123 => AB:a:2
+                AB:a:2 => ;3;0;0;src.txt|3            => AB:a:1
+                AB:a:2 => ;4;0;0;src.txt|4            => AB:a:2
+                AB:a:2 => ;5;1;0;src.txt|5            => AB:b:
+                AB:b:  => ;6;0;0;src.txt|6            => AB:a:1
+                AB:b:  => ;7;0;0;src.txt|7            => AB:a:2");
             }
 
             using (TextWriter tw = new StreamWriter(ndFile)) {
                 tw.Write($@"
                     {inFile}
-                    -x {{
-                        $ AB ---> AB
-                        ! a:** ----> _a_:
-                        ! b:** ----> _b_:
+                    -f Projector {{ 
+                        -p
+                          $ AB(A:B) ---% AB
+                          ! a:** ----% _a_:
+                          ! b:** ----% _b_:
                     }}
-                    -r . NDepCheck.Rendering.DipWriter {{ -n -o {outFile}}}");
+                    -t . {typeof(Projector).FullName}
+                    -q . {typeof(DipWriter).FullName} {{ -n }} {outFile}");
             }
 
-            Assert.AreEqual(0, Program.Main(new[] { "-@", ndFile }));
+            Assert.AreEqual(0, Program.Main(new[] { "-o", ndFile }));
 
             using (var sw = new StreamReader(outFile)) {
                 var o = sw.ReadToEnd();
 
-                Assert.IsTrue(o.Contains("AB:_a_: => ;10;1;0;example123 => AB:_a_:"));
-                Assert.IsTrue(o.Contains("AB:_a_: => ;5;1;0; => AB:_b_:"));
-                Assert.IsTrue(o.Contains("AB:_b_: => ;13;0;0; => AB:_a_:"));
+                Assert.IsTrue(o.Contains("AB:_a_: => ;10;1;0;src.txt|1;=> AB:_a_:"));
+                Assert.IsTrue(o.Contains("AB:_a_: => ;5;1;0;src.txt|5;=> AB:_b_:"));
+                Assert.IsTrue(o.Contains("AB:_b_: => ;13;0;0;src.txt|6;=> AB:_a_:"));
             }
         }
     }

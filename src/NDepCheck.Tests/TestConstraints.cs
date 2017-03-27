@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.ConstraintSolving;
@@ -192,7 +191,7 @@ namespace NDepCheck.Tests {
                 NumericVariable a = solver.CreateVariable("a");
 
                 var r = new Range(3, 4, EPS);
-                new RangeConstraint(a, r);
+                RangeConstraint.CreateRangeConstraint(a, r);
                 solver.Solve();
                 Assert.AreEqual(r, a.Value);
             }
@@ -204,7 +203,7 @@ namespace NDepCheck.Tests {
                 var solver = new SimpleConstraintSolver();
                 var a = solver.CreateVariable("a");
                 var b = solver.CreateVariable("b");
-                new EqualityConstraint(a, b);
+                EqualityConstraint.CreateEqualityConstraint(a, b);
 
                 var r = new Range(3, 4, EPS);
                 a.RestrictRange(r);
@@ -215,7 +214,7 @@ namespace NDepCheck.Tests {
                 var solver = new SimpleConstraintSolver();
                 var a = solver.CreateVariable("a");
                 var b = solver.CreateVariable("b");
-                new EqualityConstraint(a, b);
+                EqualityConstraint.CreateEqualityConstraint(a, b);
 
                 var r = new Range(3, 4, EPS);
                 b.RestrictRange(r);
@@ -230,7 +229,7 @@ namespace NDepCheck.Tests {
                 var solver = new SimpleConstraintSolver();
                 var a = solver.CreateVariable("a");
                 var b = solver.CreateVariable("b");
-                new IsInverseConstraint(a, b);
+                IsInverseConstraint.CreateIsInverseConstraint(a, b);
 
                 var r = new Range(3, 4, EPS);
                 a.RestrictRange(r);
@@ -241,7 +240,7 @@ namespace NDepCheck.Tests {
                 var solver = new SimpleConstraintSolver();
                 var a = solver.CreateVariable("a");
                 var b = solver.CreateVariable("b");
-                new IsInverseConstraint(a, b);
+                IsInverseConstraint.CreateIsInverseConstraint(a, b);
 
                 var r = new Range(3, 4, EPS);
                 b.RestrictRange(r);
@@ -256,7 +255,7 @@ namespace NDepCheck.Tests {
                 var solver = new SimpleConstraintSolver();
                 var a = solver.CreateVariable("a");
                 var b = solver.CreateVariable("b");
-                new AtLeastConstraint(a, b);
+                AtLeastConstraint.CreateAtLeastConstraint(a, b);
 
                 a.RestrictRange(new Range(3, 4, EPS));
                 solver.Solve();
@@ -267,7 +266,7 @@ namespace NDepCheck.Tests {
                 var solver = new SimpleConstraintSolver();
                 var a = solver.CreateVariable("a");
                 var b = solver.CreateVariable("b");
-                new AtLeastConstraint(a, b);
+                AtLeastConstraint.CreateAtLeastConstraint(a, b);
 
                 b.RestrictRange(new Range(3, 4, EPS));
                 solver.Solve();
@@ -281,7 +280,7 @@ namespace NDepCheck.Tests {
                 var solver = new SimpleConstraintSolver();
                 var a = solver.CreateVariable("a");
                 var b = solver.CreateVariable("b");
-                new ProportionalConstraint(5, a, b);
+                ProportionalConstraint.CreateProportionalConstraint(5, a, b);
 
                 b.RestrictRange(new Range(30, 40, EPS));
                 solver.Solve();
@@ -291,7 +290,7 @@ namespace NDepCheck.Tests {
                 var solver = new SimpleConstraintSolver();
                 var a = solver.CreateVariable("a");
                 var b = solver.CreateVariable("b");
-                new ProportionalConstraint(5, a, b);
+                ProportionalConstraint.CreateProportionalConstraint(5, a, b);
 
                 a.RestrictRange(new Range(30, 40, EPS));
                 solver.Solve();
@@ -306,7 +305,7 @@ namespace NDepCheck.Tests {
                 var a = solver.CreateVariable("a");
                 var b = solver.CreateVariable("b");
                 var c = solver.CreateVariable("c");
-                new SumIs0Constraint(a, b, c);
+                SumIs0Constraint.CreateSumIs0Constraint(a, b, c);
 
                 a.RestrictRange(new Range(30, 50, EPS));
                 b.RestrictRange(new Range(10, double.PositiveInfinity, EPS));
@@ -333,7 +332,7 @@ namespace NDepCheck.Tests {
                 var y = solver.CreateVariable("y");
                 var r = solver.CreateVariable("r");
                 var phi = solver.CreateVariable("phi");
-                new UnidirectionalComputationConstraint(new[] { x, y }, new[] { r, phi }, CartesianToPolar);
+                UnidirectionalComputationConstraint.CreateUnidirectionalComputationConstraint(new[] { x, y }, new[] { r, phi }, CartesianToPolar);
 
                 var rx = new Range(20, 40, EPS);
                 x.RestrictRange(rx);
@@ -364,9 +363,9 @@ namespace NDepCheck.Tests {
                 var b = solver.CreateVariable("b");
                 var c = solver.CreateVariable("c");
                 var d = solver.CreateVariable("d");
-                new UnidirectionalComputationConstraint(new[] { a }, new[] { b }, OneMore);
-                new UnidirectionalComputationConstraint(new[] { b }, new[] { c }, OneMore);
-                new UnidirectionalComputationConstraint(new[] { c }, new[] { d }, OneMore);
+                UnidirectionalComputationConstraint.CreateUnidirectionalComputationConstraint(new[] { a }, new[] { b }, OneMore);
+                UnidirectionalComputationConstraint.CreateUnidirectionalComputationConstraint(new[] { b }, new[] { c }, OneMore);
+                UnidirectionalComputationConstraint.CreateUnidirectionalComputationConstraint(new[] { c }, new[] { d }, OneMore);
                 a.Set(10);
                 solver.Solve();
                 Assert.AreEqual(10, a.GetValue());

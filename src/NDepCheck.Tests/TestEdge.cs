@@ -44,7 +44,7 @@ namespace NDepCheck.Tests {
             _carrysTransitive = true;
         }
 
-        public string AsDipStringWithTypes(bool withNotOkExampleInfo) {
+        public string AsDipStringWithTypes(bool withExampleInfo) {
             return ToString();
         }
     }

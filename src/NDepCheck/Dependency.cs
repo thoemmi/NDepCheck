@@ -1,14 +1,12 @@
 // (c) HMMüller 2006...2017
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck {
-    public enum DependencyCheckResult {
-        Ok, Questionable, Bad
-    }
-
     /// <remarks>Class <c>Dependency</c> stores
     /// knowledge about a concrete dependency
     /// (one "using item" uses one "used item").
@@ -19,11 +17,15 @@ namespace NDepCheck {
         [NotNull]
         private readonly Item _usedItem;
 
+        [CanBeNull]
+        public InputContext InputContext { get; }
+
         private int _ct;
         private int _questionableCt;
         private int _badCt;
+
         [CanBeNull]
-        private string _notOkExampleInfo;
+        private string _exampleInfo;
 
         private bool _onCycle;
         private bool _carrysTransitive;
@@ -34,18 +36,16 @@ namespace NDepCheck {
         /// <param name="usingItem">The using item.</param>
         /// <param name="usedItem">The used item.</param>
         /// <param name="source">Name of the file.</param>
-        /// <param name="startLine">The start line.</param>
-        /// <param name="startColumn">The start column.</param>
-        /// <param name="endLine">The end line.</param>
-        /// <param name="endColumn">The end column.</param>
         /// <param name="usage"></param>
         /// <param name="ct"></param>
         /// <param name="questionableCt"></param>
         /// <param name="badCt"></param>
-        /// <param name="notOkExampleInfo"></param>
+        /// <param name="exampleInfo"></param>
+        /// <param name="inputContext"></param>
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem,
-            string source, int startLine, int startColumn, int endLine, int endColumn, string usage,
-            int ct, int questionableCt = 0, int badCt = 0, [CanBeNull] string notOkExampleInfo = null) {
+            ISourceLocation source, string usage,
+            int ct, int questionableCt = 0, int badCt = 0, [CanBeNull] string exampleInfo = null,
+            [CanBeNull] InputContext inputContext = null) {
             if (usingItem == null) {
                 throw new ArgumentNullException(nameof(usingItem));
             }
@@ -54,16 +54,14 @@ namespace NDepCheck {
             }
             _usingItem = usingItem;
             _usedItem = usedItem;
+            InputContext = inputContext;
+            inputContext?.AddDependency(this);
             Source = source; // != null ? string.Intern(fileName) : null;
-            StartLine = startLine;
-            StartColumn = startColumn;
-            EndLine = endLine;
-            EndColumn = endColumn;
             Usage = usage;
             _ct = ct;
             _questionableCt = questionableCt;
             _badCt = badCt;
-            _notOkExampleInfo = notOkExampleInfo;
+            _exampleInfo = exampleInfo;
         }
 
         /// <summary>
@@ -82,28 +80,7 @@ namespace NDepCheck {
         /// A guess where the use occurs in the
         /// original source file.
         /// </value>
-        public string Source {
-            get;
-        }
-
-        /// <summary>
-        /// Gets a guess of the line number in the original
-        /// source file.
-        /// </summary>
-        /// <value>The line number.</value>
-        public int StartLine {
-            get;
-        }
-
-        public int EndLine {
-            get;
-        }
-
-        public int StartColumn {
-            get;
-        }
-
-        public int EndColumn {
+        public ISourceLocation Source {
             get;
         }
 
@@ -127,7 +104,7 @@ namespace NDepCheck {
 
         public int BadCt => _badCt;
 
-        public string NotOkExampleInfo => _notOkExampleInfo;
+        public string ExampleInfo => _exampleInfo;
 
         /// <summary>
         /// String representation of a Dependency.
@@ -140,15 +117,15 @@ namespace NDepCheck {
         /// A message presented to the user of this Dependency is questionable.
         /// </summary>
         /// <returns></returns>
-        public string QuestionableMessage() {
+        public string QuestionableDependencyMessage() {
             return "Questionable dependency " + UsingItem + " ---> " + UsedItem;
         }
         /// <summary>
         /// A message presented to the user of this Dependency is not allowed.
         /// </summary>
         /// <returns></returns>
-        public string IllegalMessage() {
-            return "Illegal dependency " + UsingItem + " ---> " + UsedItem;
+        public string BadDependencyMessage() {
+            return "Bad dependency " + UsingItem + " ---> " + UsedItem;
         }
 
         public INode UsingNode => _usingItem;
@@ -167,6 +144,21 @@ namespace NDepCheck {
                        + GetDotStyle() + "];";
         }
 
+        public void MarkAsBad() {
+            if (_badCt == 0) {
+                // First bad example overrides any previous bad example
+                _exampleInfo = UsingItemAsString + " ---! " + UsedItemAsString;
+            } else {
+                _exampleInfo = _exampleInfo ?? UsingItemAsString + " ---! " + UsedItemAsString;
+            }
+            _badCt = _ct;
+        }
+
+        public void MarkAsQuestionable() {
+            _exampleInfo = _exampleInfo ?? UsingItemAsString + " ---? " + UsedItemAsString;
+            _questionableCt = _ct;
+        }
+
         private string GetDotFontSize() {
             return " fontsize=" + (10 + 5 * Math.Round(Math.Log10(Ct)));
         }
@@ -179,8 +171,8 @@ namespace NDepCheck {
         }
 
         private string GetDotLabel(int? stringLengthForIllegalEdges) {
-            return "label=\"" + (stringLengthForIllegalEdges.HasValue && NotOkExampleInfo != null
-                                ? LimitWidth(NotOkExampleInfo, stringLengthForIllegalEdges.Value) + "\\n"
+            return "label=\"" + (stringLengthForIllegalEdges.HasValue && ExampleInfo != null
+                                ? LimitWidth(ExampleInfo, stringLengthForIllegalEdges.Value) + "\\n"
                                 : "") +
                             " (" + Ct + (QuestionableCt + BadCt > 0 ? "(" + QuestionableCt + "?," + BadCt + "!)" : "") + ")" +
                             (_carrysTransitive ? "+" : "") +
@@ -206,39 +198,11 @@ namespace NDepCheck {
             _carrysTransitive = true;
         }
 
-        public string AsDipStringWithTypes(bool withNotOkExampleInfo) {
-            string notOkInfo = withNotOkExampleInfo && _notOkExampleInfo != null ? $"{_notOkExampleInfo}" : null;
-            return $"{_usingItem.AsStringWithType()}"
-                 + $" {EdgeConstants.DIP_ARROW} {Usage};{_ct};{_questionableCt};{_badCt};{notOkInfo} {EdgeConstants.DIP_ARROW} "
-                 + $"{_usedItem.AsStringWithType()}";
-        }
-
-        ////public IEdge CreateEdgeFromUsingTo(INode usedNode) {
-        ////    // Brutal cast INode --> Item ... I'm not sure about this; but except for TestNode there is no other INode around ____
-        ////    return new Dependency(_usingItem, (Item) usedNode, "associative edge", 0, 0, 0, 0, 0, 1);
-        ////}
-
-        public void AddCheckResult(DependencyCheckResult result) {
-            switch (result) {
-                case DependencyCheckResult.Ok:
-                    _ct++;
-                    break;
-                case DependencyCheckResult.Questionable:
-                    _notOkExampleInfo = _notOkExampleInfo ?? UsingItemAsString + " ---? " + UsedItemAsString;
-                    _questionableCt++;
-                    break;
-                case DependencyCheckResult.Bad:
-                    if (_badCt == 0) {
-                        // First bad example overrides any previous bad example
-                        _notOkExampleInfo = UsingItemAsString + " ---! " + UsedItemAsString;
-                    } else {
-                        _notOkExampleInfo = _notOkExampleInfo ?? UsingItemAsString + " ---! " + UsedItemAsString;
-                    }
-                    _badCt++;
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(result), result, null);
-            }
+        public string AsDipStringWithTypes(bool withExampleInfo) {
+            string exampleInfo = withExampleInfo ? _exampleInfo : null;
+            return $"{_usingItem.AsStringWithType()} {EdgeConstants.DIP_ARROW} "
+                 + $"{Usage};{_ct};{_questionableCt};{_badCt};{Source?.AsDipString()};{exampleInfo}"
+                 + $"{EdgeConstants.DIP_ARROW} {_usedItem.AsStringWithType()}";
         }
 
         public void AggregateCounts(Dependency d) {
@@ -250,7 +214,35 @@ namespace NDepCheck {
             _ct += d.Ct;
             _questionableCt += d.QuestionableCt;
             _badCt += d.BadCt;
-            _notOkExampleInfo = _notOkExampleInfo ?? d.NotOkExampleInfo;
+            _exampleInfo = _exampleInfo ?? d.ExampleInfo;
+        }
+
+        private static INode GetOrCreateNode<T>(Dictionary<INode, INode> canonicalNodes, Dictionary<INode, List<T>> nodesAndEdges, INode node) where T : IEdge {
+            INode result;
+            if (!canonicalNodes.TryGetValue(node, out result)) {
+                canonicalNodes.Add(node, result = node);
+            }
+            if (!nodesAndEdges.ContainsKey(result)) {
+                nodesAndEdges.Add(result, new List<T>());
+            }
+            return result;
+        }
+
+        internal static IDictionary<INode, IEnumerable<T>> Edges2NodesAndEdges<T>(IEnumerable<T> edges) where T : class, IEdge {
+            Dictionary<INode, List<T>> result = Edges2NodesAndEdgesList(edges);
+            return result.ToDictionary<KeyValuePair<INode, List<T>>, INode, IEnumerable<T>>(kvp => kvp.Key, kvp => kvp.Value);
+        }
+
+        internal static Dictionary<INode, List<T>> Edges2NodesAndEdgesList<T>(IEnumerable<T> edges) where T : IEdge {
+            var canonicalNodes = new Dictionary<INode, INode>();
+            var result = new Dictionary<INode, List<T>>();
+            foreach (var e in edges) {
+                INode @using = GetOrCreateNode(canonicalNodes, result, e.UsingNode);
+                GetOrCreateNode(canonicalNodes, result, e.UsedNode);
+
+                result[@using].Add(e);
+            }
+            return result;
         }
     }
 }

@@ -127,6 +127,7 @@ namespace NDepCheck.Rendering {
             }
             IEnumerable<VectorF> GetBoundingVectors();
             void FullyRestrictBoundingVectors(Graphics graphics);
+            float? GetTextSizeInPoints();
             void Draw(Graphics graphics, StringBuilder htmlForTooltips);
             IEnumerable<NumericVariable> GetFixVariables();
         }
@@ -158,7 +159,6 @@ namespace NDepCheck.Rendering {
             private readonly float _borderWidth;
             private readonly string[] _text;
             private readonly BoxTextPlacement _boxTextPlacement;
-            private readonly string _edgeInfo;
             private readonly Color _textColor;
             private readonly double _textPadding;
             private readonly Font _textFont;
@@ -181,7 +181,7 @@ namespace NDepCheck.Rendering {
                              BoxAnchoring boxAnchoring, Color color,
                               double borderWidth, Color borderColor, int connectors, string text,
                               BoxTextPlacement boxTextPlacement, Font textFont, Color textColor, double textPadding,
-                              string edgeInfo, int creationOrder, int drawingOrder, int fixingOrder,
+                              int creationOrder, int drawingOrder, int fixingOrder,
                               string name) : base(creationOrder, drawingOrder, fixingOrder) {
                 _solver = solver;
                 Name = name ?? anchor.Name;
@@ -322,10 +322,9 @@ namespace NDepCheck.Rendering {
 
                 // Simple stuff
                 _color = color;
-                _borderWidth = (float) borderWidth;
+                _borderWidth = (float)borderWidth;
                 _text = text.Split('\r', '\n');
                 _boxTextPlacement = boxTextPlacement;
-                _edgeInfo = edgeInfo;
                 _textColor = textColor;
                 _textPadding = textPadding;
                 _textFont = textFont;
@@ -483,8 +482,7 @@ namespace NDepCheck.Rendering {
                 // - Like before, but with additional guaranteed connectors at edge midpoints.
 
                 var result = new VariableVector("Connector", _solver);
-                new UnidirectionalComputationConstraint(
-                    input: new[] { farAway.X, farAway.Y, _center.X, _center.Y, _diagonal.X, _diagonal.Y },
+                UnidirectionalComputationConstraint.CreateUnidirectionalComputationConstraint(input: new[] { farAway.X, farAway.Y, _center.X, _center.Y, _diagonal.X, _diagonal.Y },
                     output: new[] { result.X, result.Y },
                     computation: (input, output) => {
                         // float[] inputValues = _input.Select(v => (float) v.Value.Lo).ToArray();
@@ -523,6 +521,10 @@ namespace NDepCheck.Rendering {
                     });
                 return result;
             }
+
+            public float? GetTextSizeInPoints() {
+                return _text.Any(t => !string.IsNullOrWhiteSpace(t)) ? _textFont.SizeInPoints : (float?)null;
+            }
         }
 
         private class ArrowBuilder : AbstractBuilder, IBuilder, IArrow {
@@ -552,7 +554,7 @@ namespace NDepCheck.Rendering {
                 _lineTextPlacement = lineTextPlacement;
                 _textFont = textFont;
                 _textColor = textColor;
-                _textPadding = (float) textPadding;
+                _textPadding = (float)textPadding;
                 _textLocation = textLocation;
                 _edgeInfo = edgeInfo;
 
@@ -596,7 +598,7 @@ namespace NDepCheck.Rendering {
                 VectorF tailF = _tail.AsVectorF();
                 VectorF headF = _head.AsVectorF();
                 VectorF textBoxF = _textBox.AsVectorF();
-                float fWidth = (float) _width;
+                float fWidth = (float)_width;
 
                 PointF tailPoint = tailF.AsMirroredPointF();
                 PointF headPoint = headF.AsMirroredPointF();
@@ -621,7 +623,7 @@ namespace NDepCheck.Rendering {
                     ? tailF * (1 - _textLocation) + headF * _textLocation
                     : tailF + (headF - tailF).Unit() * -_textLocation;
                 float halfTextWidth = textBoxF.GetX() / 2;
-                float lineAngleDegrees = (float) (-Math.Atan2(headF.GetY() - tailF.GetY(), headF.GetX() - tailF.GetX()) * 180 / Math.PI);
+                float lineAngleDegrees = (float)(-Math.Atan2(headF.GetY() - tailF.GetY(), headF.GetX() - tailF.GetX()) * 180 / Math.PI);
 
                 var textTransform = new Matrix();
                 switch (_lineTextPlacement) {
@@ -659,16 +661,21 @@ namespace NDepCheck.Rendering {
             private static void WriteToolTipHtml(Graphics graphics, StringBuilder htmlForTooltips, string edgeInfo, PointF tailPoint, PointF headPoint) {
                 PointF[] tailAndHead = { tailPoint, headPoint };
                 graphics.Transform.TransformPoints(tailAndHead);
-                int tx = (int) tailAndHead[0].X;
-                int ty = (int) tailAndHead[0].Y;
-                int hx = (int) tailAndHead[1].X;
-                int hy = (int) tailAndHead[1].Y;
+                int tx = (int)tailAndHead[0].X;
+                int ty = (int)tailAndHead[0].Y;
+                int hx = (int)tailAndHead[1].X;
+                int hy = (int)tailAndHead[1].Y;
                 edgeInfo = edgeInfo.Replace('\'', ' ').Replace('\"', ' ');
                 const int d = 4;
 
                 htmlForTooltips.AppendLine(
                     $@"<area shape=""poly"" coords=""{tx},{ty - d},{tx},{ty + d},{hx},{hy + d},{hx},{hy - d}"" " +
                     $@"href=""default.htm"" onClick=""alert('{edgeInfo}');return false""/>");
+            }
+
+
+            public float? GetTextSizeInPoints() {
+                return !string.IsNullOrWhiteSpace(_text) ? _textFont.SizeInPoints : (float?)null;
             }
         }
 
@@ -696,14 +703,14 @@ namespace NDepCheck.Rendering {
             BoxAnchoring boxAnchoring = BoxAnchoring.Center, [CanBeNull] Color? boxColor = null /*White*/, int connectors = 8,
             double borderWidth = 0, [CanBeNull] Color? borderColor = null /*Black*/,
             BoxTextPlacement boxTextPlacement = BoxTextPlacement.Center, [CanBeNull] Font textFont = null /*___*/, [CanBeNull] Color? textColor = null /*Black*/,
-            double textPadding = 0.2, [CanBeNull] string edgeInfo = null, int drawingOrder = 0, int fixingOrder = 100, [CanBeNull] string name = null) {
+            double textPadding = 0.2, int drawingOrder = 0, int fixingOrder = 100, [CanBeNull] string name = null) {
             if (anchor == null) {
                 throw new ArgumentNullException(nameof(anchor));
             }
 
             var boxBuilder = new BoxBuilder(_solver, anchor, new VariableVector((text ?? anchor.Name) + "./", _solver).Restrict(minDiagonal),
                 boxAnchoring, boxColor ?? Color.White, borderWidth, borderColor ?? Color.Black, connectors,
-                text ?? "", boxTextPlacement, textFont ?? _defaultTextFont, textColor ?? Color.Black, textPadding, edgeInfo ?? "",
+                text ?? "", boxTextPlacement, textFont ?? _defaultTextFont, textColor ?? Color.Black, textPadding,
                 _builders.Count, drawingOrder, fixingOrder, name);
 
             _builders.Add(boxBuilder);
@@ -727,7 +734,8 @@ namespace NDepCheck.Rendering {
             return arrowBuilder;
         }
 
-        private Bitmap Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, Size size, StringBuilder htmlForTooltips) {
+        private Bitmap Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, float minTextHeight, 
+                              ref int width, ref int height, StringBuilder htmlForTooltips) {
             PlaceObjects(items, dependencies);
 
             // I tried it with SVG - but SVG support in .Net seems to be non-existent.
@@ -735,56 +743,84 @@ namespace NDepCheck.Rendering {
             // but it closes off the SVG objects in such a way that adding edgeInfos ("mouse hoverings") seems very hard.
             // If someone knows more about SVG than I (who doesn't know a bit ...), feel free to try it with SVG!
 
-            var bitmap = new Bitmap(size.Width, size.Height);
-            using (Graphics graphics = Graphics.FromImage(bitmap)) {
+            // A helper Bitmap is used to measure strings; only afterwards can
+            // we compute the actual width and height from the solved vectors.
+            using (Graphics graphics = Graphics.FromImage(new Bitmap(1000, 1000))) {
                 foreach (var b in _builders) {
                     b.FullyRestrictBoundingVectors(graphics);
                 }
+            }
 
-                try {
-                    _solver.Solve();
-                } catch (SolverException) {
-                    Console.WriteLine(_solver.GetState(20000));
-                    throw;
-                }
+            try {
+                _solver.Solve();
+            } catch (SolverException) {
+                Console.WriteLine(_solver.GetState(maxLines: 20000));
+                throw;
+            }
 
-                graphics.Clear(GetBackGroundColor);
+            float minX = float.MaxValue;
+            float maxX = -float.MaxValue;
+            float minY = float.MaxValue;
+            float maxY = -float.MaxValue;
 
-                float minX = float.MaxValue;
-                float maxX = -float.MaxValue;
-                float minY = float.MaxValue;
-                float maxY = -float.MaxValue;
-
-                StringBuilder errors = new StringBuilder();
-                foreach (var b in _builders.OrderBy(b => b.DrawingOrder).ThenBy(b => b.CreationOrder)) {
-                    foreach (var v in b.GetBoundingVectors()) {
-                        float x = v.GetX();
-                        if (float.IsInfinity(x)) {
-                            errors.AppendLine($"Dimensions of {b.Name} not fully computed - no value for {v.Definition}.x");
-                        } else {
-                            minX = Math.Min(minX, x);
-                            maxX = Math.Max(maxX, x);
-                        }
-                        float y = v.GetY();
-                        if (float.IsInfinity(y)) {
-                            errors.AppendLine($"Dimensions of {b.Name} not fully computed - no value for {v.Definition}.y");
-                        } else {
-                            minY = Math.Min(minY, y);
-                            maxY = Math.Max(maxY, y);
-                        }
+            StringBuilder errors = new StringBuilder();
+            foreach (var b in _builders.OrderBy(b => b.DrawingOrder).ThenBy(b => b.CreationOrder)) {
+                foreach (var v in b.GetBoundingVectors()) {
+                    float x = v.GetX();
+                    if (float.IsInfinity(x)) {
+                        errors.AppendLine($"Dimensions of {b.Name} not fully computed - no value for {v.Definition}.x");
+                    } else {
+                        minX = Math.Min(minX, x);
+                        maxX = Math.Max(maxX, x);
+                    }
+                    float y = v.GetY();
+                    if (float.IsInfinity(y)) {
+                        errors.AppendLine($"Dimensions of {b.Name} not fully computed - no value for {v.Definition}.y");
+                    } else {
+                        minY = Math.Min(minY, y);
+                        maxY = Math.Max(maxY, y);
                     }
                 }
-                if (errors.Length > 0) {
-                    throw new InvalidOperationException(errors + _solver.GetState(20000));
+            }
+            if (errors.Length > 0) {
+                throw new InvalidOperationException(errors + _solver.GetState(maxLines: 20000));
+            }
+
+            // 5% margin on all sides
+            const float BORDER = 0.1f;
+
+            if (width <= 0) {
+                if (height <= 0) {
+                    float? smallestTextHeight = null;
+                    foreach (var b in _builders) {
+                        float? h = b.GetTextSizeInPoints();
+                        if (h.HasValue) {
+                            smallestTextHeight = smallestTextHeight.HasValue ? Math.Min(smallestTextHeight.Value, h.Value) : h.Value;
+                        }
+                    }
+                    float textBasedScale = minTextHeight / smallestTextHeight ?? 1;
+                    height = (int)(textBasedScale * (maxY - minY));
+                    width = (int)(textBasedScale * (maxX - minX));
+                } else {
+                    width = (int)(height / (maxY - minY) * (maxX - minX));
                 }
+            } else {
+                if (height <= 0) {
+                    height = (int)(width / (maxX - minX) * (maxY - minY));
+                } else {
+                    // nothing to compute
+                }
+            }
 
-                // 5% margin on all sides
-                const float BORDER = 0.1f;
-                double scaleX = size.Width * (1 - 2 * BORDER) / (maxX - minX);
-                double scaleY = size.Height * (1 - 2 * BORDER) / (maxY - minY);
-                float scale = (float) Math.Min(scaleX, scaleY); // No distortion!
+            double scaleX = width * (1 - 2 * BORDER) / (maxX - minX);
+            double scaleY = height * (1 - 2 * BORDER) / (maxY - minY);
+            float scale = (float)Math.Min(scaleX, scaleY); // No distortion!
 
-                graphics.Transform = new Matrix(scale, 0, 0, scale, -scale * minX + size.Width * BORDER, scale * maxY + size.Height * BORDER);
+            var bitmap = new Bitmap(width, height);
+            using (Graphics graphics = Graphics.FromImage(bitmap)) {
+                graphics.Clear(GetBackGroundColor);
+
+                graphics.Transform = new Matrix(scale, 0, 0, scale, -scale * minX + width * BORDER, scale * maxY + height * BORDER);
 
                 List<IBuilder> openBuilders = _builders.OrderBy(b => b.DrawingOrder).ThenBy(b => b.CreationOrder).ToList();
 
@@ -795,17 +831,20 @@ namespace NDepCheck.Rendering {
             return bitmap;
         }
 
-        public virtual void Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, string argsAsString) {
-            DoRender(items, dependencies, argsAsString);
+        public virtual void Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, string argsAsString, string baseFilename) {
+            DoRender(items, dependencies, argsAsString, baseFilename);
         }
 
         protected void DoRender(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies,
-                                string argsAsString, params OptionAction[] additionalOptions) {
-            int width = 1000;
-            int height = 1000;
-            string baseFilename = null;
+                                string argsAsString, string baseFilename, params OptionAction[] additionalOptions) {
+            int width = -1;
+            int height = -1;
+            int minTextHeight = 15;
+            if (baseFilename == null || GlobalContext.IsConsoleOutFileName(baseFilename)) {
+                Options.Throw("Cannot write graphics file to Console.Out", argsAsString);
+            }
+
             Options.Parse(argsAsString,
-                arg => baseFilename = arg,
                 new[] {
                 new OptionAction('w', (args, j) => {
                     if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out width)) {
@@ -817,36 +856,35 @@ namespace NDepCheck.Rendering {
                         Options.Throw("No valid height after h", args);
                     }
                     return j;
-                }), new OptionAction('o', (args, j) => {
-                    baseFilename = Options.ExtractOptionValue(args, ref j);
+                }), new OptionAction('f', (args, j) => {
+                    if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out minTextHeight)) {
+                        Options.Throw("No valid height after f", args);
+                    }
                     return j;
                 })}.Concat(additionalOptions).ToArray());
 
-            if (baseFilename == null) {
-                Options.Throw("No filename set with option o", argsAsString);
-            }
 
-            Size size = new Size(width, height);
             StringBuilder htmlForTooltips = new StringBuilder();
-            Bitmap bitMap = Render(items, dependencies, size, htmlForTooltips);
+            Bitmap bitMap = Render(items, dependencies, minTextHeight, ref width, ref height, htmlForTooltips);
 
-            string gifFilename = Path.ChangeExtension(baseFilename, ".gif");
-
+            string gifFileName = Path.ChangeExtension(baseFilename, ".gif");
             try {
-                Log.WriteInfo("Writing " + gifFilename);
-                bitMap.Save(gifFilename, ImageFormat.Gif);
+                Log.WriteInfo("Writing " + gifFileName);
+                // ReSharper disable once AssignNullToNotNullAttribute -- baseFilename != null, thus gifFilename != null
+                bitMap.Save(gifFileName, ImageFormat.Gif);
             } catch (Exception ex) {
-                Log.WriteError("Cannot save GIF image to file " + gifFilename + ". Make sure the file can be written. Internal message: " + ex.Message);
+                Log.WriteError("Cannot save GIF image to file " + gifFileName + ". Make sure the file can be written. Internal message: " + ex.Message);
                 throw;
             }
 
             string htmlFileName = Path.ChangeExtension(baseFilename, ".html");
+            // ReSharper disable once AssignNullToNotNullAttribute -- baseFilename != null, thus htmlFileName != null
             using (var tw = new StreamWriter(htmlFileName)) {
                 Log.WriteInfo("Writing " + htmlFileName);
                 tw.WriteLine($@"
 <html>
 <body>
-<img src=""{ Path.GetFileName(gifFilename)}"" width=""{size.Width}"" height=""{size.Height}"" usemap=""#map""/>
+<img src=""{ Path.GetFileName(gifFileName)}"" width=""{width}"" height=""{height}"" usemap=""#map""/>
 <map name=""map"">
 {htmlForTooltips}
 </map>
@@ -857,8 +895,9 @@ namespace NDepCheck.Rendering {
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, Stream stream) {
-            Size size = new Size(1000, 1000);
-            Bitmap bitMap = Render(items, dependencies, size, null);
+            int width = 1000;
+            int height = 1000;
+            Bitmap bitMap = Render(items, dependencies, 15, ref width, ref height, htmlForTooltips: null);
 
             bitMap.Save(stream, ImageFormat.Gif);
         }
@@ -871,13 +910,15 @@ namespace NDepCheck.Rendering {
 
         public abstract void CreateSomeTestItems(out IEnumerable<TItem> items, out IEnumerable<TDependency> dependencies);
 
-        public abstract string GetHelp();
+        public abstract string GetHelp(bool detailedHelp);
 
-        protected string GetHelpUsage() => "  [-w #] [-h #] -o filename | filename";
+        protected string GetHelpUsage() => "  [-w #] [-h #] [-f #]";
         protected string GetHelpExplanations() =>
-@"    -w #          width of graphics in pixels
-    -h #          height of graphics in pixels
-    filename      output .gif file 
+@"    -w #          width of graphics in pixels; default: computed from height, or via minimal text size
+    -h #          height of graphics in pixels; default: computed from width, or via minimal text size
+    -f #          minimal textheight in points (if -w and -h are not provided)
+    The filename is used as a base name for writing a .gif file as well as an .html file, which contains
+    the link and popup information.
 ";
     }
 

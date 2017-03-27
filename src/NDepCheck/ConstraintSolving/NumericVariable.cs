@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
@@ -74,7 +73,7 @@ namespace NDepCheck.ConstraintSolving {
 
         public static NumericVariable operator +(NumericVariable left, NumericVariable right) {
             NumericVariable result = left.DeriveVariable("-Sum0rh", $".{left.VarIndex} + .{right.VarIndex}");
-            new SumIs0Constraint(left, right, -result);
+            SumIs0Constraint.CreateSumIs0Constraint(left, right, -result);
             return result;
         }
 
@@ -84,7 +83,7 @@ namespace NDepCheck.ConstraintSolving {
 
         public static NumericVariable operator -(NumericVariable left, NumericVariable right) {
             NumericVariable result = left.DeriveVariable("+Sum0rh", $".{left.VarIndex}-.{right.VarIndex}");
-            new SumIs0Constraint(-left, right, result);
+            SumIs0Constraint.CreateSumIs0Constraint(-left, right, result);
             return result;
         }
 
@@ -110,7 +109,7 @@ namespace NDepCheck.ConstraintSolving {
 
         public static NumericVariable operator *(NumericVariable v, double d) {
             NumericVariable result = v.DeriveVariable("Prop*rh", $".{v.VarIndex}*{d}");
-            new ProportionalConstraint(d, v, result);
+            ProportionalConstraint.CreateProportionalConstraint(d, v, result);
             return result;
         }
 
@@ -120,13 +119,13 @@ namespace NDepCheck.ConstraintSolving {
 
         public static NumericVariable operator /(NumericVariable v, double d) {
             NumericVariable result = v.DeriveVariable("Prop/rh", $".{v.VarIndex}/{d}");
-            new ProportionalConstraint(d, result, v);
+            ProportionalConstraint.CreateProportionalConstraint(d, result, v);
             return result;
         }
 
         public static NumericVariable operator -(NumericVariable v) {
             NumericVariable result = v.DeriveVariable("Invrh", $"-.{v.VarIndex}");
-            new IsInverseConstraint(v, result);
+            IsInverseConstraint.CreateIsInverseConstraint(v, result);
             return result;
         }
 
@@ -135,7 +134,7 @@ namespace NDepCheck.ConstraintSolving {
         /// </summary>
         /// <returns><c>this</c></returns>
         public NumericVariable Min(NumericVariable value) {
-            new AtLeastConstraint(this, value);
+            AtLeastConstraint.CreateAtLeastConstraint(this, value);
             return this;
         }
 
@@ -144,7 +143,7 @@ namespace NDepCheck.ConstraintSolving {
         /// </summary>
         /// <returns><c>this</c></returns>
         public NumericVariable Set(NumericVariable value) {
-            new EqualityConstraint(this, value);
+            EqualityConstraint.CreateEqualityConstraint(this, value);
             return this;
         }
 
@@ -153,7 +152,7 @@ namespace NDepCheck.ConstraintSolving {
         /// </summary>
         /// <returns><c>this</c></returns>
         public NumericVariable Max(NumericVariable value) {
-            new AtLeastConstraint(value, this);
+            AtLeastConstraint.CreateAtLeastConstraint(value, this);
             return this;
         }
 

@@ -1,314 +1,285 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using JetBrains.Annotations;
-using NDepCheck.GraphTransformations;
+using NDepCheck.Reading;
 using NDepCheck.Rendering;
+using NDepCheck.Transforming;
 
 namespace NDepCheck {
-    public class GlobalContext : IGlobalContext {
+    public class GlobalContext {
+        internal bool RenderingDone { get; set; }
+        internal bool TransformingDone { get; set; }
+        internal bool InputFilesSpecified { get; set; }
+        public bool ShowUnusedQuestionableRules { get; set; }
+        public bool ShowUnusedRules { get; set; }
+        public bool IgnoreCase { get; set; }
+
         [NotNull]
-        private readonly ConcurrentDictionary<string, DependencyRuleSet> _fullFilename2RulesetCache = new ConcurrentDictionary<string, DependencyRuleSet>();
+        private readonly List<InputFileOption> _inputFileSpecs = new List<InputFileOption>();
+
         [NotNull]
+        public Dictionary<string, string> GlobalVars { get; } = new Dictionary<string, string>();
+
+        [NotNull, ItemNotNull]
         private readonly List<InputContext> _inputContexts = new List<InputContext>();
-        [CanBeNull]
-        private IEnumerable<Dependency> _reducedGraph;
-        [NotNull]
-        private readonly Program _program;
 
-        public GlobalContext([NotNull] Program program) {
-            _program = program;
+        private IEnumerable<Dependency> _dependenciesWithoutInputContext = Enumerable.Empty<Dependency>();
+
+        [NotNull]
+        private readonly List<IPlugin> _plugins = new List<IPlugin>();
+
+        static GlobalContext() {
+            // Initialize all built-in reader factories because they contain predefined ItemTypes
+            foreach (var t in GetPluginTypes<IReaderFactory>("")) {
+                Activator.CreateInstance(t);
+            }
         }
 
         [NotNull]
-        public IEnumerable<IInputContext> InputContexts => _inputContexts;
+        public IEnumerable<InputContext> InputContexts => _inputContexts;
 
         [NotNull]
-        public GlobalContext ReadAll([NotNull] Options options) {
-            IEnumerable<AbstractDependencyReader> allReaders = options.InputFiles.SelectMany(i => i.CreateOrGetReaders(options, false)).OrderBy(r => r.FileName);
+        public List<InputFileOption> InputFileSpecs => _inputFileSpecs;
+
+        public bool WorkLazily { get; set; }
+
+        public void CreateInputOption(string filePattern, string negativeFilePattern, string assembly,
+            string readerClass) {
+            _inputFileSpecs.Add(new InputFileOption(filePattern, negativeFilePattern,
+                GetOrCreatePlugin<IReaderFactory>(assembly, readerClass)));
+        }
+
+        public void ReadAllNotYetReadIn() {
+            IEnumerable<AbstractDependencyReader> allReaders =
+                InputFileSpecs.SelectMany(i => i.CreateOrGetReaders(this, false)).OrderBy(r => r.FileName);
             foreach (var r in allReaders) {
-                Dependency[] dependencies = r.ReadOrGetDependencies(0);
-                if (dependencies.Any()) {
-                    _inputContexts.Add(new InputContext(r.FileName, dependencies));
-                } else {
-                    Log.WriteWarning("No dependencies found in " + r.FileName);
-                }
-                // edges in input have changed - we need to re-reduce the graph!
-                _reducedGraph = null;
-            }
-            return this;
-        }
-
-        [NotNull]
-        public GlobalContext ReduceGraph([NotNull] Options options, bool alsoComputeViolations) {
-            if (alsoComputeViolations) {
-                int checkResult = ComputeViolations(options);
-                if (checkResult != 0) {
-                    Log.WriteWarning("Checking before reduction yielded return code " + checkResult);
+                InputContext inputContext = r.ReadOrGetDependencies(this, 0);
+                if (inputContext != null) {
+                    // Newly read input
+                    _inputContexts.Add(inputContext);
                 }
             }
-
-            if (_reducedGraph == null) {
-                _reducedGraph = DependencyGrapher.ReduceGraph(this, options);
-            }
-            return this;
         }
 
-        [NotNull]
-        public GlobalContext RenderToFile([NotNull] Options options, [NotNull] string assemblyName, [NotNull] string rendererClassName, [NotNull] string filename) {
-            if (_reducedGraph == null) {
-                throw new Exception("Internal error: _reducedGraph is null");
-            }
+        public void RenderToFile([NotNull] string assemblyName, [NotNull] string rendererClassName,
+                                 string rendererOptions, [CanBeNull] string filename) {
+            ReadAllNotYetReadIn();
 
-            var dependencies = _reducedGraph;
-            var items = dependencies.SelectMany(e => new[] { e.UsingItem, e.UsedItem }).Distinct();
+            IEnumerable<Dependency> allDependencies = GetAllDependencies();
 
-            var renderer = GetRenderer(assemblyName, rendererClassName);
+            IEnumerable<Item> items = allDependencies.SelectMany(e => new[] { e.UsingItem, e.UsedItem }).Distinct();
 
-            renderer.Render(items, dependencies, filename);
+            IDependencyRenderer renderer = GetOrCreatePlugin<IDependencyRenderer>(assemblyName, rendererClassName);
 
-            options.GraphingDone = true;
-            return this;
+            renderer.Render(items, allDependencies, rendererOptions, filename);
+
+            RenderingDone = true;
         }
 
-        private IDependencyRenderer GetRenderer(string assemblyName, string rendererClassName) {
-            IDependencyRenderer renderer;
+        private IEnumerable<Dependency> GetAllDependencies() {
+            return _inputContexts.SelectMany(ic => ic.Dependencies).Concat(_dependenciesWithoutInputContext).ToArray();
+        }
+
+        private T GetOrCreatePlugin<T>(string assemblyName, string pluginClassName) where T : IPlugin {
+            IEnumerable<Type> pluginTypes = GetPluginTypes<T>(assemblyName);
+            Type pluginType =
+                pluginTypes.FirstOrDefault(
+                    t => string.Compare(t.FullName, pluginClassName, StringComparison.InvariantCultureIgnoreCase) == 0) ??
+                pluginTypes.FirstOrDefault(
+                    t => string.Compare(t.Name, pluginClassName, StringComparison.InvariantCultureIgnoreCase) == 0);
+            if (pluginType == null) {
+                throw new ApplicationException(
+                    $"No plugin type found in assembly {assemblyName} matching {pluginClassName}");
+            }
             try {
-                Assembly assembly = string.IsNullOrWhiteSpace(assemblyName) ? GetType().Assembly : Assembly.LoadFrom(assemblyName);
-                renderer = (IDependencyRenderer)Activator.CreateInstance(assembly.GetType(rendererClassName, throwOnError: true, ignoreCase: true));
+                // plugins can have state, therefore we must manage them
+                T result = (T)_plugins.FirstOrDefault(t => t.GetType() == pluginType);
+                if (result == null) {
+                    _plugins.Add(result = (T)Activator.CreateInstance(pluginType));
+                }
+                return result;
             } catch (Exception ex) {
                 throw new ApplicationException(
-                    $"Cannot create renderer {rendererClassName} from assembly {assemblyName} running in working directory {Environment.CurrentDirectory}; problem: " +
+                    $"Cannot create {pluginClassName} from assembly {assemblyName} running in working directory {Environment.CurrentDirectory}; problem: " +
                     ex.Message, ex);
             }
-            return renderer;
         }
 
-        public void RenderTestDataToFile([NotNull] Options options, [NotNull] string assemblyName, [NotNull] string rendererClassName, [NotNull] string filename) {
-            IDependencyRenderer renderer = GetRenderer(assemblyName, rendererClassName);
+        private static IOrderedEnumerable<Type> GetPluginTypes<T>(string assemblyName) {
+            try {
+                Assembly pluginAssembly = string.IsNullOrWhiteSpace(assemblyName) || assemblyName == "."
+                    ? typeof(GlobalContext).Assembly
+                    : Assembly.LoadFrom(assemblyName);
+
+                return
+                    pluginAssembly.GetExportedTypes()
+                        .Where(t => typeof(T).IsAssignableFrom(t) && !t.IsAbstract && t.IsClass)
+                        .OrderBy(t => t.FullName);
+            } catch (Exception ex) {
+                throw new ApplicationException($"Cannot load types from assembly {assemblyName}; reason: {ex.Message}");
+            }
+        }
+
+        public void RenderTestData([NotNull] string assemblyName, [NotNull] string rendererClassName,
+            string rendererOptions, [NotNull] string filename) {
+            IDependencyRenderer renderer = GetOrCreatePlugin<IDependencyRenderer>(assemblyName, rendererClassName);
 
             IEnumerable<Item> items;
             IEnumerable<Dependency> dependencies;
 
             renderer.CreateSomeTestItems(out items, out dependencies);
 
-            renderer.Render(items, dependencies, filename);
+            renderer.Render(items, dependencies, rendererOptions, filename);
 
-            options.GraphingDone = true;
+            RenderingDone = true;
         }
 
-        public int ComputeViolations([NotNull] Options options) {
-            options.CheckingDone = true;
-            int result = 0;
-
-            var allCheckedGroups = new HashSet<DependencyRuleGroup>();
-
-            foreach (var g in _inputContexts) {
-                IEnumerable<DependencyRuleGroup> checkedGroups;
-                int checkResult = g.CheckDependencies(this, options, out checkedGroups);
-                if (checkResult != 0) {
-                    if (result == 0) {
-                        result = checkResult;
-                    }
-                } else {
-                    if (checkedGroups != null) {
-                        allCheckedGroups.UnionWith(checkedGroups);
-                    }
-                }
+        public void CreateInputOption(string[] args, ref int i, string filePattern, string assembly, string readerClass) {
+            if (readerClass == null) {
+                throw new ApplicationException(
+                    $"No reader class found for file pattern {filePattern} - please specify explicitly with -h or -i option");
             }
-
-            foreach (var r in allCheckedGroups.SelectMany(g => g.AllRules).Select(r => r.Representation).Distinct().OrderBy(r => r.RuleFileName).ThenBy(r => r.LineNo)) {
-                if (options.ShowUnusedQuestionableRules && r.IsQuestionableRule && !r.WasHit) {
-                    Log.WriteInfo("Questionable rule " + r + " was never matched - maybe you can remove it!");
-                } else if (options.ShowUnusedRules && !r.WasHit) {
-                    Log.WriteInfo("Rule " + r + " was never matched - maybe you can remove it!");
-                } else {
-                    if (Log.IsChattyEnabled) {
-                        Log.WriteInfo("Rule " + r + " was hit " + r.HitCount + " times.");
-                    }
-                }
-            }
-
-            return result;
+            CreateInputOption(filePattern,
+                negativeFilePattern: i + 2 < args.Length && args[i + 1] == "-" ? args[i += 2] : null, assembly: assembly,
+                readerClass: readerClass);
+            InputFilesSpecified = true;
         }
 
-        [NotNull]
-        public GlobalContext WriteViolations([CanBeNull] string xmlfileOrNullForLog) {
-            if (xmlfileOrNullForLog == null) {
-                foreach (var c in InputContexts) {
-                    foreach (var v in c.RuleViolations) {
-                        Log.WriteViolation(v);
-                    }
-                }
-            } else {
-                // Write to XML file
-                XmlViolationsWriter.WriteXmlOutput(xmlfileOrNullForLog, InputContexts);
-            }
-            LogSummary(InputContexts);
-            return this;
-        }
-
-        [NotNull]
-        public GlobalContext TransformGraph([NotNull] string transformationOption) {
-            IGraphTransformation<Dependency> transformation = CreateGraphTransformation(transformationOption);
-
-            Log.WriteInfo(transformation.GetInfo());
-            _reducedGraph = transformation.Run(_reducedGraph);
-
-            return this;
-        }
-
-        [NotNull]
-        private static IGraphTransformation<Dependency> CreateGraphTransformation(string arg) {
-            string[] args = arg.Split(',', '/', '-').Select(s => s.Trim()).ToArray();
-            switch (args[0].ToLowerInvariant()) {
-                case "ha":
-                    return new HidePureSources<Dependency>(args.Skip(1));
-                case "hz":
-                    return new HidePureSinks<Dependency>(args.Skip(1));
-                case "ht":
-                    return new HideTransitiveEdges<Dependency>(args.Skip(1));
-                case "ho":
-                    return new HideOuterGraph<Dependency>(args.Skip(1));
-                case "uc":
-                    return new UnhideCycles<Dependency>(args.Skip(1));
-                case "ah":
-                    return new AssociativeHull<Dependency>(args.Skip(1),
-                        (e1, e2) => new Dependency(e1.UsingItem, e2.UsedItem, e2.Source, e2.StartLine, e2.StartColumn, e2.EndLine, e2.EndColumn, "Hull", 1)
-                        );
-                default:
-                    throw new ArgumentException("Graph transformation '" + args[0] + "' not implemented");
-            }
-        }
-
-        public void Reset() {
-            _inputContexts.Clear();
-
-            _reducedGraph = null;
-        }
-
-        [NotNull]
-        // [Obsolete("Use -r option instead")]
-        public GlobalContext WriteDipFile([NotNull]Options options, [NotNull]string filename) {
-            if (_reducedGraph == null) {
-                Log.WriteError("No graph to write to " + filename);
-            } else {
-                Log.WriteInfo("Writing " + filename);
-
-                new DipWriter().Render(Enumerable.Empty<Item>(), _reducedGraph, filename);
-
-                options.GraphingDone = true;
-            }
-            return this;
-        }
-
-        private static void LogSummary([NotNull]IEnumerable<IInputContext> contexts) {
-            foreach (var context in contexts) {
-                string msg = $"{context.Filename}: {context.ErrorCount} errors, {context.WarningCount} warnings";
-                if (context.ErrorCount > 0) {
-                    Log.WriteError(msg);
-                } else if (context.WarningCount > 0) {
-                    Log.WriteWarning(msg);
-                }
-            }
-            Log.WriteInfo($"{contexts.Count(ctx => ctx.ErrorCount == 0 && ctx.WarningCount == 0)} input files are without violations.");
-        }
-
-        [CanBeNull]
-        private DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel([NotNull]DirectoryInfo relativeRoot,
-                [NotNull]string ruleSource, [NotNull]Options options, bool ignoreCase, string fileIncludeStack) {
-            return GetOrCreateDependencyRuleSet_MayBeCalledInParallel(relativeRoot, ruleSource, options,
-                            new Dictionary<string, string>(), new Dictionary<string, Macro>(), ignoreCase, fileIncludeStack);
-        }
-
-        public DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel(DirectoryInfo relativeRoot,
-                string ruleSource, Options options, IDictionary<string, string> defines,
-                IDictionary<string, Macro> macros, bool ignoreCase,
-                string fileIncludeStack) {
-            DependencyRuleSet result;
-            if (ruleSource.StartsWith("{")) {
-                if (!_fullFilename2RulesetCache.TryGetValue("-x", out result)) {
-                    result = new DependencyRuleSet(this, options, ruleSource, defines, macros, ignoreCase,
-                        (string.IsNullOrEmpty(fileIncludeStack) ? "" : fileIncludeStack + " + ") + "-x");
-                    Log.WriteDebug("Completed reading -x rule set");
-                }
-            } else {
-                string fullCanonicalRuleFilename =
-                    new Uri(Path.Combine(relativeRoot.FullName, ruleSource)).LocalPath;
-                if (!_fullFilename2RulesetCache.TryGetValue(fullCanonicalRuleFilename, out result)) {
-                    try {
-                        long start = Environment.TickCount;
-                        result = new DependencyRuleSet(this, options, fullCanonicalRuleFilename, defines, macros,
-                            ignoreCase,
-                            (string.IsNullOrEmpty(fileIncludeStack) ? "" : fileIncludeStack + " + ") +
-                            fullCanonicalRuleFilename);
-                        Log.WriteDebug("Completed reading " + fullCanonicalRuleFilename + " in " +
-                                       (Environment.TickCount - start) + " ms");
-
-                        if (!_fullFilename2RulesetCache.ContainsKey(fullCanonicalRuleFilename)) {
-                            // If the set is already in the cache, we drop the set we just read (it's the same anyway).
-                            _fullFilename2RulesetCache.AddOrUpdate(fullCanonicalRuleFilename, result,
-                                (filename, existingRuleSet) => result = existingRuleSet);
-                        }
-                    } catch (FileNotFoundException) {
-                        Log.WriteError("File " + fullCanonicalRuleFilename + " not found");
-                        return null;
-                    }
-
-                }
-            }
-            return result;
-        }
-
-        public int Run(string[] args, Options options) {
-            return _program.Run(args, options);
-        }
-
-        public DependencyRuleSet GetOrCreateDependencyRuleSet_MayBeCalledInParallel(Options options, string dependencyFilename,
-                                                                                    string fileIncludeStack) {
-            DependencyRuleSet ruleSetForAssembly = Load(dependencyFilename, options.Directories, options, options.IgnoreCase, fileIncludeStack);
-            if (ruleSetForAssembly == null && !string.IsNullOrEmpty(options.DefaultRuleSource)) {
-                ruleSetForAssembly = GetOrCreateDependencyRuleSet_MayBeCalledInParallel(
-                                            new DirectoryInfo("."), options.DefaultRuleSource, options, options.IgnoreCase, fileIncludeStack);
-            }
-            return ruleSetForAssembly;
-        }
-
-        /// <summary>
-        /// Read rule set from file.
-        /// </summary>
-        /// <returns>Read rule set; or <c>null</c> if not poeeible to read it.</returns>
-        [CanBeNull]
-        public DependencyRuleSet Load(string dependencyFilename, List<DirectoryOption> directories, Options options, bool ignoreCase, [NotNull] string fileIncludeStack) {
-            foreach (var d in directories) {
-                string fullName = d.GetFullNameFor(dependencyFilename);
-                if (fullName != null) {
-                    DependencyRuleSet result = GetOrCreateDependencyRuleSet_MayBeCalledInParallel(new DirectoryInfo("."), fullName, options, ignoreCase, fileIncludeStack);
-                    if (result != null) {
-                        return result;
-                    }
-                }
-            }
-            return null; // if nothing found
-        }
-
-        public void ShowAllRenderersAndTheirHelp() {
-            foreach (var t in GetType().Assembly
-                                       .GetExportedTypes()
-                                       .Where(t => typeof(IDependencyRenderer).IsAssignableFrom(t)
-                                                    && !t.IsAbstract && t.IsClass)
-                                       .OrderBy(t => t.FullName)) {
+        public int ShowAllPluginsAndTheirHelp<T>(string assemblyName) {
+            foreach (var t in GetPluginTypes<T>(assemblyName)) {
                 try {
-                    IDependencyRenderer renderer = (IDependencyRenderer) Activator.CreateInstance(t);
-                    Log.WriteInfo("=============================================\r\n" + t.FullName + ":\r\n" + renderer.GetHelp() + "\r\n");
+                    IDependencyRenderer renderer = (IDependencyRenderer)Activator.CreateInstance(t);
+                    Log.WriteInfo("=============================================\r\n" + t.FullName + ":\r\n" +
+                                  renderer.GetHelp(detailedHelp: false) + "\r\n");
                 } catch (Exception ex) {
                     Log.WriteError("Cannot print help for Renderer " + t.FullName + "; reason: " + ex.Message);
                 }
             }
             Log.WriteInfo("=============================================\r\n");
+            return Program.OK_RESULT;
+        }
+
+        public void TransformTestData(string assembly, string transformerClass, string transformerOptions) {
+            ITransformer transformer = GetOrCreatePlugin<ITransformer>(assembly, transformerClass);
+            IEnumerable<Dependency> testData = transformer.GetTestDependencies();
+
+            var newDependenciesCollector = new Dictionary<FromTo, Dependency>();
+            transformer.Transform(this, "TestData", testData, transformerOptions, "TestData", newDependenciesCollector);
+
+            _dependenciesWithoutInputContext = newDependenciesCollector.Values;
+        }
+
+        public int Transform(string assembly, string transformerClass, string transformerOptions) {
+            ReadAllNotYetReadIn();
+
+            ITransformer transformer = GetOrCreatePlugin<ITransformer>(assembly, transformerClass);
+
+            var newDependenciesCollector = new Dictionary<FromTo, Dependency>();
+            int result = Program.OK_RESULT;
+            if (transformer.RunsPerInputContext) {
+                foreach (var ic in _inputContexts) {
+                    string dependencySourceForLogging = "dependencies in file " + ic.Filename;
+                    int r = transformer.Transform(this,
+                        ic.Filename, ic.Dependencies, transformerOptions,
+                        dependencySourceForLogging, newDependenciesCollector);
+                    result = Math.Max(result, r);
+                }
+                {
+                    int r = transformer.Transform(this, "", _dependenciesWithoutInputContext,
+                        transformerOptions, "generated dependencies", newDependenciesCollector);
+                    result = Math.Max(result, r);
+                }
+                foreach (var ic in _inputContexts) {
+                    ic.SetDependencies(newDependenciesCollector.Values.Where(d => d.InputContext == ic));
+                }
+            } else {
+                result = transformer.Transform(this, "", GetAllDependencies(), transformerOptions, "all dependencies", newDependenciesCollector);
+            }
+            _dependenciesWithoutInputContext =
+                newDependenciesCollector.Values.Where(d => d.InputContext == null).ToArray();
+
+            return result;
+        }
+
+        public RegexOptions GetIgnoreCase() {
+            return IgnoreCase ? RegexOptions.IgnoreCase : RegexOptions.None;
+        }
+
+        //[CanBeNull]
+        //public string DefaultRuleSource { get; set; }
+
+        public void Reset() {
+            _inputContexts.Clear();
+            _dependenciesWithoutInputContext = Enumerable.Empty<Dependency>();
+
+            _inputFileSpecs.Clear();
+
+            RenderingDone = false;
+            TransformingDone = false;
+        }
+
+        public AbstractDotNetAssemblyDependencyReader GetDotNetAssemblyReaderFor(string usedAssembly) {
+            return FirstMatchingReader(usedAssembly, _inputFileSpecs, needsOnlyItemTails: false);
+        }
+
+        private AbstractDotNetAssemblyDependencyReader FirstMatchingReader(string usedAssembly,
+            List<InputFileOption> fileOptions, bool needsOnlyItemTails) {
+            AbstractDotNetAssemblyDependencyReader result =
+                fileOptions.SelectMany(i => i.CreateOrGetReaders(this, needsOnlyItemTails))
+                    .OfType<AbstractDotNetAssemblyDependencyReader>()
+                    .FirstOrDefault(r => r.AssemblyName == usedAssembly);
+            return result;
+        }
+
+        public void ShowDetailedHelp<T>(string assembly, string pluginClassName) where T : IPlugin {
+            try {
+                T plugin = GetOrCreatePlugin<T>(assembly, pluginClassName);
+                Log.WriteInfo("=============================================\r\n" + plugin.GetType().FullName + ":\r\n" +
+                              plugin.GetHelp(detailedHelp: false) + "\r\n");
+            } catch (Exception ex) {
+                Log.WriteError(
+                    $"Cannot print help for plugin {pluginClassName} in assembly {assembly}; reason: {ex.Message}");
+            }
+        }
+
+        public void ConfigureTransformer(string assembly, string transformerClass, string transformerOptions) {
+            try {
+                ITransformer plugin = GetOrCreatePlugin<ITransformer>(assembly, transformerClass);
+                plugin.Configure(this, transformerOptions);
+            } catch (Exception ex) {
+                Log.WriteError(
+                    $"Cannot configure plugin {transformerClass} in assembly {assembly}; reason: {ex.Message}");
+            }
+        }
+
+        public static TextWriter CreateTextWriter(string filename, string extension = null) {
+            if (filename == null || IsConsoleOutFileName(filename)) {
+                return Console.Out;
+            } else {
+                if (extension != null) {
+                    filename = Path.ChangeExtension(filename, extension);
+                }
+                Log.WriteInfo("Writing " + filename);
+                return new StreamWriter(filename);
+            }
+        }
+        
+        public static bool IsConsoleOutFileName(string filename) {
+            return string.IsNullOrWhiteSpace(filename) || filename == "-";
+        }
+
+        public static ItemType GetItemType(string definition) {
+            IEnumerable<string> parts = definition.Split('(', ':', ')').Select(s => s.Trim()).Where(s => s != "");
+            string name = parts.First();
+
+            return ItemType.New(name, parts.Skip(1).ToArray());
+
+            ////return ALL_READER_FACTORIES.SelectMany(f => f.GetDescriptors()).FirstOrDefault(d => d.Name == name)
+            ////    ?? ALL_READER_FACTORIES.OfType<DotNetAssemblyDependencyReaderFactory>().First().GetOrCreateDotNetType(name, parts.Skip(1));
         }
     }
 }
