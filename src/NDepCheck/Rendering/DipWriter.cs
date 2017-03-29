@@ -35,7 +35,7 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
+        public string Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
             //int stringLengthForIllegalEdges = -1;
             bool withExampleInfo = false;
             Options.Parse(argsAsString, 
@@ -49,12 +49,13 @@ namespace NDepCheck.Rendering {
                     withExampleInfo = true;
                     return j;
                 }));
-            string filename = Path.ChangeExtension(baseFilename, ".dip");
+            string fileName = Path.ChangeExtension(baseFilename, ".dip");
 
-            Log.WriteInfo("Writing " + filename);
-            using (var sw = filename == null ? Console.Out : new StreamWriter(filename)) {
+            Log.WriteInfo("Writing " + fileName);
+            using (var sw = fileName == null ? Console.Out : new StreamWriter(fileName)) {
                 Write(dependencies, sw, withExampleInfo);
             }
+            return fileName;
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, Stream output) {

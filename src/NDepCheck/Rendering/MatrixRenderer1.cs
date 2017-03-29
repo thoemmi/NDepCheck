@@ -4,8 +4,8 @@ using System.Linq;
 
 namespace NDepCheck.Rendering {
     public class MatrixRenderer1 : AbstractMatrixRenderer, IDependencyRenderer {
-        public void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
-            new GenericMatrixRenderer1().Render(items, dependencies, argsAsString, baseFilename);
+        public string Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
+            return new GenericMatrixRenderer1().Render(items, dependencies, argsAsString, baseFilename);
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, Stream output) {
@@ -54,13 +54,14 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public override void Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString, string baseFilename) {
+        public override string Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString, string baseFilename) {
             int? labelWidthOrNull;
             bool withNotOkCt;
             ParseOptions(argsAsString, out labelWidthOrNull, out withNotOkCt);
 
             using (var sw = GlobalContext.CreateTextWriter(baseFilename, ".csv")) {
-                Render(items, dependencies, sw, labelWidthOrNull, withNotOkCt);
+                Render(items, dependencies, sw.Writer, labelWidthOrNull, withNotOkCt);
+                return sw.FileName;
             }
         }
     }

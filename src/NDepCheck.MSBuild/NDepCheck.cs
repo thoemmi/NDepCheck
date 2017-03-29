@@ -51,7 +51,7 @@ namespace NDepCheck.MSBuild {
             //Directories?.Select(GetDirectoryOptionFromTaskItem).AddTo(options.Directories);
 
             var program = new Program();
-            ExitCode = program.Run(args.ToArray(), new GlobalContext());
+            ExitCode = program.Run(args.ToArray(), new GlobalContext(), null);
 
             return ExitCode == 0;
         }

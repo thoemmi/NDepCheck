@@ -7,7 +7,7 @@ using System.Xml.Linq;
 
 namespace NDepCheck.Rendering {
     public class RuleViolationRenderer : IDependencyRenderer {
-        public void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
+        public string Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
             bool xmlOutput = false;
             Options.Parse(argsAsString,
                 new OptionAction('x', (args, j) => {
@@ -23,6 +23,7 @@ namespace NDepCheck.Rendering {
                 foreach (var d in dependencies.Where(d => d.BadCt > 0)) {
                     consoleLogger.WriteViolation(d);
                 }
+                return "-";
             } else if (xmlOutput) {
                 var document = new XDocument(
                 new XElement("Violations",
@@ -38,14 +39,16 @@ namespace NDepCheck.Rendering {
                         ))
                         );
                 var settings = new XmlWriterSettings { Encoding = Encoding.UTF8, Indent = true };
-                string filename = Path.ChangeExtension(baseFilename, ".xml");
-                using (var xmlWriter = XmlWriter.Create(filename, settings)) {
+                string fileName = Path.ChangeExtension(baseFilename, ".xml");
+                using (var xmlWriter = XmlWriter.Create(fileName, settings)) {
                     document.Save(xmlWriter);
                 }
+                return fileName;
             } else {
                 using (var sw = new StreamWriter(baseFilename)) {
                     RenderToStreamWriter(dependencies, sw);
                 }
+                return baseFilename;
             }
         }
 
@@ -85,7 +88,7 @@ namespace NDepCheck.Rendering {
   This is the output for the primary reason of NDepCheck: Checking rules.
 
   Options: [-x]
-    -x            write XML output (not possible with filename '-', i.e. standard output)";
+    -x            write XML output (not possible with fileName '-', i.e. standard output)";
         }
     }
 }

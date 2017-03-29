@@ -9,8 +9,8 @@ namespace NDepCheck.Reading {
     public class FullDotNetAssemblyDependencyReader : AbstractDotNetAssemblyDependencyReader {
         private IEnumerable<RawDependency> _rawDependencies;
 
-        public FullDotNetAssemblyDependencyReader(DotNetAssemblyDependencyReaderFactory factory, string filename, GlobalContext globalContext)
-            : base(factory, filename, globalContext) {
+        public FullDotNetAssemblyDependencyReader(DotNetAssemblyDependencyReaderFactory factory, string fileName, GlobalContext globalContext)
+            : base(factory, fileName, globalContext) {
         }
 
         protected override IEnumerable<Dependency> ReadDependencies(InputContext inputContext, int depth) {
@@ -30,13 +30,13 @@ namespace NDepCheck.Reading {
         }
 
         protected IEnumerable<RawDependency> ReadRawDependencies(int depth) {            
-            Log.WriteInfo(new string(' ', 2 * depth) + "Reading " + _filename);
-            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(_filename);
+            Log.WriteInfo(new string(' ', 2 * depth) + "Reading " + _fileName);
+            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(_fileName);
 
             try {
                 assembly.MainModule.ReadSymbols();
             } catch (Exception ex) {
-                Log.WriteWarning($"Loading symbols for assembly {_filename} failed - maybe .PDB file is missing. ({ex.Message})", _filename, 0);
+                Log.WriteWarning($"Loading symbols for assembly {_fileName} failed - maybe .PDB file is missing. ({ex.Message})", _fileName, 0);
             }
 
             ItemTail customSections = GetCustomSections(assembly.CustomAttributes, null);

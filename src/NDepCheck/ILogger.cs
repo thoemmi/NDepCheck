@@ -1,9 +1,9 @@
 ﻿namespace NDepCheck {
     public interface ILogger {
         void WriteError(string msg);
-        void WriteError(string msg, string nestedFilenames, int lineNumber);
+        void WriteError(string msg, string nestedFilenames, int lineNo);
         void WriteWarning(string msg);
-        void WriteWarning(string msg, string nestedFilenames, int lineNumber);
+        void WriteWarning(string msg, string nestedFilenames, int lineNo);
         void WriteInfo(string msg);
         void WriteDebug(string msg);
         void WriteViolation(Dependency dependency);
@@ -32,16 +32,16 @@
             Logger.WriteError(msg);
         }
 
-        internal static void WriteError(string msg, string nestedFilenames, int lineNumber) {
-            Logger.WriteError(msg, nestedFilenames, lineNumber);
+        internal static void WriteError(string msg, string nestedFilenames, int lineNo) {
+            Logger.WriteError(msg, nestedFilenames, lineNo);
         }
 
         internal static void WriteWarning(string msg) {
             Logger.WriteWarning(msg);
         }
 
-        internal static void WriteWarning(string msg, string nestedFilenames, int lineNumber) {
-            Logger.WriteWarning(msg, nestedFilenames, lineNumber);
+        internal static void WriteWarning(string msg, string nestedFilenames, int lineNo) {
+            Logger.WriteWarning(msg, nestedFilenames, lineNo);
         }
 
         internal static void WriteInfo(string msg) {

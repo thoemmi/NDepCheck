@@ -8,7 +8,7 @@ namespace NDepCheck {
     public class InputFileOption {
         [NotNull]
         private readonly string _positive;
-        [NotNull]
+        [CanBeNull]
         private readonly string _negativeOrNull;
         [NotNull]
         private readonly IReaderFactory _readerFactory;
@@ -24,12 +24,12 @@ namespace NDepCheck {
         [NotNull]
         public IEnumerable<AbstractDependencyReader> CreateOrGetReaders([NotNull]GlobalContext options, bool needsOnlyItemTails) {
             if (_readers == null) {
-                var filenames = new List<string>(ExpandFilename(_positive));
+                var fileNames = new List<string>(ExpandFilename(_positive));
                 if (_negativeOrNull != null) {
                     var negative = new List<string>(ExpandFilename(_negativeOrNull)).ConvertAll(Path.GetFullPath);
-                    filenames.RemoveAll(f => negative.Contains(Path.GetFullPath(f)));
+                    fileNames.RemoveAll(f => negative.Contains(Path.GetFullPath(f)));
                 }
-                _readers = filenames.Select(filename => _readerFactory.CreateReader(filename, options, needsOnlyItemTails)).ToArray();
+                _readers = fileNames.Select(fileName => _readerFactory.CreateReader(fileName, options, needsOnlyItemTails)).ToArray();
             }
             return _readers;
         }

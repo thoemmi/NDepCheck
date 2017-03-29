@@ -65,19 +65,18 @@ namespace NDepCheck {
             }
         }
 
-        public void RenderToFile([NotNull] string assemblyName, [NotNull] string rendererClassName,
-                                 string rendererOptions, [CanBeNull] string filename) {
+        public string RenderToFile([NotNull] string assemblyName, [NotNull] string rendererClassName,
+                                 string rendererOptions, [CanBeNull] string fileName) {
             ReadAllNotYetReadIn();
 
             IEnumerable<Dependency> allDependencies = GetAllDependencies();
-
             IEnumerable<Item> items = allDependencies.SelectMany(e => new[] { e.UsingItem, e.UsedItem }).Distinct();
-
             IDependencyRenderer renderer = GetOrCreatePlugin<IDependencyRenderer>(assemblyName, rendererClassName);
 
-            renderer.Render(items, allDependencies, rendererOptions, filename);
-
+            string masterFileName = renderer.Render(items, allDependencies, rendererOptions, fileName);
             RenderingDone = true;
+
+            return masterFileName;
         }
 
         private IEnumerable<Dependency> GetAllDependencies() {
@@ -124,8 +123,8 @@ namespace NDepCheck {
             }
         }
 
-        public void RenderTestData([NotNull] string assemblyName, [NotNull] string rendererClassName,
-            string rendererOptions, [NotNull] string filename) {
+        public string RenderTestData([NotNull] string assemblyName, [NotNull] string rendererClassName,
+            string rendererOptions, [NotNull] string fileName) {
             IDependencyRenderer renderer = GetOrCreatePlugin<IDependencyRenderer>(assemblyName, rendererClassName);
 
             IEnumerable<Item> items;
@@ -133,9 +132,11 @@ namespace NDepCheck {
 
             renderer.CreateSomeTestItems(out items, out dependencies);
 
-            renderer.Render(items, dependencies, rendererOptions, filename);
+            string masterFileName = renderer.Render(items, dependencies, rendererOptions, fileName);
 
             RenderingDone = true;
+
+            return masterFileName;
         }
 
         public void CreateInputOption(string[] args, ref int i, string filePattern, string assembly, string readerClass) {
@@ -256,20 +257,34 @@ namespace NDepCheck {
             }
         }
 
-        public static TextWriter CreateTextWriter(string filename, string extension = null) {
-            if (filename == null || IsConsoleOutFileName(filename)) {
-                return Console.Out;
+        public class NamedTextWriter : IDisposable {
+            public NamedTextWriter(TextWriter writer, string fileName) {
+                Writer = writer;
+                FileName = fileName;
+            }
+
+            public TextWriter Writer { get; }
+            public string FileName { get; }
+
+            public void Dispose() {
+                Writer?.Dispose();
+            }
+        }
+
+        public static NamedTextWriter CreateTextWriter(string fileName, string extension = null) {
+            if (fileName == null || IsConsoleOutFileName(fileName)) {
+                return new NamedTextWriter(Console.Out, "-");
             } else {
                 if (extension != null) {
-                    filename = Path.ChangeExtension(filename, extension);
+                    fileName = Path.ChangeExtension(fileName, extension);
                 }
-                Log.WriteInfo("Writing " + filename);
-                return new StreamWriter(filename);
+                Log.WriteInfo("Writing " + fileName);
+                return new NamedTextWriter(new StreamWriter(fileName), "-");
             }
         }
         
-        public static bool IsConsoleOutFileName(string filename) {
-            return string.IsNullOrWhiteSpace(filename) || filename == "-";
+        public static bool IsConsoleOutFileName(string fileName) {
+            return string.IsNullOrWhiteSpace(fileName) || fileName == "-";
         }
 
         public static ItemType GetItemType(string definition) {

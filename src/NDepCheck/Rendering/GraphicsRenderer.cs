@@ -128,7 +128,7 @@ namespace NDepCheck.Rendering {
             IEnumerable<VectorF> GetBoundingVectors();
             void FullyRestrictBoundingVectors(Graphics graphics);
             float? GetTextSizeInPoints();
-            void Draw(Graphics graphics, StringBuilder htmlForTooltips);
+            void Draw(Graphics graphics, StringBuilder htmlForClicks);
             IEnumerable<NumericVariable> GetFixVariables();
         }
 
@@ -161,6 +161,8 @@ namespace NDepCheck.Rendering {
             private readonly BoxTextPlacement _boxTextPlacement;
             private readonly Color _textColor;
             private readonly double _textPadding;
+            [CanBeNull]
+            private readonly string _htmlRef;
             private readonly Font _textFont;
             private readonly Color _borderColor;
             private readonly Color _color;
@@ -182,7 +184,7 @@ namespace NDepCheck.Rendering {
                               double borderWidth, Color borderColor, int connectors, string text,
                               BoxTextPlacement boxTextPlacement, Font textFont, Color textColor, double textPadding,
                               int creationOrder, int drawingOrder, int fixingOrder,
-                              string name) : base(creationOrder, drawingOrder, fixingOrder) {
+                              string name, [CanBeNull] string htmlRef) : base(creationOrder, drawingOrder, fixingOrder) {
                 _solver = solver;
                 Name = name ?? anchor.Name;
 
@@ -327,6 +329,7 @@ namespace NDepCheck.Rendering {
                 _boxTextPlacement = boxTextPlacement;
                 _textColor = textColor;
                 _textPadding = textPadding;
+                _htmlRef = htmlRef;
                 _textFont = textFont;
                 _borderColor = borderColor;
                 _sectorAngle = 2 * Math.PI / connectors;
@@ -395,19 +398,19 @@ namespace NDepCheck.Rendering {
                 return new SizeF(textWidth, textHeight);
             }
 
-            public void Draw(Graphics graphics, StringBuilder htmlForTooltips) {
+            public void Draw(Graphics graphics, StringBuilder htmlForClicks) {
                 var diagonalF = _diagonal.AsVectorF();
                 var textBoxF = _textBox.AsVectorF();
                 var centerF = _center.AsVectorF();
-                VectorF leftUpperF = _center.AsVectorF() - ~diagonalF / 2;
+                VectorF upperLeftF = _center.AsVectorF() - ~diagonalF / 2;
 
-                FillBox(graphics, new SolidBrush(_borderColor), leftUpperF.GetX(), -leftUpperF.GetY(), diagonalF.GetX(), diagonalF.GetY());
+                FillBox(graphics, new SolidBrush(_borderColor), upperLeftF.GetX(), -upperLeftF.GetY(), diagonalF.GetX(), diagonalF.GetY());
 
-                VectorF borderDiagonal = new VectorF(_borderWidth, _borderWidth, "45°@" + _borderWidth);
-                VectorF leftUpperInner = leftUpperF + ~borderDiagonal;
-                VectorF diagonalInner = diagonalF - 2 * borderDiagonal;
+                VectorF borderDiagonalF = new VectorF(_borderWidth, _borderWidth, "45°@" + _borderWidth);
+                VectorF upperLeftInnerF = upperLeftF + ~borderDiagonalF;
+                VectorF diagonalInnerF = diagonalF - 2 * borderDiagonalF;
 
-                FillBox(graphics, new SolidBrush(_color), leftUpperInner.GetX(), -leftUpperInner.GetY(), diagonalInner.GetX(), diagonalInner.GetY());
+                FillBox(graphics, new SolidBrush(_color), upperLeftInnerF.GetX(), -upperLeftInnerF.GetY(), diagonalInnerF.GetX(), diagonalInnerF.GetY());
 
                 Matrix m = new Matrix();
                 switch (_boxTextPlacement) {
@@ -449,6 +452,12 @@ namespace NDepCheck.Rendering {
                 VectorF textLocation = centerF + new VectorF(0, lineHeight.GetY() / 2 * (_text.Length - 1), "textOffset");
                 for (int i = 0; i < _text.Length; i++, textLocation -= lineHeight) {
                     DrawText(graphics, _text[i], _textFont, _textColor, textLocation, m);
+                }
+
+                if (_htmlRef != null) {
+                    VectorF lowerRightF = _center.AsVectorF() + ~diagonalF / 2;
+                    WriteBoxHtml(graphics, htmlForClicks, _htmlRef, upperLeftF.AsMirroredPointF(),
+                        lowerRightF.AsMirroredPointF());
                 }
             }
 
@@ -525,6 +534,18 @@ namespace NDepCheck.Rendering {
             public float? GetTextSizeInPoints() {
                 return _text.Any(t => !string.IsNullOrWhiteSpace(t)) ? _textFont.SizeInPoints : (float?)null;
             }
+
+            private static void WriteBoxHtml(Graphics graphics, StringBuilder htmlForClicks,
+                string htmlRef, PointF upperLeft, PointF lowerRight) {
+                PointF[] ulAndLr = { upperLeft, lowerRight };
+                graphics.Transform.TransformPoints(ulAndLr);
+                int lx = (int)ulAndLr[0].X;
+                int ly = (int)ulAndLr[0].Y;
+                int ux = (int)ulAndLr[1].X;
+                int uy = (int)ulAndLr[1].Y;
+
+                htmlForClicks.AppendLine($@"<area shape=""rect"" coords=""{lx},{ly},{ux},{uy}"" href=""{htmlRef}"" />");
+            }
         }
 
         private class ArrowBuilder : AbstractBuilder, IBuilder, IArrow {
@@ -594,7 +615,7 @@ namespace NDepCheck.Rendering {
                 _textBox.Set(textSize.Width * (1 + _textPadding), textSize.Height * (1 + _textPadding));
             }
 
-            public void Draw(Graphics graphics, StringBuilder htmlForTooltips) {
+            public void Draw(Graphics graphics, StringBuilder htmlForClicks) {
                 VectorF tailF = _tail.AsVectorF();
                 VectorF headF = _head.AsVectorF();
                 VectorF textBoxF = _textBox.AsVectorF();
@@ -654,11 +675,11 @@ namespace NDepCheck.Rendering {
                 DrawText(graphics, _text, _textFont, _textColor, textCenterF, textTransform);
 
                 if (!string.IsNullOrWhiteSpace(_edgeInfo)) {
-                    WriteToolTipHtml(graphics, htmlForTooltips, _edgeInfo, tailPoint, headPoint);
+                    WriteToolTipHtml(graphics, htmlForClicks, _edgeInfo, tailPoint, headPoint);
                 }
             }
 
-            private static void WriteToolTipHtml(Graphics graphics, StringBuilder htmlForTooltips, string edgeInfo, PointF tailPoint, PointF headPoint) {
+            private static void WriteToolTipHtml(Graphics graphics, StringBuilder htmlForClicks, string edgeInfo, PointF tailPoint, PointF headPoint) {
                 PointF[] tailAndHead = { tailPoint, headPoint };
                 graphics.Transform.TransformPoints(tailAndHead);
                 int tx = (int)tailAndHead[0].X;
@@ -668,7 +689,7 @@ namespace NDepCheck.Rendering {
                 edgeInfo = edgeInfo.Replace('\'', ' ').Replace('\"', ' ');
                 const int d = 4;
 
-                htmlForTooltips.AppendLine(
+                htmlForClicks.AppendLine(
                     $@"<area shape=""poly"" coords=""{tx},{ty - d},{tx},{ty + d},{hx},{hy + d},{hx},{hy - d}"" " +
                     $@"href=""default.htm"" onClick=""alert('{edgeInfo}');return false""/>");
             }
@@ -703,7 +724,7 @@ namespace NDepCheck.Rendering {
             BoxAnchoring boxAnchoring = BoxAnchoring.Center, [CanBeNull] Color? boxColor = null /*White*/, int connectors = 8,
             double borderWidth = 0, [CanBeNull] Color? borderColor = null /*Black*/,
             BoxTextPlacement boxTextPlacement = BoxTextPlacement.Center, [CanBeNull] Font textFont = null /*___*/, [CanBeNull] Color? textColor = null /*Black*/,
-            double textPadding = 0.2, int drawingOrder = 0, int fixingOrder = 100, [CanBeNull] string name = null) {
+            double textPadding = 0.2, int drawingOrder = 0, int fixingOrder = 100, [CanBeNull] string name = null, [CanBeNull] string htmlRef = null) {
             if (anchor == null) {
                 throw new ArgumentNullException(nameof(anchor));
             }
@@ -711,7 +732,7 @@ namespace NDepCheck.Rendering {
             var boxBuilder = new BoxBuilder(_solver, anchor, new VariableVector((text ?? anchor.Name) + "./", _solver).Restrict(minDiagonal),
                 boxAnchoring, boxColor ?? Color.White, borderWidth, borderColor ?? Color.Black, connectors,
                 text ?? "", boxTextPlacement, textFont ?? _defaultTextFont, textColor ?? Color.Black, textPadding,
-                _builders.Count, drawingOrder, fixingOrder, name);
+                _builders.Count, drawingOrder, fixingOrder, name, htmlRef);
 
             _builders.Add(boxBuilder);
             return boxBuilder;
@@ -734,8 +755,8 @@ namespace NDepCheck.Rendering {
             return arrowBuilder;
         }
 
-        private Bitmap Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, float minTextHeight, 
-                              ref int width, ref int height, StringBuilder htmlForTooltips) {
+        private Bitmap Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, float minTextHeight,
+                              ref int width, ref int height, StringBuilder htmlForClicks) {
             PlaceObjects(items, dependencies);
 
             // I tried it with SVG - but SVG support in .Net seems to be non-existent.
@@ -825,17 +846,17 @@ namespace NDepCheck.Rendering {
                 List<IBuilder> openBuilders = _builders.OrderBy(b => b.DrawingOrder).ThenBy(b => b.CreationOrder).ToList();
 
                 foreach (var b in openBuilders.ToArray()) {
-                    b.Draw(graphics, htmlForTooltips);
+                    b.Draw(graphics, htmlForClicks);
                 }
             }
             return bitmap;
         }
 
-        public virtual void Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, string argsAsString, string baseFilename) {
-            DoRender(items, dependencies, argsAsString, baseFilename);
+        public virtual string Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, string argsAsString, string baseFilename) {
+            return DoRender(items, dependencies, argsAsString, baseFilename);
         }
 
-        protected void DoRender(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies,
+        protected string DoRender(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies,
                                 string argsAsString, string baseFilename, params OptionAction[] additionalOptions) {
             int width = -1;
             int height = -1;
@@ -864,8 +885,8 @@ namespace NDepCheck.Rendering {
                 })}.Concat(additionalOptions).ToArray());
 
 
-            StringBuilder htmlForTooltips = new StringBuilder();
-            Bitmap bitMap = Render(items, dependencies, minTextHeight, ref width, ref height, htmlForTooltips);
+            StringBuilder htmlForClicks = new StringBuilder();
+            Bitmap bitMap = Render(items, dependencies, minTextHeight, ref width, ref height, htmlForClicks);
 
             string gifFileName = Path.ChangeExtension(baseFilename, ".gif");
             try {
@@ -886,18 +907,19 @@ namespace NDepCheck.Rendering {
 <body>
 <img src=""{ Path.GetFileName(gifFileName)}"" width=""{width}"" height=""{height}"" usemap=""#map""/>
 <map name=""map"">
-{htmlForTooltips}
+{htmlForClicks}
 </map>
 </ body>
 </ html>
 ");
             }
+            return htmlFileName;
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, Stream stream) {
             int width = 1000;
             int height = 1000;
-            Bitmap bitMap = Render(items, dependencies, 15, ref width, ref height, htmlForTooltips: null);
+            Bitmap bitMap = Render(items, dependencies, 15, ref width, ref height, htmlForClicks: null);
 
             bitMap.Save(stream, ImageFormat.Gif);
         }
@@ -917,7 +939,7 @@ namespace NDepCheck.Rendering {
 @"    -w #          width of graphics in pixels; default: computed from height, or via minimal text size
     -h #          height of graphics in pixels; default: computed from width, or via minimal text size
     -f #          minimal textheight in points (if -w and -h are not provided)
-    The filename is used as a base name for writing a .gif file as well as an .html file, which contains
+    The fileName is used as a base name for writing a .gif file as well as an .html file, which contains
     the link and popup information.
 ";
     }

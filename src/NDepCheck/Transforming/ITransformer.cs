@@ -3,7 +3,7 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming {
     public interface ITransformer : IPlugin {
-        int Transform([NotNull] GlobalContext context, string dependenciesFileName, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies, [NotNull] string transformOptions, [NotNull] string dependencySourceForLogging, [NotNull] Dictionary<FromTo, Dependency> newDependenciesCollector);
+        int Transform([NotNull] GlobalContext context, string dependenciesFilename, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies, [NotNull] string transformOptions, [NotNull] string dependencySourceForLogging, [NotNull] Dictionary<FromTo, Dependency> newDependenciesCollector);
 
         [NotNull]
         IEnumerable<Dependency> GetTestDependencies();

@@ -16,26 +16,26 @@ namespace NDepCheck.Transforming {
         /// </summary>
         private const string ASSIGN = ":=";
 
-        private readonly Dictionary<string, T> _filename2config = new Dictionary<string, T>();
+        private readonly Dictionary<string, T> _fileName2config = new Dictionary<string, T>();
 
         public abstract void Configure(GlobalContext globalContext, [NotNull] string configureOptions);
 
         public T GetOrReadChildConfiguration(GlobalContext globalContext, 
             Func<TextReader> createReader, string fullSourceName,bool ignoreCase, string fileIncludeStack) {
             T childConfiguration;
-            if (!_filename2config.TryGetValue(fullSourceName, out childConfiguration)) {
+            if (!_fileName2config.TryGetValue(fullSourceName, out childConfiguration)) {
                 using (var tr = createReader()) {
                     childConfiguration =  CreateConfigurationFromText(globalContext, fullSourceName, 0, tr, ignoreCase,
                         fileIncludeStack + "+" + fullSourceName);
-                    _filename2config[fullSourceName] = childConfiguration;
+                    _fileName2config[fullSourceName] = childConfiguration;
                 }
             }
             return childConfiguration;
         }
 
         // Maybe necessary ............................. currently unused
-        protected string GetCanonicalName(DirectoryInfo relativeRoot, string filename) {
-            return GetCanonicalName(Path.Combine(relativeRoot.FullName, filename));
+        protected string GetCanonicalName(DirectoryInfo relativeRoot, string fileName) {
+            return GetCanonicalName(Path.Combine(relativeRoot.FullName, fileName));
         }
 
         // Maybe necessary ............................. currently unused

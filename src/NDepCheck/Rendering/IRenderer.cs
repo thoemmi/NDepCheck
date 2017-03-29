@@ -6,7 +6,7 @@ namespace NDepCheck.Rendering {
     public interface IRenderer<in TItem, in TDependency>
         where TItem : class, INode
         where TDependency : class, IEdge {
-        void Render([ItemNotNull] [NotNull] IEnumerable<TItem> items, [ItemNotNull] [NotNull] IEnumerable<TDependency> dependencies, [NotNull] string argsAsString, [CanBeNull] string baseFilename);
+        string Render([ItemNotNull] [NotNull] IEnumerable<TItem> items, [ItemNotNull] [NotNull] IEnumerable<TDependency> dependencies, [NotNull] string argsAsString, [CanBeNull] string baseFilename);
         void RenderToStreamForUnitTests([ItemNotNull, NotNull] IEnumerable<TItem> items, [ItemNotNull, NotNull] IEnumerable<TDependency> dependencies, [NotNull] Stream stream);
     }
 }

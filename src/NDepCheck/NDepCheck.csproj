@@ -91,6 +91,7 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="AbstractLogger.cs" />
     <Compile Include="AdditionalDynamicData.cs" />
     <Compile Include="Annotations.cs" />
     <Compile Include="ConstraintSolving\Range.cs" />
@@ -110,10 +111,9 @@
     <Compile Include="Rendering\MatrixRenderer1.cs" />
     <Compile Include="Rendering\DotRenderer.cs" />
     <Compile Include="Reading\FullDotNetAssemblyDependencyReader.cs" />
-    <Compile Include="Gibraltar_StringReference.cs" />
+    <Compile Include="Gibraltar\StringReference.cs" />
     <Compile Include="Transforming\GraphTransformations\HideOuterGraph.cs" />
     <Compile Include="Transforming\GraphTransformations\AssociativeHull.cs" />
-    <Compile Include="Reading\IgnoreReader.cs" />
     <Compile Include="Reading\AbstractDotNetAssemblyDependencyReader.cs" />
     <Compile Include="Transforming\GraphTransformations\IGraphTransformation.cs" />
     <Compile Include="InputContext.cs" />
@@ -158,6 +158,8 @@
     <Compile Include="Transforming\ITransformer.cs" />
     <Compile Include="Transforming\Projecting\Projector.cs" />
     <Compile Include="Transforming\ViolationChecking\ViolationsChecker.cs" />
+    <Compile Include="WebServing\WebServer.cs" />
+    <Compile Include="WebServing\StringBuilderLogger.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config">

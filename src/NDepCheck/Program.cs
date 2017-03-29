@@ -12,10 +12,6 @@ using NDepCheck.Transforming;
 using NDepCheck.Transforming.ViolationChecking;
 
 namespace NDepCheck {
-    // TODO: The following things should be more beautiful:
-    // TODO: - The option "commands" are not orthogonal - e.g., there is no separate command for "CheckViolations"
-    // TODO: - Output is arbitrary - "Analyzing" writes a time (in ms) afterwards, reducing does not (even though it is often slower)
-
     /// <remarks>
     /// Main class of NDepCheck.
     /// All static methods may run in parallel.
@@ -31,13 +27,14 @@ namespace NDepCheck {
         public const int NO_RULE_SET_FOUND_FOR_FILE = 6;
         public const int EXCEPTION_RESULT = 7;
 
-        public int Run(string[] args, GlobalContext globalContext) {
+        public int Run(string[] args, GlobalContext globalContext, [CanBeNull] List<string> writtenMasterFiles) {
             Log.SetLevel(Log.Level.Standard);
 
             if (args.Length == 0) {
                 return UsageAndExit("No options or files specified");
             }
 
+            bool runningAsServer = false;
             int result = OK_RESULT;
 
             try {
@@ -88,11 +85,17 @@ namespace NDepCheck {
                         }
                     } else if (Options.ArgMatches(arg, 'j')) {
                         // -j      filepattern [- filepattern]
-                        string filePattern = Options.ExtractNextValue(args, ref i);
+                        string filePattern = Options.ExtractOptionValue(args, ref i);
                         globalContext.CreateInputOption(args, ref i, filePattern, assembly: "",
                             readerClass: IsDllOrExeFile(filePattern)
                                 ? typeof(DotNetAssemblyDependencyReaderFactory).FullName
                                 : IsDipFile(filePattern) ? typeof(DipReaderFactory).FullName : null);
+                    } else if (Options.ArgMatches(arg, 'k')) {
+                        // -k fileDirectory           Run as server
+                        runningAsServer = true;
+                        string port = Options.ExtractOptionValue(args, ref i);
+                        string fileDirectory = Options.ExtractNextValue(args, ref i);
+                        new WebServing.WebServer(this, globalContext, port, fileDirectory).Start();
                     } else if (Options.ArgMatches(arg, 'l')) {
                         // -l                      Execute readers and transformers lazily 
                         //                         (lazy reading and transforming NOT YET IMPLEMENTED)
@@ -103,28 +106,30 @@ namespace NDepCheck {
                         string varvalue = Options.ExtractNextValue(args, ref i);
                         globalContext.GlobalVars[varname] = varvalue;
                     } else if (Options.ArgMatches(arg, 'o')) {
-                        // -o filename             Read options from file
-                        string filename = Options.ExtractOptionValue(args, ref i);
-                        result = RunFrom(filename, globalContext);
+                        // -o fileName             Read options from file
+                        string fileName = Options.ExtractOptionValue(args, ref i);
+                        result = RunFrom(fileName, globalContext, writtenMasterFiles);
 
                         // file is also an input file - and if there are no input files in -o, the error will come up there.
                         globalContext.InputFilesSpecified = true;
                     } else if (Options.ArgMatches(arg, 'p', 'q', 'r')) {
-                        // -p     assembly renderer [{ options }] filename
-                        // -q     assembly renderer [{ options }] filename
-                        // -r              renderer [{ options }] filename
+                        // -p     assembly renderer [{ options }] fileName
+                        // -q     assembly renderer [{ options }] fileName
+                        // -r              renderer [{ options }] fileName
 
                         string assembly, rendererClass;
                         if (ExtractAssemblyAndClass(args, new[] { 'p', 'q' }, 'r', out assembly, out rendererClass, ref i)) {
                             result = globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>(assembly);
                         } else {
-                            string classOptions, filename;
-                            if (ExtractClassOptions(args, out classOptions, out filename, ref i)) {
+                            string classOptions, fileName;
+                            if (ExtractClassOptions(args, out classOptions, out fileName, ref i)) {
                                 globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, rendererClass);
                             } else if (Options.ArgMatches(arg, 'p')) {
-                                globalContext.RenderTestData(assembly, rendererClass, classOptions, filename);
+                                string fn = globalContext.RenderTestData(assembly, rendererClass, classOptions, fileName);
+                                writtenMasterFiles?.Add(fn);
                             } else {
-                                globalContext.RenderToFile(assembly, rendererClass, classOptions, filename);
+                                string fn = globalContext.RenderToFile(assembly, rendererClass, classOptions, fileName);
+                                writtenMasterFiles?.Add(fn);
                             }
                         }
                     } else if (Options.ArgMatches(arg, 's', 't', 'u')) {
@@ -178,7 +183,7 @@ namespace NDepCheck {
                 return UsageAndExit(ex.Message);
             }
 
-            if (!globalContext.InputFilesSpecified) {
+            if (!globalContext.InputFilesSpecified && !runningAsServer) {
                 return UsageAndExit("No input files specified");
             }
 
@@ -211,19 +216,19 @@ namespace NDepCheck {
         /// 
         /// </summary>
         /// <returns><c>true</c> if classOptions is /? for 'help'</returns>
-        private static bool ExtractClassOptions(string[] args, out string classOptions, out string filename, ref int i) {
+        private static bool ExtractClassOptions(string[] args, out string classOptions, out string fileName, ref int i) {
             string o = Options.ExtractNextValue(args, ref i);
             if (Options.ArgMatches(o, '?')) {
                 classOptions = "";
-                filename = "";
+                fileName = "";
                 return true;
             } else if (o.StartsWith("{")) {
                 classOptions = o;
-                filename = Options.ExtractNextValue(args, ref i);
+                fileName = Options.ExtractNextValue(args, ref i);
                 return false;
             } else {
                 classOptions = "";
-                filename = o;
+                fileName = o;
                 return false;
             }
         }
@@ -248,12 +253,12 @@ namespace NDepCheck {
             return @class == null || Options.ArgMatches(@class, '?', 'h');
         }
 
-        private int RunFrom(string filename, GlobalContext state) {
+        private int RunFrom([NotNull] string fileName, [NotNull] GlobalContext state, [CanBeNull] List<string> writtenMasterFiles) {
             int lineNo = 0;
             try {
                 var args = new List<string>();
                 bool splitLines = true;
-                using (var sr = new StreamReader(filename)) {
+                using (var sr = new StreamReader(fileName)) {
                     for (;;) {
                         lineNo++;
                         string line = sr.ReadLine();
@@ -278,15 +283,17 @@ namespace NDepCheck {
                 }
 
                 string previousCurrentDirectory = Environment.CurrentDirectory;
+                var locallyWrittenFiles = new List<string>();
                 try {
-                    Environment.CurrentDirectory = Path.GetDirectoryName(filename);
-                    return Run(args.ToArray(), state);
+                    Environment.CurrentDirectory = Path.GetDirectoryName(fileName);
+                    return Run(args.ToArray(), state, locallyWrittenFiles);
                 } finally {
+                    writtenMasterFiles?.AddRange(locallyWrittenFiles.Select(Path.GetFullPath));
                     Environment.CurrentDirectory = previousCurrentDirectory;
                 }
 
             } catch (Exception ex) {
-                Log.WriteError("Cannot run commands in " + filename + " (" + ex.Message + ")", filename, lineNo);
+                Log.WriteError("Cannot run commands in " + fileName + " (" + ex.Message + ")", fileName, lineNo);
                 return EXCEPTION_RESULT;
             }
         }
@@ -330,12 +337,17 @@ Options overview:
         - DipReader      (.dip)
         - AssemblyReader (.dll, .exe)
        
+     HELP FOR ALL READERS
+-h     assembly -?
+-i              -?
+
+     HELP FOR A SINGLE READER
+-h     assembly reader -?
+-i              reader -?
+
      CONFIGURE TRANSFORMER
 -e     assembly transformer { options }
 -f              transformer { options }
-
-     TRANSFORM TESTDATA
--s     assembly transformer [{ options }]
 
      TRANSFORM
 -t     assembly transformer [{ options }]
@@ -360,12 +372,20 @@ Options overview:
        - (KeepOnlyCycleEdges - UNDER WORK)
             Hide edges
 
-     RENDER TESTDATA
--p     assembly renderer [{ options }] filename
+     TRANSFORM TESTDATA
+-s     assembly transformer [{ options }]
 
+     HELP FOR ALL TRANSFORMERS
+-t     assembly -?
+-u              -?
+     
+     HELP FOR A SINGLE TRANSFORMER
+-t     assembly transformer -?
+-u              transformer -?
+     
      RENDER
--q     assembly renderer [{ options }] filename
--r              renderer [{ options }] filename 
+-q     assembly renderer [{ options }] fileName
+-r              renderer [{ options }] fileName 
 
                 Built-in renderers:
                 - DotRenderer [-e edgelength]
@@ -384,6 +404,17 @@ Options overview:
                 - RuleViolationRenderer [-x]
                         -x as XML output
      
+     RENDER TESTDATA
+-p     assembly renderer [{ options }] fileName
+
+     HELP FOR ALL RENDERERS
+-q     assembly -?
+-r              -?
+
+     HELP FOR A SINGLE RENDERER
+-q     assembly renderer -?
+-r              renderer -?
+
      OTHER
 -?              Write help
 -a              Write extensive help  
@@ -395,7 +426,7 @@ Options overview:
 -c              Ignore case in rules
 -v              Verbose
 -w              Chatty
--o filename     Read options from file
+-o fileName     Read options from file
 ");
             if (extensiveHelp) {
                 Console.Out.WriteLine(@"
@@ -437,7 +468,7 @@ Options overview:
 
 Assemblyspecs - one of the following:
     
-    simplefilename      the assembly is checked.
+    simplefileName      the assembly is checked.
                         e.g. ProjectDir\bin\MyProject.Main.dll
 
     filepattern         all matching assemblies are checked.
@@ -446,7 +477,7 @@ Assemblyspecs - one of the following:
     directory           all .DLL and .EXE files in the directory are checked.
                         e.g. MyProject\bin\Debug
 
-    @filename           lines are read as assembly filenames and checked.
+    @fileName           lines are read as assembly fileNames and checked.
                         The file may contain empty lines, which are ignored.
                         e.g. @MyListOfFiles.txt
 
@@ -657,40 +688,6 @@ using the wildcardpath syntax):
             Log.WriteInfo("NDepCheck " + VERSION + " (c) HMMüller, Th.Freudenberg 2006...2017");
         }
 
-        ///// <summary>
-        ///// Main method. See <c>UsageAndExit</c> for the 
-        ///// accepted arguments. 
-        ///// </summary>
-        //public int Run() {
-        //    Regex.CacheSize = 1024;
-
-        //    int returnValue = 0;
-
-        //    var contexts = new List<IInputContext>();
-        //    bool collectViolations = !string.IsNullOrWhiteSpace(_XmlOutput);
-        //    Parallel.ForEach(
-        //        _Assemblies.SelectMany(filePattern => filePattern.ExpandFilename()).Where(IsAssembly),
-        //        new ParallelOptions { MaxDegreeOfParallelism = _MaxCpuCount },
-        //        () => new ThreadLoopData_ { Context = new CheckerContext(collectViolations), MaxErrorCode = 0 },
-        //        (assemblyFilename, state, loopData) => {
-        //            int result = AnalyzeAssemblyMayRunInParallel(loopData.Context, assemblyFilename);
-        //            loopData.MaxErrorCode = Math.Max(loopData.MaxErrorCode, result);
-        //            return loopData;
-        //        },
-        //        loopData => {
-        //            contexts.AddRange(loopData.Context.AssemblyContexts);
-        //            returnValue = Math.Max(returnValue, loopData.MaxErrorCode);
-        //        });
-
-        //    if (collectViolations) {
-        //        WriteXmlOutput(_XmlOutput, contexts);
-        //    }
-
-        //    LogSummary(contexts);
-
-        //    return returnValue;
-        //}
-
         /// <summary>
         /// The static Main method.
         /// </summary>
@@ -699,7 +696,7 @@ using the wildcardpath syntax):
 
             var program = new Program();
             try {
-                return program.Run(args, new GlobalContext());
+                return program.Run(args, new GlobalContext(), null);
             } catch (FileNotFoundException ex) {
                 Log.WriteWarning(ex.Message);
                 return FILE_NOT_FOUND_RESULT;

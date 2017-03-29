@@ -5,8 +5,8 @@ using Mono.Cecil;
 
 namespace NDepCheck.Reading {
     public class ItemsOnlyDotNetAssemblyDependencyReader : AbstractDotNetAssemblyDependencyReader {
-        public ItemsOnlyDotNetAssemblyDependencyReader(DotNetAssemblyDependencyReaderFactory factory, string filename, GlobalContext globalContext)
-            : base(factory, filename, globalContext) {
+        public ItemsOnlyDotNetAssemblyDependencyReader(DotNetAssemblyDependencyReaderFactory factory, string fileName, GlobalContext globalContext)
+            : base(factory, fileName, globalContext) {
         }
 
         protected override IEnumerable<Dependency> ReadDependencies(InputContext inputContext, int depth) {
@@ -15,14 +15,14 @@ namespace NDepCheck.Reading {
 
         protected override IEnumerable<RawUsingItem> ReadUsingItems(int depth) {
 
-            Log.WriteInfo("Reading " + _filename);
-            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(_filename);
+            Log.WriteInfo("Reading " + _fileName);
+            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(_fileName);
 
             try {
                 assembly.MainModule.ReadSymbols();
             } catch (Exception ex) {
                 Log.WriteWarning(
-                        $"Loading symbols for assembly {_filename} failed - maybe .PDB file is missing. ({ex.Message})", _filename, 0);
+                        $"Loading symbols for assembly {_fileName} failed - maybe .PDB file is missing. ({ex.Message})", _fileName, 0);
             }
 
             ItemTail customSections = GetCustomSections(assembly.CustomAttributes, null);

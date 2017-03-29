@@ -8,8 +8,8 @@ namespace NDepCheck.Rendering {
     /// Class that creates AT&amp;T DOT (graphviz) output from dependencies - see <a href="http://graphviz.org/">http://graphviz.org/</a>.
     /// </summary>
     public class DotRenderer : IDependencyRenderer {
-        public void Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
-            new GenericDotRenderer().Render(items, dependencies, argsAsString, baseFilename);
+        public string Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
+            return new GenericDotRenderer().Render(items, dependencies, argsAsString, baseFilename);
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, Stream output) {
@@ -49,7 +49,7 @@ namespace NDepCheck.Rendering {
             output.WriteLine("}");
         }
 
-        public void Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString, [CanBeNull] string baseFilename) {
+        public string Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString, [CanBeNull] string baseFilename) {
             int stringLengthForIllegalEdges = -1;
             Options.Parse(argsAsString,
                 new OptionAction('e', (args, j) => {
@@ -58,10 +58,9 @@ namespace NDepCheck.Rendering {
                     }
                     return j;
                 }));
-            string filename = Path.ChangeExtension(baseFilename, ".dot");
-
-            using (var sw = GlobalContext.CreateTextWriter(filename)) {
-                Render(dependencies, sw, stringLengthForIllegalEdges);
+            using (var sw = GlobalContext.CreateTextWriter(baseFilename, ".dot")) {
+                Render(dependencies, sw.Writer, stringLengthForIllegalEdges);
+                return sw.FileName;
             }
         }
 
@@ -78,9 +77,9 @@ namespace NDepCheck.Rendering {
   For larger graphs, it is better to use or define a renderer that creates a
   specific structure, e.g., a ModulesAndInterfacesRenderer.
 
-  Options: [-e #] -o filename | filename
+  Options: [-e #] -o fileName | fileName
     -e #          cutoff length of text for wrong dependencies; default: no cutoff
-    filename      output filename in .dot (graphviz) format";
+    fileName      output fileName in .dot (graphviz) format";
         }
     }
 }

@@ -263,7 +263,11 @@ Transformer options: [-q] [-u]
         }
 
         public override void FinishTransform(GlobalContext context) {
-            foreach (var r in _allCheckedGroups.SelectMany(g => g.AllRules).Select(r => r.Representation).Distinct().OrderBy(r => r.RuleFileName).ThenBy(r => r.LineNo)) {
+            foreach (var r in _allCheckedGroups.SelectMany(g => g.AllRules)
+                                               .Select(r => r.Representation)
+                                               .Distinct()
+                                               .OrderBy(r => r.RuleFileName)
+                                               .ThenBy(r => r.LineNo)) {
                 if (_showUnusedQuestionableRules && r.IsQuestionableRule && !r.WasHit) {
                     Log.WriteInfo("Questionable rule " + r + " was never matched - maybe you can remove it!");
                 } else if (_showUnusedRules && !r.WasHit) {

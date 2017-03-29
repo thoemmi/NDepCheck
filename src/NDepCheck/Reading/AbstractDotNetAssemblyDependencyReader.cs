@@ -21,10 +21,10 @@ namespace NDepCheck.Reading {
             new[] { "NAMESPACE", "CLASS", "ASSEMBLY", "ASSEMBLY", "ASSEMBLY", "MEMBER", "MEMBER" },
             new[] { null, null, ".NAME", ".VERSION", ".CULTURE", ".NAME", ".SORT" });
 
-        public override AbstractDependencyReader CreateReader(string filename, GlobalContext options, bool needsOnlyItemTails) {
+        public override AbstractDependencyReader CreateReader(string fileName, GlobalContext options, bool needsOnlyItemTails) {
             return needsOnlyItemTails
-                ? (AbstractDependencyReader) new ItemsOnlyDotNetAssemblyDependencyReader(this, filename, options)
-                : new FullDotNetAssemblyDependencyReader(this, filename, options);
+                ? (AbstractDependencyReader) new ItemsOnlyDotNetAssemblyDependencyReader(this, fileName, options)
+                : new FullDotNetAssemblyDependencyReader(this, fileName, options);
         }
 
         [NotNull]
@@ -54,6 +54,32 @@ namespace NDepCheck.Reading {
                     throw new ArgumentOutOfRangeException();
             }
         }
+
+        public override string GetHelp(bool detailedHelp) {
+            string result = @"Read data from .Net assembly file (.dll or .exe)
+
+This reader returns items of two types:
+    DOTNETCALL(NAMESPACE:CLASS:ASSEMBLY.NAME;ASSEMBLY.VERSION;ASSEMBLY.CULTURE:MEMBER.NAME;MEMBER.SORT)
+    DOTNETREF(ASSEMBLY.NAME;ASSEMBLY.VERSION;ASSEMBLY.CULTURE)
+";
+            if (detailedHelp) {
+                result += @"
+
+The following constructs in .Net files are recognized:
+
+___EXPLANATIONS MISSING___
+
+...
+* When a type N1.T1 in assembly A1 declares a field V of type N2.T2 in assembly A2, this yields 
+** DOTNETCALL(N1:T1:A1:V) ---> DOTNETCALL(N2:T2:A2)
+...
+The files are read with Mono.Cecil.
+
+";
+
+            }
+            return result;
+        }
     }
 
     public abstract class AbstractDotNetAssemblyDependencyReader : AbstractDependencyReader {
@@ -62,10 +88,10 @@ namespace NDepCheck.Reading {
         protected readonly GlobalContext _globalContext;
         private Dictionary<RawUsedItem, Item> _rawItems2Items;
 
-        protected AbstractDotNetAssemblyDependencyReader(DotNetAssemblyDependencyReaderFactory factory, string filename, GlobalContext globalContext)
-            : base(filename) {
+        protected AbstractDotNetAssemblyDependencyReader(DotNetAssemblyDependencyReaderFactory factory, string fileName, GlobalContext globalContext)
+            : base(fileName) {
             _factory = factory;
-            _assemblyname = Path.GetFileNameWithoutExtension(filename);
+            _assemblyname = Path.GetFileNameWithoutExtension(fileName);
             _globalContext = globalContext;
         }
 

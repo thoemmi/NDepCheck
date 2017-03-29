@@ -62,7 +62,7 @@ namespace NDepCheck.Rendering.OLD {
             int DrawingOrder { get; }
             IEnumerable<Vector> GetBoundingVectors();
             void FullyRestrictBoundingVectors(Graphics graphics);
-            void Draw(Graphics graphics, StringBuilder htmlForTooltips);
+            void Draw(Graphics graphics, StringBuilder htmlForClicks);
         }
 
         private abstract class AbstractBuilder {
@@ -150,7 +150,7 @@ namespace NDepCheck.Rendering.OLD {
                 _textBox.Set(Vector.Fixed(size.Width * (1 + _textPadding) + 2 * _borderWidth, size.Height * (1 + _textPadding) + 2 * _borderWidth, "|" + _text + "|"));
             }
 
-            public void Draw(Graphics graphics, StringBuilder htmlForTooltips) {
+            public void Draw(Graphics graphics, StringBuilder htmlForClicks) {
                 Vector leftUpper = _center - ~_diagonal / 2;
 
                 FillBox(graphics, new SolidBrush(_borderColor), leftUpper.GetX(), -leftUpper.GetY(), _diagonal.GetX(), _diagonal.GetY());
@@ -310,7 +310,7 @@ namespace NDepCheck.Rendering.OLD {
                 _textBox.Set(Vector.Fixed(textSize.Width * (1 + _textPadding), textSize.Height * (1 + _textPadding), "|" + _text + "|"));
             }
 
-            public void Draw(Graphics graphics, StringBuilder htmlForTooltips) {
+            public void Draw(Graphics graphics, StringBuilder htmlForClicks) {
                 float fWidth = (float)_width;
 
                 PointF tailPoint = _tail.AsMirroredPointF();
@@ -499,7 +499,7 @@ namespace NDepCheck.Rendering.OLD {
                     throw new InvalidOperationException(errors.ToString());
                 }
 
-                StringBuilder htmlForTooltips = new StringBuilder();
+                StringBuilder htmlForClicks = new StringBuilder();
 
                 // 5% margin on all sides
                 float BORDER = 0.1f;
@@ -516,7 +516,7 @@ namespace NDepCheck.Rendering.OLD {
                 bool someRemoved = false;
                 try {
                     foreach (var b in openBuilders.ToArray()) {
-                        b.Draw(graphics, htmlForTooltips);
+                        b.Draw(graphics, htmlForClicks);
                         someRemoved = openBuilders.Remove(b);
                     }
                 } catch (MissingValueException) {
@@ -539,25 +539,22 @@ namespace NDepCheck.Rendering.OLD {
             return bitMap;
         }
 
-        public void Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, string argsAsString, string baseFilename) {
+        public string Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, string argsAsString, string baseFilename) {
             Size size = GetSize();
             Bitmap bitMap = Render(items, dependencies, size);
 
             string gifFilename = Path.ChangeExtension(baseFilename, ".gif");
             bitMap.Save(gifFilename, ImageFormat.Gif);
-            using (var tw = new StreamWriter(Path.ChangeExtension(baseFilename, ".html"))) {
-                tw.WriteLine($@"
+            using (var tw = GlobalContext.CreateTextWriter(baseFilename, ".html")) {
+                tw.Writer.WriteLine($@"
 <html>
 <body>
 <img src = ""{ Path.GetFileName(gifFilename)}"" width = ""{size.Width}"" height = ""{size.Height}"" usemap = ""#map"" alt = ""Webdesign Group"">
 </ body>
 </ html>
-"); // ______{htmlForTooltips}___
+");
+                return tw.FileName;
             }
-
-
-            //< area shape = "poly" coords = "x1,y1,x2,y2,..,xn,yn" title = ".." >< area shape = "poly" coords = "2,5,32,1,33,22,51,36,33,57" title = "The Americas" >< area shape = "poly" coords = "57,14,70,2,111,3,114,23,97,34" title = "Eurasia" >< area shape = "poly" coords = "57,14,86,29,73,52,66,49,50,28" title = "Africa" >< area shape = "poly" coords = "105,40,108,49,122,52,127,41,117,34" title = "Australia" >
-
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, Stream stream) {
@@ -576,7 +573,7 @@ namespace NDepCheck.Rendering.OLD {
         public abstract void CreateSomeTestItems(out IEnumerable<TItem> items, out IEnumerable<TDependency> dependencies);
 
         public string GetHelp(bool detailedHelp) {
-            return $"{GetType().Name} usage: -___ outputfilename";
+            return $"{GetType().Name} usage: -___ outputfileName";
         }
     }
 

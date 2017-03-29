@@ -233,7 +233,7 @@ NDepCheck:Tests ---> **
         }
 
         private static string[] CreateViolationCheckerArgs(FileProvider d) {
-            return new[] { "-f", "ViolationsChecker", "{", "-f="+ d.Filename, "}", TestAssemblyPath };
+            return new[] { "-f", "ViolationsChecker", "{", "-f=" + d.Filename, "}", TestAssemblyPath };
         }
 
         private static string CreateTempDotNetDepFileName() {
@@ -373,7 +373,7 @@ NDepCheck:Tests ---> **
                 }
 
                 Assert.AreEqual(Program.DEPENDENCIES_NOT_OK, Program.Main(
-                    new [] { "-w" }.Concat(CreateViolationCheckerArgs(d)).ToArray()
+                    new[] { "-w" }.Concat(CreateViolationCheckerArgs(d)).ToArray()
                 ));
             }
 
@@ -389,7 +389,7 @@ NDepCheck:Tests ---> **
                 ");
                 }
                 Assert.AreEqual(Program.FILE_NOT_FOUND_RESULT, Program.Main(
-                   CreateViolationCheckerArgs(d).Concat(new [] { "nonexistingfile.dll" }).ToArray()
+                   CreateViolationCheckerArgs(d).Concat(new[] { "nonexistingfile.dll" }).ToArray()
                 ));
             }
         }
@@ -434,8 +434,8 @@ NDepCheck:Tests ---> **
                 get { _doDelete = false; return this; }
             }
 
-            public FileProvider(string filename) {
-                Filename = filename;
+            public FileProvider(string fileName) {
+                Filename = fileName;
             }
 
             public void Dispose() {
@@ -472,8 +472,8 @@ NDepCheck:Tests ---> **
                     // typeof(FullName) forces copying to known directory ...
                     Assert.AreEqual(0,
                         Program.Main(
-                            CreateViolationCheckerArgs(d).Concat(                           
-                            new [] {
+                            CreateViolationCheckerArgs(d).Concat(
+                            new[] {
                                 "-q", "NDepCheck.TestRenderer.dll", typeof(TestRendererForLoadFromAssembly).FullName, e.Filename
                             }).ToArray()
                         ));
@@ -589,6 +589,24 @@ NDepCheck:Tests ---> **
                 Assert.IsTrue(o.Contains("AB:_a_: => ;5;1;0;src.txt|5;=> AB:_b_:"));
                 Assert.IsTrue(o.Contains("AB:_b_: => ;13;0;0;src.txt|6;=> AB:_a_:"));
             }
+        }
+
+        [TestMethod]
+        public void TestHelpForAllReaders() {
+            Assert.AreEqual(1, Program.Main(new[] { "-h", ".", "-? " }));
+            Assert.AreEqual(1, Program.Main(new[] { "-i", "-? " }));
+        }
+
+        [TestMethod]
+        public void TestHelpForAllTransformers() {
+            Assert.AreEqual(1, Program.Main(new[] { "-t", ".", "-? " }));
+            Assert.AreEqual(1, Program.Main(new[] { "-u", "-? " }));
+        }
+
+        [TestMethod]
+        public void TestHelpForAllRenderers() {
+            Assert.AreEqual(1, Program.Main(new[] { "-q", ".", "-? " }));
+            Assert.AreEqual(1, Program.Main(new[] { "-r", "-? " }));
         }
     }
 }

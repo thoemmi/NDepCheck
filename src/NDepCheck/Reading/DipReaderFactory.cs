@@ -12,14 +12,29 @@ namespace NDepCheck.Reading {
             return result;
         }
 
-        public override AbstractDependencyReader CreateReader(string filename, GlobalContext options, bool needsOnlyItemTails) {
-            return new DipReader(filename, this);
+        public override AbstractDependencyReader CreateReader(string fileName, GlobalContext options, bool needsOnlyItemTails) {
+            return new DipReader(fileName, this);
         }
 
         public void AddItemType([NotNull]ItemType itemType) {
             if (!_registeredItemTypes.ContainsKey(itemType.Name)) {
                 _registeredItemTypes.Add(itemType.Name, itemType);
             }
+        }
+
+        public override string GetHelp(bool detailedHelp) {
+            string result = @"Read data from .dip file. 
+
+The itemtypes of the read dependencies are defined in the .dip file.";
+            if (detailedHelp) {
+                result += @"
+
+.dip file format:
+
+___EXPLANATION MISSING___";
+
+            }
+            return result;
         }
     }
 }

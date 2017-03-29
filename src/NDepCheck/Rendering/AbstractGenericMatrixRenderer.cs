@@ -14,10 +14,10 @@ namespace NDepCheck.Rendering {
             return
 @"  Write a textual matrix representation of dependencies.
 
-  Options: [-l #] [-n] -o filename | filename
+  Options: [-l #] [-n] -o fileName | fileName
     -l #       maximal width of an item name
     -n         also output count of bad dependencies
-    filename   output filename";
+    fileName   output fileName";
         }
     }
 
@@ -150,12 +150,12 @@ namespace NDepCheck.Rendering {
             string nodeFormat, Dictionary<INode, int> node2Index, bool withNotOkCt, IEnumerable<INode> sortedNodes,
             string ctFormat, IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges);
 
-        public abstract void Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString, string baseFilename);
+        public abstract string Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString, string baseFilename);
 
         public abstract void RenderToStreamForUnitTests(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, Stream stream);
 
         public string GetHelp() {
-            return $"{GetType().Name} usage: -___ outputfilename";
+            return $"{GetType().Name} usage: -___ outputfileName";
         }
     }
 }

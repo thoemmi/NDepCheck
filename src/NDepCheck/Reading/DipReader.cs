@@ -15,7 +15,7 @@ namespace NDepCheck.Reading {
 
         private readonly DipReaderFactory _factory;
 
-        public DipReader([NotNull] string filename, [NotNull] DipReaderFactory factory) : base(filename) {
+        public DipReader([NotNull] string fileName, [NotNull] DipReaderFactory factory) : base(fileName) {
             _factory = factory;
         }
 
@@ -23,7 +23,7 @@ namespace NDepCheck.Reading {
             Regex dipArrow = new Regex($@"\s*{EdgeConstants.DIP_ARROW}\s*");
 
             var result = new List<Dependency>(10000);
-            using (var sr = new StreamReader(_filename)) {
+            using (var sr = new StreamReader(_fileName)) {
                 var itemsDictionary = new Dictionary<Item, Item>();
 
                 for (int lineNo = 1; ; lineNo++) {
@@ -43,7 +43,7 @@ namespace NDepCheck.Reading {
                         string[] parts = dipArrow.Split(line);
 
                         if (parts.Length != 3) {
-                            WriteError(_filename, lineNo, "Line is not ... -> #;#;... -> ..., but " + parts.Length, line);
+                            WriteError(_fileName, lineNo, "Line is not ... -> #;#;... -> ..., but " + parts.Length, line);
                         }
 
                         try {
@@ -75,7 +75,7 @@ namespace NDepCheck.Reading {
 
                             var dependency = new Dependency(foundUsingItem, foundUsedItem,
                                 string.IsNullOrWhiteSpace(source[0])
-                                    ? new TextFileSource(_filename, lineNo)
+                                    ? new TextFileSource(_fileName, lineNo)
                                     : new TextFileSource(source[0], sourceLine < 0 ? null : (int?)sourceLine),
                                 usage, ct, questionableCt, badCt, exampleInfo, inputContext);
 
@@ -122,8 +122,8 @@ namespace NDepCheck.Reading {
             }
         }
 
-        private static void WriteError(string filename, int lineNo, string msg, string line) {
-            Log.WriteError(filename + "/" + lineNo + ": " + msg + " - '" + line + "'");
+        private static void WriteError(string fileName, int lineNo, string msg, string line) {
+            Log.WriteError(fileName + "/" + lineNo + ": " + msg + " - '" + line + "'");
         }
     }
 

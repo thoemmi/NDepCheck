@@ -8,8 +8,8 @@ namespace NDepCheck {
         [NotNull]
         private readonly List<Dependency> _dependencies = new List<Dependency>();
 
-        public InputContext([NotNull] string filename) {
-            Filename = filename;
+        public InputContext([NotNull] string fileName) {
+            Filename = fileName;
         }
 
         internal void AddDependency(Dependency d) {
@@ -20,7 +20,7 @@ namespace NDepCheck {
         }
 
         //////public DependencyRuleSet GetOrCreateDependencyRuleSet(string fileIncludeStack) {
-        //////    string dependencyFilename = Path.GetFileName(_filename) + _globalContext.RuleFileExtension;
+        //////    string dependencyFilename = Path.GetFilename(_fileName) + _globalContext.RuleFileExtension;
         //////    return _globalContext.GetOrCreateDependencyRuleSet(_globalContext, dependencyFilename, fileIncludeStack);
         //////}
 
