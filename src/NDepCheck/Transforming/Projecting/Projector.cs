@@ -41,8 +41,12 @@ Transformer options: None
             );
         }
 
-        internal const string ABSTRACT_IT = "%";
-        internal const string ABSTRACT_IT_AS_INNER = "!";
+        internal const string ABSTRACT_IT_LEFT = "<";
+        internal const string ABSTRACT_IT_BOTH = "!";
+        internal const string ABSTRACT_IT_RIGHT = ">";
+        internal const string ABSTRACT_IT_LEFT_AS_INNER = "[";
+        internal const string ABSTRACT_IT_BOTH_AS_INNER = "|";
+        internal const string ABSTRACT_IT_RIGHT_AS_INNER = "]";
         internal const string MAP = "---%";
 
         protected override ProjectionSet CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
@@ -57,24 +61,37 @@ Transformer options: None
 
             ProcessTextInner(globalContext, fullConfigFileName, startLineNo, tr, ignoreCase, fileIncludeStack,
                 onIncludedConfiguration: (e, n) => elements.Add(e),
-                onLineWithLineNo: (line, lineNo) =>
-                {
+                onLineWithLineNo: (line, lineNo) => {
                     if (line.StartsWith("$")) {
                         string typeLine = line.Substring(1).Trim();
                         int i = typeLine.IndexOf(MAP, StringComparison.Ordinal);
                         if (i < 0) {
                             Log.WriteError($"{line}: $-line must contain " + MAP, ruleSourceName, lineNo);
                         }
-                        sourceItemType = GlobalContext.GetItemType(ExpandDefines(typeLine.Substring(0, i).Trim(), globalContext));
-                        targetItemType = GlobalContext.GetItemType(ExpandDefines(typeLine.Substring(i + MAP.Length).Trim(), globalContext));
-                        return true;
-                    } else if (line.StartsWith(ABSTRACT_IT) || line.StartsWith(ABSTRACT_IT_AS_INNER)) {
-                        var p = CreateProjection(globalContext, sourceItemType, targetItemType, isInner: line.StartsWith(ABSTRACT_IT_AS_INNER),
-                            ruleFileName: ruleSourceName, lineNo: lineNo, rule: line.Substring(1).Trim(), ignoreCase: ignoreCase);
-                        elements.Add(p);
+                        sourceItemType =
+                            GlobalContext.GetItemType(ExpandDefines(typeLine.Substring(0, i).Trim(), globalContext));
+                        targetItemType =
+                            GlobalContext.GetItemType(ExpandDefines(typeLine.Substring(i + MAP.Length).Trim(),
+                                globalContext));
                         return true;
                     } else {
-                        return false;
+                        bool left = line.StartsWith(ABSTRACT_IT_LEFT);
+                        bool right = line.StartsWith(ABSTRACT_IT_RIGHT);
+                        bool both = line.StartsWith(ABSTRACT_IT_BOTH);
+                        bool leftInner = line.StartsWith(ABSTRACT_IT_LEFT_AS_INNER);
+                        bool rightInner = line.StartsWith(ABSTRACT_IT_BOTH_AS_INNER);
+                        bool bothInner = line.StartsWith(ABSTRACT_IT_RIGHT_AS_INNER);
+                        if (left || both || right || leftInner || rightInner || bothInner) {
+                            Projection p = CreateProjection(globalContext, sourceItemType, targetItemType,
+                                isInner: leftInner || rightInner || bothInner, ruleFileName: ruleSourceName,
+                                lineNo: lineNo, rule: line.Substring(1).Trim(), ignoreCase: ignoreCase,
+                                forLeftSide: left || both || leftInner || bothInner,
+                                forRightSide: both || right || bothInner || rightInner);
+                            elements.Add(p);
+                            return true;
+                        } else {
+                            return false;
+                        }
                     }
                 });
             return new ProjectionSet(elements);
@@ -82,7 +99,7 @@ Transformer options: None
 
         private Projection CreateProjection([NotNull] GlobalContext globalContext, [CanBeNull] ItemType sourceItemType, 
                                    [CanBeNull]ItemType targetItemType, bool isInner, [NotNull] string ruleFileName, 
-                                   int lineNo, [NotNull] string rule, bool ignoreCase) {
+                                   int lineNo, [NotNull] string rule, bool ignoreCase, bool forLeftSide, bool forRightSide) {
             if (sourceItemType == null || targetItemType == null) {
                 Log.WriteError($"Itemtypes not defined - $ line is missing in {ruleFileName}, graph rules are ignored", ruleFileName, lineNo);
                 throw new ApplicationException("Itemtypes not defined");
@@ -101,7 +118,7 @@ Transformer options: None
                     targetSegments = null;
                 }
 
-                var p = new Projection(sourceItemType, targetItemType, pattern, targetSegments, isInner, ignoreCase);
+                var p = new Projection(sourceItemType, targetItemType, pattern, targetSegments, isInner, ignoreCase, forLeftSide, forRightSide);
 
                 if (Log.IsChattyEnabled) {
                     Log.WriteInfo("Reg.exps used for projecting " + pattern +
@@ -141,12 +158,12 @@ Transformer options: None
             Item usingMatch = orderedProjections
                                     //.Skip(GuaranteedNonMatching(d.UsingItem))
                                     //.SkipWhile(ga => ga != FirstPossibleAbstractionInCache(d.UsingItem, skipCache))
-                                    .Select(ga => ga.Match(d.UsingItem))
+                                    .Select(ga => ga.Match(d.UsingItem, left: true))
                                     .FirstOrDefault(m => m != null);
             Item usedMatch = orderedProjections
                                     //.Skip(GuaranteedNonMatching(d.UsedItem))
                                     //.SkipWhile(ga => ga != FirstPossibleAbstractionInCache(d.UsedItem, skipCache))
-                                    .Select(ga => ga.Match(d.UsedItem))
+                                    .Select(ga => ga.Match(d.UsedItem, left: false))
                                     .FirstOrDefault(n => n != null);
 
             if (usingMatch == null) {

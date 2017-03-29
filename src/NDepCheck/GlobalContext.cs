@@ -8,6 +8,7 @@ using JetBrains.Annotations;
 using NDepCheck.Reading;
 using NDepCheck.Rendering;
 using NDepCheck.Transforming;
+using NDepCheck.WebServing;
 
 namespace NDepCheck {
     public class GlobalContext {
@@ -18,19 +19,18 @@ namespace NDepCheck {
         public bool ShowUnusedRules { get; set; }
         public bool IgnoreCase { get; set; }
 
-        [NotNull]
-        private readonly List<InputFileOption> _inputFileSpecs = new List<InputFileOption>();
+        [NotNull] private readonly List<InputFileOption> _inputFileSpecs = new List<InputFileOption>();
 
         [NotNull]
         public Dictionary<string, string> GlobalVars { get; } = new Dictionary<string, string>();
 
-        [NotNull, ItemNotNull]
-        private readonly List<InputContext> _inputContexts = new List<InputContext>();
+        [NotNull, ItemNotNull] private readonly List<InputContext> _inputContexts = new List<InputContext>();
 
         private IEnumerable<Dependency> _dependenciesWithoutInputContext = Enumerable.Empty<Dependency>();
 
-        [NotNull]
-        private readonly List<IPlugin> _plugins = new List<IPlugin>();
+        [NotNull] private readonly List<IPlugin> _plugins = new List<IPlugin>();
+
+        private WebServer _webServer;
 
         static GlobalContext() {
             // Initialize all built-in reader factories because they contain predefined ItemTypes
@@ -66,11 +66,11 @@ namespace NDepCheck {
         }
 
         public string RenderToFile([NotNull] string assemblyName, [NotNull] string rendererClassName,
-                                 string rendererOptions, [CanBeNull] string fileName) {
+            string rendererOptions, [CanBeNull] string fileName) {
             ReadAllNotYetReadIn();
 
             IEnumerable<Dependency> allDependencies = GetAllDependencies();
-            IEnumerable<Item> items = allDependencies.SelectMany(e => new[] { e.UsingItem, e.UsedItem }).Distinct();
+            IEnumerable<Item> items = allDependencies.SelectMany(e => new[] {e.UsingItem, e.UsedItem}).Distinct();
             IDependencyRenderer renderer = GetOrCreatePlugin<IDependencyRenderer>(assemblyName, rendererClassName);
 
             string masterFileName = renderer.Render(items, allDependencies, rendererOptions, fileName);
@@ -96,9 +96,9 @@ namespace NDepCheck {
             }
             try {
                 // plugins can have state, therefore we must manage them
-                T result = (T)_plugins.FirstOrDefault(t => t.GetType() == pluginType);
+                T result = (T) _plugins.FirstOrDefault(t => t.GetType() == pluginType);
                 if (result == null) {
-                    _plugins.Add(result = (T)Activator.CreateInstance(pluginType));
+                    _plugins.Add(result = (T) Activator.CreateInstance(pluginType));
                 }
                 return result;
             } catch (Exception ex) {
@@ -153,7 +153,7 @@ namespace NDepCheck {
         public int ShowAllPluginsAndTheirHelp<T>(string assemblyName) {
             foreach (var t in GetPluginTypes<T>(assemblyName)) {
                 try {
-                    IDependencyRenderer renderer = (IDependencyRenderer)Activator.CreateInstance(t);
+                    IDependencyRenderer renderer = (IDependencyRenderer) Activator.CreateInstance(t);
                     Log.WriteInfo("=============================================\r\n" + t.FullName + ":\r\n" +
                                   renderer.GetHelp(detailedHelp: false) + "\r\n");
                 } catch (Exception ex) {
@@ -184,21 +184,21 @@ namespace NDepCheck {
             if (transformer.RunsPerInputContext) {
                 foreach (var ic in _inputContexts) {
                     string dependencySourceForLogging = "dependencies in file " + ic.Filename;
-                    int r = transformer.Transform(this,
-                        ic.Filename, ic.Dependencies, transformerOptions,
+                    int r = transformer.Transform(this, ic.Filename, ic.Dependencies, transformerOptions,
                         dependencySourceForLogging, newDependenciesCollector);
                     result = Math.Max(result, r);
                 }
                 {
-                    int r = transformer.Transform(this, "", _dependenciesWithoutInputContext,
-                        transformerOptions, "generated dependencies", newDependenciesCollector);
+                    int r = transformer.Transform(this, "", _dependenciesWithoutInputContext, transformerOptions,
+                        "generated dependencies", newDependenciesCollector);
                     result = Math.Max(result, r);
                 }
                 foreach (var ic in _inputContexts) {
                     ic.SetDependencies(newDependenciesCollector.Values.Where(d => d.InputContext == ic));
                 }
             } else {
-                result = transformer.Transform(this, "", GetAllDependencies(), transformerOptions, "all dependencies", newDependenciesCollector);
+                result = transformer.Transform(this, "", GetAllDependencies(), transformerOptions, "all dependencies",
+                    newDependenciesCollector);
             }
             _dependenciesWithoutInputContext =
                 newDependenciesCollector.Values.Where(d => d.InputContext == null).ToArray();
@@ -282,7 +282,7 @@ namespace NDepCheck {
                 return new NamedTextWriter(new StreamWriter(fileName), "-");
             }
         }
-        
+
         public static bool IsConsoleOutFileName(string fileName) {
             return string.IsNullOrWhiteSpace(fileName) || fileName == "-";
         }
@@ -295,6 +295,18 @@ namespace NDepCheck {
 
             ////return ALL_READER_FACTORIES.SelectMany(f => f.GetDescriptors()).FirstOrDefault(d => d.Name == name)
             ////    ?? ALL_READER_FACTORIES.OfType<DotNetAssemblyDependencyReaderFactory>().First().GetOrCreateDotNetType(name, parts.Skip(1));
+        }
+
+        public void StartWebServer(Program program, string port, string fileDirectory) {
+            if (_webServer != null) {
+                throw new ApplicationException("Cannot start webserver if one is already running");
+            }
+            _webServer = new WebServer(program, this, port, fileDirectory);
+            _webServer.Start();
+        }
+
+        public void StopWebServer() {
+            _webServer?.Stop();
         }
     }
 }

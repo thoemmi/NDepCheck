@@ -34,7 +34,7 @@ namespace NDepCheck {
                 return UsageAndExit("No options or files specified");
             }
 
-            bool runningAsServer = false;
+            bool ranAsWebServer = false;
             int result = OK_RESULT;
 
             try {
@@ -91,11 +91,12 @@ namespace NDepCheck {
                                 ? typeof(DotNetAssemblyDependencyReaderFactory).FullName
                                 : IsDipFile(filePattern) ? typeof(DipReaderFactory).FullName : null);
                     } else if (Options.ArgMatches(arg, 'k')) {
-                        // -k fileDirectory           Run as server
-                        runningAsServer = true;
-                        string port = Options.ExtractOptionValue(args, ref i);
-                        string fileDirectory = Options.ExtractNextValue(args, ref i);
-                        new WebServing.WebServer(this, globalContext, port, fileDirectory).Start();
+                        string cmd = Options.ExtractOptionValue(args, ref i);
+                        if (new Process { StartInfo = new ProcessStartInfo(cmd) }.Start()) {
+                            Log.WriteInfo($"Started process '{cmd}'");
+                        } else {
+                            Log.WriteWarning($"Could not start process '{cmd}");
+                        }
                     } else if (Options.ArgMatches(arg, 'l')) {
                         // -l                      Execute readers and transformers lazily 
                         //                         (lazy reading and transforming NOT YET IMPLEMENTED)
@@ -162,6 +163,15 @@ namespace NDepCheck {
                         // -w        chatty output
                         Log.SetLevel(Log.Level.Chatty);
                         WriteVersion();
+                    } else if (Options.ArgMatches(arg, 'x')) {
+                        // -x port fileDirectory      Run as webserver
+                        string port = Options.ExtractOptionValue(args, ref i);
+                        string fileDirectory = Options.ExtractNextValue(args, ref i);
+                        globalContext.StartWebServer(this, port, fileDirectory);
+                        ranAsWebServer = true;
+                    } else if (Options.ArgMatches(arg, 'y')) {
+                        // -y                         Stop webserver
+                        globalContext.StopWebServer();
                     } else if (Options.ArgMatches(arg, 'z')) {
                         // -z        Remove all dependencies and graphs and caches
                         Log.WriteInfo("---- Reset of input options (-z)");
@@ -183,7 +193,7 @@ namespace NDepCheck {
                 return UsageAndExit(ex.Message);
             }
 
-            if (!globalContext.InputFilesSpecified && !runningAsServer) {
+            if (!globalContext.InputFilesSpecified && !ranAsWebServer) {
                 return UsageAndExit("No input files specified");
             }
 

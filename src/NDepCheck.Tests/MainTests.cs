@@ -483,7 +483,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TestPOption() {
-            using (var d = new FileProvider(Path.GetTempFileName() + ".gif").Keep) {
+            using (var d = new FileProvider(Path.GetTempFileName() + ".gif")) {
                 // The usage typeof(...).FullName forces copying of assembly to bin directory.
                 Assert.AreEqual(0,
                     Program.Main(new[] {
@@ -495,15 +495,13 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TestPOptionWithModulesAndInterfacesRenderer() {
-            string gifFile = Path.GetTempFileName() + ".gif";
-            Console.WriteLine(gifFile);
-            Assert.AreEqual(0,
-                Program.Main(new[] {
-                    TestAssemblyPath, "-p", ".",
-                    typeof(ModulesAndInterfacesRenderer).Name, "{{ -w 1500 -h 1000 -t TestGOption -i MI }}", gifFile
-                }));
-
-            //File.Delete(gifFile);
+            using (var d = new FileProvider(Path.GetTempFileName() + ".gif")) {
+                Assert.AreEqual(0,
+                    Program.Main(new[] {
+                        TestAssemblyPath, "-p", ".", typeof(ModulesAndInterfacesRenderer).Name,
+                        "{{ -w 1500 -h 1000 -t TestGOption -i MI }}", d.Filename
+                    }));
+            }
         }
 
         [TestMethod]
@@ -533,8 +531,8 @@ NDepCheck:Tests ---> **
                     -f Projector {{ 
                         -p
                           $ AB(A:B) ---% AB
-                          ! a:** ----% _a_:
-                          ! b:** ----% _b_:
+                          ! a:** ---% _a_:
+                          ! b:** ---% _b_:
                     }}
                     -u Projector
                     -r DipWriter {outFile}");
@@ -543,7 +541,7 @@ NDepCheck:Tests ---> **
             Assert.AreEqual(0, Program.Main(new[] { "-o", ndFile }));
 
             using (var sw = new StreamReader(outFile)) {
-                var o = sw.ReadToEnd();
+                string o = sw.ReadToEnd();
 
                 Assert.IsTrue(o.Contains("AB:_a_: => ;10;1;0;src.abc|1;=> AB:_a_:"));
                 Assert.IsTrue(o.Contains("AB:_a_: => ;5;1;0;src.abc|9;=> AB:_b_:"));
@@ -573,8 +571,8 @@ NDepCheck:Tests ---> **
                     -f Projector {{ 
                         -p
                           $ AB(A:B) ---% AB
-                          ! a:** ----% _a_:
-                          ! b:** ----% _b_:
+                          ! a:** ---% _a_:
+                          ! b:** ---% _b_:
                     }}
                     -t . {typeof(Projector).FullName}
                     -q . {typeof(DipWriter).FullName} {{ -n }} {outFile}");
@@ -583,7 +581,7 @@ NDepCheck:Tests ---> **
             Assert.AreEqual(0, Program.Main(new[] { "-o", ndFile }));
 
             using (var sw = new StreamReader(outFile)) {
-                var o = sw.ReadToEnd();
+                string o = sw.ReadToEnd();
 
                 Assert.IsTrue(o.Contains("AB:_a_: => ;10;1;0;src.txt|1;=> AB:_a_:"));
                 Assert.IsTrue(o.Contains("AB:_a_: => ;5;1;0;src.txt|5;=> AB:_b_:"));

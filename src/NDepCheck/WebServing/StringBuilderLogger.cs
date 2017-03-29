@@ -19,5 +19,9 @@ namespace NDepCheck.WebServing {
         public override void WriteDebug(string msg) {
             _sb.AppendLine($";;;; {msg}");
         }
+
+        public string GetString() {
+            return _sb.ToString();
+        }
     }
 }

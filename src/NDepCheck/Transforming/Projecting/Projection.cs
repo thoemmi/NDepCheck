@@ -25,6 +25,9 @@ namespace NDepCheck.Transforming.Projecting {
         [NotNull]
         private readonly string[] _targetSegments;
 
+        public bool ForLeftSide { get; }
+        public bool ForRightSide { get; }
+
         private readonly bool _isInner;
 
         [NotNull]
@@ -35,7 +38,7 @@ namespace NDepCheck.Transforming.Projecting {
         // GraphAbstractions are created (because of
         // extension rules) by the factory method
         // CreateGraphAbstractions().
-        public Projection([NotNull]ItemType sourceItemType, [NotNull]ItemType targetItemType, [NotNull]string pattern, [CanBeNull]string[] targetSegments, bool isInner, bool ignoreCase) {
+        public Projection([NotNull]ItemType sourceItemType, [NotNull]ItemType targetItemType, [NotNull]string pattern, [CanBeNull]string[] targetSegments, bool isInner, bool ignoreCase, bool forLeftSide, bool forRightSide) {
             if (targetSegments != null) {
                 if (targetItemType.Length != targetSegments.Length) {
                     Log.WriteError($"Targettype {targetItemType.Name} has {targetItemType.Length} segments, but only {targetSegments.Length} are defined in projection: {string.Join(",", targetSegments)}");
@@ -51,6 +54,8 @@ namespace NDepCheck.Transforming.Projecting {
             _targetItemType = targetItemType;
             _targetSegments = targetSegments;
             _isInner = isInner;
+            ForLeftSide = forLeftSide;
+            ForRightSide = forRightSide;
             _matchers = CreateMatchers(sourceItemType, pattern, 0, ignoreCase);
         }
 
@@ -60,22 +65,28 @@ namespace NDepCheck.Transforming.Projecting {
         /// Return abstracted string for some item.
         /// </summary>
         /// <param name="item">Name of item to be abstracted.</param>
+        /// <param name="left">Item is on left side of dependency</param>
         /// <returns>Abstracted name; or <c>null</c> if name does not 
         /// match abstraction</returns>
-        ///// <param name="skipCache"></param>
-        public Item Match([NotNull]Item item) {
-            string[] matchResultGroups = Match(_sourceItemType, _matchers, item);
-
-            if (matchResultGroups == null) {
+        public Item Match([NotNull] Item item, bool left) {
+            if (left && !ForLeftSide || !left && !ForRightSide) {
                 return null;
             } else {
-                _matchCount++;
-                IEnumerable<string> targets = _targetSegments;
-                for (int i = 0; i < matchResultGroups.Length; i++) {
-                    int matchResultIndex = i;
-                    targets = targets.Select(s => s.Replace("\\" + (matchResultIndex + 1), matchResultGroups[matchResultIndex]));
+                string[] matchResultGroups = Match(_sourceItemType, _matchers, item);
+
+                if (matchResultGroups == null) {
+                    return null;
+                } else {
+                    _matchCount++;
+                    IEnumerable<string> targets = _targetSegments;
+                    for (int i = 0; i < matchResultGroups.Length; i++) {
+                        int matchResultIndex = i;
+                        targets =
+                            targets.Select(
+                                s => s.Replace("\\" + (matchResultIndex + 1), matchResultGroups[matchResultIndex]));
+                    }
+                    return Item.New(_targetItemType, _isInner, targets.ToArray());
                 }
-                return Item.New(_targetItemType, _isInner, targets.ToArray());
             }
         }
 
