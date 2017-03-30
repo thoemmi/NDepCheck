@@ -9,7 +9,8 @@ namespace NDepCheck.TestRenderer {
     public class TestRendererForLoadFromAssembly : GraphicsDependencyRenderer {
         protected override Color GetBackGroundColor => Color.Yellow;
 
-        protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
+        protected override void PlaceObjects(IEnumerable<Dependency> dependencies) {
+            IEnumerable<Item> items = dependencies.SelectMany(e => new[] { e.UsingItem, e.UsedItem }).Distinct();
             double deltaAngle = 2 * Math.PI / items.Count();
             Func<int, double> r =
                   items.Any(i => i.Name.StartsWith("star")) ? i => 100.0 + (i % 2 == 0 ? 60 : 0)

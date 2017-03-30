@@ -23,7 +23,7 @@ namespace NDepCheck.Tests {
 
             protected override Color GetBackGroundColor => Color.Yellow;
 
-            protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
+            protected override void PlaceObjects(IEnumerable<Dependency> dependencies) {
                 _placeObjects(this);
             }
 
@@ -42,7 +42,7 @@ namespace NDepCheck.Tests {
         }
 
         private static void CreateAndRender(Action<DelegteTestRenderer> placeObjects) {
-            new DelegteTestRenderer(placeObjects).Render(Enumerable.Empty<Item>(), Enumerable.Empty<Dependency>(), 
+            new DelegteTestRenderer(placeObjects).Render(Enumerable.Empty<Dependency>(), 
                                     "", Path.GetTempFileName());
         }
 
@@ -230,7 +230,8 @@ namespace NDepCheck.Tests {
                 _boxHeight = boxHeight;
             }
 
-            protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
+            protected override void PlaceObjects(IEnumerable<Dependency> dependencies) {
+                IEnumerable<Item> items = dependencies.SelectMany(e => new[] { e.UsingItem, e.UsedItem }).Distinct();
                 double deltaAngle = 2 * Math.PI / items.Count();
                 Func<int, double> r =
                       items.Any(i => i.Name.StartsWith("star")) ? i => 100.0 + (i % 2 == 0 ? 60 : 0)
@@ -283,7 +284,7 @@ namespace NDepCheck.Tests {
                     (from, i) => items.Skip(i).Select(to => new Dependency(from, to, new TextFileSource(prefix, i), "Use", 10 * i))).ToArray();
 
             string tempFile = Path.GetTempFileName();
-            new SomewhatComplexTestRenderer(boxHeight).Render(items, dependencies, "", tempFile);
+            new SomewhatComplexTestRenderer(boxHeight).Render(dependencies, "", tempFile);
         }
 
         [TestMethod]

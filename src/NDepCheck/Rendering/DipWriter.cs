@@ -11,7 +11,6 @@ namespace NDepCheck.Rendering {
             var writtenTypes = new HashSet<ItemType>();
 
             sw.WriteLine("// Written " + DateTime.Now);
-            sw.WriteLine();
             foreach (var e in edges) {
                 WriteItemType(writtenTypes, e.UsingNode.Type, sw);
                 WriteItemType(writtenTypes, e.UsedNode.Type, sw);
@@ -22,20 +21,14 @@ namespace NDepCheck.Rendering {
 
         private static void WriteItemType(HashSet<ItemType> writtenTypes, ItemType itemType, TextWriter sw) {
             if (writtenTypes.Add(itemType)) {
-                sw.Write("// ITEMTYPE ");
-                sw.WriteLine(itemType.Name);
-                sw.Write(itemType.Name);
-                for (int i = 0; i < itemType.Keys.Length; i++) {
-                    sw.Write(' ');
-                    sw.Write(itemType.Keys[i]);
-                    sw.Write(itemType.SubKeys[i]);
-                }
                 sw.WriteLine();
+                sw.Write("$ ");
+                sw.WriteLine(itemType);
                 sw.WriteLine();
             }
         }
 
-        public string Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
+        public string Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
             //int stringLengthForIllegalEdges = -1;
             bool withExampleInfo = false;
             Options.Parse(argsAsString, 
@@ -58,7 +51,7 @@ namespace NDepCheck.Rendering {
             return fileName;
         }
 
-        public void RenderToStreamForUnitTests(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, Stream output) {
+        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
             using (var sw = new StreamWriter(output)) {
                 Write(dependencies, sw, true);
             }

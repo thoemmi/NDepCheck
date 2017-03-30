@@ -8,12 +8,12 @@ namespace NDepCheck.Rendering {
     /// Class that creates AT&amp;T DOT (graphviz) output from dependencies - see <a href="http://graphviz.org/">http://graphviz.org/</a>.
     /// </summary>
     public class DotRenderer : IDependencyRenderer {
-        public string Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
-            return new GenericDotRenderer().Render(items, dependencies, argsAsString, baseFilename);
+        public string Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
+            return new GenericDotRenderer().Render(dependencies, argsAsString, baseFilename);
         }
 
-        public void RenderToStreamForUnitTests(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, Stream output) {
-            new GenericDotRenderer().RenderToStreamForUnitTests(items, dependencies, output);
+        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
+            new GenericDotRenderer().RenderToStreamForUnitTests(dependencies, output);
         }
 
         public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
@@ -49,7 +49,7 @@ namespace NDepCheck.Rendering {
             output.WriteLine("}");
         }
 
-        public string Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString, [CanBeNull] string baseFilename) {
+        public string Render(IEnumerable<IEdge> dependencies, string argsAsString, [CanBeNull] string baseFilename) {
             int stringLengthForIllegalEdges = -1;
             Options.Parse(argsAsString,
                 new OptionAction('e', (args, j) => {
@@ -64,7 +64,7 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public void RenderToStreamForUnitTests(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, Stream stream) {
+        public void RenderToStreamForUnitTests(IEnumerable<IEdge> dependencies, Stream stream) {
             using (var sw = new StreamWriter(stream)) {
                 Render(dependencies, sw, null);
             }

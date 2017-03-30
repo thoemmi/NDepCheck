@@ -105,7 +105,6 @@
     <Compile Include="Rendering\AbstractGenericMatrixRenderer.cs" />
     <Compile Include="ConstraintSolving\Constraints.cs" />
     <Compile Include="ConstraintSolving\NumericVariable.cs" />
-    <Compile Include="Rendering\OLDGraphicsRenderer.cs" />
     <Compile Include="Rendering\MatrixRenderer2.cs" />
     <Compile Include="Rendering\IRenderer.cs" />
     <Compile Include="Rendering\MatrixRenderer1.cs" />
@@ -150,7 +149,6 @@
     <Compile Include="Rendering\IDependencyRenderer.cs" />
     <Compile Include="Rendering\SomeRendererTestData.cs" />
     <Compile Include="ConstraintSolving\VariableVector.cs" />
-    <Compile Include="Rendering\Vector.cs" />
     <Compile Include="Rendering\VectorF.cs" />
     <Compile Include="Rendering\GraphicsRenderer.cs" />
     <Compile Include="Transforming\AbstractTransformer.cs" />

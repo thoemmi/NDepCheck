@@ -101,11 +101,10 @@ Transformer options: [-q] [-u]
                                 throw new ApplicationException($"$-line '{line}' must contain " + MAY_USE);
                             }
                             usingItemType =
-                                GlobalContext.GetItemType(ExpandDefines(typeLine.Substring(0, i).Trim(),
-                                    globalContext));
+                                GlobalContext.GetItemType(globalContext.ExpandDefines(typeLine.Substring(0, i).Trim()));
                             usedItemType =
                                 GlobalContext.GetItemType(
-                                    ExpandDefines(typeLine.Substring(i + MAY_USE.Length).Trim(), globalContext));
+                                    globalContext.ExpandDefines(typeLine.Substring(i + MAY_USE.Length).Trim()));
                             if (mainRuleGroup == null) {
                                 currentGroup = mainRuleGroup = new DependencyRuleGroup(usingItemType, "", ignoreCase);
                                 ruleGroups.Add(currentGroup);

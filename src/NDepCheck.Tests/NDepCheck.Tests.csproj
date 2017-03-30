@@ -74,15 +74,14 @@
     <Compile Include="AttributeTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="MainTests.cs" />
+    <Compile Include="StringTests.cs" />
     <Compile Include="TestConstraints.cs" />
     <Compile Include="TestEdge.cs" />
     <Compile Include="TestHideTransitiveEdges.cs" />
-    <Compile Include="TestRenderingOLD.cs" />
     <Compile Include="TestRendering.cs" />
     <Compile Include="TestUnhideCycles.cs" />
     <Compile Include="TestNode.cs" />
     <Compile Include="TestPatternsAndItems.cs" />
-    <Compile Include="TestVectorsOLD.cs" />
     <Compile Include="TestWriteMatrixFile.cs" />
   </ItemGroup>
   <ItemGroup>

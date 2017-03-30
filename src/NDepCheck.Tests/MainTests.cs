@@ -506,7 +506,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TestExtendedROptionHelp() {
-            Assert.AreEqual(1, Program.Main(new[] { "-r", "-?" }));
+            Assert.AreEqual(0, Program.Main(new[] { "-r", "-?" }));
         }
 
         [TestMethod]
@@ -515,7 +515,7 @@ NDepCheck:Tests ---> **
             string ndFile = Path.GetTempFileName() + "ND.nd";
             string outFile = Path.GetTempFileName() + "OUT.dip";
             using (TextWriter tw = new StreamWriter(inFile)) {
-                tw.Write(@"AB A B
+                tw.Write(@"$ AB(A:B)
                 AB:a:1 => ;1;0;0;src.abc|1            => AB:a:1
                 AB:a:1 => ;2;1;0;src.abc|3;example123 => AB:a:2
                 AB:a:2 => ;3;0;0;src.abc|5            => AB:a:1
@@ -543,9 +543,9 @@ NDepCheck:Tests ---> **
             using (var sw = new StreamReader(outFile)) {
                 string o = sw.ReadToEnd();
 
-                Assert.IsTrue(o.Contains("AB:_a_: => ;10;1;0;src.abc|1;=> AB:_a_:"));
-                Assert.IsTrue(o.Contains("AB:_a_: => ;5;1;0;src.abc|9;=> AB:_b_:"));
-                Assert.IsTrue(o.Contains("AB:_b_: => ;13;0;0;src.abc|11;=> AB:_a_:"));
+                Assert.IsTrue(o.Contains("AB:_a_: => ;10;1;0;src.abc|1; => AB:_a_:"));
+                Assert.IsTrue(o.Contains("AB:_a_: => ;5;1;0;src.abc|9; => AB:_b_:"));
+                Assert.IsTrue(o.Contains("AB:_b_: => ;13;0;0;src.abc|11; => AB:_a_:"));
             }
         }
 
@@ -555,7 +555,7 @@ NDepCheck:Tests ---> **
             string ndFile = Path.GetTempFileName() + "ND.nd";
             string outFile = Path.GetTempFileName() + "OUT.dip";
             using (TextWriter tw = new StreamWriter(inFile)) {
-                tw.Write(@"AB A B
+                tw.Write(@"$ AB(A:B)
                 AB:a:1 => ;1;0;0;src.txt|1            => AB:a:1
                 AB:a:1 => ;2;1;0;src.txt|2;example123 => AB:a:2
                 AB:a:2 => ;3;0;0;src.txt|3            => AB:a:1
@@ -583,28 +583,28 @@ NDepCheck:Tests ---> **
             using (var sw = new StreamReader(outFile)) {
                 string o = sw.ReadToEnd();
 
-                Assert.IsTrue(o.Contains("AB:_a_: => ;10;1;0;src.txt|1;=> AB:_a_:"));
-                Assert.IsTrue(o.Contains("AB:_a_: => ;5;1;0;src.txt|5;=> AB:_b_:"));
-                Assert.IsTrue(o.Contains("AB:_b_: => ;13;0;0;src.txt|6;=> AB:_a_:"));
+                Assert.IsTrue(o.Contains("AB:_a_: => ;10;1;0;src.txt|1; => AB:_a_:"));
+                Assert.IsTrue(o.Contains("AB:_a_: => ;5;1;0;src.txt|5; => AB:_b_:"));
+                Assert.IsTrue(o.Contains("AB:_b_: => ;13;0;0;src.txt|6; => AB:_a_:"));
             }
         }
 
         [TestMethod]
         public void TestHelpForAllReaders() {
-            Assert.AreEqual(1, Program.Main(new[] { "-h", ".", "-? " }));
-            Assert.AreEqual(1, Program.Main(new[] { "-i", "-? " }));
+            Assert.AreEqual(0, Program.Main(new[] { "-h", ".", "-? " }));
+            Assert.AreEqual(0, Program.Main(new[] { "-i", "-? " }));
         }
 
         [TestMethod]
         public void TestHelpForAllTransformers() {
-            Assert.AreEqual(1, Program.Main(new[] { "-t", ".", "-? " }));
-            Assert.AreEqual(1, Program.Main(new[] { "-u", "-? " }));
+            Assert.AreEqual(0, Program.Main(new[] { "-t", ".", "-? " }));
+            Assert.AreEqual(0, Program.Main(new[] { "-u", "-? " }));
         }
 
         [TestMethod]
         public void TestHelpForAllRenderers() {
-            Assert.AreEqual(1, Program.Main(new[] { "-q", ".", "-? " }));
-            Assert.AreEqual(1, Program.Main(new[] { "-r", "-? " }));
+            Assert.AreEqual(0, Program.Main(new[] { "-q", ".", "-? " }));
+            Assert.AreEqual(0, Program.Main(new[] { "-r", "-? " }));
         }
     }
 }

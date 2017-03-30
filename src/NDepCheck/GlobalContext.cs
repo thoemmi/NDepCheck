@@ -15,6 +15,8 @@ namespace NDepCheck {
         internal bool RenderingDone { get; set; }
         internal bool TransformingDone { get; set; }
         internal bool InputFilesSpecified { get; set; }
+        internal bool HelpShown { get; private set; }
+
         public bool ShowUnusedQuestionableRules { get; set; }
         public bool ShowUnusedRules { get; set; }
         public bool IgnoreCase { get; set; }
@@ -53,6 +55,28 @@ namespace NDepCheck {
                 GetOrCreatePlugin<IReaderFactory>(assembly, readerClass)));
         }
 
+        public void SetDefine(string key, string value, string location) {
+            if (GlobalVars.ContainsKey(key)) {
+                if (GlobalVars[key] != value) {
+                    throw new ApplicationException(
+                        $"'{key}' cannot be redefined as '{value}' {location}");
+                }
+            } else {
+                GlobalVars.Add(key, value);
+            }
+        }
+
+
+        public string ExpandDefines(string s) {
+            Dictionary<string, string> vars = GlobalVars;
+            s = s ?? "";
+            foreach (string key in vars.Keys.OrderByDescending(k => k.Length)) {
+                s = Regex.Replace(s, @"\b" + key + @"\b", vars[key]);
+            }
+            return s;
+        }
+
+
         public void ReadAllNotYetReadIn() {
             IEnumerable<AbstractDependencyReader> allReaders =
                 InputFileSpecs.SelectMany(i => i.CreateOrGetReaders(this, false)).OrderBy(r => r.FileName);
@@ -70,10 +94,9 @@ namespace NDepCheck {
             ReadAllNotYetReadIn();
 
             IEnumerable<Dependency> allDependencies = GetAllDependencies();
-            IEnumerable<Item> items = allDependencies.SelectMany(e => new[] {e.UsingItem, e.UsedItem}).Distinct();
             IDependencyRenderer renderer = GetOrCreatePlugin<IDependencyRenderer>(assemblyName, rendererClassName);
 
-            string masterFileName = renderer.Render(items, allDependencies, rendererOptions, fileName);
+            string masterFileName = renderer.Render(allDependencies, rendererOptions, fileName);
             RenderingDone = true;
 
             return masterFileName;
@@ -132,7 +155,7 @@ namespace NDepCheck {
 
             renderer.CreateSomeTestItems(out items, out dependencies);
 
-            string masterFileName = renderer.Render(items, dependencies, rendererOptions, fileName);
+            string masterFileName = renderer.Render(dependencies, rendererOptions, fileName);
 
             RenderingDone = true;
 
@@ -150,7 +173,7 @@ namespace NDepCheck {
             InputFilesSpecified = true;
         }
 
-        public int ShowAllPluginsAndTheirHelp<T>(string assemblyName) {
+        public void ShowAllPluginsAndTheirHelp<T>(string assemblyName) {
             foreach (var t in GetPluginTypes<T>(assemblyName)) {
                 try {
                     IDependencyRenderer renderer = (IDependencyRenderer) Activator.CreateInstance(t);
@@ -161,7 +184,7 @@ namespace NDepCheck {
                 }
             }
             Log.WriteInfo("=============================================\r\n");
-            return Program.OK_RESULT;
+            HelpShown = true;
         }
 
         public void TransformTestData(string assembly, string transformerClass, string transformerOptions) {
@@ -245,6 +268,7 @@ namespace NDepCheck {
                 Log.WriteError(
                     $"Cannot print help for plugin {pluginClassName} in assembly {assembly}; reason: {ex.Message}");
             }
+            HelpShown = true;
         }
 
         public void ConfigureTransformer(string assembly, string transformerClass, string transformerOptions) {

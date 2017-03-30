@@ -26,7 +26,7 @@ namespace NDepCheck.Rendering {
         private Regex _interfaceMarker = new Regex("^I");
         private string _title = typeof(ModulesAndInterfacesRenderer).Name;
 
-        protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
+        protected override void PlaceObjects(IEnumerable<Dependency> dependencies) {
             // ASCII-art sketch of what I want to accomplish:
             //
             //    |         |         |             |          |        |<--------+-----+
@@ -106,8 +106,12 @@ namespace NDepCheck.Rendering {
 
             const int DELTA_Y_MAIN = 8;
 
+            IEnumerable<Item> items = dependencies.SelectMany(e => new[] { e.UsingItem, e.UsedItem }).Distinct();
+            IEnumerable<Item> parents = items.Where(i => !IsMI(i));
+            IEnumerable<Item> misWithoutParent = items.Where(i => IsMI(i) && parents.All(p => GetModule(p) != GetModule(i)));
+
             // Main modules along diagonal, separated by itemDistance
-            foreach (var i in items.Where(i => !IsMI(i)).OrderBy(GetOrder)) {
+            foreach (var i in parents.Concat(misWithoutParent).OrderBy(GetOrder)) {
                 string name = GetName(i);
 
                 string countText = "\n<" + Sum(dependencies, d => d.UsingItem.Equals(i) && !d.UsedItem.Equals(i))
@@ -116,8 +120,8 @@ namespace NDepCheck.Rendering {
                 // TODO: Add option and computation to split this into .,?,!
 
                 pos.AlsoNamed(name);
-                IBox mainBox = Box(pos, boxAnchoring: BoxAnchoring.LowerLeft, text: name + countText, borderWidth: 3, boxColor: Color.Coral,
-                                   textFont: _boxFont, drawingOrder: 1, fixingOrder: 4);
+                IBox mainBox = Box(pos, boxAnchoring: BoxAnchoring.LowerLeft, text: name + countText, borderWidth: 3,
+                    boxColor: IsMI(i) ? Color.LemonChiffon : Color.Coral, textFont: _boxFont, drawingOrder: 1, fixingOrder: 4);
                 //mainBox.Diagonal.Y.Set(100);
                 //mainBox.Diagonal.Y.Min(40);
                 mainBox.Diagonal.Y.Max(60 + dependencies.Count(d => Equals(d.UsingItem, i)) * DELTA_Y_MAIN); // Help for solving
@@ -126,7 +130,8 @@ namespace NDepCheck.Rendering {
                 i.DynamicData.MainBoxNextFreePos = mainBox.LowerLeft;
                 {
                     IBox interfaceBox = Box(new VariableVector(name + ".I", Solver).SetX(mainBox.LowerLeft.X),
-                                            text: "", boxAnchoring: BoxAnchoring.LowerLeft, borderWidth: 1, boxColor: Color.Coral, fixingOrder: 3);
+                                            text: "", boxAnchoring: BoxAnchoring.LowerLeft, borderWidth: 1,
+                                            boxColor: Color.Coral, fixingOrder: 3);
                     interfaceBox.Diagonal.SetX(10);
 
                     interfaceBox.UpperLeft.MinY(mainBox.UpperLeft.Y + 7);
@@ -189,7 +194,7 @@ namespace NDepCheck.Rendering {
         }
 
         private string Sum(IEnumerable<Dependency> dependencies, Func<Dependency, bool> filter) {
-            var ct = dependencies.Where(d => filter(d)).Sum(d => d.Ct);
+            var ct = dependencies.Where(filter).Sum(d => d.Ct);
             return ct >= 1000000 ? ct / 1000 + "M" : ct >= 1000 ? ct / 1000 + "K" : "" + ct;
         }
 
@@ -242,8 +247,8 @@ namespace NDepCheck.Rendering {
             return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
-        public override string Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
-            return DoRender(items, dependencies, argsAsString, baseFilename,
+        public override string Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
+            return DoRender(dependencies, argsAsString, baseFilename,
                 new OptionAction('i', (args, j) => {
                     _interfaceMarker = new Regex(Options.ExtractOptionValue(args, ref j));
                     return j;

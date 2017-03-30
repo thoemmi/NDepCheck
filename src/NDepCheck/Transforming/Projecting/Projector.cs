@@ -69,18 +69,17 @@ Transformer options: None
                             Log.WriteError($"{line}: $-line must contain " + MAP, ruleSourceName, lineNo);
                         }
                         sourceItemType =
-                            GlobalContext.GetItemType(ExpandDefines(typeLine.Substring(0, i).Trim(), globalContext));
+                            GlobalContext.GetItemType(globalContext.ExpandDefines(typeLine.Substring(0, i).Trim()));
                         targetItemType =
-                            GlobalContext.GetItemType(ExpandDefines(typeLine.Substring(i + MAP.Length).Trim(),
-                                globalContext));
+                            GlobalContext.GetItemType(globalContext.ExpandDefines(typeLine.Substring(i + MAP.Length).Trim()));
                         return true;
                     } else {
                         bool left = line.StartsWith(ABSTRACT_IT_LEFT);
                         bool right = line.StartsWith(ABSTRACT_IT_RIGHT);
                         bool both = line.StartsWith(ABSTRACT_IT_BOTH);
                         bool leftInner = line.StartsWith(ABSTRACT_IT_LEFT_AS_INNER);
-                        bool rightInner = line.StartsWith(ABSTRACT_IT_BOTH_AS_INNER);
-                        bool bothInner = line.StartsWith(ABSTRACT_IT_RIGHT_AS_INNER);
+                        bool rightInner = line.StartsWith(ABSTRACT_IT_RIGHT_AS_INNER);
+                        bool bothInner = line.StartsWith(ABSTRACT_IT_BOTH_AS_INNER);
                         if (left || both || right || leftInner || rightInner || bothInner) {
                             Projection p = CreateProjection(globalContext, sourceItemType, targetItemType,
                                 isInner: leftInner || rightInner || bothInner, ruleFileName: ruleSourceName,
@@ -109,12 +108,12 @@ Transformer options: None
                 string[] targetSegments;
                 if (i >= 0) {
                     string rawPattern = rule.Substring(0, i).Trim();
-                    pattern = ExpandDefines(rawPattern, globalContext);
+                    pattern = globalContext.ExpandDefines(rawPattern);
 
                     string rawTargetSegments = rule.Substring(i + MAP.Length).Trim();
-                    targetSegments = ExpandDefines(rawTargetSegments, globalContext).Split(':').Select(s => s.Trim()).ToArray();
+                    targetSegments = globalContext.ExpandDefines(rawTargetSegments).Split(':').Select(s => s.Trim()).ToArray();
                 } else {
-                    pattern = ExpandDefines(rule.Trim(), globalContext);
+                    pattern = globalContext.ExpandDefines(rule.Trim());
                     targetSegments = null;
                 }
 

@@ -65,7 +65,7 @@ namespace NDepCheck.Transforming {
                     line = line.Substring(0, commentStart);
                 }
 
-                line = ExpandDefines(line.Trim(), globalContext).Trim();
+                line = globalContext.ExpandDefines(line.Trim()).Trim();
                 lineNo++;
 
                 try {
@@ -80,14 +80,7 @@ namespace NDepCheck.Transforming {
                         onIncludedConfiguration(childConfiguration, fullConfigFileName);
                     } else if (line.Contains(ASSIGN)) {
                         KeyValuePair<string, string> kvp = ParseVariableDefinition(fullConfigFileName, lineNo, line);
-                        var globalVars = globalContext.GlobalVars;
-                        if (globalVars.ContainsKey(kvp.Key)) {
-                            if (globalVars[kvp.Key] != kvp.Value) {
-                                throw new ApplicationException($"'{kvp.Key}' cannot be redefined as '{kvp.Value}' at {fullConfigFileName}:{lineNo}");
-                            }
-                        } else {
-                            globalVars.Add(kvp.Key, kvp.Value);
-                        }
+                        globalContext.SetDefine(kvp.Key, kvp.Value, $"at {fullConfigFileName}:{lineNo}");
                     } else if (onLineWithLineNo(line, lineNo)) {
                         // line's content has been added to result as side-effect
                     } else {
@@ -108,19 +101,6 @@ namespace NDepCheck.Transforming {
             string value = line.Substring(i + ASSIGN.Length).Trim();
 
             return new KeyValuePair<string, string>(key, value);
-        }
-
-        /// <summary>
-        /// Expand first found macro in s.
-        /// </summary>
-        /// <returns></returns>
-        internal string ExpandDefines([CanBeNull] string s, GlobalContext globalContext) {
-            Dictionary<string, string> vars = globalContext.GlobalVars;
-            s = s ?? "";
-            foreach (string key in vars.Keys.OrderByDescending(k => k.Length)) {
-                s = Regex.Replace(s, @"\b" + key + @"\b", vars[key]);
-            }
-            return s;
         }
 
         #endregion Configure

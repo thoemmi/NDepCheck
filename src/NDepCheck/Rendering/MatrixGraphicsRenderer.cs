@@ -12,8 +12,12 @@ namespace NDepCheck.Rendering {
             return i.Values[0];
         }
 
-        private static string GetHtmlRef(Item i) {
+        private static string GetXHtmlRef(Item i) {
             return i.Values.Length > 1 ? i.Values[1] : null;
+        }
+
+        private static string GetYHtmlRef(Item i) {
+            return i.Values.Length > 2 ? i.Values[2] : null;
         }
 
         [NotNull]
@@ -30,7 +34,7 @@ namespace NDepCheck.Rendering {
         private bool _showOnlyReferencedOnBottom = false;
         private bool _showOnlyReferencingOnLeft = false;
 
-        protected override void PlaceObjects(IEnumerable<Item> items, IEnumerable<Dependency> dependencies) {
+        protected override void PlaceObjects(IEnumerable<Dependency> dependencies) {
             // ASCII-art sketch of what I want to accomplish:
             //   +-----+
             //   |     |--------------------------------------------->|
@@ -62,19 +66,13 @@ namespace NDepCheck.Rendering {
             //        IMP.C:
             //        IMP.D:
 
-            if (_bottomRegex == null) {
-                throw new ApplicationException(nameof(MatrixGraphicsRenderer) + ": -x missing");
-            }
-
             Arrow(F(0, 0), F(100, 0), 1, Color.Chartreuse, "100px", textFont: _lineFont);
             Box(F(-20, -20), _title + "(" + DateTime.Now + ")", boxAnchoring: BoxAnchoring.UpperRight);
 
-            var yItems = new List<Item>();
-            var xItems = new List<Item>();
-
-            foreach (var i in items) {
-                (_bottomRegex.IsMatch(GetName(i)) ? xItems : yItems).Add(i);
-            }
+            List<Item> yItems = dependencies.Select(e => e.UsingItem).Distinct().ToList();
+            List<Item> xItems = dependencies.Select(e => e.UsedItem).Distinct().
+                Where(i => _bottomRegex == null || _bottomRegex.IsMatch(GetName(i))).
+                ToList();
 
             Dependency[] relevantDependencies = dependencies.Where(d => yItems.Contains(d.UsingItem) && xItems.Contains(d.UsedItem)).ToArray();
             if (_showOnlyReferencedOnBottom) {
@@ -92,9 +90,9 @@ namespace NDepCheck.Rendering {
                 string name = GetName(ix);
                 var xPos = new VariableVector(name + ".POS", Solver);
                 IBox box = Box(xPos, boxAnchoring: BoxAnchoring.LowerLeft, text: name, borderWidth: 3, boxColor: Color.LemonChiffon, boxTextPlacement: BoxTextPlacement.LeftUp,
-                                   textFont: _boxFont, drawingOrder: 1, fixingOrder: 4, htmlRef: GetHtmlRef(ix));
+                                   textFont: _boxFont, drawingOrder: 1, fixingOrder: 4, htmlRef: GetXHtmlRef(ix));
                 xPos.SetX(x).SetY(-box.TextBox.Y);
-                ix.DynamicData.Box = box;
+                ix.DynamicData.XBox = box;
 
                 x += 40;
             }
@@ -105,13 +103,13 @@ namespace NDepCheck.Rendering {
                 string name = GetName(iy);
                 var yPos = new VariableVector(name + ".POS", Solver);
                 IBox box = Box(yPos, boxAnchoring: BoxAnchoring.LowerRight, text: name, borderWidth: 3, boxColor: Color.Coral,
-                    boxTextPlacement: BoxTextPlacement.Left,
-                    textFont: _boxFont, drawingOrder: 1, fixingOrder: 4);
+                    boxTextPlacement: BoxTextPlacement.Left, textFont: _boxFont, drawingOrder: 1, fixingOrder: 4, 
+                    htmlRef: GetYHtmlRef(iy) ?? GetXHtmlRef(iy));
                 yPos.SetX(0).SetY(y);
 
                 double minBoxHeight = 30;
                 foreach (var d in relevantDependencies.Where(d => iy.Equals(d.UsingItem))) {
-                    IBox usedBox = d.UsedItem.DynamicData.Box;
+                    IBox usedBox = d.UsedItem.DynamicData.XBox;
                     yPos += F(0, 3);
                     Arrow(yPos, new VariableVector(name + "->...", usedBox.LowerLeft.X, yPos.Y), width: 2,
                         color: d.NotOkCt > 0 ? Color.Red : d.QuestionableCt > 0 ? Color.Blue : Color.Black,
@@ -173,8 +171,8 @@ namespace NDepCheck.Rendering {
             return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
-        public override string Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
-            return DoRender(items, dependencies, argsAsString, baseFilename,
+        public override string Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
+            return DoRender(dependencies, argsAsString, baseFilename,
                 new OptionAction('b', (args, j) => {
                     _bottomRegex = new Regex(Options.ExtractOptionValue(args, ref j));
                     return j;
@@ -203,14 +201,17 @@ namespace NDepCheck.Rendering {
         public override string GetHelp(bool detailedHelp) {
             return @"  A GIF renderer that depicts modules and their interfaces as
   vertical bars that are connected by horizontal arrows.
+  Item format: Name[:XHtmlRef[:YHtmlRef]]
+  XHtmlRef and YHtmlRef, if present, are placed behind the boxes as links to click.
 
-  Options: -b & [-t &] [-o #] [-x] [-y] " + GetHelpUsage() + @"
-    -b &          regexp for items on bottom
-    -t &          title text shown in diagram
+  Options: [-b &] [-t &] [-o #] [-x] [-y] " + GetHelpUsage() + @"
+    -b &          regexp for items on bottom; default: all items on both axes
+    -t &          title text shown in diagram; default: 'ModulesAndInterfacesRenderer'
     -o #          field on which items are sorted, counted from 1 up.
                   Items with equal order are sorted by edge count.
-    -x            do not show non-referenced items on bottom
-    -y            do not show non-referencing items on left side
+                  Default: sort only be edge count.
+    -x            do not show non-referenced items on bottom; default: show all
+    -y            do not show non-referencing items on left side; default: show all
 " + GetHelpExplanations();
         }
     }

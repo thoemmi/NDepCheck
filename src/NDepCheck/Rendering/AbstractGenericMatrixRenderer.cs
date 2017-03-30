@@ -117,7 +117,7 @@ namespace NDepCheck.Rendering {
                        : "");
         }
 
-        protected void Render(IEnumerable<INode> nodes, IEnumerable<IEdge> edges,
+        protected void Render(IEnumerable<IEdge> edges,
             [NotNull] TextWriter output, int? labelWidthOrNull, bool withNotOkCt) {
             IEnumerable<IEdge> visibleEdges = edges.Where(e => !e.Hidden);
             IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdges(visibleEdges);
@@ -150,9 +150,9 @@ namespace NDepCheck.Rendering {
             string nodeFormat, Dictionary<INode, int> node2Index, bool withNotOkCt, IEnumerable<INode> sortedNodes,
             string ctFormat, IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges);
 
-        public abstract string Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString, string baseFilename);
+        public abstract string Render(IEnumerable<IEdge> dependencies, string argsAsString, string baseFilename);
 
-        public abstract void RenderToStreamForUnitTests(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, Stream stream);
+        public abstract void RenderToStreamForUnitTests(IEnumerable<IEdge> dependencies, Stream stream);
 
         public string GetHelp() {
             return $"{GetType().Name} usage: -___ outputfileName";

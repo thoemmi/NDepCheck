@@ -10,6 +10,10 @@ namespace NDepCheck {
             _item = item;
         }
 
+        public bool ContainsMember(string name) {
+            return _properties.ContainsKey(name);
+        }
+
         public override bool TryGetMember(GetMemberBinder binder, out object result) {
             result = null;
             if (!_properties.ContainsKey(binder.Name)) {

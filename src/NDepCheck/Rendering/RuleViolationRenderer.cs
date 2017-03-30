@@ -7,7 +7,7 @@ using System.Xml.Linq;
 
 namespace NDepCheck.Rendering {
     public class RuleViolationRenderer : IDependencyRenderer {
-        public string Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
+        public string Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
             bool xmlOutput = false;
             Options.Parse(argsAsString,
                 new OptionAction('x', (args, j) => {
@@ -61,7 +61,7 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public void RenderToStreamForUnitTests(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, Stream stream) {
+        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream stream) {
             using (var sw = new StreamWriter(stream)) {
                 RenderToStreamWriter(dependencies, sw);
             }

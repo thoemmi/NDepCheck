@@ -2,7 +2,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.Projecting {
@@ -41,7 +43,7 @@ namespace NDepCheck.Transforming.Projecting {
         public Projection([NotNull]ItemType sourceItemType, [NotNull]ItemType targetItemType, [NotNull]string pattern, [CanBeNull]string[] targetSegments, bool isInner, bool ignoreCase, bool forLeftSide, bool forRightSide) {
             if (targetSegments != null) {
                 if (targetItemType.Length != targetSegments.Length) {
-                    Log.WriteError($"Targettype {targetItemType.Name} has {targetItemType.Length} segments, but only {targetSegments.Length} are defined in projection: {string.Join(",", targetSegments)}");
+                    Log.WriteError($"Targettype {targetItemType.Name} has {targetItemType.Length} segments, but {targetSegments.Length} are defined in projection: {string.Join(",", targetSegments)}");
                     throw new ArgumentException("targetSegments length != targetItemType.Length", nameof(targetSegments));
                 }
                 if (targetSegments.Any(s => s == null)) {
@@ -81,13 +83,15 @@ namespace NDepCheck.Transforming.Projecting {
                     IEnumerable<string> targets = _targetSegments;
                     for (int i = 0; i < matchResultGroups.Length; i++) {
                         int matchResultIndex = i;
-                        targets =
-                            targets.Select(
-                                s => s.Replace("\\" + (matchResultIndex + 1), matchResultGroups[matchResultIndex]));
+                        targets = targets.Select(s => s.Replace("\\" + (matchResultIndex + 1), matchResultGroups[matchResultIndex]));
                     }
-                    return Item.New(_targetItemType, _isInner, targets.ToArray());
+                    return Item.New(_targetItemType, _isInner, targets.Select(t => ExpandHexChars(t)).ToArray());
                 }
             }
+        }
+
+        public static string ExpandHexChars(string s) {
+            return Regex.Replace(s, "%[0-9a-fA-F][0-9a-fA-F]", m => "" + (char)int.Parse(m.Value.Substring(1), NumberStyles.HexNumber));
         }
 
         public IEnumerable<Projection> AllProjections {

@@ -4,12 +4,12 @@ using System.Linq;
 
 namespace NDepCheck.Rendering {
     public class MatrixRenderer2 : AbstractMatrixRenderer, IDependencyRenderer {
-        public string Render(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
-            return new GenericMatrixRenderer2().Render(items, dependencies, argsAsString, baseFilename);
+        public string Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
+            return new GenericMatrixRenderer2().Render(dependencies, argsAsString, baseFilename);
         }
 
-        public void RenderToStreamForUnitTests(IEnumerable<Item> items, IEnumerable<Dependency> dependencies, Stream output) {
-            new GenericMatrixRenderer2().RenderToStreamForUnitTests(items, dependencies, output);
+        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
+            new GenericMatrixRenderer2().RenderToStreamForUnitTests(dependencies, output);
         }
     }
 
@@ -43,19 +43,19 @@ namespace NDepCheck.Rendering {
             output.WriteLine(cts);
         }
 
-        public override void RenderToStreamForUnitTests(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, Stream stream) {
+        public override void RenderToStreamForUnitTests(IEnumerable<IEdge> dependencies, Stream stream) {
             using (var sw = new StreamWriter(stream)) {
-                Render(items, dependencies, sw, null, true);
+                Render(dependencies, sw, null, true);
             }
         }
 
-        public override string Render(IEnumerable<INode> items, IEnumerable<IEdge> dependencies, string argsAsString, string baseFilename) {
+        public override string Render(IEnumerable<IEdge> dependencies, string argsAsString, string baseFilename) {
             int? labelWidthOrNull;
             bool withNotOkCt;
             ParseOptions(argsAsString, out labelWidthOrNull, out withNotOkCt);
 
             using (var sw = GlobalContext.CreateTextWriter(baseFilename, ".csv")) {
-                Render(items, dependencies, sw.Writer, labelWidthOrNull, withNotOkCt);
+                Render(dependencies, sw.Writer, labelWidthOrNull, withNotOkCt);
                 return sw.FileName;
             }
         }

@@ -26,12 +26,12 @@ namespace NDepCheck {
             if (keys.Length != subKeys.Length) {
                 throw new ArgumentException("keys.Length != subKeys.Length", nameof(subKeys));
             }
-            Keys = keys;
-            if (subKeys.Any(subkey => !string.IsNullOrEmpty(subkey) && subkey.Length < 2 && subkey[0] != '.' && subkey.Substring(1).Contains("."))) {
+            if (subKeys.Any(subkey => !string.IsNullOrWhiteSpace(subkey) && subkey.Length < 2 && subkey[0] != '.' && subkey.Substring(1).Contains("."))) {
                 throw new ArgumentException("Subkey must either be empty or .name, but not " + string.Join(" ", subKeys), nameof(subKeys));
             }
 
-            SubKeys = subKeys;
+            Keys = keys.Select(s => s?.Trim()).ToArray();
+            SubKeys = subKeys.Select(s => s?.Trim()).ToArray();
             Name = name;
         }
 
@@ -70,8 +70,8 @@ namespace NDepCheck {
         }
 
         public override string ToString() {
-            var result = new StringBuilder(nameof(ItemType) + " " + Name);
-            var sep = ' ';
+            var result = new StringBuilder(Name);
+            var sep = '(';
             for (int i = 0; i < Keys.Length; i++) {
                 result.Append(sep);
                 if (SubKeys[i] != "") {
@@ -82,12 +82,13 @@ namespace NDepCheck {
                 }
                 sep = ':';
             }
+            result.Append(')');
             return result.ToString();
         }
 
         public static ItemType New(string format) {
-            string[] parts = format.Split(':');
-            return New(parts[0], parts.Skip(1).ToArray());
+            string[] parts = format.Split(':', ' ', '(', ')');
+            return New(parts[0], parts.Skip(1).Where(p => p != "").ToArray());
         }
 
         public static ItemType New(string name, IEnumerable<string> keysAndSubKeys) {

@@ -457,7 +457,7 @@ namespace NDepCheck.Rendering {
                 if (_htmlRef != null) {
                     VectorF lowerRightF = _center.AsVectorF() + ~diagonalF / 2;
                     WriteBoxHtml(graphics, htmlForClicks, _htmlRef, upperLeftF.AsMirroredPointF(),
-                        lowerRightF.AsMirroredPointF());
+                        lowerRightF.AsMirroredPointF(), _text.Length > 0 ? _text[0] : "");
                 }
             }
 
@@ -536,7 +536,7 @@ namespace NDepCheck.Rendering {
             }
 
             private static void WriteBoxHtml(Graphics graphics, StringBuilder htmlForClicks,
-                string htmlRef, PointF upperLeft, PointF lowerRight) {
+                string htmlRef, PointF upperLeft, PointF lowerRight, string item) {
                 PointF[] ulAndLr = { upperLeft, lowerRight };
                 graphics.Transform.TransformPoints(ulAndLr);
                 int lx = (int)ulAndLr[0].X;
@@ -544,7 +544,7 @@ namespace NDepCheck.Rendering {
                 int ux = (int)ulAndLr[1].X;
                 int uy = (int)ulAndLr[1].Y;
 
-                htmlForClicks.AppendLine($@"<area shape=""rect"" coords=""{lx},{ly},{ux},{uy}"" href=""{htmlRef}"" />");
+                htmlForClicks.AppendLine($@"<!--{item}--><area shape=""rect"" coords=""{lx},{ly},{ux},{uy}"" href=""{htmlRef}"" />");
             }
         }
 
@@ -690,6 +690,7 @@ namespace NDepCheck.Rendering {
                 const int d = 4;
 
                 htmlForClicks.AppendLine(
+                    $@"<!-- -->" +
                     $@"<area shape=""poly"" coords=""{tx},{ty - d},{tx},{ty + d},{hx},{hy + d},{hx},{hy - d}"" " +
                     $@"href=""default.htm"" onClick=""alert('{edgeInfo}');return false""/>");
             }
@@ -755,9 +756,9 @@ namespace NDepCheck.Rendering {
             return arrowBuilder;
         }
 
-        private Bitmap Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, float minTextHeight,
+        private Bitmap Render(IEnumerable<TDependency> dependencies, float minTextHeight,
                               ref int width, ref int height, StringBuilder htmlForClicks) {
-            PlaceObjects(items, dependencies);
+            PlaceObjects(dependencies);
 
             // I tried it with SVG - but SVG support in .Net seems to be non-existent.
             // The library at https://github.com/managed-commons/SvgNet is a nice attempet (a 2015 resurrection of a 2003 attempt),
@@ -852,11 +853,11 @@ namespace NDepCheck.Rendering {
             return bitmap;
         }
 
-        public virtual string Render(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, string argsAsString, string baseFilename) {
-            return DoRender(items, dependencies, argsAsString, baseFilename);
+        public virtual string Render(IEnumerable<TDependency> dependencies, string argsAsString, string baseFilename) {
+            return DoRender(dependencies, argsAsString, baseFilename);
         }
 
-        protected string DoRender(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies,
+        protected string DoRender(IEnumerable<TDependency> dependencies,
                                 string argsAsString, string baseFilename, params OptionAction[] additionalOptions) {
             int width = -1;
             int height = -1;
@@ -886,7 +887,7 @@ namespace NDepCheck.Rendering {
 
 
             StringBuilder htmlForClicks = new StringBuilder();
-            Bitmap bitMap = Render(items, dependencies, minTextHeight, ref width, ref height, htmlForClicks);
+            Bitmap bitMap = Render(dependencies, minTextHeight, ref width, ref height, htmlForClicks);
 
             string gifFileName = Path.ChangeExtension(baseFilename, ".gif");
             try {
@@ -902,7 +903,7 @@ namespace NDepCheck.Rendering {
             // ReSharper disable once AssignNullToNotNullAttribute -- baseFilename != null, thus htmlFileName != null
             using (var tw = new StreamWriter(htmlFileName)) {
                 Log.WriteInfo("Writing " + htmlFileName);
-                tw.WriteLine($@"
+                tw.WriteLine($@"<!DOCTYPE html>
 <html>
 <body>
 <img src=""{ Path.GetFileName(gifFileName)}"" width=""{width}"" height=""{height}"" usemap=""#map""/>
@@ -916,10 +917,10 @@ namespace NDepCheck.Rendering {
             return htmlFileName;
         }
 
-        public void RenderToStreamForUnitTests(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies, Stream stream) {
+        public void RenderToStreamForUnitTests(IEnumerable<TDependency> dependencies, Stream stream) {
             int width = 1000;
             int height = 1000;
-            Bitmap bitMap = Render(items, dependencies, 15, ref width, ref height, htmlForClicks: null);
+            Bitmap bitMap = Render(dependencies, 15, ref width, ref height, htmlForClicks: null);
 
             bitMap.Save(stream, ImageFormat.Gif);
         }
@@ -928,7 +929,7 @@ namespace NDepCheck.Rendering {
 
         protected SimpleConstraintSolver Solver => _solver;
 
-        protected abstract void PlaceObjects(IEnumerable<TItem> items, IEnumerable<TDependency> dependencies);
+        protected abstract void PlaceObjects(IEnumerable<TDependency> dependencies);
 
         public abstract void CreateSomeTestItems(out IEnumerable<TItem> items, out IEnumerable<TDependency> dependencies);
 
@@ -938,7 +939,7 @@ namespace NDepCheck.Rendering {
         protected string GetHelpExplanations() =>
 @"    -w #          width of graphics in pixels; default: computed from height, or via minimal text size
     -h #          height of graphics in pixels; default: computed from width, or via minimal text size
-    -f #          minimal textheight in points (if -w and -h are not provided)
+    -f #          minimal textheight in points (if -w and -h are not provided); default: 15
     The fileName is used as a base name for writing a .gif file as well as an .html file, which contains
     the link and popup information.
 ";

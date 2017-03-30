@@ -60,10 +60,9 @@ namespace NDepCheck {
                     } else if (Options.ArgMatches(arg, 'e', 'f')) {
                         // -e     assembly transformer { options }
                         // -f              transformer { options }
-
                         string assembly, rendererClass;
                         if (ExtractAssemblyAndClass(args, new[] { 'e' }, 'f', out assembly, out rendererClass, ref i)) {
-                            result = globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>(assembly);
+                            globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>(assembly);
                         } else {
                             string transformerOptions = Options.ExtractNextValue(args, ref i);
                             globalContext.ConfigureTransformer(assembly, rendererClass, transformerOptions);
@@ -79,6 +78,7 @@ namespace NDepCheck {
                             string filePattern = Options.ExtractNextValue(args, ref i);
                             if (Options.ArgMatches(filePattern, '?')) {
                                 globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, readerClass);
+                                i++;
                             } else {
                                 globalContext.CreateInputOption(args, ref i, filePattern, assembly, readerClass);
                             }
@@ -105,6 +105,8 @@ namespace NDepCheck {
                         // -m name value           Define name as value; a redefinition with a different value is not possible
                         string varname = Options.ExtractOptionValue(args, ref i);
                         string varvalue = Options.ExtractNextValue(args, ref i);
+                        globalContext.SetDefine(varname, varvalue, "after -m option");
+
                         globalContext.GlobalVars[varname] = varvalue;
                     } else if (Options.ArgMatches(arg, 'o')) {
                         // -o fileName             Read options from file
@@ -120,11 +122,12 @@ namespace NDepCheck {
 
                         string assembly, rendererClass;
                         if (ExtractAssemblyAndClass(args, new[] { 'p', 'q' }, 'r', out assembly, out rendererClass, ref i)) {
-                            result = globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>(assembly);
+                            globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>(assembly);
                         } else {
                             string classOptions, fileName;
                             if (ExtractClassOptions(args, out classOptions, out fileName, ref i)) {
                                 globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, rendererClass);
+                                i++;
                             } else if (Options.ArgMatches(arg, 'p')) {
                                 string fn = globalContext.RenderTestData(assembly, rendererClass, classOptions, fileName);
                                 writtenMasterFiles?.Add(fn);
@@ -142,8 +145,9 @@ namespace NDepCheck {
                         if (ExtractAssemblyAndClass(args, new[] { 's', 't' }, 'u', out assembly, out transformerClass, ref i)) {
                             globalContext.ShowAllPluginsAndTheirHelp<ITransformer>(assembly);
                         } else {
-                            if (Options.ArgMatches(args[i], '?')) {
-                                globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, transformerClass);
+                            if (i + 1 >= args.Length || Options.ArgMatches(args[i + 1], '?')) {
+                                globalContext.ShowDetailedHelp<ITransformer>(assembly, transformerClass);
+                                i++;
                             } else {
                                 string transformerOptions = i < args.Length - 1 && args[i + 1].StartsWith("{")
                                     ? Options.ExtractNextValue(args, ref i)
@@ -193,7 +197,7 @@ namespace NDepCheck {
                 return UsageAndExit(ex.Message);
             }
 
-            if (!globalContext.InputFilesSpecified && !ranAsWebServer) {
+            if (!globalContext.InputFilesSpecified && !ranAsWebServer && !globalContext.HelpShown) {
                 return UsageAndExit("No input files specified");
             }
 
@@ -228,7 +232,7 @@ namespace NDepCheck {
         /// <returns><c>true</c> if classOptions is /? for 'help'</returns>
         private static bool ExtractClassOptions(string[] args, out string classOptions, out string fileName, ref int i) {
             string o = Options.ExtractNextValue(args, ref i);
-            if (Options.ArgMatches(o, '?')) {
+            if (o == null || Options.ArgMatches(o, '?')) {
                 classOptions = "";
                 fileName = "";
                 return true;
@@ -267,7 +271,7 @@ namespace NDepCheck {
             int lineNo = 0;
             try {
                 var args = new List<string>();
-                bool splitLines = true;
+                bool inBraces = false;
                 using (var sr = new StreamReader(fileName)) {
                     for (;;) {
                         lineNo++;
@@ -276,16 +280,16 @@ namespace NDepCheck {
                             break;
                         }
                         string trimmedLine = Regex.Replace(line, "//.*$", "").Trim();
-                        IEnumerable<string> a = trimmedLine.Split(' ', '\t').Select(s => s.Trim()).Where(s => s != "");
+                        IEnumerable<string> splitLine = trimmedLine.Split(' ', '\t').Select(s => s.Trim()).Where(s => s != "");
 
-                        if (a.Any() && a.Last() == "{") {
-                            args.AddRange(a);
-                            splitLines = false;
-                        } else if (a.Any() && a.First() == "}") {
-                            splitLines = true;
-                            args.AddRange(a);
-                        } else if (splitLines) {
-                            args.AddRange(a);
+                        if (splitLine.Any() && splitLine.Last() == "{") {
+                            args.AddRange(splitLine);
+                            inBraces = true;
+                        } else if (splitLine.Any() && splitLine.First() == "}") {
+                            inBraces = false;
+                            args.AddRange(splitLine.Select(state.ExpandDefines));
+                        } else if (!inBraces) {
+                            args.AddRange(splitLine.Select(state.ExpandDefines));
                         } else {
                             args.Add(line);
                         }
@@ -301,7 +305,6 @@ namespace NDepCheck {
                     writtenMasterFiles?.AddRange(locallyWrittenFiles.Select(Path.GetFullPath));
                     Environment.CurrentDirectory = previousCurrentDirectory;
                 }
-
             } catch (Exception ex) {
                 Log.WriteError("Cannot run commands in " + fileName + " (" + ex.Message + ")", fileName, lineNo);
                 return EXCEPTION_RESULT;
@@ -309,11 +312,6 @@ namespace NDepCheck {
         }
 
         private static int UsageAndExit(string message, int exitValue = OPTIONS_PROBLEM, bool extensiveHelp = false) {
-            if (message != null) {
-                Log.WriteInfo("**** " + message);
-                Log.WriteInfo("");
-            }
-
             WriteVersion();
             Console.Out.WriteLine(
                 @"
@@ -394,10 +392,11 @@ Options overview:
 -u              transformer -?
      
      RENDER
--q     assembly renderer [{ options }] fileName
--r              renderer [{ options }] fileName 
+-q     assembly renderer [{ options }] file
+-r              renderer [{ options }] file
 
                 Built-in renderers:
+                - DipWriter
                 - DotRenderer [-e edgelength]
                     -e
                 - MatrixRenderer1
@@ -415,7 +414,7 @@ Options overview:
                         -x as XML output
      
      RENDER TESTDATA
--p     assembly renderer [{ options }] fileName
+-p     assembly renderer [{ options }] file
 
      HELP FOR ALL RENDERERS
 -q     assembly -?
@@ -426,18 +425,27 @@ Options overview:
 -r              renderer -?
 
      OTHER
--?              Write help
--a              Write extensive help  
--l              Execute readers and transformers lazily (lazy reading and transforming NOT YET IMPLEMENTED)
--m name value   Define name as value; a redefinition with a different value is not possible
--z              Reset state
--b              Stop execution here; useful in -o file
--debug          Start .Net debugger 
--c              Ignore case in rules
--v              Verbose
--w              Chatty
--o fileName     Read options from file
+-?                Write help
+-a                Write extensive help  
+-b                Stop execution here; useful in -o file
+-c                Ignore case in rules
+-debug            Start .Net debugger 
+-k cmd            Run command; useful for opening an HTML file after creating it
+-l                Execute readers and transformers lazily (lazy reading and transforming NOT YET IMPLEMENTED)
+-m name value     Define name as value; a redefinition with a different value is not possible
+-o file           Read options from file
+-v                Verbose
+-w                Chatty
+-x port directory Start web server
+-y                Stop web server
+-z                Reset state
 ");
+
+            if (message != null) {
+                Log.WriteError(message);
+                Log.WriteInfo("");
+            }
+
             if (extensiveHelp) {
                 Console.Out.WriteLine(@"
 

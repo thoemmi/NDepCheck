@@ -15,7 +15,7 @@ namespace NDepCheck.Tests {
 
 
             using (var s = new MemoryStream()) {
-                new GenericMatrixRenderer1().RenderToStreamForUnitTests(nodes, edges, s);
+                new GenericMatrixRenderer1().RenderToStreamForUnitTests(edges, s);
             
                 Assert.AreEqual(@"Id;Name;!1;  ;!2;  ;!3;  
 !1;n3  ; 1;  ;  ;  ;  ;  
@@ -33,7 +33,7 @@ namespace NDepCheck.Tests {
 
 
             using (var s = new MemoryStream()) {
-                new GenericMatrixRenderer1().RenderToStreamForUnitTests(nodes, edges, s);
+                new GenericMatrixRenderer1().RenderToStreamForUnitTests(edges, s);
                 Assert.AreEqual(@"Id;Name;!1;  ;!2;  ;!3;  
 !1;n3  ; 1;  ;  ;  ;  ;  
 !2;n2  ; 1;  ;  ;  ;  ;  
@@ -73,7 +73,7 @@ namespace NDepCheck.Tests {
             };
 
             using (var s = new MemoryStream()) {
-                new GenericMatrixRenderer1().RenderToStreamForUnitTests(nodes, edges, s);
+                new GenericMatrixRenderer1().RenderToStreamForUnitTests(edges, s);
                 Assert.AreEqual(@"Id  ;Name;!001;    ;!002;    ;!003;    
 !001;n3  ;    ;    ;    ;    ;#  7;    
 !002;n2  ;  55;    ;    ;    ;    ;    
@@ -95,7 +95,7 @@ namespace NDepCheck.Tests {
             TestEdge[] edges = nodes.SelectMany(from => nodes.Select(to => new TestEdge(from, to, ++ct, ct / 2))).ToArray();
 
             using (var s = new MemoryStream()) {
-                new GenericMatrixRenderer1().RenderToStreamForUnitTests(nodes, edges, s);
+                new GenericMatrixRenderer1().RenderToStreamForUnitTests(edges, s);
                 Assert.AreEqual(@"Id  ;Name;!001;    ;!002;    ;!003;    
 !001;n3  ; 109;~ 54;#106;* 53;#103;* 51
 !002;n2  ; 108;~ 54; 105;~ 52;#102;* 51

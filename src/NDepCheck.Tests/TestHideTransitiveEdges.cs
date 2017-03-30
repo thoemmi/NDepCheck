@@ -45,7 +45,7 @@ namespace NDepCheck.Tests {
             new HideTransitiveEdges<TestEdge>(new string[0]).Run(edges);
 
             using (var s = new MemoryStream()) {
-                new GenericDotRenderer().RenderToStreamForUnitTests(nodes.Values, edges, s);
+                new GenericDotRenderer().RenderToStreamForUnitTests(edges, s);
 
                 int ctEdgesAfterHiding = edges.Count(e => !e.Hidden);
                 Assert.IsTrue(ctEdgesAfterHiding < ctEdgesBeforeHiding, ctEdgesAfterHiding + " not < " + ctEdgesBeforeHiding);
@@ -236,7 +236,7 @@ namespace NDepCheck.Tests {
             new HideTransitiveEdges<TestEdge>(new string[0]).Run(edges);
 
             using (var s = new MemoryStream()) {
-                new GenericDotRenderer().RenderToStreamForUnitTests(nodes.Values, edges, s);
+                new GenericDotRenderer().RenderToStreamForUnitTests(edges, s);
 
                 int ctEdgesAfterHiding = edges.Count(e => !e.Hidden);
                 Assert.IsTrue(ctEdgesAfterHiding < ctEdgesBeforeHiding, ctEdgesAfterHiding + " not < " + ctEdgesBeforeHiding);

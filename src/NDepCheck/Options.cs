@@ -29,7 +29,7 @@ namespace NDepCheck {
             if (argparts.Length > 1) {
                 // /#=value ==> optionValue: "value"
                 optionValue = argparts[1];
-            } else if (i < args.Length - 1 && (arg.StartsWith("/") || arg.StartsWith("-"))) {
+            } else if (argparts[0].Length == 2 && i < args.Length - 1 && (arg.StartsWith("/") || arg.StartsWith("-"))) {
                 // /# value ==> optionValue: "value"
                 // -# value ==> optionValue: "value"
                 optionValue = args[++i];
@@ -41,8 +41,8 @@ namespace NDepCheck {
                 // /#=value ==> optionValue: "value" // AGAIN?
                 optionValue = arg.Length == 3 ? args[++i] : arg.Substring(3);
             } else {
-                // /# value ==> optionValue: "value"
-                // /#value ==> optionValue: "value" // AGAIN?
+                // /# value ==> optionValue: "value" // AGAIN?
+                // /#value ==> optionValue: "value"
                 optionValue = arg.Length == 2 ? args[++i] : arg.Substring(2);
             }
 

@@ -201,7 +201,7 @@ namespace NDepCheck {
         public string AsDipStringWithTypes(bool withExampleInfo) {
             string exampleInfo = withExampleInfo ? _exampleInfo : null;
             return $"{_usingItem.AsStringWithType()} {EdgeConstants.DIP_ARROW} "
-                 + $"{Usage};{_ct};{_questionableCt};{_badCt};{Source?.AsDipString()};{exampleInfo}"
+                 + $"{Usage};{_ct};{_questionableCt};{_badCt};{Source?.AsDipString()};{exampleInfo} "
                  + $"{EdgeConstants.DIP_ARROW} {_usedItem.AsStringWithType()}";
         }
 

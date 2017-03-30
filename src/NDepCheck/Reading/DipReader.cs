@@ -36,14 +36,13 @@ namespace NDepCheck.Reading {
                     if (line == "") {
                         continue;
                     }
-                    if (!dipArrow.IsMatch(line)) {
-                        string[] parts = line.Split(' ', '\t', ':');
-                        RegisterType(parts[0], parts.Skip(1).Select(p => p.Split('.')));
+                    if (line.StartsWith("$")) {
+                        _factory.AddItemType(ItemType.New(line.TrimStart('$').Trim()));
                     } else {
                         string[] parts = dipArrow.Split(line);
 
                         if (parts.Length != 3) {
-                            WriteError(_fileName, lineNo, "Line is not ... -> #;#;... -> ..., but " + parts.Length, line);
+                            WriteError(_fileName, lineNo, $"Line is not ... {EdgeConstants.DIP_ARROW} #;#;... {EdgeConstants.DIP_ARROW} ..., but " + parts.Length, line);
                         }
 
                         try {
@@ -53,13 +52,13 @@ namespace NDepCheck.Reading {
                             string[] properties = parts[1].Split(new[] { ';' }, 6);
                             int ct, questionableCt, badCt;
                             var usage = Get(properties, 0);
-                            if (!int.TryParse(Get(properties, 1), out ct)) {
+                            if (!int.TryParse(Get(properties, 1, "1"), out ct)) {
                                 throw new DipReaderException("Cannot parse count: " + Get(properties, 1));
                             }
-                            if (!int.TryParse(Get(properties, 2), out questionableCt)) {
+                            if (!int.TryParse(Get(properties, 2, "0"), out questionableCt)) {
                                 throw new DipReaderException("Cannot parse questionableCt: " + Get(properties, 2));
                             }
-                            if (!int.TryParse(Get(properties, 3), out badCt)) {
+                            if (!int.TryParse(Get(properties, 3, "0"), out badCt)) {
                                 throw new DipReaderException("Cannot parse badCt: " + Get(properties, 3));
                             }
 
@@ -90,12 +89,8 @@ namespace NDepCheck.Reading {
         }
 
         [NotNull]
-        private string Get(string[] properties, int i) {
-            return i < properties.Length ? properties[i] : "";
-        }
-
-        private void RegisterType([NotNull] string name, [NotNull] IEnumerable<string[]> keySubKeyPairs) {
-            _factory.AddItemType(ItemType.New(name, keySubKeyPairs.Select(pair => pair[0]).ToArray(), keySubKeyPairs.Select(pair => pair.Length > 1 ? pair[1] : "").ToArray()));
+        private string Get(string[] properties, int i, string @default = "") {
+            return i < properties.Length ? properties[i] : @default;
         }
 
         [NotNull]
@@ -126,5 +121,4 @@ namespace NDepCheck.Reading {
             Log.WriteError(fileName + "/" + lineNo + ": " + msg + " - '" + line + "'");
         }
     }
-
 }
