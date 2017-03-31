@@ -12,6 +12,7 @@ namespace NDepCheck.Transforming.Projecting {
 
         public IEnumerable<Projection> AllProjections {
             get {
+                // ReSharper disable once ConvertIfStatementToNullCoalescingExpression - caching pattern
                 if (_allOrderedAbstractionsCached == null) {
                     _allOrderedAbstractionsCached = _orderedAbstractions.SelectMany(e => e.AllProjections).ToArray();
                 }

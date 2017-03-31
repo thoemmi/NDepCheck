@@ -27,7 +27,7 @@ namespace NDepCheck.Rendering {
             foreach (var @using in topNodes) {
                 WriteFormat2Line(output, NodeId(@using, nodeFormat, node2Index), Limit(@using.Name, labelWidth), Limit("", colWidth), Limit("", labelWidth), emptyCtCols);
                 foreach (var used in sortedNodes) {
-                    var edge = nodesAndEdges[@using].FirstOrDefault(e => !e.Hidden && e.UsedNode.Equals(used));
+                    var edge = nodesAndEdges[@using].FirstOrDefault(e => e.UsedNode.Equals(used));
                     if (edge != null) {
                         WriteFormat2Line(output, NodeId(@using, nodeFormat, node2Index), Limit(@using.Name, labelWidth), NodeId(used, nodeFormat, node2Index),
                             Limit(used.Name, labelWidth),

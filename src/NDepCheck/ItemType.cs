@@ -8,7 +8,7 @@ namespace NDepCheck {
     public class ItemType : IEquatable<ItemType> {
         private static readonly Dictionary<string, ItemType> _allTypes = new Dictionary<string, ItemType>();
 
-        internal static readonly ItemType SIMPLE = New("SIMPLE", new[] { "Data " }, new[] { "" });
+        public static readonly ItemType SIMPLE = New("SIMPLE", new[] { "Data " }, new[] { "" });
 
         [NotNull]
         public readonly string Name;

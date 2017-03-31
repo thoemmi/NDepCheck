@@ -6,7 +6,7 @@ namespace NDepCheck.Reading {
         private readonly Dictionary<string, ItemType> _registeredItemTypes = new Dictionary<string, ItemType>();
 
         [CanBeNull]
-        public ItemType GetDescriptor(string name) {
+        public ItemType GetItemType(string name) {
             ItemType result;
             _registeredItemTypes.TryGetValue(name, out result);
             return result;

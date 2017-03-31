@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
-using NDepCheck.Reading;
 
 namespace NDepCheck.Transforming.Projecting {
-    public class Projector : AbstractTransformer<ProjectionSet> {
+    public class Projector : AbstractTransformerWithConfigurationPerInputfile<ProjectionSet> {
         private ProjectionSet _orderedProjections;
 
         public override string GetHelp(bool detailedHelp) {
@@ -135,15 +134,16 @@ Transformer options: None
 
         public override bool RunsPerInputContext => true;
 
-        public override int Transform(GlobalContext context, string dependenciesFileName, IEnumerable<Dependency> dependencies, 
-            string transformOptions, string dependencySourceForLogging, Dictionary<FromTo, Dependency> newDependenciesCollector) {
+        public override int Transform(GlobalContext context, string dependenciesFileName, IEnumerable<Dependency> dependencies, string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
             if (_orderedProjections != null) {
                 Log.WriteInfo("Reducing graph " + dependencySourceForLogging);
 
+                var localCollector = new Dictionary<FromTo, Dependency>();
                 foreach (var d in dependencies) {
-                    ReduceEdge(_orderedProjections.AllProjections, d, newDependenciesCollector);
+                    ReduceEdge(_orderedProjections.AllProjections, d, localCollector);
                 }
+                transformedDependencies.AddRange(localCollector.Values);
                 return Program.OK_RESULT;
             } else {
                 Log.WriteWarning("No rule set found for reducing " + dependencySourceForLogging);
@@ -152,38 +152,30 @@ Transformer options: None
         }
 
         private static void ReduceEdge(IEnumerable<Projection> orderedProjections, Dependency d, 
-                                       Dictionary<FromTo, Dependency> newEdgeCollector) {
+                                       Dictionary<FromTo, Dependency> localCollector) {
 
-            Item usingMatch = orderedProjections
+            Item usingItem = orderedProjections
                                     //.Skip(GuaranteedNonMatching(d.UsingItem))
                                     //.SkipWhile(ga => ga != FirstPossibleAbstractionInCache(d.UsingItem, skipCache))
                                     .Select(ga => ga.Match(d.UsingItem, left: true))
                                     .FirstOrDefault(m => m != null);
-            Item usedMatch = orderedProjections
+            Item usedItem = orderedProjections
                                     //.Skip(GuaranteedNonMatching(d.UsedItem))
                                     //.SkipWhile(ga => ga != FirstPossibleAbstractionInCache(d.UsedItem, skipCache))
                                     .Select(ga => ga.Match(d.UsedItem, left: false))
                                     .FirstOrDefault(n => n != null);
 
-            if (usingMatch == null) {
+            if (usingItem == null) {
                 Log.WriteInfo("No graph output pattern found for drawing " + d.UsingItem.AsString() + " - I ignore it");
-            } else if (usedMatch == null) {
+            } else if (usedItem == null) {
                 Log.WriteInfo("No graph output pattern found for drawing " + d.UsedItem.AsString() + " - I ignore it");
-            } else if (usingMatch.IsEmpty() || usedMatch.IsEmpty()) {
+            } else if (usingItem.IsEmpty() || usedItem.IsEmpty()) {
                 // ignore this edge!
             } else {
-                FromTo key = new FromTo(usingMatch, usedMatch);
-
-                Dependency reducedEdge;
-                if (!newEdgeCollector.TryGetValue(key, out reducedEdge)) {
-                    reducedEdge = new Dependency(usingMatch, usedMatch, d.Source, d.Usage, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo);
-                    newEdgeCollector.Add(key, reducedEdge);
-                } else {
-                    reducedEdge.AggregateCounts(d);
-                }
+                new FromTo(usingItem, usedItem).AggregateEdge(d, localCollector);
             }
         }
-        
+
         public override IEnumerable<Dependency> GetTestDependencies() {
             ItemType abc = ItemType.New("AB:A:B");
             Item a1 = Item.New(abc, "a", "1");

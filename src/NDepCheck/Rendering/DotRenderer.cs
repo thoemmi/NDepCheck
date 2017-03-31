@@ -33,9 +33,7 @@ namespace NDepCheck.Rendering {
 
     public class GenericDotRenderer : IRenderer<IEdge> {
         private void Render(/*IEnumerable<INode> nodes, */IEnumerable<IEdge> edges, [NotNull] TextWriter output, int? stringLengthForIllegalEdges) {
-            IEnumerable<IEdge> visibleEdges = edges.Where(e => !e.Hidden);
-
-            IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdges(visibleEdges);
+            IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdges(edges);
 
             output.WriteLine("digraph D {");
             output.WriteLine("ranksep = 1.5;");

@@ -38,7 +38,7 @@ namespace NDepCheck.Rendering {
                 WriteFormat1Line(output, NodeId(used, nodeFormat, node2Index), Limit(used.Name, labelWidth),
                     topNodes.Select( @using =>
                             FormatCt(withNotOkCt, ctFormat, node2Index[@using] > node2Index[used1],
-                                nodesAndEdges[@using].FirstOrDefault(e => !e.Hidden && e.UsedNode.Equals(used1)) ?? ZERO_EDGE)));
+                                nodesAndEdges[@using].FirstOrDefault(e => e.UsedNode.Equals(used1)) ?? ZERO_EDGE)));
             }
         }
 

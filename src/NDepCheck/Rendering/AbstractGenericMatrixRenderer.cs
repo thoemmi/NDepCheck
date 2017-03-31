@@ -119,13 +119,12 @@ namespace NDepCheck.Rendering {
 
         protected void Render(IEnumerable<IEdge> edges,
             [NotNull] TextWriter output, int? labelWidthOrNull, bool withNotOkCt) {
-            IEnumerable<IEdge> visibleEdges = edges.Where(e => !e.Hidden);
-            IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdges(visibleEdges);
+            IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdges(edges);
 
             var innerAndReachableOuterNodes =
                 new HashSet<INode>(nodesAndEdges.Where(n => n.Key.IsInner).SelectMany(kvp => new[] { kvp.Key }.Concat(kvp.Value.Select(e => e.UsedNode))));
 
-            IEnumerable<INode> sortedNodes = MoreOrLessTopologicalSort(visibleEdges).Where(n => innerAndReachableOuterNodes.Contains(n));
+            IEnumerable<INode> sortedNodes = MoreOrLessTopologicalSort(edges).Where(n => innerAndReachableOuterNodes.Contains(n));
 
             if (sortedNodes.Any()) {
 
@@ -135,7 +134,7 @@ namespace NDepCheck.Rendering {
                 IEnumerable<INode> topNodes = sortedNodes.Where(n => n.IsInner);
 
                 int labelWidth = labelWidthOrNull ?? Math.Max(Math.Min(sortedNodes.Max(n => n.Name.Length), 30), 4);
-                int colWidth = Math.Max(1 + ("" + visibleEdges.Max(e => e.Ct)).Length, // 1+ because of loop prefix
+                int colWidth = Math.Max(1 + ("" + edges.Max(e => e.Ct)).Length, // 1+ because of loop prefix
                     1 + ("" + sortedNodes.Count()).Length); // 1+ because of ! or % marker
                 string nodeFormat = "{0," + (colWidth - 1) + ":" + Repeat('0', colWidth - 1) + "}";
                 string ctFormat = "{0}{1," + (colWidth - 1) + ":" + Repeat('#', colWidth) + "}";

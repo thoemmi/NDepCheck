@@ -7,6 +7,14 @@ using NDepCheck.ConstraintSolving;
 
 namespace NDepCheck.Rendering {
     public class ModulesAndInterfacesRenderer : GraphicsDependencyRenderer {
+        private static readonly Font _boxFont = new Font(FontFamily.GenericSansSerif, 10);
+        private static readonly Font _interfaceFont = new Font(FontFamily.GenericSansSerif, 7);
+        private static readonly Font _lineFont = new Font(FontFamily.GenericSansSerif, 5);
+
+        private int _orderField = -1;
+        private Regex _interfaceMarker = new Regex("^I");
+        private string _title = typeof(ModulesAndInterfacesRenderer).Name;
+
         private static string GetName(Item i) {
             return i.Values[0];
         }
@@ -15,16 +23,9 @@ namespace NDepCheck.Rendering {
             return i.Values[1];
         }
 
-        private static string GetOrder(Item i) {
-            return i.Values[2];
+        private string GetOrder(Item i) {
+            return (_orderField < 0 || i.Values.Length <= _orderField ? i.Order : i.Values[_orderField]) ?? "";
         }
-
-        private static readonly Font _boxFont = new Font(FontFamily.GenericSansSerif, 10);
-        private static readonly Font _interfaceFont = new Font(FontFamily.GenericSansSerif, 7);
-        private static readonly Font _lineFont = new Font(FontFamily.GenericSansSerif, 5);
-
-        private Regex _interfaceMarker = new Regex("^I");
-        private string _title = typeof(ModulesAndInterfacesRenderer).Name;
 
         protected override void PlaceObjects(IEnumerable<Dependency> dependencies) {
             // ASCII-art sketch of what I want to accomplish:
@@ -253,6 +254,12 @@ namespace NDepCheck.Rendering {
                     _interfaceMarker = new Regex(Options.ExtractOptionValue(args, ref j));
                     return j;
                 }),
+                new OptionAction('o', (args, j) => {
+                    if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out _orderField) || _orderField < 0) {
+                        Options.Throw("No valid width after -o", args);
+                    }
+                    return j;
+                }),
                 new OptionAction('t', (args, j) => {
                     _title = Options.ExtractOptionValue(args, ref j);
                     return j;
@@ -267,6 +274,7 @@ namespace NDepCheck.Rendering {
     -i &          regexp for interface marker, i.e., items that are
                   drawn as vertical bars
     -t &          title text shown in diagram
+    -o #          order field in values; default: take internal order field
 " + GetHelpExplanations();
         }
     }

@@ -27,9 +27,6 @@ namespace NDepCheck {
         [CanBeNull]
         private string _exampleInfo;
 
-        private bool _onCycle;
-        private bool _carrysTransitive;
-
         /// <summary>
         /// Create a dependency.
         /// </summary>
@@ -43,7 +40,7 @@ namespace NDepCheck {
         /// <param name="exampleInfo"></param>
         /// <param name="inputContext"></param>
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem,
-            ISourceLocation source, string usage,
+            [CanBeNull] ISourceLocation source, [CanBeNull] string usage,
             int ct, int questionableCt = 0, int badCt = 0, [CanBeNull] string exampleInfo = null,
             [CanBeNull] InputContext inputContext = null) {
             if (usingItem == null) {
@@ -80,10 +77,12 @@ namespace NDepCheck {
         /// A guess where the use occurs in the
         /// original source file.
         /// </value>
+        [CanBeNull] 
         public ISourceLocation Source {
             get;
         }
 
+        [CanBeNull]
         public string Usage {
             get; private set;
         }
@@ -141,7 +140,7 @@ namespace NDepCheck {
                        + GetDotLabel(stringLengthForIllegalEdges)
                        + GetDotFontSize()
                        + GetDotEdgePenWidthAndWeight()
-                       + GetDotStyle() + "];";
+                       + "];";
         }
 
         public void MarkAsBad() {
@@ -175,7 +174,6 @@ namespace NDepCheck {
                                 ? LimitWidth(ExampleInfo, stringLengthForIllegalEdges.Value) + "\\n"
                                 : "") +
                             " (" + Ct + (QuestionableCt + BadCt > 0 ? "(" + QuestionableCt + "?," + BadCt + "!)" : "") + ")" +
-                            (_carrysTransitive ? "+" : "") +
                             "\"";
         }
 
@@ -186,23 +184,11 @@ namespace NDepCheck {
             return s;
         }
 
-        private string GetDotStyle() {
-            return _onCycle ? " style=bold" : "";
-        }
-
-        public void MarkOnCycle() {
-            _onCycle = true;
-        }
-
-        public void MarkCarrysTransitive() {
-            _carrysTransitive = true;
-        }
-
         public string AsDipStringWithTypes(bool withExampleInfo) {
             string exampleInfo = withExampleInfo ? _exampleInfo : null;
-            return $"{_usingItem.AsStringWithType()} {EdgeConstants.DIP_ARROW} "
+            return $"{_usingItem.AsStringWithOrderAndType()} {EdgeConstants.DIP_ARROW} "
                  + $"{Usage};{_ct};{_questionableCt};{_badCt};{Source?.AsDipString()};{exampleInfo} "
-                 + $"{EdgeConstants.DIP_ARROW} {_usedItem.AsStringWithType()}";
+                 + $"{EdgeConstants.DIP_ARROW} {_usedItem.AsStringWithOrderAndType()}";
         }
 
         public void AggregateCounts(Dependency d) {

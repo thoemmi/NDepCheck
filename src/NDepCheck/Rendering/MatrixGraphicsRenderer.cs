@@ -22,7 +22,7 @@ namespace NDepCheck.Rendering {
 
         [NotNull]
         private string GetOrder(Item i) {
-            return i.Values.Length > _orderField ? (i.Values[_orderField] ?? "") : "";
+            return (_orderField < 0 || i.Values.Length <= _orderField ? i.Order : i.Values[_orderField]) ?? "";
         }
 
         private static readonly Font _boxFont = new Font(FontFamily.GenericSansSerif, 10);
@@ -209,7 +209,7 @@ namespace NDepCheck.Rendering {
     -t &          title text shown in diagram; default: 'ModulesAndInterfacesRenderer'
     -o #          field on which items are sorted, counted from 1 up.
                   Items with equal order are sorted by edge count.
-                  Default: sort only be edge count.
+                  Default: internal order field, then edge count.
     -x            do not show non-referenced items on bottom; default: show all
     -y            do not show non-referencing items on left side; default: show all
 " + GetHelpExplanations();

@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming {
-    public abstract class AbstractTransformer<T> : ITransformer {
+    public abstract class AbstractTransformer {
+        
+    }
+
+    public abstract class AbstractTransformerWithConfigurationPerInputfile<TConfigurationPerInputfile> : AbstractTransformer, ITransformer {
         public abstract string GetHelp(bool detailedHelp);
 
         #region Configure
@@ -16,13 +18,13 @@ namespace NDepCheck.Transforming {
         /// </summary>
         private const string ASSIGN = ":=";
 
-        private readonly Dictionary<string, T> _fileName2config = new Dictionary<string, T>();
+        private readonly Dictionary<string, TConfigurationPerInputfile> _fileName2config = new Dictionary<string, TConfigurationPerInputfile>();
 
         public abstract void Configure(GlobalContext globalContext, [NotNull] string configureOptions);
 
-        public T GetOrReadChildConfiguration(GlobalContext globalContext, 
+        public TConfigurationPerInputfile GetOrReadChildConfiguration(GlobalContext globalContext, 
             Func<TextReader> createReader, string fullSourceName,bool ignoreCase, string fileIncludeStack) {
-            T childConfiguration;
+            TConfigurationPerInputfile childConfiguration;
             if (!_fileName2config.TryGetValue(fullSourceName, out childConfiguration)) {
                 using (var tr = createReader()) {
                     childConfiguration =  CreateConfigurationFromText(globalContext, fullSourceName, 0, tr, ignoreCase,
@@ -43,12 +45,12 @@ namespace NDepCheck.Transforming {
             return new Uri(path).LocalPath;
         }
 
-        protected abstract T CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
+        protected abstract TConfigurationPerInputfile CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
             int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack);
 
         protected void ProcessTextInner(GlobalContext globalContext, string fullConfigFileName, int startLineNo, TextReader tr,
             bool ignoreCase, string fileIncludeStack, 
-            [NotNull] Action<T,string> onIncludedConfiguration,
+            [NotNull] Action<TConfigurationPerInputfile,string> onIncludedConfiguration,
             [NotNull] Func<string, int, bool> onLineWithLineNo) {
 
             int lineNo = startLineNo;
@@ -74,7 +76,7 @@ namespace NDepCheck.Transforming {
                     } else if (line.StartsWith("+")) {
                         string includeFilename = line.Substring(1).Trim();
                         string fullIncludeFileName = Path.Combine(Path.GetDirectoryName(fullConfigFileName) ?? @"\", includeFilename);
-                        T childConfiguration = GetOrReadChildConfiguration(globalContext,                             
+                        TConfigurationPerInputfile childConfiguration = GetOrReadChildConfiguration(globalContext,                             
                             () => new StreamReader(fullIncludeFileName), fullIncludeFileName,
                             ignoreCase, fileIncludeStack);
                         onIncludedConfiguration(childConfiguration, fullConfigFileName);
@@ -109,9 +111,8 @@ namespace NDepCheck.Transforming {
 
         public abstract bool RunsPerInputContext { get; }
 
-        public abstract int Transform(GlobalContext context, string dependenciesFileName,
-                                      IEnumerable<Dependency> dependencies, string transformOptions, 
-                                      string dependencySourceForLogging, Dictionary<FromTo, Dependency> newDependenciesCollector);
+        public abstract int Transform(GlobalContext context, string dependenciesFileName, IEnumerable<Dependency> dependencies, 
+            string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies);
 
         public abstract IEnumerable<Dependency> GetTestDependencies();
 

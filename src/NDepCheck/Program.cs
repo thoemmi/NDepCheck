@@ -119,7 +119,7 @@ namespace NDepCheck {
                         result = RunFrom(fileName, globalContext, writtenMasterFiles);
 
                         // file is also an input file - and if there are no input files in -o, the error will come up there.
-                        globalContext.InputFilesSpecified = true;
+                        globalContext.InputFilesOrTestDataSpecified = true;
                     } else if (Options.ArgMatches(arg, 'p', 'q', 'r')) {
                         // -p     assembly renderer [{ options }] fileName
                         // -q     assembly renderer [{ options }] fileName
@@ -136,6 +136,7 @@ namespace NDepCheck {
                             } else if (Options.ArgMatches(arg, 'p')) {
                                 string fn = globalContext.RenderTestData(assembly, rendererClass, classOptions, fileName);
                                 writtenMasterFiles?.Add(fn);
+                                globalContext.InputFilesOrTestDataSpecified = true;
                             } else {
                                 string fn = globalContext.RenderToFile(assembly, rendererClass, classOptions, fileName);
                                 writtenMasterFiles?.Add(fn);
@@ -159,6 +160,7 @@ namespace NDepCheck {
                                     : "";
                                 if (Options.ArgMatches(arg, 's')) {
                                     globalContext.TransformTestData(assembly, transformerClass, transformerOptions);
+                                    globalContext.InputFilesOrTestDataSpecified = true;
                                 } else {
                                     result = globalContext.Transform(assembly, transformerClass, transformerOptions);
                                 }
@@ -202,7 +204,7 @@ namespace NDepCheck {
                 return UsageAndExit(ex.Message);
             }
 
-            if (!globalContext.InputFilesSpecified && !ranAsWebServer && !globalContext.HelpShown) {
+            if (!globalContext.InputFilesOrTestDataSpecified && !ranAsWebServer && !globalContext.HelpShown) {
                 return UsageAndExit("No input files specified");
             }
 

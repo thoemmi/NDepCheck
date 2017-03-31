@@ -9,16 +9,14 @@ using NDepCheck.Rendering;
 
 namespace NDepCheck {
     public abstract class ItemSegment {
-        [NotNull] private readonly ItemType _type;
-        [NotNull] public readonly string[] Values;
+        [NotNull]
+        private readonly ItemType _type;
+        [NotNull]
+        public readonly string[] Values;
 
         protected ItemSegment([NotNull] ItemType type, [NotNull] string[] values) {
             _type = type;
-            //Values = _debugSingleton;
-            //Values = values;
             Values = values.Select(v => v == null ? null : string.Intern(v)).ToArray();
-            //Values = values.Select(v => v == null ? null : StringReference.GetReference(v)).ToArray();
-            //Values = values.Select(v => v == null ? null : MyIntern(v)).ToArray();
         }
 
         public ItemType Type => _type;
@@ -79,17 +77,16 @@ namespace NDepCheck {
     public sealed class Item : ItemSegment, INode {
         private AdditionalDynamicData _additionalDynamicData;
 
-        private readonly bool _isInner;
-
         private string _asString;
         private string _asStringWithType;
+        private string _order;
 
-        private Item([NotNull]ItemType type, bool isInner, string[] values)
+        private Item([NotNull] ItemType type, bool isInner, string[] values)
             : base(type, values) {
             if (type.Length != values.Length) {
                 throw new ArgumentException("keys.Length != values.Length", nameof(values));
             }
-            _isInner = isInner;
+            IsInner = isInner;
         }
 
         public static Item New([NotNull]ItemType type, bool isInner, [ItemNotNull] string[] values) {
@@ -101,7 +98,7 @@ namespace NDepCheck {
         }
 
         public static Item New([NotNull]ItemType type, [ItemNotNull] params string[] values) {
-            return New(type, false, values);
+            return New(type, isInner: false, values: values);
         }
 
         /// <summary>
@@ -111,13 +108,25 @@ namespace NDepCheck {
         /// </summary>
         public dynamic DynamicData => _additionalDynamicData ?? (_additionalDynamicData = new AdditionalDynamicData(this));
 
+        public string Order => _order;
+
+        public Item SetOrder(string order) {
+            _order = order;
+            _asStringWithType = null;
+            return this;
+        }
+
+        public string Name => AsString();
+
+        public bool IsInner { get; }
+
         public bool IsEmpty() {
             return Values.All(s => s == "");
         }
 
         public override bool Equals(object obj) {
             var other = obj as Item;
-            return other != null && other._isInner == _isInner && EqualsSegment(other);
+            return other != null && other.IsInner == IsInner && EqualsSegment(other);
         }
 
         public override int GetHashCode() {
@@ -125,12 +134,13 @@ namespace NDepCheck {
         }
 
         public override string ToString() {
-            return AsStringWithType();
+            return AsStringWithOrderAndType();
         }
 
         [NotNull]
-        public string AsStringWithType() {
-            return _asStringWithType ?? (_asStringWithType = Type.Name + ":" + AsString());
+        public string AsStringWithOrderAndType() {
+            return _asStringWithType
+                ?? (_asStringWithType = Type.Name + (string.IsNullOrEmpty(Order) ? "" : ";" + Order) + ":" + AsString());
         }
 
         [NotNull]
@@ -148,13 +158,9 @@ namespace NDepCheck {
             return _asString;
         }
 
-        public string Name => AsString();
-
-        public bool IsInner => _isInner;
-
         [NotNull]
         public Item Append([CanBeNull] ItemTail additionalValues) {
-            return additionalValues == null ? this : new Item(additionalValues.Type, _isInner, Values.Concat(additionalValues.Values).ToArray());
+            return additionalValues == null ? this : new Item(additionalValues.Type, IsInner, Values.Concat(additionalValues.Values).ToArray()).SetOrder(Order);
         }
     }
 }

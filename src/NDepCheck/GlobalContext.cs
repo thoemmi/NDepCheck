@@ -28,7 +28,7 @@ namespace NDepCheck {
     public class GlobalContext {
         internal bool RenderingDone { get; set; }
         internal bool TransformingDone { get; set; }
-        internal bool InputFilesSpecified { get; set; }
+        internal bool InputFilesOrTestDataSpecified { get; set; }
         internal bool HelpShown { get; private set; }
 
         public bool ShowUnusedQuestionableRules { get; set; }
@@ -186,7 +186,7 @@ namespace NDepCheck {
             CreateInputOption(filePattern,
                 negativeFilePattern: i + 2 < args.Length && args[i + 1] == "-" ? args[i += 2] : null, assembly: assembly,
                 readerClass: readerClass);
-            InputFilesSpecified = true;
+            InputFilesOrTestDataSpecified = true;
         }
 
         public void ShowAllPluginsAndTheirHelp<T>(string assemblyName) {
@@ -205,12 +205,12 @@ namespace NDepCheck {
 
         public void TransformTestData(string assembly, string transformerClass, string transformerOptions) {
             ITransformer transformer = GetOrCreatePlugin<ITransformer>(assembly, transformerClass);
-            IEnumerable<Dependency> testData = transformer.GetTestDependencies();
+            _dependenciesWithoutInputContext = transformer.GetTestDependencies();
 
-            var newDependenciesCollector = new Dictionary<FromTo, Dependency>();
-            transformer.Transform(this, "TestData", testData, transformerOptions, "TestData", newDependenciesCollector);
+            var newDependenciesCollector = new List<Dependency>();
+            transformer.Transform(this, "TestData", _dependenciesWithoutInputContext, transformerOptions, "TestData", newDependenciesCollector);
 
-            _dependenciesWithoutInputContext = newDependenciesCollector.Values;
+            _dependenciesWithoutInputContext = newDependenciesCollector;
         }
 
         public int Transform(string assembly, string transformerClass, string transformerOptions) {
@@ -218,7 +218,7 @@ namespace NDepCheck {
 
             ITransformer transformer = GetOrCreatePlugin<ITransformer>(assembly, transformerClass);
 
-            var newDependenciesCollector = new Dictionary<FromTo, Dependency>();
+            var newDependenciesCollector = new List<Dependency>();
             int result = Program.OK_RESULT;
             if (transformer.RunsPerInputContext) {
                 foreach (var ic in _inputContexts) {
@@ -233,14 +233,15 @@ namespace NDepCheck {
                     result = Math.Max(result, r);
                 }
                 foreach (var ic in _inputContexts) {
-                    ic.SetDependencies(newDependenciesCollector.Values.Where(d => d.InputContext == ic));
+                    ic.SetDependencies(newDependenciesCollector.Where(d => d.InputContext == ic));
                 }
+                _dependenciesWithoutInputContext =
+                    newDependenciesCollector.Where(d => d.InputContext == null).ToArray();
             } else {
                 result = transformer.Transform(this, "", GetAllDependencies(), transformerOptions, "all dependencies",
                     newDependenciesCollector);
+                _dependenciesWithoutInputContext = newDependenciesCollector.ToArray();
             }
-            _dependenciesWithoutInputContext =
-                newDependenciesCollector.Values.Where(d => d.InputContext == null).ToArray();
 
             return result;
         }

@@ -1,7 +1,7 @@
 // -m TOP ... -m INFILE ... 
 
 // NDepCheck\bin\Debug\NDepCheck.exe -debug -mLEFT a -mRIGHT a -mINFILE WSTestDep.dip -mOUTFILE files\WSTestDep -oc:\temp\Drilldown.nd
-// src\NDepCheck\bin\Debug\NDepCheck.exe -debug -mTOP a -mINFILE ..\input\DrillDownExample.dip -o examples\drilldown\scripts\DrillDown0.nd
+// src\NDepCheck\bin\Debug\NDepCheck.exe -debug -m TOP a -mINFILE ..\input\DrillDownExample.dip -o examples\drilldown\scripts\DrillDown0.nd
 
 -m LEFT TOP
 -m RIGHT TOP

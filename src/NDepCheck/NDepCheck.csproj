@@ -121,6 +121,8 @@
     <Compile Include="DependencyHelper..cs" />
     <Compile Include="Reading\AbstractDependencyReader.cs" />
     <Compile Include="Transforming\IMatcher.cs" />
+    <Compile Include="Transforming\Ordering\AddTopologicalOrder.cs" />
+    <Compile Include="Transforming\Ordering\MatrixDictionary.cs" />
     <Compile Include="Transforming\Projecting\IProjectionSetElement.cs" />
     <Compile Include="Transforming\Projecting\ProjectionSet.cs" />
     <Compile Include="Transforming\ViolationChecking\DependencyRuleGroup.cs" />

@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Collections.Generic;
+using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming {
     public class FromTo {
@@ -17,6 +18,24 @@ namespace NDepCheck.Transforming {
 
         public override int GetHashCode() {
             return From.GetHashCode() ^ To.GetHashCode();
+        }
+
+        public void AggregateEdge(Dependency d, Dictionary<FromTo, Dependency> edgeCollector) {
+            Dependency edge;
+            if (!edgeCollector.TryGetValue(this, out edge)) {
+                edge = new Dependency(From, To, d.Source, d.Usage, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo);
+                edgeCollector.Add(this, edge);
+            } else {
+                edge.AggregateCounts(d);
+            }
+        }
+
+        public static Dictionary<FromTo, Dependency> AggregateAllEdges(IEnumerable<Dependency> dependencies) {
+            var result = new Dictionary<FromTo, Dependency>();
+            foreach (var d in dependencies) {
+                new FromTo(d.UsingItem, d.UsedItem).AggregateEdge(d, result);
+            }
+            return result;
         }
     }
 }

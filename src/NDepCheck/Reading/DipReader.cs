@@ -105,15 +105,18 @@ namespace NDepCheck.Reading {
 
         [NotNull]
         private Item CreateItem(string s) {
-            string[] parts = s.Split(':', ';');
+            string[] prefixAndValues = s.Split(new [] { ':' }, 2);
+            string[] prefix = prefixAndValues[0].Split(';');
 
-            string descriptorName = parts.First();
-            ItemType foundType = _factory.GetDescriptor(descriptorName);
+            string typeName = prefix[0];
+            ItemType foundType = _factory.GetItemType(typeName);
 
             if (foundType == null) {
-                throw new DipReaderException("Descriptor '" + descriptorName + "' has not been defined in this file previously");
+                throw new DipReaderException("ItemType '" + typeName + "' has not been defined in this file previously");
             } else {
-                return Item.New(foundType, parts.Skip(1).ToArray());
+                string[] values = prefixAndValues.Length > 1 ? prefixAndValues[1].Split(':', ';') : new string[0];
+                Item result = Item.New(foundType, values);
+                return prefix.Length > 1 ? result.SetOrder(prefix[1]) : result;
             }
         }
 

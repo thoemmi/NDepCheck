@@ -5,7 +5,7 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.ViolationChecking {
-    public class ViolationsChecker : AbstractTransformer<DependencyRuleSet> {
+    public class ViolationsChecker : AbstractTransformerWithConfigurationPerInputfile<DependencyRuleSet> {
         // Configuration options
         [NotNull, ItemNotNull]
         private readonly List<DirectoryInfo> _searchRootsForRuleFiles = new List<DirectoryInfo>();
@@ -163,8 +163,10 @@ Transformer options: [-q] [-u]
         public override bool RunsPerInputContext => true;
 
         public override int Transform(GlobalContext context, string dependenciesFileName, IEnumerable<Dependency> dependencies, 
-            string transformOptions, string dependencySourceForLogging, Dictionary<FromTo, Dependency> newDependenciesCollector) {
+            string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
             if (dependencies.Any()) {
+                transformedDependencies.AddRange(dependencies);
+
                 // Transformation only done if there are any dependencies. This is especially useful for the
                 // typical case that there are no inputcontext-less dependencies; and no default set is specified
                 // (which would emit an error message "no dep file for input "" found" or the like).
