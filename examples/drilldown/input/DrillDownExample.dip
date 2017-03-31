@@ -1,0 +1,14 @@
+$ N(Name)
+
+N:a.b.d.g.x => => N:a.b.k.l.m.p
+N:a.b.d.g.y => => N:a.b.k.l.m.p
+N:a.b.d.g.y => => N:a.b.k.l.n.r
+N:a.b.d.h.x => => N:a.b.k.l.n.r
+N:a.b.d.h.x => => N:a.b.k.l.n.s
+N:a.b.d.h.y => => N:a.b.k.l.n.r
+N:a.b.d.h.y => => N:a.b.k.l.m.p
+N:a.b.e.g.y => => N:a.b.k.l.m.p
+N:a.b.e.g.y => => N:a.b.k.l.m.r
+N:a.b.e.h.x => => N:a.b.k.l.n.s
+N:a.b.e.h.x => => N:a.b.k.l.n.r
+N:a.b.e.h.y => => N:a.b.k.l.n.s

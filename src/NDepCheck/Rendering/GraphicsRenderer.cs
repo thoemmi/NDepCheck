@@ -71,7 +71,7 @@ namespace NDepCheck.Rendering {
         Left, Center, Right, LeftInclined, CenterInclined, RightInclined
     }
 
-    public abstract class GraphicsRenderer<TItem, TDependency> : IRenderer<TItem, TDependency>
+    public abstract class GraphicsRenderer<TItem, TDependency> : IRenderer<TDependency>
             where TItem : class, INode
             where TDependency : class, IEdge {
 
@@ -853,16 +853,16 @@ namespace NDepCheck.Rendering {
             return bitmap;
         }
 
-        public virtual string Render(IEnumerable<TDependency> dependencies, string argsAsString, string baseFilename) {
-            return DoRender(dependencies, argsAsString, baseFilename);
+        public virtual void Render(IEnumerable<TDependency> dependencies, string argsAsString, string baseFileName) {
+            DoRender(dependencies, argsAsString, baseFileName);
         }
 
         protected string DoRender(IEnumerable<TDependency> dependencies,
-                                string argsAsString, string baseFilename, params OptionAction[] additionalOptions) {
+                                string argsAsString, string baseFileName, params OptionAction[] additionalOptions) {
             int width = -1;
             int height = -1;
             int minTextHeight = 15;
-            if (baseFilename == null || GlobalContext.IsConsoleOutFileName(baseFilename)) {
+            if (baseFileName == null || GlobalContext.IsConsoleOutFileName(baseFileName)) {
                 Options.Throw("Cannot write graphics file to Console.Out", argsAsString);
             }
 
@@ -889,18 +889,18 @@ namespace NDepCheck.Rendering {
             StringBuilder htmlForClicks = new StringBuilder();
             Bitmap bitMap = Render(dependencies, minTextHeight, ref width, ref height, htmlForClicks);
 
-            string gifFileName = Path.ChangeExtension(baseFilename, ".gif");
+            string gifFileName = GetGifFileName(baseFileName);
             try {
                 Log.WriteInfo("Writing " + gifFileName);
-                // ReSharper disable once AssignNullToNotNullAttribute -- baseFilename != null, thus gifFilename != null
+                // ReSharper disable once AssignNullToNotNullAttribute -- baseFileName != null, thus gifFilename != null
                 bitMap.Save(gifFileName, ImageFormat.Gif);
             } catch (Exception ex) {
                 Log.WriteError("Cannot save GIF image to file " + gifFileName + ". Make sure the file can be written. Internal message: " + ex.Message);
                 throw;
             }
 
-            string htmlFileName = Path.ChangeExtension(baseFilename, ".html");
-            // ReSharper disable once AssignNullToNotNullAttribute -- baseFilename != null, thus htmlFileName != null
+            string htmlFileName = GetHtmlFileName(baseFileName);
+            // ReSharper disable once AssignNullToNotNullAttribute -- baseFileName != null, thus htmlFileName != null
             using (var tw = new StreamWriter(htmlFileName)) {
                 Log.WriteInfo("Writing " + htmlFileName);
                 tw.WriteLine($@"<!DOCTYPE html>
@@ -910,11 +910,19 @@ namespace NDepCheck.Rendering {
 <map name=""map"">
 {htmlForClicks}
 </map>
-</ body>
-</ html>
+</body>
+</html>
 ");
             }
             return htmlFileName;
+        }
+
+        private static string GetHtmlFileName(string baseFileName) {
+            return GlobalContext.CreateFullFileName(baseFileName, ".html");
+        }
+
+        private static string GetGifFileName(string baseFileName) {
+            return GlobalContext.CreateFullFileName(baseFileName, ".gif");
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<TDependency> dependencies, Stream stream) {
@@ -943,6 +951,10 @@ namespace NDepCheck.Rendering {
     The fileName is used as a base name for writing a .gif file as well as an .html file, which contains
     the link and popup information.
 ";
+
+        public string GetMasterFileName(string argsAsString, string baseFileName) {
+            return GetHtmlFileName(baseFileName);
+        }
     }
 
     public abstract class GraphicsDependencyRenderer : GraphicsRenderer<Item, Dependency>, IDependencyRenderer {

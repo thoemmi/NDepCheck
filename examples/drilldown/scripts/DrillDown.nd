@@ -1,0 +1,31 @@
+// Plan:
+// * Project each item to a prefix of its name
+// * Create a second projection to a NDepCheck command usingthe same file, but "one ply deeper"
+
+// Initial call: -m LEFT (top) -m INFILE inputfile
+// e.g. NDepCheck\bin\Debug\NDepCheck.exe -m LEFT a.b -m RIGHT a.b.k.l -m INFILE WSTestDep.dip -m OUTFILE files\WSTestDep.html -o c:\temp\Drilldown.nd
+
+-f Projector { 
+  -p
+    $ N(Name)    ---% NU(Name:Url)
+    
+    < (LEFT.*)     ---% \1:run?p00=-l&p01=-mLEF%54&p02=\1&p03=-mRIGH%54&p04=RIGHT&p05=-mINFIL%45&p06=INFILE&p07=-mOUTFIL%45&p08=OUTFILE~\1~RIGHT.base&p09=-o..\scripts\Drilldown.nd
+		< (LEFT.*).**  ---% \1:run?p00=-l&p01=-mLEF%54&p02=\1&p03=-mRIGH%54&p04=RIGHT&p05=-mINFIL%45&p06=INFILE&p07=-mOUTFIL%45&p08=OUTFILE~\1~RIGHT.base&p09=-o..\scripts\Drilldown.nd
+    > (RIGHT.*)    ---% \1:run?p00=-l&p01=-mLEF%54&p02=LEFT&p03=-mRIGH%54&p04=\1&p05=-mINFIL%45&p06=INFILE&p07=-mOUTFIL%45&p08=OUTFILE~LEFT~\1.base&p09=-o..\scripts\Drilldown.nd
+		> (RIGHT.*).** ---% \1:run?p00=-l&p01=-mLEF%54&p02=LEFT&p03=-mRIGH%54&p04=\1&p05=-mINFIL%45&p06=INFILE&p07=-mOUTFIL%45&p08=OUTFILE~LEFT~\1.base&p09=-o..\scripts\Drilldown.nd
+		| **         ---% :
+}
+INFILE
+-u Projector
+
+// Only for testing
+//// -r DipWriter ../files/F1.dip
+
+-r MatrixGraphicsRenderer {
+    -f 5
+    -x
+    -y     		
+} OUTFILE.base
+
+// Only for testing
+//// -k OUTFILE.html

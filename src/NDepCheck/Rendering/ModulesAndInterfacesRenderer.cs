@@ -247,8 +247,8 @@ namespace NDepCheck.Rendering {
             return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
-        public override string Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
-            return DoRender(dependencies, argsAsString, baseFilename,
+        public override void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName) {
+            DoRender(dependencies, argsAsString, baseFileName,
                 new OptionAction('i', (args, j) => {
                     _interfaceMarker = new Regex(Options.ExtractOptionValue(args, ref j));
                     return j;

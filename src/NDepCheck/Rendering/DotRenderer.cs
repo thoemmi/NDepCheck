@@ -8,12 +8,14 @@ namespace NDepCheck.Rendering {
     /// Class that creates AT&amp;T DOT (graphviz) output from dependencies - see <a href="http://graphviz.org/">http://graphviz.org/</a>.
     /// </summary>
     public class DotRenderer : IDependencyRenderer {
-        public string Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
-            return new GenericDotRenderer().Render(dependencies, argsAsString, baseFilename);
+        private readonly GenericDotRenderer _delegate = new GenericDotRenderer();
+
+        public void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName) {
+            _delegate.Render(dependencies, argsAsString, baseFileName);
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
-            new GenericDotRenderer().RenderToStreamForUnitTests(dependencies, output);
+            _delegate.RenderToStreamForUnitTests(dependencies, output);
         }
 
         public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
@@ -21,11 +23,15 @@ namespace NDepCheck.Rendering {
         }
 
         public string GetHelp(bool detailedHelp) {
-            return new GenericDotRenderer().GetHelp();
+            return _delegate.GetHelp();
+        }
+
+        public string GetMasterFileName(string argsAsString, string baseFileName) {
+            return _delegate.GetMasterFileName(argsAsString, baseFileName);
         }
     }
 
-    public class GenericDotRenderer : IRenderer<INode, IEdge> {
+    public class GenericDotRenderer : IRenderer<IEdge> {
         private void Render(/*IEnumerable<INode> nodes, */IEnumerable<IEdge> edges, [NotNull] TextWriter output, int? stringLengthForIllegalEdges) {
             IEnumerable<IEdge> visibleEdges = edges.Where(e => !e.Hidden);
 
@@ -49,7 +55,7 @@ namespace NDepCheck.Rendering {
             output.WriteLine("}");
         }
 
-        public string Render(IEnumerable<IEdge> dependencies, string argsAsString, [CanBeNull] string baseFilename) {
+        public void Render(IEnumerable<IEdge> dependencies, string argsAsString, [CanBeNull] string baseFileName) {
             int stringLengthForIllegalEdges = -1;
             Options.Parse(argsAsString,
                 new OptionAction('e', (args, j) => {
@@ -58,10 +64,13 @@ namespace NDepCheck.Rendering {
                     }
                     return j;
                 }));
-            using (var sw = GlobalContext.CreateTextWriter(baseFilename, ".dot")) {
-                Render(dependencies, sw.Writer, stringLengthForIllegalEdges);
-                return sw.FileName;
+            using (TextWriter sw = new StreamWriter(GetDotFileName(baseFileName))) {
+                Render(dependencies, sw, stringLengthForIllegalEdges);
             }
+        }
+
+        private string GetDotFileName(string baseFileName) {
+            return GlobalContext.CreateFullFileName(baseFileName, ".dot");
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<IEdge> dependencies, Stream stream) {
@@ -80,6 +89,10 @@ namespace NDepCheck.Rendering {
   Options: [-e #] -o fileName | fileName
     -e #          cutoff length of text for wrong dependencies; default: no cutoff
     fileName      output fileName in .dot (graphviz) format";
+        }
+
+        public string GetMasterFileName(string argsAsString, string baseFileName) {
+            return GetDotFileName(baseFileName);
         }
     }
 }

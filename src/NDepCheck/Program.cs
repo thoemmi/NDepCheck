@@ -92,10 +92,15 @@ namespace NDepCheck {
                                 : IsDipFile(filePattern) ? typeof(DipReaderFactory).FullName : null);
                     } else if (Options.ArgMatches(arg, 'k')) {
                         string cmd = Options.ExtractOptionValue(args, ref i);
-                        if (new Process { StartInfo = new ProcessStartInfo(cmd) }.Start()) {
-                            Log.WriteInfo($"Started process '{cmd}'");
-                        } else {
-                            Log.WriteWarning($"Could not start process '{cmd}");
+                        try {
+                            if (new Process {StartInfo = new ProcessStartInfo(cmd)}.Start()) {
+                                Log.WriteInfo($"Started process '{cmd}'");
+                            } else {
+                                Log.WriteError($"Could not start process '{cmd}'");
+                            }
+                        } catch (Exception ex) {
+                            Log.WriteError($"Could not start process '{cmd}'; reason: {ex.Message}");
+                            result = EXCEPTION_RESULT;
                         }
                     } else if (Options.ArgMatches(arg, 'l')) {
                         // -l                      Execute readers and transformers lazily 
@@ -296,10 +301,10 @@ namespace NDepCheck {
                     }
                 }
 
-                string previousCurrentDirectory = Environment.CurrentDirectory;
                 var locallyWrittenFiles = new List<string>();
+                string previousCurrentDirectory = Environment.CurrentDirectory;
                 try {
-                    Environment.CurrentDirectory = Path.GetDirectoryName(fileName);
+                    Environment.CurrentDirectory = Path.GetDirectoryName(Path.GetFullPath(fileName));
                     return Run(args.ToArray(), state, locallyWrittenFiles);
                 } finally {
                     writtenMasterFiles?.AddRange(locallyWrittenFiles.Select(Path.GetFullPath));

@@ -4,12 +4,18 @@ using System.Linq;
 
 namespace NDepCheck.Rendering {
     public class MatrixRenderer1 : AbstractMatrixRenderer, IDependencyRenderer {
-        public string Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
-            return new GenericMatrixRenderer1().Render(dependencies, argsAsString, baseFilename);
+        private readonly GenericMatrixRenderer1 _delegate = new GenericMatrixRenderer1();
+
+        public void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName) {
+            _delegate.Render(dependencies, argsAsString, baseFileName);
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
-            new GenericMatrixRenderer1().RenderToStreamForUnitTests(dependencies, output);
+            _delegate.RenderToStreamForUnitTests(dependencies, output);
+        }
+
+        public string GetMasterFileName(string argsAsString, string baseFileName) {
+            return _delegate.GetMasterFileName(argsAsString, baseFileName);
         }
     }
 
@@ -54,15 +60,22 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public override string Render(IEnumerable<IEdge> dependencies, string argsAsString, string baseFilename) {
+        public override void Render(IEnumerable<IEdge> dependencies, string argsAsString, string baseFileName) {
             int? labelWidthOrNull;
             bool withNotOkCt;
             ParseOptions(argsAsString, out labelWidthOrNull, out withNotOkCt);
 
-            using (var sw = GlobalContext.CreateTextWriter(baseFilename, ".csv")) {
-                Render(dependencies, sw.Writer, labelWidthOrNull, withNotOkCt);
-                return sw.FileName;
+            using (var sw = new StreamWriter(GetCSVFileName(baseFileName))) {
+                Render(dependencies, sw, labelWidthOrNull, withNotOkCt);
             }
+        }
+
+        private string GetCSVFileName(string baseFileName) {
+            return GlobalContext.CreateFullFileName(baseFileName, ".csv");
+        }
+
+        public override string GetMasterFileName(string argsAsString, string baseFileName) {
+            return GetCSVFileName(baseFileName);
         }
     }
 }

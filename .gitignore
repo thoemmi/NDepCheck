@@ -10,3 +10,8 @@ thumbs.db
 src/CommonAssemblyInfo.cs
 *.bak
 /ToDos.txt
+/examples/drilldown/files/yy.html
+/examples/drilldown/files/xxWithRef.html
+/examples/drilldown/files/xxWithFullUrl.html
+/examples/drilldown/files/xxOtherWithRef.html
+/examples/drilldown/files/xx.html

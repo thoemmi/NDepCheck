@@ -11,6 +11,20 @@ using NDepCheck.Transforming;
 using NDepCheck.WebServing;
 
 namespace NDepCheck {
+    public class NamedTextWriter : IDisposable {
+        public NamedTextWriter(TextWriter writer, string fileName) {
+            Writer = writer;
+            FileName = fileName;
+        }
+
+        public TextWriter Writer { get; }
+        public string FileName { get; }
+
+        public void Dispose() {
+            Writer?.Dispose();
+        }
+    }
+
     public class GlobalContext {
         internal bool RenderingDone { get; set; }
         internal bool TransformingDone { get; set; }
@@ -66,7 +80,6 @@ namespace NDepCheck {
             }
         }
 
-
         public string ExpandDefines(string s) {
             Dictionary<string, string> vars = GlobalVars;
             s = s ?? "";
@@ -75,7 +88,6 @@ namespace NDepCheck {
             }
             return s;
         }
-
 
         public void ReadAllNotYetReadIn() {
             IEnumerable<AbstractDependencyReader> allReaders =
@@ -96,7 +108,12 @@ namespace NDepCheck {
             IEnumerable<Dependency> allDependencies = GetAllDependencies();
             IDependencyRenderer renderer = GetOrCreatePlugin<IDependencyRenderer>(assemblyName, rendererClassName);
 
-            string masterFileName = renderer.Render(allDependencies, rendererOptions, fileName);
+            string masterFileName = renderer.GetMasterFileName(rendererOptions, fileName);
+            if (WorkLazily && File.Exists(masterFileName)) {
+                // we dont do anything - TODO check change dates of input files vs. the master file's last update date
+            } else {
+                renderer.Render(allDependencies, rendererOptions, fileName);
+            }
             RenderingDone = true;
 
             return masterFileName;
@@ -147,19 +164,18 @@ namespace NDepCheck {
         }
 
         public string RenderTestData([NotNull] string assemblyName, [NotNull] string rendererClassName,
-            string rendererOptions, [NotNull] string fileName) {
+            string rendererOptions, [NotNull] string baseFileName) {
             IDependencyRenderer renderer = GetOrCreatePlugin<IDependencyRenderer>(assemblyName, rendererClassName);
 
             IEnumerable<Item> items;
             IEnumerable<Dependency> dependencies;
 
             renderer.CreateSomeTestItems(out items, out dependencies);
-
-            string masterFileName = renderer.Render(dependencies, rendererOptions, fileName);
+            renderer.Render(dependencies, rendererOptions, baseFileName);
 
             RenderingDone = true;
 
-            return masterFileName;
+            return renderer.GetMasterFileName(rendererOptions, baseFileName);
         }
 
         public void CreateInputOption(string[] args, ref int i, string filePattern, string assembly, string readerClass) {
@@ -281,30 +297,21 @@ namespace NDepCheck {
             }
         }
 
-        public class NamedTextWriter : IDisposable {
-            public NamedTextWriter(TextWriter writer, string fileName) {
-                Writer = writer;
-                FileName = fileName;
-            }
-
-            public TextWriter Writer { get; }
-            public string FileName { get; }
-
-            public void Dispose() {
-                Writer?.Dispose();
-            }
-        }
-
-        public static NamedTextWriter CreateTextWriter(string fileName, string extension = null) {
+        public static string CreateFullFileName(string fileName, string extension) {
             if (fileName == null || IsConsoleOutFileName(fileName)) {
-                return new NamedTextWriter(Console.Out, "-");
+                return "-";
             } else {
                 if (extension != null) {
                     fileName = Path.ChangeExtension(fileName, extension);
                 }
-                Log.WriteInfo("Writing " + fileName);
-                return new NamedTextWriter(new StreamWriter(fileName), "-");
+                fileName = Path.GetFullPath(fileName);
+                return fileName;
             }
+        }
+        
+        public static NamedTextWriter CreateTextWriter(string fullFileName) {
+            Log.WriteInfo("Writing " + fullFileName);
+            return new NamedTextWriter(fullFileName == "-" ? Console.Out : new StreamWriter(fullFileName), fullFileName);
         }
 
         public static bool IsConsoleOutFileName(string fileName) {
@@ -325,7 +332,7 @@ namespace NDepCheck {
             if (_webServer != null) {
                 throw new ApplicationException("Cannot start webserver if one is already running");
             }
-            _webServer = new WebServer(program, this, port, fileDirectory);
+            _webServer = new WebServer(program, port, fileDirectory);
             _webServer.Start();
         }
 

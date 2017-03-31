@@ -28,7 +28,7 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public string Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
+        public void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName) {
             //int stringLengthForIllegalEdges = -1;
             bool withExampleInfo = false;
             Options.Parse(argsAsString, 
@@ -42,13 +42,11 @@ namespace NDepCheck.Rendering {
                     withExampleInfo = true;
                     return j;
                 }));
-            string fileName = Path.ChangeExtension(baseFilename, ".dip");
+            string fileName = Path.ChangeExtension(baseFileName, ".dip");
 
-            Log.WriteInfo("Writing " + fileName);
-            using (var sw = fileName == null ? Console.Out : new StreamWriter(fileName)) {
-                Write(dependencies, sw, withExampleInfo);
+            using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(argsAsString, fileName))) { 
+                Write(dependencies, sw.Writer, withExampleInfo);
             }
-            return fileName;
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
@@ -86,6 +84,10 @@ namespace NDepCheck.Rendering {
 
   Options: [-n]
     -n       ... each edge contains an example of a dependency; default: do not write example";
+        }
+
+        public string GetMasterFileName(string argsAsString, string baseFileName) {
+            return GlobalContext.CreateFullFileName(baseFileName, null);
         }
     }
 }

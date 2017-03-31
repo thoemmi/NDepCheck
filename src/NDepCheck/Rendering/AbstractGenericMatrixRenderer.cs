@@ -21,7 +21,7 @@ namespace NDepCheck.Rendering {
         }
     }
 
-    public abstract class AbstractGenericMatrixRenderer : IRenderer<INode, IEdge> {
+    public abstract class AbstractGenericMatrixRenderer : IRenderer<IEdge> {
         protected static void ParseOptions(string argsAsString, out int? labelWidthOrNull, out bool withNotOkCt) {
             int lw = -1;
             bool wct = false;
@@ -150,12 +150,14 @@ namespace NDepCheck.Rendering {
             string nodeFormat, Dictionary<INode, int> node2Index, bool withNotOkCt, IEnumerable<INode> sortedNodes,
             string ctFormat, IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges);
 
-        public abstract string Render(IEnumerable<IEdge> dependencies, string argsAsString, string baseFilename);
+        public abstract void Render(IEnumerable<IEdge> dependencies, string argsAsString, string baseFileName);
 
         public abstract void RenderToStreamForUnitTests(IEnumerable<IEdge> dependencies, Stream stream);
 
         public string GetHelp() {
             return $"{GetType().Name} usage: -___ outputfileName";
         }
+
+        public abstract string GetMasterFileName(string argsAsString, string baseFileName);
     }
 }

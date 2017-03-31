@@ -7,15 +7,10 @@ using System.Xml.Linq;
 
 namespace NDepCheck.Rendering {
     public class RuleViolationRenderer : IDependencyRenderer {
-        public string Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFilename) {
-            bool xmlOutput = false;
-            Options.Parse(argsAsString,
-                new OptionAction('x', (args, j) => {
-                    xmlOutput = true;
-                    return j;
-                }));
+        public void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName) {
+            bool xmlOutput = ParseArgs(argsAsString);
 
-            if (baseFilename == null || GlobalContext.IsConsoleOutFileName(baseFilename)) {
+            if (baseFileName == null || GlobalContext.IsConsoleOutFileName(baseFileName)) {
                 var consoleLogger = new ConsoleLogger();
                 foreach (var d in dependencies.Where(d => d.QuestionableCt > 0 && d.BadCt == 0)) {
                     consoleLogger.WriteViolation(d);
@@ -23,7 +18,6 @@ namespace NDepCheck.Rendering {
                 foreach (var d in dependencies.Where(d => d.BadCt > 0)) {
                     consoleLogger.WriteViolation(d);
                 }
-                return "-";
             } else if (xmlOutput) {
                 var document = new XDocument(
                 new XElement("Violations",
@@ -39,17 +33,32 @@ namespace NDepCheck.Rendering {
                         ))
                         );
                 var settings = new XmlWriterSettings { Encoding = Encoding.UTF8, Indent = true };
-                string fileName = Path.ChangeExtension(baseFilename, ".xml");
+                string fileName = GetXmlFileName(baseFileName);
                 using (var xmlWriter = XmlWriter.Create(fileName, settings)) {
                     document.Save(xmlWriter);
                 }
-                return fileName;
             } else {
-                using (var sw = new StreamWriter(baseFilename)) {
+                using (var sw = new StreamWriter(GetTextFileName(baseFileName))) {
                     RenderToStreamWriter(dependencies, sw);
                 }
-                return baseFilename;
             }
+        }
+
+        private static string GetTextFileName(string baseFileName) {
+            return GlobalContext.CreateFullFileName(baseFileName, null);
+        }
+
+        private static string GetXmlFileName(string baseFileName) {
+            return Path.ChangeExtension(baseFileName, ".xml");
+        }
+
+        private static bool ParseArgs(string argsAsString) {
+            bool xmlOutput = false;
+            Options.Parse(argsAsString, new OptionAction('x', (args, j) => {
+                xmlOutput = true;
+                return j;
+            }));
+            return xmlOutput;
         }
 
         private static void RenderToStreamWriter(IEnumerable<Dependency> dependencies, StreamWriter sw) {
@@ -89,6 +98,11 @@ namespace NDepCheck.Rendering {
 
   Options: [-x]
     -x            write XML output (not possible with fileName '-', i.e. standard output)";
+        }
+
+        public string GetMasterFileName(string argsAsString, string baseFileName) {
+            bool xmlOutput = ParseArgs(argsAsString);
+            return xmlOutput ? GetXmlFileName(baseFileName) : GetTextFileName(baseFileName);
         }
     }
 }
