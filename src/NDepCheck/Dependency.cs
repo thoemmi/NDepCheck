@@ -230,5 +230,13 @@ namespace NDepCheck {
             }
             return result;
         }
+
+        public void ResetQuestionableCt() {
+            _questionableCt = 0;
+        }
+
+        public void ResetBadCt() {
+            _badCt = 0;
+        }
     }
 }

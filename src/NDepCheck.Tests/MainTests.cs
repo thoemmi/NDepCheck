@@ -125,7 +125,7 @@ NDepCheck:Tests ---> **
                     TextWriter oldOut = Console.Out;
                     Console.SetOut(tw);
                     string[] args = { "/v",
-                        "/f", typeof(ViolationsChecker).Name, "{", "-f", ruleFile.Filename, "}",
+                        "/f", typeof(Check).Name, "{", "-f", ruleFile.Filename, "}",
                         "/j", TestAssemblyPath };
                     result = Program.Main(args);
                     Console.SetOut(oldOut);
@@ -233,7 +233,7 @@ NDepCheck:Tests ---> **
         }
 
         private static string[] CreateViolationCheckerArgs(FileProvider d) {
-            return new[] { "-f", "ViolationsChecker", "{", "-f=" + d.Filename, "}", TestAssemblyPath };
+            return new[] { "-f", typeof(Check).Name, "{", "-f=" + d.Filename, "}", TestAssemblyPath };
         }
 
         private static string CreateTempDotNetDepFileName() {
@@ -528,14 +528,14 @@ NDepCheck:Tests ---> **
             using (TextWriter tw = new StreamWriter(ndFile)) {
                 tw.Write($@"
                     {inFile}
-                    -f Projector {{ 
+                    -f {typeof(Project).Name} {{ 
                         -p
                           $ AB(A:B) ---% AB
                           ! a:** ---% _a_:
                           ! b:** ---% _b_:
                     }}
-                    -u Projector
-                    -r DipWriter {outFile}");
+                    -u {typeof(Project).Name}
+                    -r {typeof(DipWriter).Name} {outFile}");
             }
 
             Assert.AreEqual(0, Program.Main(new[] { "-o", ndFile }));
@@ -568,13 +568,13 @@ NDepCheck:Tests ---> **
             using (TextWriter tw = new StreamWriter(ndFile)) {
                 tw.Write($@"
                     {inFile}
-                    -f Projector {{ 
+                    -f {typeof(Project).Name} {{ 
                         -p
                           $ AB(A:B) ---% AB
                           ! a:** ---% _a_:
                           ! b:** ---% _b_:
                     }}
-                    -t . {typeof(Projector).FullName}
+                    -t . {typeof(Project).FullName}
                     -q . {typeof(DipWriter).FullName} {{ -n }} {outFile}");
             }
 

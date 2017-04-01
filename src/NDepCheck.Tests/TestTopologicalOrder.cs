@@ -203,7 +203,7 @@ namespace NDepCheck.Tests {
 
             Assert.AreEqual(0, Program.Main(new[] {
                 // transform testdata of AddTopologicalOrder
-                "-s", ".", typeof(AddTopologicalOrder).Name,
+                "-s", ".", typeof(AddOrder).Name,
                 // write them as dip file
                 "-r", typeof(DipWriter).Name, outFile
             }));
@@ -211,9 +211,9 @@ namespace NDepCheck.Tests {
             using (var sw = new StreamReader(outFile)) {
                 string o = sw.ReadToEnd();
 
-                Assert.IsTrue(o.Contains("SIMPLE;000000:C"));
-                Assert.IsTrue(o.Contains("SIMPLE;000001:B"));
-                Assert.IsTrue(o.Contains("SIMPLE;000002:A"));
+                Assert.IsTrue(o.Contains("SIMPLE;0000:C"));
+                Assert.IsTrue(o.Contains("SIMPLE;0001:B"));
+                Assert.IsTrue(o.Contains("SIMPLE;0002:A"));
                 Assert.IsTrue(o.Contains("SIMPLE:D"));
             }
         }

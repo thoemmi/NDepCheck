@@ -32,7 +32,7 @@ namespace NDepCheck.Tests {
         public void TestDOk() {
             WriteDep1To(@"a\b");
             WriteDep2To(@"a\c");
-            Assert.AreEqual(Program.OK_RESULT, Run(@"-f ViolationsChecker { -s %%\a }".Split(' ')));
+            Assert.AreEqual(Program.OK_RESULT, Run(@"-f Check { -s %%\a }".Split(' ')));
         }
 
         [TestMethod]
@@ -40,14 +40,14 @@ namespace NDepCheck.Tests {
             WriteDep1To(@"a\b\x\y");
             WriteDep2To(@"a\c\x\y\z");
             Assert.AreEqual(Program.OK_RESULT, Run(
-                @"-f ViolationsChecker { -s %%\a\b -s %%\a\x -s %%\a\c }".Split(' ')));
+                @"-f Check { -s %%\a\b -s %%\a\x -s %%\a\c }".Split(' ')));
         }
 
         [TestMethod]
         public void TestDPlusOk() {
             WriteDep1PlusTo(@"a\b");
             WriteDep2PlusTo(@"a\b\c");
-            Assert.AreEqual(Program.OK_RESULT, Run(@"-f ViolationsChecker { -s %%\a\b }".Split(' ')));
+            Assert.AreEqual(Program.OK_RESULT, Run(@"-f Check { -s %%\a\b }".Split(' ')));
         }
 
         [TestMethod]
@@ -69,7 +69,7 @@ namespace NDepCheck.Tests {
                   * ---> *
                 ");
             WriteDep2To(@"a\b\c");
-            Assert.AreEqual(Program.OK_RESULT, Run(@"-f ViolationsChecker { -s %%\a\b }".Split(' ')));
+            Assert.AreEqual(Program.OK_RESULT, Run(@"-f Check { -s %%\a\b }".Split(' ')));
         }
 
         [TestMethod]
@@ -87,7 +87,7 @@ namespace NDepCheck.Tests {
                 @"+ ..\A.dep
                 ");
             WriteDep2To(@"a\b\c");
-            Assert.AreEqual(Program.OK_RESULT, Run(@"-f ViolationsChecker { -s %%\a\b }".Split(' ')));
+            Assert.AreEqual(Program.OK_RESULT, Run(@"-f Check { -s %%\a\b }".Split(' ')));
         }
 
         [TestMethod]
@@ -98,7 +98,7 @@ namespace NDepCheck.Tests {
             int result = Program.Main(new List<string> {
                     "-j=" + GetPath("NDepCheck.TestAssembly.dll"),
                     "-j=" + "NDepCheck.TestAssemblyÄÖÜß.*.dll", "-", "NDepCheck.TestAssemblyÄÖÜß.dll",
-                    "-f", "ViolationsChecker", "{", "-s=" + _basePath + @"\a", "}"
+                    "-f", "Check", "{", "-s=" + _basePath + @"\a", "}"
             }.ToArray());
             Assert.AreEqual(Program.OK_RESULT, result);
         }

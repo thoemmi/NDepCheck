@@ -2,7 +2,7 @@
 using System.Linq;
 
 namespace NDepCheck.Transforming.Ordering {
-    public class AddTopologicalOrder : ITransformer {
+    public class AddOrder : ITransformer {
         public string GetHelp(bool detailedHelp) {
             return
                 @"Adds a field to each item for a bottom to top order. The field is a 4-digit integer number, starting at 0001";
@@ -48,7 +48,7 @@ namespace NDepCheck.Transforming.Ordering {
 
                 aggregatedCounts.RemoveTo(minItem);
 
-                minItem.SetOrder(i.ToString("D6"));
+                minItem.SetOrder(i.ToString("D4"));
             }
             return Program.OK_RESULT;
         }
