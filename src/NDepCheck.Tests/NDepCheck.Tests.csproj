@@ -80,7 +80,7 @@
     <Compile Include="TestHideTransitiveEdges.cs" />
     <Compile Include="TestRendering.cs" />
     <Compile Include="TestAddReverse.cs" />
-    <Compile Include="TestResetCounts.cs" />
+    <Compile Include="TestSetDependencyProperties.cs" />
     <Compile Include="TestTopologicalOrder.cs" />
     <Compile Include="TestUnhideCycles.cs" />
     <Compile Include="TestNode.cs" />

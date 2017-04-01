@@ -111,6 +111,7 @@
     <Compile Include="Rendering\DotRenderer.cs" />
     <Compile Include="Reading\FullDotNetAssemblyDependencyReader.cs" />
     <Compile Include="Gibraltar\StringReference.cs" />
+    <Compile Include="Transforming\Removing\Remove.cs" />
     <Compile Include="Transforming\Reversing\AddReverse.cs" />
     <Compile Include="Transforming\GraphTransformations\HideOuterGraph.cs" />
     <Compile Include="Transforming\GraphTransformations\AssociativeHull.cs" />
@@ -126,7 +127,7 @@
     <Compile Include="Transforming\Ordering\MatrixDictionary.cs" />
     <Compile Include="Transforming\Projecting\IProjectionSetElement.cs" />
     <Compile Include="Transforming\Projecting\ProjectionSet.cs" />
-    <Compile Include="Transforming\Counts\ResetCounts.cs" />
+    <Compile Include="Transforming\Setting\ResetCounts.cs" />
     <Compile Include="Transforming\ViolationChecking\DependencyRuleGroup.cs" />
     <Compile Include="Transforming\ViolationChecking\DependencyRuleSet.cs" />
     <Compile Include="Transforming\ViolationChecking\DependencyRule.cs" />

@@ -192,15 +192,23 @@ namespace NDepCheck {
         }
 
         public void AggregateCounts(Dependency d) {
-            if (string.IsNullOrWhiteSpace(Usage)) {
-                Usage = d.Usage;
-            } else if (!string.IsNullOrWhiteSpace(d.Usage) && !Usage.Contains(d.Usage)) {
-                Usage += "+" + d.Usage;
-            }
+            AddUsage(d.Usage);
             _ct += d.Ct;
             _questionableCt += d.QuestionableCt;
             _badCt += d.BadCt;
             _exampleInfo = _exampleInfo ?? d.ExampleInfo;
+        }
+
+        public void SetUsage(string u) {
+            Usage = u;
+        }
+
+        public void AddUsage(string u) {
+            if (string.IsNullOrWhiteSpace(Usage)) {
+                Usage = u;
+            } else if (!string.IsNullOrWhiteSpace(u) && !Usage.Contains(u)) {
+                Usage += "+" + u;
+            }
         }
 
         private static INode GetOrCreateNode<T>(Dictionary<INode, INode> canonicalNodes, Dictionary<INode, List<T>> nodesAndEdges, INode node) where T : IEdge {

@@ -1,18 +1,18 @@
 ﻿using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.Rendering;
-using NDepCheck.Transforming.Counts;
+using NDepCheck.Transforming.Setting;
 
 namespace NDepCheck.Tests {
     [TestClass]
-    public class TestResetCounts {
+    public class TestSetDependencyProperties {
         [TestMethod]
         public void TestResetBadCt() {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
                 // transform testdata
-                "-s", ".", typeof(ResetCounts).Name, "{", "-b", "}",
+                "-s", ".", typeof(Set).Name, "{", "-b", "}",
                 // write them as dip file
                 "-r", typeof(DipWriter).Name, outFile
             }));
@@ -32,7 +32,7 @@ namespace NDepCheck.Tests {
 
             Assert.AreEqual(0, Program.Main(new[] {
                 // transform testdata
-                "-s", ".", typeof(ResetCounts).Name, "{", "-q", "}",
+                "-s", ".", typeof(Set).Name, "{", "-q", "}",
                 // write them as dip file
                 "-r", typeof(DipWriter).Name, outFile
             }));
@@ -52,7 +52,7 @@ namespace NDepCheck.Tests {
 
             Assert.AreEqual(0, Program.Main(new[] {
                 // transform testdata
-                "-s", ".", typeof(ResetCounts).Name, "{", "-q", "-mdefine", "}",
+                "-s", ".", typeof(Set).Name, "{", "-q", "-mdefine", "}",
                 // write them as dip file
                 "-r", typeof(DipWriter).Name, outFile
             }));
@@ -65,5 +65,26 @@ namespace NDepCheck.Tests {
                 Assert.IsTrue(o.Contains(";5;0;2;"));
             }
         }
+
+        [TestMethod]
+        public void TestResetBadAndQuestionableCt() {
+            string outFile = Path.GetTempFileName() + "OUT.dip";
+
+            Assert.AreEqual(0, Program.Main(new[] {
+                // transform testdata
+                "-s", ".", typeof(Set).Name, "{", "-b", "-q", "}",
+                // write them as dip file
+                "-r", typeof(DipWriter).Name, outFile
+            }));
+
+            using (var sw = new StreamReader(outFile)) {
+                string o = sw.ReadToEnd();
+
+                Assert.IsTrue(o.Contains(";10;0;0;"));
+                Assert.IsTrue(o.Contains(";1;0;0;"));
+                Assert.IsTrue(o.Contains(";5;0;0;"));
+            }
+        }
+
     }
 }

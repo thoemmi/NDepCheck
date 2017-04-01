@@ -2,17 +2,19 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace NDepCheck.Transforming.Counts {
-    public class ResetCounts : ITransformer {
+namespace NDepCheck.Transforming.Setting {
+    public class Set : ITransformer {
         public string GetHelp(bool detailedHelp) {
             return @"Reset counts on edges.
 
 Configuration options: None
 
-Transformer options: [-m &] [-q] [-b]
+Transformer options: [-m &] [-q] [-b] [-u &]
   -m &    Regular expression matching usage of edges to clear; default: match all
   -q      Reset questionable count to zero
   -b      Reset bad count to zero
+  -u &    Set usage of created edges
+  -a &    Add usage of created edges
 ";
         }
 
@@ -31,6 +33,8 @@ Transformer options: [-m &] [-q] [-b]
             bool resetQuestionable = false;
             bool resetBad = false;
             Regex match = null;
+            string usage = null;
+            bool addUsage = false;
 
             Options.Parse(transformOptions,
                 new OptionAction('m', (args, j) => {
@@ -42,14 +46,30 @@ Transformer options: [-m &] [-q] [-b]
                 }), new OptionAction('b', (args, j) => {
                     resetBad = true;
                     return j;
+                }), new OptionAction('u', (args, j) => {
+                    usage = Options.ExtractOptionValue(args, ref j);
+                    addUsage = false;
+                    return j;
+                }), new OptionAction('a', (args, j) => {
+                    usage = Options.ExtractOptionValue(args, ref j);
+                    addUsage = true;
+                    return j;
                 }));
 
             foreach (var d in dependencies) {
                 if (match == null || match.IsMatch(d.Usage ?? "")) {
                     if (resetQuestionable) {
                         d.ResetQuestionableCt();
-                    } else if (resetBad) {
+                    }
+                    if (resetBad) {
                         d.ResetBadCt();
+                    }
+                    if (usage != null) {
+                        if (addUsage) {
+                            d.AddUsage(usage);
+                        } else {
+                            d.SetUsage(usage);
+                        }
                     }
                 }
             }

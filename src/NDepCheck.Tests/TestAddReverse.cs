@@ -2,7 +2,7 @@
 using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.Rendering;
-using NDepCheck.Transforming.Counts;
+using NDepCheck.Transforming.Setting;
 using NDepCheck.Transforming.Reversing;
 
 namespace NDepCheck.Tests {
