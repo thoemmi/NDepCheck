@@ -5,7 +5,7 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.ViolationChecking {
-    public class Check : AbstractTransformerWithConfigurationPerInputfile<DependencyRuleSet> {
+    public class CheckDeps : AbstractTransformerWithConfigurationPerInputfile<DependencyRuleSet> {
         // Configuration options
         [NotNull, ItemNotNull]
         private readonly List<DirectoryInfo> _searchRootsForRuleFiles = new List<DirectoryInfo>();

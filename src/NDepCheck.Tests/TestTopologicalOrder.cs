@@ -203,7 +203,7 @@ namespace NDepCheck.Tests {
 
             Assert.AreEqual(0, Program.Main(new[] {
                 // transform testdata of AddTopologicalOrder
-                "-s", ".", typeof(AddOrder).Name,
+                "-s", ".", typeof(AddItemOrder).Name,
                 // write them as dip file
                 "-r", typeof(DipWriter).Name, outFile
             }));

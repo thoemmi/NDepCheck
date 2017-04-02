@@ -211,7 +211,7 @@ namespace NDepCheck {
             if (result == OK_RESULT && !globalContext.TransformingDone && !globalContext.RenderingDone) {
                 // Default action at end if nothing was done
                 globalContext.ReadAllNotYetReadIn();
-                result = globalContext.Transform("", typeof(Check).FullName, "");
+                result = globalContext.Transform("", typeof(CheckDeps).FullName, "");
                 globalContext.RenderToFile(".", typeof(RuleViolationRenderer).FullName, "", null);
             }
 

@@ -1,9 +1,27 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using JetBrains.Annotations;
 
-namespace NDepCheck.Transforming.Ordering {
-    public class MatrixDictionary<TKey, TValue> where TValue : new() {
+namespace NDepCheck.Transforming {
+    public class MatrixDictionary {
+        [NotNull]
+        public static MatrixDictionary<Item, int> CreateCounts([NotNull] IEnumerable<Dependency> dependencies, [NotNull] Func<Dependency, int> getCount) {
+            var aggregated = new Dictionary<FromTo, Dependency>();
+            foreach (var d in dependencies) {
+                new FromTo(d.UsingItem, d.UsedItem).AggregateEdge(d, aggregated);
+            }
+
+            var aggregatedCounts = new MatrixDictionary<Item, int>((s, i) => s + i, (s, i) => s - i);
+            foreach (var kvp in aggregated) {
+                aggregatedCounts.Add(kvp.Key.From, kvp.Key.To, getCount(kvp.Value));
+            }
+            return aggregatedCounts;
+        }
+
+    }
+
+    public class MatrixDictionary<TKey, TValue> : MatrixDictionary  where TValue : new() {
         private readonly Dictionary<TKey, Dictionary<TKey, TValue>> _fromTo = new Dictionary<TKey, Dictionary<TKey, TValue>>();
         private readonly Dictionary<TKey, Dictionary<TKey, TValue>> _toFrom = new Dictionary<TKey, Dictionary<TKey, TValue>>();
         private readonly Dictionary<TKey, TValue> _fromSum = new Dictionary<TKey, TValue>();

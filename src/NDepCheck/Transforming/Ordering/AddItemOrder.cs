@@ -2,7 +2,7 @@
 using System.Linq;
 
 namespace NDepCheck.Transforming.Ordering {
-    public class AddOrder : ITransformer {
+    public class AddItemOrder : ITransformer {
         public string GetHelp(bool detailedHelp) {
             return
                 @"Adds a field to each item for a bottom to top order. The field is a 4-digit integer number, starting at 0001";
@@ -26,15 +26,7 @@ namespace NDepCheck.Transforming.Ordering {
             //    Put it into result list; and move edges to it from consideration
             // UNTIL list of items is empty
 
-            var aggregated = new Dictionary<FromTo, Dependency>();
-            foreach (var d in dependencies.Where(d => !Equals(d.UsingItem, d.UsedItem))) {
-                new FromTo(d.UsingItem, d.UsedItem).AggregateEdge(d, aggregated);
-            }
-
-            var aggregatedCounts = new MatrixDictionary<Item, int>((s, i) => s + i, (s, i) => s - i);
-            foreach (var kvp in aggregated) {
-                aggregatedCounts.Add(kvp.Key.From, kvp.Key.To, kvp.Value.Ct);
-            }
+            MatrixDictionary<Item, int> aggregatedCounts = MatrixDictionary.CreateCounts(dependencies.Where(d => !Equals(d.UsingItem, d.UsedItem)), d => d.Ct);
 
             for (int i = 0; aggregatedCounts.ToKeys.Any(); i++) {
                 var itemsToRatios =

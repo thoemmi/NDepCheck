@@ -5,7 +5,7 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.Projecting {
-    public class Project : AbstractTransformerWithConfigurationPerInputfile<ProjectionSet> {
+    public class ProjectItems : AbstractTransformerWithConfigurationPerInputfile<ProjectionSet> {
         private ProjectionSet _orderedProjections;
 
         public override string GetHelp(bool detailedHelp) {

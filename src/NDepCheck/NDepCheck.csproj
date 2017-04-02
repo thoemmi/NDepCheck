@@ -111,7 +111,9 @@
     <Compile Include="Rendering\DotRenderer.cs" />
     <Compile Include="Reading\FullDotNetAssemblyDependencyReader.cs" />
     <Compile Include="Gibraltar\StringReference.cs" />
-    <Compile Include="Transforming\Removing\Remove.cs" />
+    <Compile Include="Transforming\ItemMatch.cs" />
+    <Compile Include="Transforming\Removing\RemoveItems.cs" />
+    <Compile Include="Transforming\Removing\RemoveDeps.cs" />
     <Compile Include="Transforming\Reversing\AddReverse.cs" />
     <Compile Include="Transforming\GraphTransformations\HideOuterGraph.cs" />
     <Compile Include="Transforming\GraphTransformations\AssociativeHull.cs" />
@@ -123,11 +125,11 @@
     <Compile Include="DependencyHelper..cs" />
     <Compile Include="Reading\AbstractDependencyReader.cs" />
     <Compile Include="Transforming\IMatcher.cs" />
-    <Compile Include="Transforming\Ordering\AddOrder.cs" />
-    <Compile Include="Transforming\Ordering\MatrixDictionary.cs" />
+    <Compile Include="Transforming\Ordering\AddItemOrder.cs" />
+    <Compile Include="Transforming\MatrixDictionary.cs" />
     <Compile Include="Transforming\Projecting\IProjectionSetElement.cs" />
     <Compile Include="Transforming\Projecting\ProjectionSet.cs" />
-    <Compile Include="Transforming\Setting\ResetCounts.cs" />
+    <Compile Include="Transforming\Setting\ResetDepCounts.cs" />
     <Compile Include="Transforming\ViolationChecking\DependencyRuleGroup.cs" />
     <Compile Include="Transforming\ViolationChecking\DependencyRuleSet.cs" />
     <Compile Include="Transforming\ViolationChecking\DependencyRule.cs" />
@@ -159,8 +161,8 @@
     <Compile Include="Transforming\AbstractTransformer.cs" />
     <Compile Include="Transforming\FromTo.cs" />
     <Compile Include="Transforming\ITransformer.cs" />
-    <Compile Include="Transforming\Projecting\Project.cs" />
-    <Compile Include="Transforming\ViolationChecking\Check.cs" />
+    <Compile Include="Transforming\Projecting\ProjectItems.cs" />
+    <Compile Include="Transforming\ViolationChecking\CheckDeps.cs" />
     <Compile Include="WebServing\WebServer.cs" />
     <Compile Include="WebServing\StringBuilderLogger.cs" />
   </ItemGroup>

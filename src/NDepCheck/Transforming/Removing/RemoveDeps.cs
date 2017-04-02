@@ -2,7 +2,7 @@
 using System.Text.RegularExpressions;
 
 namespace NDepCheck.Transforming.Removing {
-    public class Remove : ITransformer {
+    public class RemoveDeps : ITransformer {
         public string GetHelp(bool detailedHelp) {
             return @"Remove edges.
 
@@ -13,7 +13,7 @@ Transformer options: [-m &] [-s] [-o] [-q] [-b]
   -s      Remove single cycles
   -o      Remove edges with both bad and questionable edge count equal to zero
   -q      Remove edges with questionable edge count larger than zero
-  -b      Remove edges with bad ede count larger than zero
+  -b      Remove edges with bad edge count larger than zero  
 ";
         }
 

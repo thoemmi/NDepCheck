@@ -35,6 +35,12 @@ namespace NDepCheck {
             Name = name;
         }
 
+        public static ItemType Find([NotNull] string name) {
+            ItemType result;
+            _allTypes.TryGetValue(name, out result);
+            return result;
+        }
+
         public static ItemType New([NotNull] string name, [NotNull, ItemNotNull] string[] keys, [NotNull, ItemNotNull] string[] subKeys) {
             ItemType result;
             if (!_allTypes.TryGetValue(name, out result)) {

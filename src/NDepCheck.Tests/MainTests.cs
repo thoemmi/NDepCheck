@@ -125,7 +125,7 @@ NDepCheck:Tests ---> **
                     TextWriter oldOut = Console.Out;
                     Console.SetOut(tw);
                     string[] args = { "/v",
-                        "/f", typeof(Check).Name, "{", "-f", ruleFile.Filename, "}",
+                        "/f", typeof(CheckDeps).Name, "{", "-f", ruleFile.Filename, "}",
                         "/j", TestAssemblyPath };
                     result = Program.Main(args);
                     Console.SetOut(oldOut);
@@ -233,7 +233,7 @@ NDepCheck:Tests ---> **
         }
 
         private static string[] CreateViolationCheckerArgs(FileProvider d) {
-            return new[] { "-f", typeof(Check).Name, "{", "-f=" + d.Filename, "}", TestAssemblyPath };
+            return new[] { "-f", typeof(CheckDeps).Name, "{", "-f=" + d.Filename, "}", TestAssemblyPath };
         }
 
         private static string CreateTempDotNetDepFileName() {
@@ -528,13 +528,13 @@ NDepCheck:Tests ---> **
             using (TextWriter tw = new StreamWriter(ndFile)) {
                 tw.Write($@"
                     {inFile}
-                    -f {typeof(Project).Name} {{ 
+                    -f {typeof(ProjectItems).Name} {{ 
                         -p
                           $ AB(A:B) ---% AB
                           ! a:** ---% _a_:
                           ! b:** ---% _b_:
                     }}
-                    -u {typeof(Project).Name}
+                    -u {typeof(ProjectItems).Name}
                     -r {typeof(DipWriter).Name} {outFile}");
             }
 
@@ -568,13 +568,13 @@ NDepCheck:Tests ---> **
             using (TextWriter tw = new StreamWriter(ndFile)) {
                 tw.Write($@"
                     {inFile}
-                    -f {typeof(Project).Name} {{ 
+                    -f {typeof(ProjectItems).Name} {{ 
                         -p
                           $ AB(A:B) ---% AB
                           ! a:** ---% _a_:
                           ! b:** ---% _b_:
                     }}
-                    -t . {typeof(Project).FullName}
+                    -t . {typeof(ProjectItems).FullName}
                     -q . {typeof(DipWriter).FullName} {{ -n }} {outFile}");
             }
 
