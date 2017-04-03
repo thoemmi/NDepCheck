@@ -114,7 +114,7 @@
     <Compile Include="Transforming\ItemMatch.cs" />
     <Compile Include="Transforming\Removing\RemoveItems.cs" />
     <Compile Include="Transforming\Removing\RemoveDeps.cs" />
-    <Compile Include="Transforming\Reversing\AddReverse.cs" />
+    <Compile Include="Transforming\Reversing\AddReverseDeps.cs" />
     <Compile Include="Transforming\GraphTransformations\HideOuterGraph.cs" />
     <Compile Include="Transforming\GraphTransformations\AssociativeHull.cs" />
     <Compile Include="Reading\AbstractDotNetAssemblyDependencyReader.cs" />
@@ -129,7 +129,7 @@
     <Compile Include="Transforming\MatrixDictionary.cs" />
     <Compile Include="Transforming\Projecting\IProjectionSetElement.cs" />
     <Compile Include="Transforming\Projecting\ProjectionSet.cs" />
-    <Compile Include="Transforming\Setting\ResetDepCounts.cs" />
+    <Compile Include="Transforming\Setting\SetDeps.cs" />
     <Compile Include="Transforming\ViolationChecking\DependencyRuleGroup.cs" />
     <Compile Include="Transforming\ViolationChecking\DependencyRuleSet.cs" />
     <Compile Include="Transforming\ViolationChecking\DependencyRule.cs" />

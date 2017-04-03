@@ -8,9 +8,9 @@ namespace NDepCheck.Transforming.Removing {
 
 Configuration options: None
 
-Transformer options: [-m &] [-s] [-o] [-q] [-b]
+Transformer options: [-m &] [-i] [-o] [-q] [-b]
   -m &    Regular expression matching usage of edges to remove; default: match none
-  -s      Remove single cycles
+  -i      Remove single cycles
   -o      Remove edges with both bad and questionable edge count equal to zero
   -q      Remove edges with questionable edge count larger than zero
   -b      Remove edges with bad edge count larger than zero  
@@ -38,7 +38,7 @@ Transformer options: [-m &] [-s] [-o] [-q] [-b]
                 new OptionAction('m', (args, j) => {
                     match = new Regex(Options.ExtractOptionValue(args, ref j));
                     return j;
-                }), new OptionAction('s', (args, j) => {
+                }), new OptionAction('i', (args, j) => {
                     removeSingleLoop = true;
                     return j;
                 }), new OptionAction('o', (args, j) => {

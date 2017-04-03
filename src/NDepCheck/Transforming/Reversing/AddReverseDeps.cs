@@ -2,7 +2,7 @@
 using System.Text.RegularExpressions;
 
 namespace NDepCheck.Transforming.Reversing {
-    public class AddReverse : ITransformer {
+    public class AddReverseDeps : ITransformer {
         public string GetHelp(bool detailedHelp) {
             return @"Add reverse edges.
 

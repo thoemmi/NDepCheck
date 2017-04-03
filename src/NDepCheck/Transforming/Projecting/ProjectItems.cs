@@ -13,7 +13,8 @@ namespace NDepCheck.Transforming.Projecting {
 
 Configuration options: [-f projectionfile | -p projections]
 
-Transformer options: None
+Transformer options: [-b dipfile]
+  -b dipfile     do back projection of information in dipfile; default: no back projection
 ";
         }
 
@@ -134,16 +135,24 @@ Transformer options: None
 
         public override bool RunsPerInputContext => true;
 
-        public override int Transform(GlobalContext context, string dependenciesFileName, IEnumerable<Dependency> dependencies, string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
-
+        public override int Transform(GlobalContext context, string dependenciesFileName, IEnumerable<Dependency> dependencies, 
+                            string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
             if (_orderedProjections != null) {
-                Log.WriteInfo("Reducing graph " + dependencySourceForLogging);
+                string fullDipName = null;
+                Options.Parse(transformOptions, new OptionAction('b', (args, j) => {
+                    fullDipName = Path.GetFullPath(Options.ExtractOptionValue(args, ref j));
+                    return j;
+                }));
 
-                var localCollector = new Dictionary<FromTo, Dependency>();
-                foreach (var d in dependencies) {
-                    ReduceEdge(_orderedProjections.AllProjections, d, localCollector);
+                if (fullDipName != null) {
+                    throw new NotImplementedException("Back projection not yet implemented");
+                } else {
+                    var localCollector = new Dictionary<FromTo, Dependency>();
+                    foreach (var d in dependencies) {
+                        ReduceEdge(_orderedProjections.AllProjections, d, localCollector);
+                    }
+                    transformedDependencies.AddRange(localCollector.Values);
                 }
-                transformedDependencies.AddRange(localCollector.Values);
                 return Program.OK_RESULT;
             } else {
                 Log.WriteWarning("No rule set found for reducing " + dependencySourceForLogging);
@@ -153,7 +162,6 @@ Transformer options: None
 
         private static void ReduceEdge(IEnumerable<Projection> orderedProjections, Dependency d, 
                                        Dictionary<FromTo, Dependency> localCollector) {
-
             Item usingItem = orderedProjections
                                     //.Skip(GuaranteedNonMatching(d.UsingItem))
                                     //.SkipWhile(ga => ga != FirstPossibleAbstractionInCache(d.UsingItem, skipCache))

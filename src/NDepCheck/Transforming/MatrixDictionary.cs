@@ -6,7 +6,8 @@ using JetBrains.Annotations;
 namespace NDepCheck.Transforming {
     public class MatrixDictionary {
         [NotNull]
-        public static MatrixDictionary<Item, int> CreateCounts([NotNull] IEnumerable<Dependency> dependencies, [NotNull] Func<Dependency, int> getCount) {
+        public static MatrixDictionary<Item, int> CreateCounts([NotNull] IEnumerable<Dependency> dependencies,
+            [NotNull] Func<Dependency, int> getCount) {
             var aggregated = new Dictionary<FromTo, Dependency>();
             foreach (var d in dependencies) {
                 new FromTo(d.UsingItem, d.UsedItem).AggregateEdge(d, aggregated);
@@ -21,33 +22,45 @@ namespace NDepCheck.Transforming {
 
     }
 
-    public class MatrixDictionary<TKey, TValue> : MatrixDictionary  where TValue : new() {
-        private readonly Dictionary<TKey, Dictionary<TKey, TValue>> _fromTo = new Dictionary<TKey, Dictionary<TKey, TValue>>();
-        private readonly Dictionary<TKey, Dictionary<TKey, TValue>> _toFrom = new Dictionary<TKey, Dictionary<TKey, TValue>>();
-        private readonly Dictionary<TKey, TValue> _fromSum = new Dictionary<TKey, TValue>();
-        private readonly Dictionary<TKey, TValue> _toSum = new Dictionary<TKey, TValue>();
+    public class MatrixDictionary<TRowKey, TColumnKey, TValue> : MatrixDictionary where TValue : new() {
+        private readonly Dictionary<TRowKey, Dictionary<TColumnKey, TValue>> _rows =
+            new Dictionary<TRowKey, Dictionary<TColumnKey, TValue>>();
+
+        private readonly Dictionary<TColumnKey, Dictionary<TRowKey, TValue>> _columns =
+            new Dictionary<TColumnKey, Dictionary<TRowKey, TValue>>();
+
+        private readonly Dictionary<TRowKey, TValue> _rowSums = new Dictionary<TRowKey, TValue>();
+        private readonly Dictionary<TColumnKey, TValue> _columnSums = new Dictionary<TColumnKey, TValue>();
 
         private readonly Func<TValue, TValue, TValue> _sum;
         private readonly Func<TValue, TValue, TValue> _diff;
 
         public override string ToString() {
             var sb = new StringBuilder();
-            foreach (var from in FromKeys) {
-                sb.Append($"{from,6}");
+            foreach (var rowKey in RowKeys) {
+                sb.Append($"{rowKey,6}");
                 sb.Append(" #");
-                foreach (var to in _fromTo[from].Keys) {
-                    sb.Append($"{to,6}={_fromTo[from][to],6} ");
+                if (_rows.ContainsKey(rowKey)) {
+                    foreach (var columnKey in _rows[rowKey].Keys) {
+                        sb.Append($"{columnKey,6}={_rows[rowKey][columnKey],6} ");
+                    }
+                } else {
+                    sb.Append("---   ");
                 }
-                sb.AppendLine(_fromSum.ContainsKey(from) ? $"SUM={_fromSum[from],6}" : "SUM=?");
+                sb.AppendLine(_rowSums.ContainsKey(rowKey) ? $"SUM={_rowSums[rowKey],6}" : "SUM=?");
                 sb.Append(' ');
             }
-            foreach (var to in ToKeys) {
-                sb.Append($"{to,6}");
+            foreach (var columnKey in _columns.Keys) {
+                sb.Append($"{columnKey,6}");
                 sb.Append(" |");
-                foreach (var from in _toFrom[to].Keys) {
-                    sb.Append($"{from,6}={_toFrom[to][from],6} ");
+                if (_columns.ContainsKey(columnKey)) {
+                    foreach (var rowKey in _columns[columnKey].Keys) {
+                        sb.Append($"{rowKey,6}={_columns[columnKey][rowKey],6} ");
+                    }
+                } else {
+                    sb.Append("---   ");
                 }
-                sb.AppendLine(_toSum.ContainsKey(to) ? $"SUM={_toSum[to],6}" : "SUM=?");
+                sb.AppendLine(_columnSums.ContainsKey(columnKey) ? $"SUM={_columnSums[columnKey],6}" : "SUM=?");
                 sb.Append(' ');
             }
             return sb.ToString();
@@ -58,62 +71,68 @@ namespace NDepCheck.Transforming {
             _diff = diff;
         }
 
-        public void Add(TKey from, TKey to, TValue value) {
-            Get(_fromTo, from).Add(to, value);
-            Get(_toFrom, to).Add(from, value);
-            _fromSum[from] = _sum(Get(_fromSum, from), value);
-            _toSum[to] = _sum(Get(_toSum, to), value);
+        public void Add(TRowKey rowKey, TColumnKey columnKey, TValue value) {
+            Get(_rows, rowKey).Add(columnKey, value);
+            Get(_columns, columnKey).Add(rowKey, value);
+            _rowSums[rowKey] = _sum(Get(_rowSums, rowKey), value);
+            _columnSums[columnKey] = _sum(Get(_columnSums, columnKey), value);
         }
 
-        public bool RemoveFrom(TKey from) {
-            return Remove(from, _fromTo, _fromSum, _toFrom, _toSum);
+        public bool RemoveRow(TRowKey rowKey) {
+            return Remove(rowKey, _rows, _rowSums, _columns, _columnSums);
         }
 
-        public bool RemoveTo(TKey to) {
-            return Remove(to, _toFrom, _toSum, _fromTo, _fromSum);
+        public bool RemoveColumn(TColumnKey solumnKey) {
+            return Remove(solumnKey, _columns, _columnSums, _rows, _rowSums);
         }
 
-        private bool Remove(TKey key, Dictionary<TKey, Dictionary<TKey, TValue>> fromTo, Dictionary<TKey, TValue> fromSum, Dictionary<TKey, Dictionary<TKey, TValue>> toFrom, Dictionary<TKey, TValue> toSum) {
-            Dictionary<TKey, TValue> fromRow = Get(fromTo, key);
-            foreach (var kvp in fromRow) {
-                var k = kvp.Key;
-                Get(toFrom, k).Remove(key);
-                toSum[k] = _diff(Get(toSum, k), kvp.Value);
+        private bool Remove<TKeyR, TKeyC>(TKeyR rk, Dictionary<TKeyR, Dictionary<TKeyC, TValue>> rs,
+            Dictionary<TKeyR, TValue> rSum, Dictionary<TKeyC, Dictionary<TKeyR, TValue>> cs,
+            Dictionary<TKeyC, TValue> cSum) {
+            Dictionary<TKeyC, TValue> r = Get(rs, rk);
+            foreach (var ck in cs.Keys) {
+                Get(cs, ck).Remove(rk);
+                cSum[ck] = _diff(Get(cSum, ck), Get(r, ck));
             }
-            fromTo.Remove(key);
-            return fromSum.Remove(key);
+            rs.Remove(rk);
+            return rSum.Remove(rk);
         }
 
-        public IEnumerable<TKey> FromKeys => _fromTo.Keys;
+        public IEnumerable<TRowKey> RowKeys => _rowSums.Keys;
 
-        public IEnumerable<TKey> ToKeys => _toFrom.Keys;
+        public IEnumerable<TColumnKey> ColumnKeys => _columnSums.Keys;
 
-        public Dictionary<TKey, TValue> FromSum => _fromSum;
+        public Dictionary<TRowKey, TValue> RowSums => _rowSums;
 
-        public Dictionary<TKey, TValue> ToSum => _toSum;
+        public Dictionary<TColumnKey, TValue> ColumnSums => _columnSums;
 
-        public TValue Get(TKey from, TKey to) {
-            return Get(Get(_fromTo, from), to);
+        public TValue Get(TRowKey from, TColumnKey to) {
+            return Get(Get(_rows, from), to);
         }
 
-        public Dictionary<TKey, TValue> GetFrom(TKey from) {
-            return Get(_fromTo, from);
+        public Dictionary<TColumnKey, TValue> GetRow(TRowKey from) {
+            return Get(_rows, from);
         }
 
-        public TValue GetFromSum(TKey from) {
-            return Get(_fromSum, from);
+        public TValue GetRowSum(TRowKey from) {
+            return Get(_rowSums, from);
         }
 
-        public TValue GetToSum(TKey to) {
-            return Get(_toSum, to);
+        public TValue GetColumnSum(TColumnKey to) {
+            return Get(_columnSums, to);
         }
 
-        public static TResult Get<TResult>(Dictionary<TKey, TResult> dict, TKey key) where TResult : new() {
+        public static TResult Get<TKey, TResult>(Dictionary<TKey, TResult> dict, TKey key) where TResult : new() {
             TResult result;
             if (!dict.TryGetValue(key, out result)) {
                 dict.Add(key, result = new TResult());
             }
             return result;
+        }
+    }
+
+    public class MatrixDictionary<TKey, TValue> : MatrixDictionary<TKey, TKey, TValue> where TValue : new() {
+        public MatrixDictionary(Func<TValue, TValue, TValue> sum, Func<TValue, TValue, TValue> diff) : base(sum, diff) {
         }
     }
 }

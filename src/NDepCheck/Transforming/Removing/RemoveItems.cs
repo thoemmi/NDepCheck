@@ -15,6 +15,7 @@ Transformer options: [-m typename pattern] [-s] [-d] [-r]
   -m      Regular expression matching node to remove; default: match none
   -s      Remove pure sources
   -d      Remove pure sinks (drains)
+  -i      Ignore self cycles in sources and sinks
   -r      Recursively continue with removal if new eligible nodes emerge
 ";
         }
@@ -31,6 +32,7 @@ Transformer options: [-m typename pattern] [-s] [-d] [-r]
             ItemMatch match = null;
             bool removeSources = false;
             bool removeSinks = false;
+            bool ignoreSelfCyclesInSourcesAndSinks = false;
             bool recursive = false;
 
             Options.Parse(transformOptions, new OptionAction('m', (args, j) => {
@@ -41,6 +43,9 @@ Transformer options: [-m typename pattern] [-s] [-d] [-r]
                     throw new ArgumentException($"Cannot find type {itemTypeName}");
                 }
                 match = new ItemMatch(itemType, itemPattern, _ignoreCase);
+                return j;
+            }), new OptionAction('i', (args, j) => {
+                ignoreSelfCyclesInSourcesAndSinks = true;
                 return j;
             }), new OptionAction('r', (args, j) => {
                 recursive = true;
@@ -53,36 +58,25 @@ Transformer options: [-m typename pattern] [-s] [-d] [-r]
                 return j;
             }));
 
-            MatrixDictionary<Item, int> aggregatedCounts =
-                MatrixDictionary.CreateCounts(dependencies.Where(d => !Equals(d.UsingItem, d.UsedItem)), d => d.Ct);
+            MatrixDictionary<Item, int> aggregatedCounts = MatrixDictionary.CreateCounts(dependencies, d => d.Ct);
+
+            // Force each item to exist on both axes
+            foreach (var from in aggregatedCounts.RowKeys) {
+                aggregatedCounts.GetColumnSum(from);
+            }
+            foreach (var to in aggregatedCounts.ColumnKeys) {
+                aggregatedCounts.GetRowSum(to);
+            }
 
             if (removeSinks) {
-                bool foundSink;
-                do {
-                    foundSink = false;
-                    foreach (var i in aggregatedCounts.FromKeys.ToArray()) {
-                        if (aggregatedCounts.GetFromSum(i) == 0) {
-                            aggregatedCounts.RemoveFrom(i);
-                            foundSink = true;
-                        }
-                    }
-                } while (recursive && foundSink);
+                Remove(aggregatedCounts, ac => ac.RowKeys, i => aggregatedCounts.GetRowSum(i), ignoreSelfCyclesInSourcesAndSinks, recursive);
             }
             if (removeSources) {
-                bool foundSource;
-                do {
-                    foundSource = false;
-                    foreach (var i in aggregatedCounts.ToKeys.ToArray()) {
-                        if (aggregatedCounts.GetToSum(i) == 0) {
-                            aggregatedCounts.RemoveTo(i);
-                            foundSource = true;
-                        }
-                    }
-                } while (recursive && foundSource);
+                Remove(aggregatedCounts, ac => ac.ColumnKeys, i => aggregatedCounts.GetColumnSum(i), ignoreSelfCyclesInSourcesAndSinks, recursive);
             }
 
-            var remainingNodes = new HashSet<Item>(aggregatedCounts.FromKeys);
-            remainingNodes.UnionWith(aggregatedCounts.ToKeys);
+            var remainingNodes = new HashSet<Item>(aggregatedCounts.RowKeys);
+            remainingNodes.UnionWith(aggregatedCounts.ColumnKeys);
 
             if (match != null) {
                 remainingNodes.RemoveWhere(i => match.Match(i));
@@ -94,18 +88,55 @@ Transformer options: [-m typename pattern] [-s] [-d] [-r]
             return Program.OK_RESULT;
         }
 
+        private static void Remove(MatrixDictionary<Item, int> aggregatedCounts,
+                                   Func<MatrixDictionary<Item, int>, IEnumerable<Item>> getKeys, 
+                                   Func<Item, int> sum, bool ignoreSelfCyclesInSourcesAndSinks, bool recursive) {
+            bool itemRemoved;
+            do {
+                itemRemoved = false;
+                foreach (var i in getKeys(aggregatedCounts).ToArray()) {
+                    if (sum(i) == (ignoreSelfCyclesInSourcesAndSinks ? aggregatedCounts.Get(i, i) : 0)) {
+                        aggregatedCounts.RemoveRow(i);
+                        aggregatedCounts.RemoveColumn(i);
+                        itemRemoved = true;
+                    }
+                }
+            } while (recursive && itemRemoved);
+        }
+
         public void FinishTransform(GlobalContext context) {
             // empty
         }
 
         public IEnumerable<Dependency> GetTestDependencies() {
-            var a = Item.New(ItemType.SIMPLE, "A");
-            var b = Item.New(ItemType.SIMPLE, "B");
+            Item a = Item.New(ItemType.SIMPLE, "Ax");
+            Item b = Item.New(ItemType.SIMPLE, "Bx");
+            Item c = Item.New(ItemType.SIMPLE, "Cloop");
+            Item d = Item.New(ItemType.SIMPLE, "Dloop");
+            Item e = Item.New(ItemType.SIMPLE, "Eselfloop");
+            Item f = Item.New(ItemType.SIMPLE, "Fy");
+            Item g = Item.New(ItemType.SIMPLE, "Gy");
+            Item h = Item.New(ItemType.SIMPLE, "Hy");
+            Item i = Item.New(ItemType.SIMPLE, "Iy");
+            Item j = Item.New(ItemType.SIMPLE, "Jy");
             return new[] {
-                new Dependency(a, a, source:null, usage: "inherit", ct:10, questionableCt:5, badCt:3),
-                new Dependency(a, b, source:null, usage: "inherit+define", ct:1, questionableCt:0,badCt: 0),
-                new Dependency(b, a, source:null, usage: "define", ct:5, questionableCt:0, badCt:2),
-                new Dependency(b, b, source:null, usage: null, ct: 5, questionableCt:0, badCt:2),
+                // Pure sources
+                new Dependency(a, b, source: null, usage: null, ct: 10, questionableCt: 5, badCt: 3),
+                new Dependency(b, c, source: null, usage: null, ct: 1, questionableCt: 0, badCt: 0),
+
+                // Long cycle
+                new Dependency(c, d, source: null, usage: null, ct: 5, questionableCt: 0, badCt: 2),
+                new Dependency(d, c, source: null, usage: null, ct: 5, questionableCt: 0, badCt: 2),
+
+                new Dependency(d, e, source: null, usage: null, ct: 5, questionableCt: 3, badCt: 2),
+                // Self cycle
+                new Dependency(e, e, source: null, usage: null, ct: 5, questionableCt: 3, badCt: 2),
+                // Pure sinks
+                new Dependency(e, f, source: null, usage: null, ct: 5, questionableCt: 3, badCt: 2),
+                new Dependency(f, g, source: null, usage: null, ct: 5, questionableCt: 3, badCt: 2),
+                new Dependency(g, h, source: null, usage: null, ct: 5, questionableCt: 3, badCt: 2),
+                new Dependency(h, i, source: null, usage: null, ct: 5, questionableCt: 3, badCt: 2),
+                new Dependency(h, j, source: null, usage: null, ct: 5, questionableCt: 3, badCt: 2)
             };
         }
     }

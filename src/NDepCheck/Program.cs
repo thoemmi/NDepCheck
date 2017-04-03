@@ -27,6 +27,49 @@ namespace NDepCheck {
         public const int NO_RULE_SET_FOUND_FOR_FILE = 6;
         public const int EXCEPTION_RESULT = 7;
 
+        public bool HasFileWatchers { get; set; }
+
+        public bool WebServerIsRunning { get; set; }
+
+        public bool Interactive { get; set; }
+
+        /// <summary>
+        /// The static Main method.
+        /// </summary>
+        public static int Main(string[] args) {
+            Log.Logger = new ConsoleLogger();
+
+            var program = new Program();
+            try {
+                int lastResult = program.Run(args, new GlobalContext(), null);
+                while (program.WebServerIsRunning || program.Interactive || program.HasFileWatchers) {
+                    string commands = Console.ReadLine();
+                    if (commands == null) {
+                        break;
+                    } else {
+                        commands = commands.Trim();
+                        if (commands != "") {
+                            program.Run(commands.Split(' ').Select(s => s.Trim()).Where(s => s != "").ToArray(),
+                                new GlobalContext(), null);
+                        }
+                    }
+                }
+                return lastResult;
+            } catch (FileNotFoundException ex) {
+                Log.WriteWarning(ex.Message);
+                return FILE_NOT_FOUND_RESULT;
+            } catch (Exception ex) {
+                Log.WriteError("Exception occurred: " + ex.Message + " (" + ex.GetType().FullName + ")");
+                if (Log.IsChattyEnabled) {
+                    Console.WriteLine(ex);
+                }
+                return EXCEPTION_RESULT;
+            } finally {
+                // Main may be called multiple times; therefore we clear all caches
+                Intern.ResetAll();
+            }
+        }
+
         public int Run(string[] args, GlobalContext globalContext, [CanBeNull] List<string> writtenMasterFiles) {
             Log.SetLevel(Log.Level.Standard);
 
@@ -57,6 +100,39 @@ namespace NDepCheck {
                     } else if (arg == "-debug" || arg == "/debug") {
                         // -debug                  Start .Net debugger
                         Debugger.Launch();
+                    } else if (Options.ArgMatches(arg, 'd')) {
+                        // -d                      Watch or unwatch files
+                        // -d filepattern [- filepattern] script     Watch specifed files; and trigger script
+                        // -d + script                               Watch script and trigger it on change
+                        // -d - filepattern                          No longer watch specified files
+                        // -d ! script                               No longer watch all triggering script
+
+                        // TODO: Problem with filewatching: How long to wait after file changes?
+                        // A compile run might write a file for some time; or even write many DLLs
+                        // for minutes, and only after that a run should be triggered.
+                        // Probably impossible to solve - see R# ... Waiting for 2 or 3 secs should be ok.
+                        string suboption = Options.ExtractOptionValue(args, ref i);
+                        if (suboption.StartsWith("+")) {
+                            string scriptName = Options.ExtractNextValue(args, ref i);
+                            HasFileWatchers = globalContext.AddFileWatchers(scriptName, null, scriptName);
+                        } else if (suboption.StartsWith("-")) {
+                            string negativeFilePattern = Options.ExtractNextValue(args, ref i);
+                            HasFileWatchers = globalContext.RemoveFileWatchers(negativeFilePattern);
+                        } else if (suboption.StartsWith("!")) {
+                            string scriptName = Options.ExtractNextValue(args, ref i);
+                            HasFileWatchers = globalContext.RemoveAllFileWatchers(scriptName);
+                        } else {
+                            string positiveFilePattern = Options.ExtractNextValue(args, ref i);
+                            string scriptName = Options.ExtractNextValue(args, ref i);
+                            string negativeFilePattern;
+                            if (scriptName == "-") {
+                                negativeFilePattern = Options.ExtractNextValue(args, ref i);
+                                scriptName = Options.ExtractNextValue(args, ref i);
+                            } else {
+                                negativeFilePattern = null;
+                            }
+                            HasFileWatchers = globalContext.AddFileWatchers(positiveFilePattern, negativeFilePattern, scriptName);
+                        }
                     } else if (Options.ArgMatches(arg, 'e', 'f')) {
                         // -e     assembly transformer { options }
                         // -f              transformer { options }
@@ -177,12 +253,20 @@ namespace NDepCheck {
                     } else if (Options.ArgMatches(arg, 'x')) {
                         // -x port fileDirectory      Run as webserver
                         string port = Options.ExtractOptionValue(args, ref i);
+                        if (port == "-") {
+                            if (WebServerIsRunning) { 
+                                globalContext.StopWebServer();
+                            }
+                            WebServerIsRunning = false;
+                        } else { 
                         string fileDirectory = Options.ExtractNextValue(args, ref i);
                         globalContext.StartWebServer(this, port, fileDirectory);
                         ranAsWebServer = true;
+                        WebServerIsRunning = true;
+                        }
                     } else if (Options.ArgMatches(arg, 'y')) {
-                        // -y                         Stop webserver
-                        globalContext.StopWebServer();
+                        // -y                         Toggle interactive mode
+                        Interactive = !Interactive;
                     } else if (Options.ArgMatches(arg, 'z')) {
                         // -z        Remove all dependencies and graphs and caches
                         Log.WriteInfo("---- Reset of input options (-z)");
@@ -436,6 +520,7 @@ Options overview:
 -a                Write extensive help  
 -b                Stop execution here; useful in -o file
 -c                Ignore case in rules
+-d                ....file watcher....
 -debug            Start .Net debugger 
 -k cmd            Run command; useful for opening an HTML file after creating it
 -l                Execute readers and transformers lazily (lazy reading and transforming NOT YET IMPLEMENTED)
@@ -444,7 +529,8 @@ Options overview:
 -v                Verbose
 -w                Chatty
 -x port directory Start web server
--y                Stop web server
+-x -              Stop web server
+-y                Toggle interactive mode
 -z                Reset state
 ");
 
@@ -711,30 +797,6 @@ using the wildcardpath syntax):
 
         private static void WriteVersion() {
             Log.WriteInfo("NDepCheck " + VERSION + " (c) HMMüller, Th.Freudenberg 2006...2017");
-        }
-
-        /// <summary>
-        /// The static Main method.
-        /// </summary>
-        public static int Main(string[] args) {
-            Log.Logger = new ConsoleLogger();
-
-            var program = new Program();
-            try {
-                return program.Run(args, new GlobalContext(), null);
-            } catch (FileNotFoundException ex) {
-                Log.WriteWarning(ex.Message);
-                return FILE_NOT_FOUND_RESULT;
-            } catch (Exception ex) {
-                Log.WriteError("Exception occurred: " + ex.Message + " (" + ex.GetType().FullName + ")");
-                if (Log.IsChattyEnabled) {
-                    Console.WriteLine(ex);
-                }
-                return EXCEPTION_RESULT;
-            } finally {
-                // Main may be called multiple times; therefore we clear all caches
-                Intern.ResetAll();
-            }
         }
     }
 }

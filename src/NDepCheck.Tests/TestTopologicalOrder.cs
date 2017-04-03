@@ -23,10 +23,10 @@ namespace NDepCheck.Tests {
             d.Add("B", "A", 4);
             d.Add("B", "B", 8);
 
-            Assert.AreEqual(3, d.GetFromSum("A"));
-            Assert.AreEqual(12, d.GetFromSum("B"));
-            Assert.AreEqual(5, d.GetToSum("A"));
-            Assert.AreEqual(10, d.GetToSum("B"));
+            Assert.AreEqual(3, d.GetRowSum("A"));
+            Assert.AreEqual(12, d.GetRowSum("B"));
+            Assert.AreEqual(5, d.GetColumnSum("A"));
+            Assert.AreEqual(10, d.GetColumnSum("B"));
 
             //    |  A  B  #
             // ------------#----
@@ -36,12 +36,12 @@ namespace NDepCheck.Tests {
             //    |  1  2  #
 
             for (int i = 0; i < 3; i++) {
-                d.RemoveFrom("B");
+                d.RemoveRow("B");
 
-                Assert.AreEqual(3, d.GetFromSum("A"));
-                Assert.AreEqual(0, d.GetFromSum("B"));
-                Assert.AreEqual(1, d.GetToSum("A"));
-                Assert.AreEqual(2, d.GetToSum("B"));
+                Assert.AreEqual(3, d.GetRowSum("A"));
+                Assert.AreEqual(0, d.GetRowSum("B"));
+                Assert.AreEqual(1, d.GetColumnSum("A"));
+                Assert.AreEqual(2, d.GetColumnSum("B"));
             }
         }
 
@@ -69,21 +69,21 @@ namespace NDepCheck.Tests {
             d.Add("D", "B", 2);
             d.Add("D", "C", 300);
 
-            Assert.AreEqual(115, d.GetFromSum("A"));
-            Assert.AreEqual(124, d.GetFromSum("B"));
-            Assert.AreEqual(42, d.GetFromSum("C"));
-            Assert.AreEqual(302, d.GetFromSum("D"));
+            Assert.AreEqual(115, d.GetRowSum("A"));
+            Assert.AreEqual(124, d.GetRowSum("B"));
+            Assert.AreEqual(42, d.GetRowSum("C"));
+            Assert.AreEqual(302, d.GetRowSum("D"));
 
-            Assert.AreEqual(25, d.GetToSum("A"));
-            Assert.AreEqual(127, d.GetToSum("B"));
-            Assert.AreEqual(431, d.GetToSum("C"));
-            Assert.AreEqual(0, d.GetToSum("D"));
+            Assert.AreEqual(25, d.GetColumnSum("A"));
+            Assert.AreEqual(127, d.GetColumnSum("B"));
+            Assert.AreEqual(431, d.GetColumnSum("C"));
+            Assert.AreEqual(0, d.GetColumnSum("D"));
 
-            CollectionAssert.IsSubsetOf(new[] { "A", "B", "C", "D" }, d.FromKeys.ToList());
-            CollectionAssert.IsSubsetOf(new[] { "A", "B", "C" }, d.ToKeys.ToList());
+            CollectionAssert.IsSubsetOf(new[] { "A", "B", "C", "D" }, d.RowKeys.ToList());
+            CollectionAssert.IsSubsetOf(new[] { "A", "B", "C" }, d.ColumnKeys.ToList());
 
             for (int i = 0; i < 2; i++) {
-                Assert.IsTrue(d.RemoveFrom("B"));
+                Assert.IsTrue(d.RemoveRow("B"));
 
                 //    |   A   B   C   D #
                 // ---------------------#----
@@ -94,24 +94,24 @@ namespace NDepCheck.Tests {
                 //  =========================
                 //    |  22 107 330   0 #
 
-                Assert.AreEqual(115, d.GetFromSum("A"));
-                Assert.AreEqual(0, d.GetFromSum("B"));
-                Assert.AreEqual(42, d.GetFromSum("C"));
-                Assert.AreEqual(302, d.GetFromSum("D"));
+                Assert.AreEqual(115, d.GetRowSum("A"));
+                Assert.AreEqual(0, d.GetRowSum("B"));
+                Assert.AreEqual(42, d.GetRowSum("C"));
+                Assert.AreEqual(302, d.GetRowSum("D"));
 
-                Assert.AreEqual(22, d.GetToSum("A"));
-                Assert.AreEqual(107, d.GetToSum("B"));
-                Assert.AreEqual(330, d.GetToSum("C"));
-                Assert.AreEqual(0, d.GetToSum("D"));
+                Assert.AreEqual(22, d.GetColumnSum("A"));
+                Assert.AreEqual(107, d.GetColumnSum("B"));
+                Assert.AreEqual(330, d.GetColumnSum("C"));
+                Assert.AreEqual(0, d.GetColumnSum("D"));
 
-                CollectionAssert.IsSubsetOf(new[] { "A", "C", "D" }, d.FromKeys.ToList());
-                CollectionAssert.IsSubsetOf(new[] { "A", "B", "C" }, d.ToKeys.ToList());
+                CollectionAssert.IsSubsetOf(new[] { "A", "C", "D" }, d.RowKeys.ToList());
+                CollectionAssert.IsSubsetOf(new[] { "A", "B", "C" }, d.ColumnKeys.ToList());
             }
-            Assert.IsTrue(d.RemoveFrom("B"));
-            Assert.IsFalse(d.RemoveFrom("B"));
+            Assert.IsTrue(d.RemoveRow("B"));
+            Assert.IsFalse(d.RemoveRow("B"));
 
             for (int i = 0; i < 2; i++) {
-                Assert.IsTrue(d.RemoveTo("A"));
+                Assert.IsTrue(d.RemoveColumn("A"));
 
                 //    |   A   B   C   D #
                 // ---------------------#----
@@ -122,21 +122,21 @@ namespace NDepCheck.Tests {
                 //  =========================
                 //    |   0 107 330   0 #
 
-                Assert.AreEqual(100, d.GetFromSum("A"));
-                Assert.AreEqual(0, d.GetFromSum("B"));
-                Assert.AreEqual(35, d.GetFromSum("C"));
-                Assert.AreEqual(302, d.GetFromSum("D"));
+                Assert.AreEqual(100, d.GetRowSum("A"));
+                Assert.AreEqual(0, d.GetRowSum("B"));
+                Assert.AreEqual(35, d.GetRowSum("C"));
+                Assert.AreEqual(302, d.GetRowSum("D"));
 
-                Assert.AreEqual(0, d.GetToSum("A"));
-                Assert.AreEqual(107, d.GetToSum("B"));
-                Assert.AreEqual(330, d.GetToSum("C"));
-                Assert.AreEqual(0, d.GetToSum("D"));
+                Assert.AreEqual(0, d.GetColumnSum("A"));
+                Assert.AreEqual(107, d.GetColumnSum("B"));
+                Assert.AreEqual(330, d.GetColumnSum("C"));
+                Assert.AreEqual(0, d.GetColumnSum("D"));
 
-                CollectionAssert.IsSubsetOf(new[] { "A", "C", "D" }, d.FromKeys.ToList());
-                CollectionAssert.IsSubsetOf(new[] { "B", "C" }, d.ToKeys.ToList());
+                CollectionAssert.IsSubsetOf(new[] { "A", "C", "D" }, d.RowKeys.ToList());
+                CollectionAssert.IsSubsetOf(new[] { "B", "C" }, d.ColumnKeys.ToList());
             }
-            Assert.IsTrue(d.RemoveTo("A"));
-            Assert.IsFalse(d.RemoveTo("A"));
+            Assert.IsTrue(d.RemoveColumn("A"));
+            Assert.IsFalse(d.RemoveColumn("A"));
         }
 
         //private class Edge : IEdge {
@@ -186,10 +186,10 @@ namespace NDepCheck.Tests {
             }
 
             var itemsToRatios =
-                aggregatedCounts.ToKeys.Select(
+                aggregatedCounts.ColumnKeys.Select(
                     k => new {
                         Item = k,
-                        Ratio = aggregatedCounts.GetFromSum(k) / (aggregatedCounts.GetToSum(k) + aggregatedCounts.GetFromSum(k) + 0.001m)
+                        Ratio = aggregatedCounts.GetRowSum(k) / (aggregatedCounts.GetColumnSum(k) + aggregatedCounts.GetRowSum(k) + 0.001m)
                     });
             decimal minToRatio = itemsToRatios.Min(ir => ir.Ratio);
             Item minItem = itemsToRatios.First(ir => ir.Ratio == minToRatio).Item;

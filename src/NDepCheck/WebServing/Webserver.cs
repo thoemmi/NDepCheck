@@ -26,19 +26,11 @@ namespace NDepCheck.WebServing {
             _listener.Prefixes.Add($"http://*:{_port}/");
             _listener.Start();
             Log.WriteInfo($"Listening on port {_port}");
-            IAsyncResult result = _listener.BeginGetContext(GetContextCallback, null);
-            //result.AsyncWaitHandle.WaitOne();
-            Console.ReadLine();
-            //lock (_listener) {
-            //    Monitor.Wait(_listener);
-            //}
+            _listener.BeginGetContext(GetContextCallback, null);
         }
 
         public void Stop() {
             _listener.Stop();
-            //lock (_listener) {
-            //    Monitor.PulseAll(_listener);
-            //}
         }
 
         public void GetContextCallback(IAsyncResult result) {

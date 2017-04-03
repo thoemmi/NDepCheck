@@ -28,17 +28,17 @@ namespace NDepCheck.Transforming.Ordering {
 
             MatrixDictionary<Item, int> aggregatedCounts = MatrixDictionary.CreateCounts(dependencies.Where(d => !Equals(d.UsingItem, d.UsedItem)), d => d.Ct);
 
-            for (int i = 0; aggregatedCounts.ToKeys.Any(); i++) {
+            for (int i = 0; aggregatedCounts.ColumnKeys.Any(); i++) {
                 var itemsToRatios =
-                    aggregatedCounts.ToKeys.Select(
+                    aggregatedCounts.ColumnKeys.Select(
                         k => new {
                             Item = k,
-                            Ratio = aggregatedCounts.GetFromSum(k) / (aggregatedCounts.GetToSum(k) + aggregatedCounts.GetFromSum(k) + 0.001m)
+                            Ratio = aggregatedCounts.GetRowSum(k) / (aggregatedCounts.GetColumnSum(k) + aggregatedCounts.GetRowSum(k) + 0.001m)
                         });
                 decimal minToRatio = itemsToRatios.Min(ir => ir.Ratio);
                 Item minItem = itemsToRatios.First(ir => ir.Ratio == minToRatio).Item;
 
-                aggregatedCounts.RemoveTo(minItem);
+                aggregatedCounts.RemoveColumn(minItem);
 
                 minItem.SetOrder(i.ToString("D4"));
             }

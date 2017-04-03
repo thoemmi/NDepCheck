@@ -14,7 +14,7 @@ namespace NDepCheck.Tests {
 
             Assert.AreEqual(0, Program.Main(new[] {
                 // transform testdata
-                "-s", ".", typeof(AddReverse).Name, "{", "-minherit", "-uderived", "}",
+                "-s", ".", typeof(AddReverseDeps).Name, "{", "-minherit", "-uderived", "}",
                 // write them as dip file
                 "-r", typeof(DipWriter).Name, outFile
             }));
@@ -33,7 +33,7 @@ namespace NDepCheck.Tests {
 
             Assert.AreEqual(0, Program.Main(new[] {
                 // transform testdata
-                "-s", ".", typeof(AddReverse).Name, "{", "-r", "-minherit", "-uderived", "}",
+                "-s", ".", typeof(AddReverseDeps).Name, "{", "-r", "-minherit", "-uderived", "}",
                 // write them as dip file
                 "-r", typeof(DipWriter).Name, outFile
             }));

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace NDepCheck.Transforming.Setting {
-    public class Set : ITransformer {
+    public class SetDeps : ITransformer {
         public string GetHelp(bool detailedHelp) {
             return @"Reset counts on edges.
 

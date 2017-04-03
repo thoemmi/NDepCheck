@@ -5,14 +5,14 @@ using NDepCheck.Transforming.Setting;
 
 namespace NDepCheck.Tests {
     [TestClass]
-    public class TestSetDependencyProperties {
+    public class TestSetDeps {
         [TestMethod]
         public void TestResetBadCt() {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
                 // transform testdata
-                "-s", ".", typeof(Set).Name, "{", "-b", "}",
+                "-s", ".", typeof(SetDeps).Name, "{", "-b", "}",
                 // write them as dip file
                 "-r", typeof(DipWriter).Name, outFile
             }));
@@ -32,7 +32,7 @@ namespace NDepCheck.Tests {
 
             Assert.AreEqual(0, Program.Main(new[] {
                 // transform testdata
-                "-s", ".", typeof(Set).Name, "{", "-q", "}",
+                "-s", ".", typeof(SetDeps).Name, "{", "-q", "}",
                 // write them as dip file
                 "-r", typeof(DipWriter).Name, outFile
             }));
@@ -52,7 +52,7 @@ namespace NDepCheck.Tests {
 
             Assert.AreEqual(0, Program.Main(new[] {
                 // transform testdata
-                "-s", ".", typeof(Set).Name, "{", "-q", "-mdefine", "}",
+                "-s", ".", typeof(SetDeps).Name, "{", "-q", "-mdefine", "}",
                 // write them as dip file
                 "-r", typeof(DipWriter).Name, outFile
             }));
@@ -72,7 +72,7 @@ namespace NDepCheck.Tests {
 
             Assert.AreEqual(0, Program.Main(new[] {
                 // transform testdata
-                "-s", ".", typeof(Set).Name, "{", "-b", "-q", "}",
+                "-s", ".", typeof(SetDeps).Name, "{", "-b", "-q", "}",
                 // write them as dip file
                 "-r", typeof(DipWriter).Name, outFile
             }));

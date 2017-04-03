@@ -340,5 +340,17 @@ namespace NDepCheck {
         public void StopWebServer() {
             _webServer?.Stop();
         }
+
+        public bool AddFileWatchers(string positiveFilePattern, string negativeFilePattern, string scriptName) {
+            throw new NotImplementedException();
+        }
+
+        public bool RemoveFileWatchers(string negativeFilePattern) {
+            throw new NotImplementedException();
+        }
+
+        public bool RemoveAllFileWatchers(string scriptName) {
+            throw new NotImplementedException();
+        }
     }
 }
