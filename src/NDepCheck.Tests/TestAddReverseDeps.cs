@@ -7,7 +7,7 @@ using NDepCheck.Transforming.Reversing;
 
 namespace NDepCheck.Tests {
     [TestClass]
-    public class TestAddReverse {
+    public class TestAddReverseDeps {
         [TestMethod]
         public void TestAddReverseWithoutRemove() {
             string outFile = Path.GetTempFileName() + "OUT.dip";

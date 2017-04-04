@@ -170,9 +170,9 @@ namespace NDepCheck.Tests {
             Item b = Item.New(ItemType.SIMPLE, "b");
             Item c = Item.New(ItemType.SIMPLE, "c");
             var dependencies = new[] {
-                new Dependency(a, b, null, null, 1),
-                new Dependency(c, a, null, null, 100),
-                new Dependency(c, b, null, null, 100)
+                new Dependency(a, b, source: null, usage: "", ct:1),
+                new Dependency(c, a, source: null, usage: "", ct:100),
+                new Dependency(c, b, source: null, usage: "", ct:100)
             };
 
             var aggregated = new Dictionary<FromTo, Dependency>();

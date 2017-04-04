@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 
@@ -13,13 +12,12 @@ namespace NDepCheck.Reading {
             }
         }
 
-        private readonly DipReaderFactory _factory;
+        private readonly Dictionary<string, ItemType> _registeredItemTypes = new Dictionary<string, ItemType>();
 
-        public DipReader([NotNull] string fileName, [NotNull] DipReaderFactory factory) : base(fileName) {
-            _factory = factory;
+        public DipReader([NotNull] string fileName) : base(fileName) {
         }
 
-        protected override IEnumerable<Dependency> ReadDependencies(InputContext inputContext, int depth) {
+        protected override IEnumerable<Dependency> ReadDependencies([CanBeNull] InputContext inputContext, int depth) {
             Regex dipArrow = new Regex($@"\s*{EdgeConstants.DIP_ARROW}\s*");
 
             var result = new List<Dependency>(10000);
@@ -37,7 +35,10 @@ namespace NDepCheck.Reading {
                         continue;
                     }
                     if (line.StartsWith("$")) {
-                        _factory.AddItemType(ItemType.New(line.TrimStart('$').Trim()));
+                        ItemType itemType = ItemType.New(line.TrimStart('$').Trim());
+                        if (!_registeredItemTypes.ContainsKey(itemType.Name)) {
+                            _registeredItemTypes.Add(itemType.Name, itemType);
+                        }
                     } else {
                         string[] parts = dipArrow.Split(line);
 
@@ -109,9 +110,9 @@ namespace NDepCheck.Reading {
             string[] prefix = prefixAndValues[0].Split(';');
 
             string typeName = prefix[0];
-            ItemType foundType = _factory.GetItemType(typeName);
 
-            if (foundType == null) {
+            ItemType foundType;
+            if (!_registeredItemTypes.TryGetValue(typeName, out foundType)) {
                 throw new DipReaderException("ItemType '" + typeName + "' has not been defined in this file previously");
             } else {
                 string[] values = prefixAndValues.Length > 1 ? prefixAndValues[1].Split(':', ';') : new string[0];

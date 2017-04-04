@@ -5,21 +5,8 @@ namespace NDepCheck.Reading {
     public class DipReaderFactory : AbstractReaderFactory {
         private readonly Dictionary<string, ItemType> _registeredItemTypes = new Dictionary<string, ItemType>();
 
-        [CanBeNull]
-        public ItemType GetItemType(string name) {
-            ItemType result;
-            _registeredItemTypes.TryGetValue(name, out result);
-            return result;
-        }
-
         public override AbstractDependencyReader CreateReader(string fileName, GlobalContext options, bool needsOnlyItemTails) {
-            return new DipReader(fileName, this);
-        }
-
-        public void AddItemType([NotNull]ItemType itemType) {
-            if (!_registeredItemTypes.ContainsKey(itemType.Name)) {
-                _registeredItemTypes.Add(itemType.Name, itemType);
-            }
+            return new DipReader(fileName);
         }
 
         public override string GetHelp(bool detailedHelp) {

@@ -1,5 +1,6 @@
 ﻿
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace NDepCheck.Transforming.Setting {
@@ -57,7 +58,7 @@ Transformer options: [-m &] [-q] [-b] [-u &]
                 }));
 
             foreach (var d in dependencies) {
-                if (match == null || match.IsMatch(d.Usage ?? "")) {
+                if (match == null || d.Usage.Any(u => match.IsMatch(u))) {
                     if (resetQuestionable) {
                         d.ResetQuestionableCt();
                     }
@@ -85,10 +86,10 @@ Transformer options: [-m &] [-q] [-b] [-u &]
             var a = Item.New(ItemType.SIMPLE, "A");
             var b = Item.New(ItemType.SIMPLE, "B");
             return new[] {
-                new Dependency(a, a, source:null, usage: null, ct:10, questionableCt:5, badCt:3),
-                new Dependency(a, b, source:null, usage: "use+define", ct:1, questionableCt:0,badCt: 0),
-                new Dependency(b, a, source:null, usage: "define", ct:5, questionableCt:0, badCt:2),
-            };
-        }
+                new Dependency(a, a, source: null, usage: "", ct:10, questionableCt:5, badCt:3),
+                new Dependency(a, b, source: null, usage: "use+define", ct:1, questionableCt:0,badCt: 0),
+                new Dependency(b, a, source: null, usage: "define", ct:5, questionableCt:0, badCt:2),
+            };                               
+        }                                    
     }
 }

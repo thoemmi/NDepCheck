@@ -93,7 +93,7 @@ namespace NDepCheck {
             IEnumerable<AbstractDependencyReader> allReaders =
                 InputFileSpecs.SelectMany(i => i.CreateOrGetReaders(this, false)).OrderBy(r => r.FileName);
             foreach (var r in allReaders) {
-                InputContext inputContext = r.ReadOrGetDependencies(this, 0);
+                InputContext inputContext = r.ReadOrGetDependencies(0);
                 if (inputContext != null) {
                     // Newly read input
                     _inputContexts.Add(inputContext);

@@ -12,10 +12,8 @@ namespace NDepCheck {
     /// (one "using item" uses one "used item").
     /// </remarks>
     public class Dependency : IEdge {
-        [NotNull]
-        private readonly Item _usingItem;
-        [NotNull]
-        private readonly Item _usedItem;
+        [NotNull] private readonly Item _usingItem;
+        [NotNull] private readonly Item _usedItem;
 
         [CanBeNull]
         public InputContext InputContext { get; }
@@ -24,8 +22,14 @@ namespace NDepCheck {
         private int _questionableCt;
         private int _badCt;
 
-        [CanBeNull]
-        private string _exampleInfo;
+        [CanBeNull] private string _exampleInfo;
+
+        public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem, [CanBeNull] ISourceLocation source,
+            [CanBeNull] string usage, int ct, int questionableCt = 0, int badCt = 0,
+            [CanBeNull] string exampleInfo = null, [CanBeNull] InputContext inputContext = null) : this(
+                usingItem, usedItem, source, UsageToSet(usage), ct, questionableCt, badCt, exampleInfo, inputContext) { }
+
+
 
         /// <summary>
         /// Create a dependency.
@@ -40,7 +44,7 @@ namespace NDepCheck {
         /// <param name="exampleInfo"></param>
         /// <param name="inputContext"></param>
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem,
-            [CanBeNull] ISourceLocation source, [CanBeNull] string usage,
+            [CanBeNull] ISourceLocation source, [NotNull] IEnumerable<string> usage,
             int ct, int questionableCt = 0, int badCt = 0, [CanBeNull] string exampleInfo = null,
             [CanBeNull] InputContext inputContext = null) {
             if (usingItem == null) {
@@ -54,11 +58,23 @@ namespace NDepCheck {
             InputContext = inputContext;
             inputContext?.AddDependency(this);
             Source = source; // != null ? string.Intern(fileName) : null;
-            Usage = usage;
+            Usage = new HashSet<string>(usage);
             _ct = ct;
             _questionableCt = questionableCt;
             _badCt = badCt;
             _exampleInfo = exampleInfo;
+        }
+
+        public void SetUsage(string usage) {
+            Usage = UsageToSet(usage);
+        }
+
+        public void AddUsage(string usage) {
+            Usage.UnionWith(UsageToSet(usage));
+        }
+
+        private static HashSet<string> UsageToSet(string usage) {
+            return new HashSet<string>(usage?.Split('+').Where(s => !string.IsNullOrWhiteSpace(s)) ?? Enumerable.Empty<string>());
         }
 
         /// <summary>
@@ -82,8 +98,8 @@ namespace NDepCheck {
             get;
         }
 
-        [CanBeNull]
-        public string Usage {
+        [NotNull]
+        public HashSet<string> Usage {
             get; private set;
         }
 
@@ -144,17 +160,17 @@ namespace NDepCheck {
         }
 
         public void MarkAsBad() {
-            if (_badCt == 0) {
-                // First bad example overrides any previous bad example
+            // First bad example overrides any previous example
+            if (_badCt == 0 || _exampleInfo == null) {
                 _exampleInfo = UsingItemAsString + " ---! " + UsedItemAsString;
-            } else {
-                _exampleInfo = _exampleInfo ?? UsingItemAsString + " ---! " + UsedItemAsString;
             }
             _badCt = _ct;
         }
 
         public void MarkAsQuestionable() {
-            _exampleInfo = _exampleInfo ?? UsingItemAsString + " ---? " + UsedItemAsString;
+            if (_badCt == 0 && _questionableCt == 0 || _exampleInfo == null) {
+                _exampleInfo = UsingItemAsString + " ---? " + UsedItemAsString;
+            }
             _questionableCt = _ct;
         }
 
@@ -186,29 +202,18 @@ namespace NDepCheck {
 
         public string AsDipStringWithTypes(bool withExampleInfo) {
             string exampleInfo = withExampleInfo ? _exampleInfo : null;
+            string usage = string.Join("+", Usage.OrderBy(s => s));
             return $"{_usingItem.AsStringWithOrderAndType()} {EdgeConstants.DIP_ARROW} "
-                 + $"{Usage};{_ct};{_questionableCt};{_badCt};{Source?.AsDipString()};{exampleInfo} "
+                 + $"{usage};{_ct};{_questionableCt};{_badCt};{Source?.AsDipString()};{exampleInfo} "
                  + $"{EdgeConstants.DIP_ARROW} {_usedItem.AsStringWithOrderAndType()}";
         }
 
         public void AggregateCounts(Dependency d) {
-            AddUsage(d.Usage);
+            Usage.UnionWith(d.Usage);
             _ct += d.Ct;
             _questionableCt += d.QuestionableCt;
             _badCt += d.BadCt;
             _exampleInfo = _exampleInfo ?? d.ExampleInfo;
-        }
-
-        public void SetUsage(string u) {
-            Usage = u;
-        }
-
-        public void AddUsage(string u) {
-            if (string.IsNullOrWhiteSpace(Usage)) {
-                Usage = u;
-            } else if (!string.IsNullOrWhiteSpace(u) && !Usage.Contains(u)) {
-                Usage += "+" + u;
-            }
         }
 
         private static INode GetOrCreateNode<T>(Dictionary<INode, INode> canonicalNodes, Dictionary<INode, List<T>> nodesAndEdges, INode node) where T : IEdge {

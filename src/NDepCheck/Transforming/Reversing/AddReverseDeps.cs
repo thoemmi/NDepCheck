@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace NDepCheck.Transforming.Reversing {
@@ -27,7 +28,7 @@ Transformer options: [-m &] [-u &] [-r]
             // Only items are changed (Order is added)
 
             Regex match = null;
-            string newUsage = null;
+            string usage = null;
             bool removeOriginal = false;
 
             Options.Parse(transformOptions,
@@ -35,7 +36,7 @@ Transformer options: [-m &] [-u &] [-r]
                     match = new Regex(Options.ExtractOptionValue(args, ref j));
                     return j;
                 }), new OptionAction('u', (args, j) => {
-                    newUsage = Options.ExtractOptionValue(args, ref j);
+                    usage = Options.ExtractOptionValue(args, ref j);
                     return j;
                 }), new OptionAction('r', (args, j) => {
                     removeOriginal = true;
@@ -46,9 +47,15 @@ Transformer options: [-m &] [-u &] [-r]
                 if (!removeOriginal) {
                     transformedDependencies.Add(d);
                 }
-                if (match == null || match.IsMatch(d.Usage ?? "")) {
-                    transformedDependencies.Add(new Dependency(d.UsedItem, d.UsingItem, d.Source, newUsage ?? d.Usage,
-                        d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo, d.InputContext));
+                if (match == null || d.Usage.Any(u => match.IsMatch(u))) {
+                    var newUsage = new HashSet<string>(d.Usage);
+                    if (match != null) {
+                        newUsage.RemoveWhere(u => match.IsMatch(u));
+                    }
+                    newUsage.Add(usage);
+
+                    transformedDependencies.Add(new Dependency(d.UsedItem, d.UsingItem, d.Source, 
+                        newUsage, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo, d.InputContext));
                 }
             }
             return Program.OK_RESULT;
@@ -62,10 +69,10 @@ Transformer options: [-m &] [-u &] [-r]
             var a = Item.New(ItemType.SIMPLE, "A");
             var b = Item.New(ItemType.SIMPLE, "B");
             return new[] {
-                new Dependency(a, a, source:null, usage: "inherit", ct:10, questionableCt:5, badCt:3),
-                new Dependency(a, b, source:null, usage: "inherit+define", ct:1, questionableCt:0,badCt: 0),
-                new Dependency(b, a, source:null, usage: "define", ct:5, questionableCt:0, badCt:2),
-                new Dependency(b, b, source:null, usage: null, ct: 5, questionableCt:0, badCt:2),
+                new Dependency(a, a, source: null, usage: "inherit", ct:10, questionableCt:5, badCt:3),
+                new Dependency(a, b, source: null, usage: "inherit+define", ct:1, questionableCt:0,badCt: 0),
+                new Dependency(b, a, source: null, usage: "define", ct:5, questionableCt:0, badCt:2),
+                new Dependency(b, b, source: null, usage: "", ct: 5, questionableCt:0, badCt:2),
             };
         }
     }

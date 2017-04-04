@@ -63,27 +63,27 @@ namespace NDepCheck.Transforming.Ordering {
             //  =========================
             //    |  25 127 431   0 #
             return new[] {
-                new Dependency(a, a, null, null, 10),
-                new Dependency(a, a, null, null, 5),
+                new Dependency(a, a, source: null, usage: "", ct:10),
+                new Dependency(a, a, source: null, usage: "", ct:5),
 
-                new Dependency(a, b, null, null, 100),
+                new Dependency(a, b, source: null, usage: "", ct:100),
 
-                new Dependency(b, a, null, null, 1),
-                new Dependency(b, a, null, null, 1),
-                new Dependency(b, a, null, null, 1),
+                new Dependency(b, a, source: null, usage: "", ct:1),
+                new Dependency(b, a, source: null, usage: "", ct:1),
+                new Dependency(b, a, source: null, usage: "", ct:1),
 
-                new Dependency(b, b, null, null, 20),
+                new Dependency(b, b, source: null, usage: "", ct:20),
 
-                new Dependency(b, c, null, null, 100),
-                new Dependency(b, c, null, null, 1),
+                new Dependency(b, c, source: null, usage: "", ct:100),
+                new Dependency(b, c, source: null, usage: "", ct:1),
 
-                new Dependency(c, a, null, null, 7),
-                new Dependency(c, b, null, null, 5),
-                new Dependency(c, c, null, null, 30),
+                new Dependency(c, a, source: null, usage: "", ct:7),
+                new Dependency(c, b, source: null, usage: "", ct:5),
+                new Dependency(c, c, source: null, usage: "", ct:30),
 
-                new Dependency(d, b, null, null, 1),
-                new Dependency(d, b, null, null, 1),
-                new Dependency(d, c, null, null, 300),
+                new Dependency(d, b, source: null, usage: "", ct:1),
+                new Dependency(d, b, source: null, usage: "", ct:1),
+                new Dependency(d, c, source: null, usage: "", ct:300),
             };
         }
     }

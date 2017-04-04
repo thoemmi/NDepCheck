@@ -3,18 +3,29 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
+using NDepCheck.Reading;
 
 namespace NDepCheck.Transforming.Projecting {
     public class ProjectItems : AbstractTransformerWithConfigurationPerInputfile<ProjectionSet> {
+        internal const string ABSTRACT_IT_LEFT = "<";
+        internal const string ABSTRACT_IT_BOTH = "!";
+        internal const string ABSTRACT_IT_RIGHT = ">";
+        internal const string ABSTRACT_IT_LEFT_AS_INNER = "[";
+        internal const string ABSTRACT_IT_BOTH_AS_INNER = "|";
+        internal const string ABSTRACT_IT_RIGHT_AS_INNER = "]";
+        internal const string MAP = "---%";
+
         private ProjectionSet _orderedProjections;
+        private Dictionary<FromTo, Dependency> _dependenciesForBackProjection;
 
         public override string GetHelp(bool detailedHelp) {
             return @"  Project ('reduce') items and dependencies with ! and % rules
 
 Configuration options: [-f projectionfile | -p projections]
 
-Transformer options: [-b dipfile]
-  -b dipfile     do back projection of information in dipfile; default: no back projection
+Transformer options: [-b dipfile] [-k]
+  -b dipfile     Do back projection of information in dipfile; default: no back projection
+  -k             When back projecting, keep only projected edges
 ";
         }
 
@@ -40,14 +51,6 @@ Transformer options: [-b dipfile]
                 })
             );
         }
-
-        internal const string ABSTRACT_IT_LEFT = "<";
-        internal const string ABSTRACT_IT_BOTH = "!";
-        internal const string ABSTRACT_IT_RIGHT = ">";
-        internal const string ABSTRACT_IT_LEFT_AS_INNER = "[";
-        internal const string ABSTRACT_IT_BOTH_AS_INNER = "|";
-        internal const string ABSTRACT_IT_RIGHT_AS_INNER = "]";
-        internal const string MAP = "---%";
 
         protected override ProjectionSet CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
             int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack) {
@@ -139,14 +142,45 @@ Transformer options: [-b dipfile]
                             string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
             if (_orderedProjections != null) {
                 string fullDipName = null;
+                bool keepOnlyProjected = false;
                 Options.Parse(transformOptions, new OptionAction('b', (args, j) => {
                     fullDipName = Path.GetFullPath(Options.ExtractOptionValue(args, ref j));
+                    return j;
+                }), new OptionAction('k', (args, j) => {
+                    keepOnlyProjected = true;
                     return j;
                 }));
 
                 if (fullDipName != null) {
-                    throw new NotImplementedException("Back projection not yet implemented");
+                    // Back projection
+                    if (_dependenciesForBackProjection == null) {
+                        InputContext localContext = new DipReader(fullDipName).ReadOrGetDependencies(0);
+                        if (localContext == null) {
+                            throw new Exception("Internal Error: new DipReader() will always create new InputContext - cannot be null");
+                        }
+                        _dependenciesForBackProjection = localContext.Dependencies.ToDictionary(
+                            d => new FromTo(d.UsingItem, d.UsedItem), d => d);
+                    }
+
+                    var localCollector = new Dictionary<FromTo, Dependency>();
+                    var backProjected = new List<Dependency>();
+                    foreach (var d in dependencies) {
+                        FromTo projectedEdgeFromTo = ReduceEdge(_orderedProjections.AllProjections, d, localCollector);
+                        if (projectedEdgeFromTo != null) {
+                            // The edge was projected
+                            Dependency replaceDataEdge;
+                            if (_dependenciesForBackProjection.TryGetValue(projectedEdgeFromTo, out replaceDataEdge)) {
+                                d.ResetBadCt();
+                                d.ResetQuestionableCt();
+                                d.AggregateCounts(replaceDataEdge);
+                                backProjected.Add(d);
+                            }
+                            // else not back projected -> Warning?
+                        }
+                    }
+                    transformedDependencies.AddRange(keepOnlyProjected ? backProjected : dependencies);
                 } else {
+                    // Forward projection
                     var localCollector = new Dictionary<FromTo, Dependency>();
                     foreach (var d in dependencies) {
                         ReduceEdge(_orderedProjections.AllProjections, d, localCollector);
@@ -160,7 +194,7 @@ Transformer options: [-b dipfile]
             }
         }
 
-        private static void ReduceEdge(IEnumerable<Projection> orderedProjections, Dependency d, 
+        private static FromTo ReduceEdge(IEnumerable<Projection> orderedProjections, Dependency d, 
                                        Dictionary<FromTo, Dependency> localCollector) {
             Item usingItem = orderedProjections
                                     //.Skip(GuaranteedNonMatching(d.UsingItem))
@@ -174,13 +208,16 @@ Transformer options: [-b dipfile]
                                     .FirstOrDefault(n => n != null);
 
             if (usingItem == null) {
-                Log.WriteInfo("No graph output pattern found for drawing " + d.UsingItem.AsString() + " - I ignore it");
+                Log.WriteInfo("No projection pattern found for " + d.UsingItem.AsString() + " - I ignore it");
+                return null;
             } else if (usedItem == null) {
-                Log.WriteInfo("No graph output pattern found for drawing " + d.UsedItem.AsString() + " - I ignore it");
+                Log.WriteInfo("No projection pattern found for " + d.UsedItem.AsString() + " - I ignore it");
+                return null;
             } else if (usingItem.IsEmpty() || usedItem.IsEmpty()) {
                 // ignore this edge!
+                return null;
             } else {
-                new FromTo(usingItem, usedItem).AggregateEdge(d, localCollector);
+                return new FromTo(usingItem, usedItem).AggregateEdge(d, localCollector);
             }
         }
 
@@ -201,7 +238,8 @@ Transformer options: [-b dipfile]
         }
 
         public override void FinishTransform(GlobalContext context) {
-            // empty
+            // reset cached back projection dependencies for next transform
+            _dependenciesForBackProjection = null;
         }
 
         #endregion Transform

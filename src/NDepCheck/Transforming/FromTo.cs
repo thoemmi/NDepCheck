@@ -20,7 +20,7 @@ namespace NDepCheck.Transforming {
             return From.GetHashCode() ^ To.GetHashCode();
         }
 
-        public void AggregateEdge(Dependency d, Dictionary<FromTo, Dependency> edgeCollector) {
+        public FromTo AggregateEdge(Dependency d, Dictionary<FromTo, Dependency> edgeCollector) {
             Dependency edge;
             if (!edgeCollector.TryGetValue(this, out edge)) {
                 edge = new Dependency(From, To, d.Source, d.Usage, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo);
@@ -28,6 +28,7 @@ namespace NDepCheck.Transforming {
             } else {
                 edge.AggregateCounts(d);
             }
+            return this;
         }
 
         public static Dictionary<FromTo, Dependency> AggregateAllEdges(IEnumerable<Dependency> dependencies) {

@@ -111,6 +111,7 @@
     <Compile Include="Rendering\DotRenderer.cs" />
     <Compile Include="Reading\FullDotNetAssemblyDependencyReader.cs" />
     <Compile Include="Gibraltar\StringReference.cs" />
+    <Compile Include="Transforming\CycleChecking\FindCycleDeps.cs" />
     <Compile Include="Transforming\ItemMatch.cs" />
     <Compile Include="Transforming\Removing\RemoveItems.cs" />
     <Compile Include="Transforming\Removing\RemoveDeps.cs" />

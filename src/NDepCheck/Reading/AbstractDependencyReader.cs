@@ -18,9 +18,9 @@ namespace NDepCheck.Reading {
 
     public abstract class AbstractDependencyReader {
         private InputContext _inputContext;
+
         [NotNull]
         protected readonly string _fileName;
-
 
         protected AbstractDependencyReader([NotNull]string fileName) {
             if (string.IsNullOrWhiteSpace(fileName)) {
@@ -33,16 +33,15 @@ namespace NDepCheck.Reading {
         public string FileName => _fileName;
 
         [NotNull]
-        protected abstract IEnumerable<Dependency> ReadDependencies(InputContext inputContext, int depth);
+        protected abstract IEnumerable<Dependency> ReadDependencies([CanBeNull] InputContext inputContext, int depth);
 
         /// <summary>
         /// Read dependencies from file
         /// </summary>
-        /// <param name="globalContext"></param>
         /// <param name="depth"></param>
         /// <returns><c>null</c> if already read in</returns>
         [CanBeNull]
-        public InputContext ReadOrGetDependencies(GlobalContext globalContext, int depth) {
+        public InputContext ReadOrGetDependencies(int depth) {
             if (_inputContext == null) {
                 _inputContext = new InputContext(FileName);
                 Dependency[] dependencies = ReadDependencies(_inputContext, depth).ToArray();

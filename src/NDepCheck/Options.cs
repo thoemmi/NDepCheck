@@ -53,6 +53,14 @@ namespace NDepCheck {
             }
         }
 
+        public static int ExtractIntOptionValue(string[] args, ref int j, string msg) {
+            int value;
+            if (!int.TryParse(ExtractOptionValue(args, ref j), out value)) {
+                Throw(msg, args);
+            }
+            return value;
+        }
+
         private static string CollectMultipleArgs(string[] args, ref int i, string value) {
             // Collect everything up to }
             var sb = new StringBuilder(value);

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace NDepCheck.Transforming.Removing {
@@ -53,7 +54,7 @@ Transformer options: [-m &] [-i] [-o] [-q] [-b]
                 }));
 
             foreach (var d in dependencies) {
-                if (match != null && match.IsMatch(d.Usage ?? "") || removeSingleLoop && Equals(d.UsingItem, d.UsedItem) ||
+                if (match != null && d.Usage.Any(u => match.IsMatch(u)) || removeSingleLoop && Equals(d.UsingItem, d.UsedItem) ||
                     removeOk && d.QuestionableCt == 0 && d.BadCt == 0 || removeQuestionable && d.QuestionableCt > 0 ||
                     removeBad && d.BadCt > 0) {
                     // remove
@@ -75,7 +76,7 @@ Transformer options: [-m &] [-i] [-o] [-q] [-b]
                 new Dependency(a, a, source:null, usage: "inherit", ct:10, questionableCt:5, badCt:3),
                 new Dependency(a, b, source:null, usage: "inherit+define", ct:1, questionableCt:0,badCt: 0),
                 new Dependency(b, a, source:null, usage: "define", ct:5, questionableCt:0, badCt:2),
-                new Dependency(b, b, source:null, usage: null, ct: 5, questionableCt:0, badCt:2),
+                new Dependency(b, b, source:null, usage: "", ct: 5, questionableCt:0, badCt:2),
             };
         }
     }
