@@ -32,19 +32,17 @@ namespace NDepCheck.Rendering {
             //int stringLengthForIllegalEdges = -1;
             bool withExampleInfo = false;
             Options.Parse(argsAsString, 
-                //new OptionAction('e', (args, j) => {
+                //new OptionAction("e", (args, j) => {
                 //    if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out stringLengthForIllegalEdges)) {
                 //        Options.Throw("No valid length after e", args);
                 //    }
                 //    return j;
                 //}), 
-                new OptionAction('n', (args, j) => {
+                new OptionAction("n", (args, j) => {
                     withExampleInfo = true;
                     return j;
                 }));
-            string fileName = Path.ChangeExtension(baseFileName, ".dip");
-
-            using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(argsAsString, fileName))) { 
+            using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(argsAsString, baseFileName))) { 
                 Write(dependencies, sw.Writer, withExampleInfo);
             }
         }
@@ -87,7 +85,7 @@ namespace NDepCheck.Rendering {
         }
 
         public string GetMasterFileName(string argsAsString, string baseFileName) {
-            return GlobalContext.CreateFullFileName(baseFileName, null);
+            return GlobalContext.CreateFullFileName(baseFileName, ".dip");
         }
     }
 }

@@ -36,19 +36,19 @@ Transformer options: [-m &] [-i] [-o] [-q] [-b]
             bool removeBad = false;
 
             Options.Parse(transformOptions,
-                new OptionAction('m', (args, j) => {
+                new OptionAction("m", (args, j) => {
                     match = new Regex(Options.ExtractOptionValue(args, ref j));
                     return j;
-                }), new OptionAction('i', (args, j) => {
+                }), new OptionAction("i", (args, j) => {
                     removeSingleLoop = true;
                     return j;
-                }), new OptionAction('o', (args, j) => {
+                }), new OptionAction("o", (args, j) => {
                     removeOk = true;
                     return j;
-                }), new OptionAction('q', (args, j) => {
+                }), new OptionAction("q", (args, j) => {
                     removeQuestionable = true;
                     return j;
-                }), new OptionAction('b', (args, j) => {
+                }), new OptionAction("b", (args, j) => {
                     removeBad = true;
                     return j;
                 }));

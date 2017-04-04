@@ -1,22 +1,71 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using JetBrains.Annotations;
 
 namespace NDepCheck {
+    public class Option {
+        public readonly string ShortName;
+        public readonly string Name;
+        public readonly string Usage;
+        public readonly string Description;
+        public readonly string[] MoreNames;
+
+        public Option(string shortname, string name, string usage, string description, string[] moreNames = null) {
+            ShortName = shortname;
+            Name = name;
+            Usage = usage;
+            Description = description;
+            MoreNames = moreNames ?? new string[0];
+        }
+
+        public string Opt => "-" + Name;
+
+        public override string ToString() {
+            return "/" + ShortName;
+        }
+
+        public bool Matches(string arg) {
+            return Options.ArgMatches(arg, ShortName, Name) || Options.ArgMatches(arg, MoreNames);
+        }
+
+        public static string CreateHelp(Option[] options, bool detailed) {
+            var sb = new StringBuilder();
+            foreach (var o in options) {
+                sb.AppendLine("-"+ o.Name + " or -" + o.ShortName + "   " + o.Usage);
+                sb.AppendLine("    " + o.Description);
+            }
+            return sb.ToString();
+        }
+    }
+
     public class OptionAction {
-        public readonly char Option;
+        public readonly string Option;
         public readonly Func<string[], int, int> Action;
 
-        public OptionAction(char option, Func<string[], int, int> action) {
+        public OptionAction(Option option, Func<string[], int, int> action) : this(option.Name, action) {
+            // empty
+        }
+
+        public OptionAction(string option, Func<string[], int, int> action) {
             Option = option;
             Action = action;
         }
     }
 
     public static class Options {
-        public static bool ArgMatches(string arg, params char[] option) {
-            return option.Any(o => arg.ToLowerInvariant().StartsWith("/" + o) || arg.ToLowerInvariant().StartsWith("-" + o));
+        public static bool ArgMatches(string arg, params string[] option) {
+            return option.Any(o => {
+                string lower = arg.ToLowerInvariant();
+                if (!lower.StartsWith("/" + o) && !lower.StartsWith("-" + o)) {
+                    return false;
+                } else {
+                    string rest = arg.Substring(1 + o.Length);
+                    return rest == "" || rest.StartsWith("=");
+                }
+            });
         }
 
         /// <summary>
@@ -26,29 +75,29 @@ namespace NDepCheck {
             string optionValue;
             string arg = args[i];
             string[] argparts = arg.Split(new[] { '=' }, 2);
-            if (argparts.Length > 1) {
+            var nextI = i;
+            if (argparts.Length > 1 && argparts[1] != "") {
                 // /#=value ==> optionValue: "value"
                 optionValue = argparts[1];
-            } else if (argparts[0].Length == 2 && i < args.Length - 1 && (arg.StartsWith("/") || arg.StartsWith("-"))) {
+            } else {
                 // /# value ==> optionValue: "value"
                 // -# value ==> optionValue: "value"
-                optionValue = args[++i];
-            } else if (arg.Length <= 2) {
-                // /# ==> optionValue: null
-                optionValue = null;
-            } else if (arg[2] == '=') {
                 // /#= value ==> optionValue: "value"
-                // /#=value ==> optionValue: "value" // AGAIN?
-                optionValue = arg.Length == 3 ? args[++i] : arg.Substring(3);
-            } else {
-                // /# value ==> optionValue: "value" // AGAIN?
-                // /#value ==> optionValue: "value"
-                optionValue = arg.Length == 2 ? args[++i] : arg.Substring(2);
+                // /#= value ==> optionValue: "value"
+                optionValue = nextI + 1 >= args.Length ? null : args[++nextI];
             }
 
-            if (optionValue != null && optionValue.StartsWith("{")) {
+            if (optionValue == null) {
+                i = nextI;
+                return null;
+            } else if ((optionValue.StartsWith("/") || optionValue.StartsWith("-")) && optionValue.Length > 1) {
+                // This is the following option - i is not changed
+                return null;
+            } else if (optionValue.StartsWith("{")) {
+                i = nextI;
                 return CollectMultipleArgs(args, ref i, optionValue);
             } else {
+                i = nextI;
                 return optionValue;
             }
         }
@@ -123,6 +172,39 @@ namespace NDepCheck {
                 } else {
                     Throw("Invalid option " + arg, args);
                 }
+            }
+        }
+
+        public static IEnumerable<string> ExpandFilename(string pattern, params string[] extensions) {
+            if (pattern.StartsWith("@")) {
+                using (TextReader nameFile = new StreamReader(pattern.Substring(1))) {
+                    for (;;) {
+                        string name = nameFile.ReadLine();
+                        if (name == null) {
+                            break;
+                        }
+                        name = name.Trim();
+                        if (name != "") {
+                            yield return name;
+                        }
+                    }
+                }
+            } else if (pattern.Contains("*") || pattern.Contains("?")) {
+                int sepPos = pattern.LastIndexOf(Path.DirectorySeparatorChar);
+
+                string dir = sepPos < 0 ? "." : pattern.Substring(0, sepPos);
+                string filePattern = sepPos < 0 ? pattern : pattern.Substring(sepPos + 1);
+                foreach (string name in Directory.GetFiles(dir, filePattern)) {
+                    yield return name;
+                }
+            } else if (Directory.Exists(pattern)) {
+                foreach (var ext in extensions) {
+                    foreach (string name in Directory.GetFiles(pattern, "*" + ext)) {
+                        yield return name;
+                    }
+                }
+            } else {
+                yield return pattern;
             }
         }
     }

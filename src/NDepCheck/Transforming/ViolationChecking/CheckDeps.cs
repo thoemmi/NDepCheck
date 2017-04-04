@@ -44,21 +44,21 @@ Transformer options: [-q] [-u]
 
         public override void Configure(GlobalContext globalContext, string configureOptions) {
             Options.Parse(configureOptions,
-                new OptionAction('e', (args, j) => {
+                new OptionAction("e", (args, j) => {
                     _ruleFileExtension = '.' + Options.ExtractOptionValue(args, ref j).TrimStart('.');
                     return j;
                 }),
-                new OptionAction('s', (args, j) => {
+                new OptionAction("s", (args, j) => {
                     _searchRootsForRuleFiles.Add(new DirectoryInfo(Options.ExtractOptionValue(args, ref j)));
                     return j;
                 }),
-                new OptionAction('f', (args, j) => {
+                new OptionAction("f", (args, j) => {
                     string fullSourceName = Path.GetFullPath(Options.ExtractOptionValue(args, ref j));
                     _defaultRuleSet = GetOrReadChildConfiguration(globalContext,
                         () => new StreamReader(fullSourceName), fullSourceName, globalContext.IgnoreCase, "????");
                     return j;
                 }),
-                new OptionAction('r', (args, j) => {
+                new OptionAction("r", (args, j) => {
                     // A trick is used: The first line, which contains all options, should be ignored; and
                     // also the last } (which is from the surrounding options braces). Thus, 
                     // * we add // to the beginning - this comments out the first line;
@@ -170,10 +170,10 @@ Transformer options: [-q] [-u]
                 // Transformation only done if there are any dependencies. This is especially useful for the
                 // typical case that there are no inputcontext-less dependencies; and no default set is specified
                 // (which would emit an error message "no dep file for input "" found" or the like).
-                Options.Parse(transformOptions, new OptionAction('q', (args, j) => {
+                Options.Parse(transformOptions, new OptionAction("q", (args, j) => {
                     _showUnusedQuestionableRules = true;
                     return j;
-                }), new OptionAction('u', (args, j) => {
+                }), new OptionAction("u", (args, j) => {
                     _showUnusedRules = true;
                     return j;
                 }));

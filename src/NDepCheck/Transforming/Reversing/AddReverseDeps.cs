@@ -32,13 +32,13 @@ Transformer options: [-m &] [-u &] [-r]
             bool removeOriginal = false;
 
             Options.Parse(transformOptions,
-                new OptionAction('m', (args, j) => {
+                new OptionAction("m", (args, j) => {
                     match = new Regex(Options.ExtractOptionValue(args, ref j));
                     return j;
-                }), new OptionAction('u', (args, j) => {
+                }), new OptionAction("u", (args, j) => {
                     usage = Options.ExtractOptionValue(args, ref j);
                     return j;
-                }), new OptionAction('r', (args, j) => {
+                }), new OptionAction("r", (args, j) => {
                     removeOriginal = true;
                     return j;
                 }));

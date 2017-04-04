@@ -13,10 +13,8 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                // transform testdata
-                "-s", ".", typeof(AddReverseDeps).Name, "{", "-minherit", "-uderived", "}",
-                // write them as dip file
-                "-r", typeof(DipWriter).Name, outFile
+                Program.TransformTestDataOption.Opt, ".", typeof(AddReverseDeps).Name, "{", "-m=inherit", "-u=derived", "}",                
+                Program.WriteDipOption.Opt, outFile
             }));
 
             using (var sw = new StreamReader(outFile)) {
@@ -32,10 +30,8 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                // transform testdata
-                "-s", ".", typeof(AddReverseDeps).Name, "{", "-r", "-minherit", "-uderived", "}",
-                // write them as dip file
-                "-r", typeof(DipWriter).Name, outFile
+                Program.TransformTestDataOption.Opt, ".", typeof(AddReverseDeps).Name, "{", "-r", "-m", "inherit", "-u", "derived", "}",                
+                Program.WriteDipOption.Opt, outFile
             }));
 
             using (var sw = new StreamReader(outFile)) {

@@ -35,7 +35,7 @@ Transformer options: [-m typename pattern] [-s] [-d] [-r]
             bool ignoreSelfCyclesInSourcesAndSinks = false;
             bool recursive = false;
 
-            Options.Parse(transformOptions, new OptionAction('m', (args, j) => {
+            Options.Parse(transformOptions, new OptionAction("m", (args, j) => {
                 string itemTypeName = Options.ExtractOptionValue(args, ref j);
                 string itemPattern = Options.ExtractNextValue(args, ref j);
                 ItemType itemType = ItemType.Find(itemTypeName);
@@ -44,16 +44,16 @@ Transformer options: [-m typename pattern] [-s] [-d] [-r]
                 }
                 match = new ItemMatch(itemType, itemPattern, _ignoreCase);
                 return j;
-            }), new OptionAction('i', (args, j) => {
+            }), new OptionAction("i", (args, j) => {
                 ignoreSelfCyclesInSourcesAndSinks = true;
                 return j;
-            }), new OptionAction('r', (args, j) => {
+            }), new OptionAction("r", (args, j) => {
                 recursive = true;
                 return j;
-            }), new OptionAction('s', (args, j) => {
+            }), new OptionAction("s", (args, j) => {
                 removeSources = true;
                 return j;
-            }), new OptionAction('d', (args, j) => {
+            }), new OptionAction("d", (args, j) => {
                 removeSinks = true;
                 return j;
             }));

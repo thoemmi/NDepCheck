@@ -202,10 +202,8 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                // transform testdata of AddTopologicalOrder
-                "-s", ".", typeof(AddItemOrder).Name,
-                // write them as dip file
-                "-r", typeof(DipWriter).Name, outFile
+                Program.TransformTestDataOption.Opt, ".", typeof(AddItemOrder).Name, "{", "}",
+                Program.WriteDipOption.Opt, outFile
             }));
 
             using (var sw = new StreamReader(outFile)) {

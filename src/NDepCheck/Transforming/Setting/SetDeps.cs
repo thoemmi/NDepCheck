@@ -38,20 +38,20 @@ Transformer options: [-m &] [-q] [-b] [-u &]
             bool addUsage = false;
 
             Options.Parse(transformOptions,
-                new OptionAction('m', (args, j) => {
+                new OptionAction("m", (args, j) => {
                     match = new Regex(Options.ExtractOptionValue(args, ref j));
                     return j;
-                }), new OptionAction('q', (args, j) => {
+                }), new OptionAction("q", (args, j) => {
                     resetQuestionable = true;
                     return j;
-                }), new OptionAction('b', (args, j) => {
+                }), new OptionAction("b", (args, j) => {
                     resetBad = true;
                     return j;
-                }), new OptionAction('u', (args, j) => {
+                }), new OptionAction("u", (args, j) => {
                     usage = Options.ExtractOptionValue(args, ref j);
                     addUsage = false;
                     return j;
-                }), new OptionAction('a', (args, j) => {
+                }), new OptionAction("a", (args, j) => {
                     usage = Options.ExtractOptionValue(args, ref j);
                     addUsage = true;
                     return j;

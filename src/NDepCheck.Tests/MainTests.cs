@@ -124,9 +124,9 @@ NDepCheck:Tests ---> **
                 using (TextWriter tw = new StreamWriter(outFile)) {
                     TextWriter oldOut = Console.Out;
                     Console.SetOut(tw);
-                    string[] args = { "/v",
-                        "/f", typeof(CheckDeps).Name, "{", "-f", ruleFile.Filename, "}",
-                        "/j", TestAssemblyPath };
+                    string[] args = { Program.LogVerboseOption.Opt,
+                        Program.ConfigureOption.Opt, typeof(CheckDeps).Name, "{", "-f", ruleFile.Filename, "}",
+                        Program.ReadOption.Opt, TestAssemblyPath };
                     result = Program.Main(args);
                     Console.SetOut(oldOut);
                 }
@@ -212,7 +212,7 @@ NDepCheck:Tests ---> **
         ////}
 
         [TestMethod]
-        public void Exit0() {
+        public void ExitOk() {
             using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
@@ -228,12 +228,12 @@ NDepCheck:Tests ---> **
                     * ---> *
                 ");
                 }
-                Assert.AreEqual(Program.OK_RESULT, Program.Main(CreateViolationCheckerArgs(d)));
+                Assert.AreEqual(Program.OK_RESULT, Program.Main(CreateCheckDepsArgs(d)));
             }
         }
 
-        private static string[] CreateViolationCheckerArgs(FileProvider d) {
-            return new[] { "-f", typeof(CheckDeps).Name, "{", "-f=" + d.Filename, "}", TestAssemblyPath };
+        private static string[] CreateCheckDepsArgs(FileProvider d) {
+            return new[] { Program.ConfigureOption.Opt, typeof(CheckDeps).Name, "{", "-f=" + d.Filename, "}", TestAssemblyPath };
         }
 
         private static string CreateTempDotNetDepFileName() {
@@ -241,7 +241,7 @@ NDepCheck:Tests ---> **
         }
 
         [TestMethod]
-        public void Exit0Aspects() {
+        public void ExitOkAspects() {
             using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
@@ -262,7 +262,7 @@ NDepCheck:Tests ---> **
                     * ---> *
                     ");
                 }
-                Assert.AreEqual(Program.OK_RESULT, Program.Main(CreateViolationCheckerArgs(d)));
+                Assert.AreEqual(Program.OK_RESULT, Program.Main(CreateCheckDepsArgs(d)));
             }
         }
 
@@ -283,7 +283,7 @@ NDepCheck:Tests ---> **
                     $ DOTNETREF ---> DOTNETREF
                     * ---> *");
                 }
-                Assert.AreEqual(Program.OK_RESULT, Program.Main(CreateViolationCheckerArgs(d)));
+                Assert.AreEqual(Program.OK_RESULT, Program.Main(CreateCheckDepsArgs(d)));
             }
         }
 
@@ -306,7 +306,7 @@ NDepCheck:Tests ---> **
                     * ---> *
                 ");
                 }
-                Assert.AreEqual(Program.OK_RESULT, Program.Main(CreateViolationCheckerArgs(d)));
+                Assert.AreEqual(Program.OK_RESULT, Program.Main(CreateCheckDepsArgs(d)));
             }
         }
 
@@ -319,14 +319,15 @@ NDepCheck:Tests ---> **
         ////}
 
         [TestMethod]
-        public void Exit7OnMissingDefaultSet() {
+        public void ExitExceptionOnMissingDefaultSet() {
             Assert.AreEqual(Program.EXCEPTION_RESULT, Program.Main(
-                new[] { "-f", "ViolationsChecker", "{", "-fnonexistingfile.dep", "}", TestAssemblyPath }
+                new[] { Program.ConfigureOption.Opt, typeof(CheckDeps).FullName, "{", "-fnonexistingfile.dep", "}", TestAssemblyPath
+                }
             ));
         }
 
         [TestMethod]
-        public void Exit3() {
+        public void ExitDependenciesNotOk() {
             using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
                 // The rules are not enough for the test assembly - we expect return result 3
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
@@ -337,23 +338,23 @@ NDepCheck:Tests ---> **
                 ");
                 }
 
-                Assert.AreEqual(Program.DEPENDENCIES_NOT_OK, Program.Main(CreateViolationCheckerArgs(d)));
+                Assert.AreEqual(Program.DEPENDENCIES_NOT_OK, Program.Main(CreateCheckDepsArgs(d)));
             }
         }
 
         [TestMethod]
-        public void Exit5ForEmptyDepFile() {
+        public void ExitNoRuleGroupsFoundForEmptyDepFile() {
             using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write("");
                 }
-                Assert.AreEqual(Program.NO_RULE_GROUPS_FOUND, Program.Main(CreateViolationCheckerArgs(d)));
+                Assert.AreEqual(Program.NO_RULE_GROUPS_FOUND, Program.Main(CreateCheckDepsArgs(d)));
             }
         }
 
 
         [TestMethod]
-        public void Exit3Aspects() {
+        public void ExitDependenciesNotOkAspects() {
 
             using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
@@ -373,14 +374,14 @@ NDepCheck:Tests ---> **
                 }
 
                 Assert.AreEqual(Program.DEPENDENCIES_NOT_OK, Program.Main(
-                    new[] { "-w" }.Concat(CreateViolationCheckerArgs(d)).ToArray()
+                    new[] { Program.LogChattyOption.Opt }.Concat(CreateCheckDepsArgs(d)).ToArray()
                 ));
             }
 
         }
 
         [TestMethod]
-        public void Exit4() {
+        public void ExitFileNotFound() {
             using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
@@ -389,13 +390,13 @@ NDepCheck:Tests ---> **
                 ");
                 }
                 Assert.AreEqual(Program.FILE_NOT_FOUND_RESULT, Program.Main(
-                   CreateViolationCheckerArgs(d).Concat(new[] { "nonexistingfile.dll" }).ToArray()
+                   CreateCheckDepsArgs(d).Concat(new[] { "nonexistingfile.dll" }).ToArray()
                 ));
             }
         }
 
         [TestMethod]
-        public void Exit7() {
+        public void ExitException() {
             using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
@@ -411,7 +412,7 @@ NDepCheck:Tests ---> **
                     =:
                 ");
                 }
-                Assert.AreEqual(Program.EXCEPTION_RESULT, Program.Main(CreateViolationCheckerArgs(d)));
+                Assert.AreEqual(Program.EXCEPTION_RESULT, Program.Main(CreateCheckDepsArgs(d)));
             }
             using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
@@ -422,7 +423,7 @@ NDepCheck:Tests ---> **
                     =:
                 ");
                 }
-                Assert.AreEqual(7, Program.Main(CreateViolationCheckerArgs(d)));
+                Assert.AreEqual(7, Program.Main(CreateCheckDepsArgs(d)));
             }
         }
 
@@ -446,7 +447,7 @@ NDepCheck:Tests ---> **
         }
 
         [TestMethod]
-        public void TestROption() {
+        public void TestWritePluginption() {
             using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
@@ -472,9 +473,10 @@ NDepCheck:Tests ---> **
                     // typeof(FullName) forces copying to known directory ...
                     Assert.AreEqual(0,
                         Program.Main(
-                            CreateViolationCheckerArgs(d).Concat(
+                            CreateCheckDepsArgs(d).Concat(
                             new[] {
-                                "-q", "NDepCheck.TestRenderer.dll", typeof(TestRendererForLoadFromAssembly).FullName, e.Filename
+                                Program.WritePluginOption.Opt,
+                                "NDepCheck.TestRenderer.dll", typeof(TestRendererForLoadFromAssembly).FullName, e.Filename
                             }).ToArray()
                         ));
                 }
@@ -482,23 +484,25 @@ NDepCheck:Tests ---> **
         }
 
         [TestMethod]
-        public void TestPOption() {
+        public void TestWriteTestDataOption() {
             using (var d = new FileProvider(Path.GetTempFileName() + ".gif")) {
                 // The usage typeof(...).FullName forces copying of assembly to bin directory.
                 Assert.AreEqual(0,
                     Program.Main(new[] {
-                        TestAssemblyPath, "-p", "NDepCheck.TestRenderer.dll",
+                        TestAssemblyPath,
+                        Program.WriteTestDataOption.Opt,
+                        "NDepCheck.TestRenderer.dll",
                         typeof(TestRendererForLoadFromAssembly).Name, d.Filename
                     }));
             }
         }
 
         [TestMethod]
-        public void TestPOptionWithModulesAndInterfacesRenderer() {
+        public void TestWriteTestDataOptionWithModulesAndInterfacesRenderer() {
             using (var d = new FileProvider(Path.GetTempFileName() + ".gif")) {
                 Assert.AreEqual(0,
                     Program.Main(new[] {
-                        TestAssemblyPath, "-p", ".", typeof(ModulesAndInterfacesRenderer).Name,
+                        TestAssemblyPath, Program.WriteTestDataOption.Opt, ".", typeof(ModulesAndInterfacesRenderer).Name,
                         "{{ -w 1500 -h 1000 -t TestGOption -i MI }}", d.Filename
                     }));
             }
@@ -506,11 +510,11 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TestExtendedROptionHelp() {
-            Assert.AreEqual(0, Program.Main(new[] { "-r", "-?" }));
+            Assert.AreEqual(0, Program.Main(new[] { Program.WriteHelpOption.Opt }));
         }
 
         [TestMethod]
-        public void TestExtendedFAndUAndROption() {
+        public void TestConfigureAndTransformAndWriteDip() {
             string inFile = Path.GetTempFileName() + "IN.dip";
             string ndFile = Path.GetTempFileName() + "ND.nd";
             string outFile = Path.GetTempFileName() + "OUT.dip";
@@ -528,17 +532,17 @@ NDepCheck:Tests ---> **
             using (TextWriter tw = new StreamWriter(ndFile)) {
                 tw.Write($@"
                     {inFile}
-                    -f {typeof(ProjectItems).Name} {{ 
+                    {Program.ConfigureOption} {typeof(ProjectItems).Name} {{ 
                         -p
                           $ AB(A:B) ---% AB
                           ! a:** ---% _a_:
                           ! b:** ---% _b_:
                     }}
-                    -u {typeof(ProjectItems).Name}
-                    -r {typeof(DipWriter).Name} {outFile}");
+                    {Program.TransformOption} {typeof(ProjectItems).Name} {{ }}
+                    {Program.WriteDipOption} {outFile}");
             }
 
-            Assert.AreEqual(0, Program.Main(new[] { "-o", ndFile }));
+            Assert.AreEqual(0, Program.Main(new[] { Program.DoScriptOption.Opt, ndFile }));
 
             using (var sw = new StreamReader(outFile)) {
                 string o = sw.ReadToEnd();
@@ -568,17 +572,17 @@ NDepCheck:Tests ---> **
             using (TextWriter tw = new StreamWriter(ndFile)) {
                 tw.Write($@"
                     {inFile}
-                    -f {typeof(ProjectItems).Name} {{ 
+                    {Program.ConfigurePluginOption} . {typeof(ProjectItems).Name} {{ 
                         -p
                           $ AB(A:B) ---% AB
                           ! a:** ---% _a_:
                           ! b:** ---% _b_:
                     }}
-                    -t . {typeof(ProjectItems).FullName}
-                    -q . {typeof(DipWriter).FullName} {{ -n }} {outFile}");
+                    {Program.TransformPluginOption} . {typeof(ProjectItems).FullName} {{ }}
+                    {Program.WritePluginOption} . {typeof(DipWriter).FullName} {{ -n }} {outFile}");
             }
 
-            Assert.AreEqual(0, Program.Main(new[] { "-o", ndFile }));
+            Assert.AreEqual(0, Program.Main(new[] { Program.DoScriptOption.Opt, ndFile }));
 
             using (var sw = new StreamReader(outFile)) {
                 string o = sw.ReadToEnd();
@@ -591,20 +595,21 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TestHelpForAllReaders() {
-            Assert.AreEqual(0, Program.Main(new[] { "-h", ".", "-? " }));
-            Assert.AreEqual(0, Program.Main(new[] { "-i", "-? " }));
+            Assert.AreEqual(0, Program.Main(new[] { Program.ReadPluginHelpOption.Opt, "." }));
+            Assert.AreEqual(0, Program.Main(new[] { Program.ReadHelpOption.Opt }));
         }
 
         [TestMethod]
         public void TestHelpForAllTransformers() {
-            Assert.AreEqual(0, Program.Main(new[] { "-t", ".", "-? " }));
-            Assert.AreEqual(0, Program.Main(new[] { "-u", "-? " }));
+            Assert.AreEqual(0, Program.Main(new[] { Program.TransformPluginHelpOption.Opt, "." }));
+            Assert.AreEqual(0, Program.Main(new[] { Program.TransformHelpOption.Opt }));
         }
 
         [TestMethod]
         public void TestHelpForAllRenderers() {
-            Assert.AreEqual(0, Program.Main(new[] { "-q", ".", "-? " }));
-            Assert.AreEqual(0, Program.Main(new[] { "-r", "-? " }));
+            Assert.AreEqual(0, Program.Main(new[] { Program.WritePluginHelpOption.Opt, "." }));
+            Assert.AreEqual(0, Program.Main(new[] { Program.WritePluginHelpOption.Opt }));
+            Assert.AreEqual(0, Program.Main(new[] { Program.WriteHelpOption.Opt }));
         }
     }
 }

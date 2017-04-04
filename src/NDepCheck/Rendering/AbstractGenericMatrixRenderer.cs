@@ -25,12 +25,12 @@ namespace NDepCheck.Rendering {
         protected static void ParseOptions(string argsAsString, out int? labelWidthOrNull, out bool withNotOkCt) {
             int lw = -1;
             bool wct = false;
-            Options.Parse(argsAsString, new OptionAction('l', (args, j) => {
+            Options.Parse(argsAsString, new OptionAction("l", (args, j) => {
                 if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out lw)) {
                     Options.Throw("No valid length after l", args);
                 }
                 return j;
-            }), new OptionAction('n', (args, j) => {
+            }), new OptionAction("n", (args, j) => {
                 wct = true;
                 return j;
             }));

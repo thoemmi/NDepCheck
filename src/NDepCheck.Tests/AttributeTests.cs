@@ -33,7 +33,8 @@ namespace NDepCheck.Tests {
                 ");
                 }
                 Assert.AreEqual(0, Program.Main(
-                    new[] { "-f", typeof(CheckDeps).Name, "{", "-f", ruleFile, "}", _testAssemblyPath }
+                    new[] { Program.ConfigureOption.Opt, typeof(CheckDeps).Name, "{", "-f", ruleFile, "}", _testAssemblyPath
+                    }
                 ));
                 File.Delete(ruleFile);
             }

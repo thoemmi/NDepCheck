@@ -250,17 +250,17 @@ namespace NDepCheck.Rendering {
 
         public override void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName) {
             DoRender(dependencies, argsAsString, baseFileName,
-                new OptionAction('i', (args, j) => {
+                new OptionAction("i", (args, j) => {
                     _interfaceMarker = new Regex(Options.ExtractOptionValue(args, ref j));
                     return j;
                 }),
-                new OptionAction('o', (args, j) => {
+                new OptionAction("o", (args, j) => {
                     if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out _orderField) || _orderField < 0) {
                         Options.Throw("No valid width after -o", args);
                     }
                     return j;
                 }),
-                new OptionAction('t', (args, j) => {
+                new OptionAction("t", (args, j) => {
                     _title = Options.ExtractOptionValue(args, ref j);
                     return j;
                 }));

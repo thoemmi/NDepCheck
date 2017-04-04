@@ -54,7 +54,7 @@ namespace NDepCheck.Rendering {
 
         private static bool ParseArgs(string argsAsString) {
             bool xmlOutput = false;
-            Options.Parse(argsAsString, new OptionAction('x', (args, j) => {
+            Options.Parse(argsAsString, new OptionAction("x", (args, j) => {
                 xmlOutput = true;
                 return j;
             }));

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
+using Microsoft.SqlServer.Server;
 using NDepCheck.Reading;
 using NDepCheck.Rendering;
 using NDepCheck.Transforming;
@@ -35,18 +36,19 @@ namespace NDepCheck {
         public bool ShowUnusedRules { get; set; }
         public bool IgnoreCase { get; set; }
 
-        [NotNull] private readonly List<InputFileOption> _inputFileSpecs = new List<InputFileOption>();
+        [NotNull]
+        private readonly List<InputFileOption> _inputFileSpecs = new List<InputFileOption>();
 
         [NotNull]
         public Dictionary<string, string> GlobalVars { get; } = new Dictionary<string, string>();
 
-        [NotNull, ItemNotNull] private readonly List<InputContext> _inputContexts = new List<InputContext>();
+        [NotNull, ItemNotNull]
+        private readonly List<InputContext> _inputContexts = new List<InputContext>();
 
         private IEnumerable<Dependency> _dependenciesWithoutInputContext = Enumerable.Empty<Dependency>();
 
-        [NotNull] private readonly List<IPlugin> _plugins = new List<IPlugin>();
-
-        private WebServer _webServer;
+        [NotNull]
+        private readonly List<IPlugin> _plugins = new List<IPlugin>();
 
         static GlobalContext() {
             // Initialize all built-in reader factories because they contain predefined ItemTypes
@@ -136,9 +138,9 @@ namespace NDepCheck {
             }
             try {
                 // plugins can have state, therefore we must manage them
-                T result = (T) _plugins.FirstOrDefault(t => t.GetType() == pluginType);
+                T result = (T)_plugins.FirstOrDefault(t => t.GetType() == pluginType);
                 if (result == null) {
-                    _plugins.Add(result = (T) Activator.CreateInstance(pluginType));
+                    _plugins.Add(result = (T)Activator.CreateInstance(pluginType));
                 }
                 return result;
             } catch (Exception ex) {
@@ -192,7 +194,7 @@ namespace NDepCheck {
         public void ShowAllPluginsAndTheirHelp<T>(string assemblyName) {
             foreach (var t in GetPluginTypes<T>(assemblyName)) {
                 try {
-                    IDependencyRenderer renderer = (IDependencyRenderer) Activator.CreateInstance(t);
+                    IDependencyRenderer renderer = (IDependencyRenderer)Activator.CreateInstance(t);
                     Log.WriteInfo("=============================================\r\n" + t.FullName + ":\r\n" +
                                   renderer.GetHelp(detailedHelp: false) + "\r\n");
                 } catch (Exception ex) {
@@ -309,7 +311,7 @@ namespace NDepCheck {
                 return fileName;
             }
         }
-        
+
         public static NamedTextWriter CreateTextWriter(string fullFileName) {
             Log.WriteInfo("Writing " + fullFileName);
             return new NamedTextWriter(fullFileName == "-" ? Console.Out : new StreamWriter(fullFileName), fullFileName);
@@ -329,28 +331,5 @@ namespace NDepCheck {
             ////    ?? ALL_READER_FACTORIES.OfType<DotNetAssemblyDependencyReaderFactory>().First().GetOrCreateDotNetType(name, parts.Skip(1));
         }
 
-        public void StartWebServer(Program program, string port, string fileDirectory) {
-            if (_webServer != null) {
-                throw new ApplicationException("Cannot start webserver if one is already running");
-            }
-            _webServer = new WebServer(program, port, fileDirectory);
-            _webServer.Start();
-        }
-
-        public void StopWebServer() {
-            _webServer?.Stop();
-        }
-
-        public bool AddFileWatchers(string positiveFilePattern, string negativeFilePattern, string scriptName) {
-            throw new NotImplementedException();
-        }
-
-        public bool RemoveFileWatchers(string negativeFilePattern) {
-            throw new NotImplementedException();
-        }
-
-        public bool RemoveAllFileWatchers(string scriptName) {
-            throw new NotImplementedException();
-        }
     }
 }

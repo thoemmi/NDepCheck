@@ -868,13 +868,13 @@ namespace NDepCheck.Rendering {
 
             Options.Parse(argsAsString,
                 new[] {
-                new OptionAction('w', (args, j) => {
+                new OptionAction("w", (args, j) => {
                     width = Options.ExtractIntOptionValue(args, ref j, "No valid width after -w");
                     return j;
-                }), new OptionAction('h', (args, j) => {
+                }), new OptionAction("h", (args, j) => {
                     height = Options.ExtractIntOptionValue(args, ref j, "No valid height after -h");
                     return j;
-                }), new OptionAction('f', (args, j) => {
+                }), new OptionAction("f", (args, j) => {
                     minTextHeight = Options.ExtractIntOptionValue(args, ref j, "No valid text height after -f");
                     return j;
                 })}.Concat(additionalOptions).ToArray());

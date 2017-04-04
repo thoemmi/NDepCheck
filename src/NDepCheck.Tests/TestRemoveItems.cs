@@ -1,6 +1,5 @@
 ﻿using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.Rendering;
 using NDepCheck.Transforming.Removing;
 using System.Linq;
 
@@ -18,10 +17,8 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                // transform testdata
-                "-s", ".", typeof(RemoveItems).Name, "{", "-s", "}",
-                // write them as dip file
-                "-r", typeof(DipWriter).Name, outFile
+                Program.TransformTestDataOption.Opt, ".", typeof(RemoveItems).Name, "{", "-s", "}",
+                Program.WriteDipOption.Opt, outFile
             }));
 
             using (var sw = new StreamReader(outFile)) {
@@ -36,10 +33,8 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                // transform testdata
-                "-s", ".", typeof(RemoveItems).Name, "{", "-s", "-r", "}",
-                // write them as dip file
-                "-r", typeof(DipWriter).Name, outFile
+                Program.TransformTestDataOption.Opt, ".", typeof(RemoveItems).Name, "{", "-s", "-r", "}",
+                Program.WriteDipOption.Opt, outFile
             }));
 
             using (var sw = new StreamReader(outFile)) {
@@ -54,10 +49,8 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                // transform testdata
-                "-s", ".", typeof(RemoveItems).Name, "{", "-d", "}",
-                // write them as dip file
-                "-r", typeof(DipWriter).Name, outFile
+                Program.TransformTestDataOption.Opt, ".", typeof(RemoveItems).Name, "{", "-d", "}",
+                Program.WriteDipOption.Opt, outFile
             }));
 
             using (var sw = new StreamReader(outFile)) {
@@ -73,10 +66,8 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                // transform testdata
-                "-s", ".", typeof(RemoveItems).Name, "{", "-d", "-r", "}",
-                // write them as dip file
-                "-r", typeof(DipWriter).Name, outFile
+                Program.TransformTestDataOption.Opt, ".", typeof(RemoveItems).Name, "{", "-d", "-r", "}",
+                Program.WriteDipOption.Opt, outFile
             }));
 
             using (var sw = new StreamReader(outFile)) {
@@ -92,10 +83,8 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                // transform testdata
-                "-s", ".", typeof(RemoveItems).Name, "{", "-d", "-r", "-i", "}",
-                // write them as dip file
-                "-r", typeof(DipWriter).Name, outFile
+                Program.TransformTestDataOption.Opt, ".", typeof(RemoveItems).Name, "{", "-d", "-r", "-i", "}",
+                Program.WriteDipOption.Opt, outFile
             }));
 
             using (var sw = new StreamReader(outFile)) {

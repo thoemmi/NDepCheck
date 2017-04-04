@@ -10,47 +10,130 @@ using NDepCheck.Reading;
 using NDepCheck.Rendering;
 using NDepCheck.Transforming;
 using NDepCheck.Transforming.ViolationChecking;
+using NDepCheck.WebServing;
 
 namespace NDepCheck {
     /// <remarks>
-    /// Main class of NDepCheck.
-    /// All static methods may run in parallel.
+    ///     Main class of NDepCheck.
+    ///     All static methods may run in parallel.
     /// </remarks>
     public class Program {
         private const string VERSION = "V.3.3";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 1;
-        public const int DEPENDENCIES_NOT_OK = 3; // Used in InputContext.CheckDependencies - mhm - TODO: Concept for Transformers that check ...
+
+        public const int DEPENDENCIES_NOT_OK = 3;
+
         public const int FILE_NOT_FOUND_RESULT = 4;
         public const int NO_RULE_GROUPS_FOUND = 5;
         public const int NO_RULE_SET_FOUND_FOR_FILE = 6;
         public const int EXCEPTION_RESULT = 7;
 
-        public bool HasFileWatchers { get; set; }
+        public static readonly Option HelpAllOption = new Option(shortname: "?", name: "help-all", usage: "", description: "write help", moreNames: new[] { "h", "help" });
+        public static readonly Option HelpDetailedHelpOption = new Option(shortname: "!", name: "help-detail", usage: "", description: "write extensive help", moreNames: new[] { "man" });
+        public static readonly Option DebugOption = new Option(shortname: "debug", name: "debug", usage: "", description: "start .Net debugger");
 
-        public bool WebServerIsRunning { get; set; }
+        public static readonly Option ReadPluginOption = new Option(shortname: "rp", name: "read-plugin", usage: "assembly reader filepattern [- filepattern]", description: "Use <assembly.reader> to read files matching filepattern, but not second filepattern");
+        public static readonly Option ReadFileOption = new Option(shortname: "rf", name: "read-file", usage: "reader filepattern [- filepattern]", description: "Use predefined reader to read files matching filepattern, but not second filepattern");
+        public static readonly Option ReadOption = new Option(shortname: "rd", name: "read", usage: "filepattern [- filepattern]", description: "Use reader derived from file extension to read files matching filepattern, but not second filepattern");
+        public static readonly Option ReadPluginHelpOption = new Option(shortname: "ra?", name: "read-plugin-help", usage: "assembly", description: "Show help for all readers in assembly");
+        public static readonly Option ReadHelpOption = new Option(shortname: "rf?", name: "read-help", usage: "", description: "Show help for all predefined readers");
+        public static readonly Option ReadPluginDetailedHelpOption = new Option(shortname: "ra!", name: "read-plugin-detail", usage: "assembly reader", description: "Show detailed help for reader in assembly");
+        public static readonly Option ReadDetailedHelpOption = new Option(shortname: "rf!", name: "read-detail", usage: "reader", description: "Show detailed help for predefined reader");
 
-        public bool Interactive { get; set; }
+        public static readonly Option ConfigurePluginOption = new Option(shortname: "cp", name: "configure-plugin", usage: "assembly transformer { options }", description: "Configure <assembly.transformer> with options");
+        public static readonly Option ConfigureOption = new Option(shortname: "cf", name: "configure", usage: "reader  { options }", description: "Configure predefined transformer with options");
+
+        public static readonly Option TransformPluginOption = new Option(shortname: "tp", name: "transform-plugin", usage: "assembly transformer [{ options }]", description: "Transform with <assembly.transformer> with options");
+        public static readonly Option TransformOption = new Option(shortname: "tf", name: "transform", usage: "transformer  [{ options }]", description: "Transform with predefined transformer with options");
+        public static readonly Option TransformTestDataOption = new Option(shortname: "tt", name: "transform-testdata", usage: "assembly transformer [{ options }]", description: "Transform internal testdata with <assembly.transformer> with options");
+        public static readonly Option TransformPluginHelpOption = new Option(shortname: "tp?", name: "transform-plugin-help", usage: "assembly", description: "Show help for all transformers in assembly");
+        public static readonly Option TransformHelpOption = new Option(shortname: "tf?", name: "transform-help", usage: "", description: "Show help for all predefined transformers");
+        public static readonly Option TransformPluginDetailedHelpOption = new Option(shortname: "tp!", name: "transform-plugin-detail", usage: "assembly transformer", description: "Show detailed help for transformer in assembly");
+        public static readonly Option TransformDetailedHelpOption = new Option(shortname: "tf!", name: "transform-detail", usage: "transformer", description: "Show detailed help for predefined transformer");
+
+        public static readonly Option WritePluginOption = new Option(shortname: "wp", name: "write-plugin", usage: "assembly writer [{ options }] filename", description: "write to filename with <assembly.writer> with options");
+        public static readonly Option WriteFileOption = new Option(shortname: "wr", name: "write", usage: "writer  [{ options }] filename", description: "write to filename with predefined writer with options");
+        public static readonly Option WriteDipOption = new Option(shortname: "wd", name: "write-dip", usage: "filename", description: "write to filename with predefined writer with options");
+        public static readonly Option WriteTestDataOption = new Option(shortname: "wt", name: "write-testdata", usage: "assembly writer [{ options }] filename", description: "write internal testdata to filename with <assembly.writer> with options");
+        public static readonly Option WritePluginHelpOption = new Option(shortname: "wp?", name: "write-plugin-help", usage: "assembly", description: "Show help for all writers in assembly");
+        public static readonly Option WriteHelpOption = new Option(shortname: "wr?", name: "write-help", usage: "", description: "Show help for all predefined writers");
+        public static readonly Option WritePluginDetailedHelpOption = new Option(shortname: "wp!", name: "write-plugin-detail", usage: "assembly writer", description: "Show detailed help for writer in assembly");
+        public static readonly Option WriteDetailedHelpOption = new Option(shortname: "wr!", name: "write-detail", usage: "writer", description: "Show detailed help for predefined writer");
+
+        public static readonly Option DoBreakOption = new Option(shortname: "db", name: "do-break", usage: "", description: "stop execution; useful for debugging of -df");
+        public static readonly Option DoCommandOption = new Option(shortname: "dc", name: "do-command", usage: "command", description: "execute shell command; useful for opening result file");
+        public static readonly Option DoScriptOption = new Option(shortname: "ds", name: "do-script", usage: "filename", description: "execute NDepCheck script");
+        public static readonly Option DoDefineOption = new Option(shortname: "dd", name: "do-define", usage: "name value", description: "define name as value");
+        public static readonly Option DoResetOption = new Option(shortname: "dr", name: "do-reset", usage: "[filename]", description: "reset state; and read file as dip file");
+
+        public static readonly Option WatchFilesOption = new Option(shortname: "aw", name: "watch-files", usage: "filepattern [- filepattern] script", description: "Watch files");
+        public static readonly Option UnwatchFilesOption = new Option(shortname: "au", name: "unwatch-files", usage: "filepattern", description: "Unwatch files specified by filepattern");
+        public static readonly Option UnwatchTriggersOption = new Option(shortname: "an", name: "unwatch-triggers", usage: "script", description: "No longer watch all files triggering script");
+
+        public static readonly Option HttpRunOption = new Option(shortname: "hr", name: "http-run", usage: "port directory", description: "run internal webserver");
+        public static readonly Option HttpStopOption = new Option(shortname: "hs", name: "http-stop", usage: "", description: "stop internal webserver");
+
+        public static readonly Option IgnoreCaseOption = new Option(shortname: "ic", name: "ignore-case", usage: "", description: "ignore case at multiple places");
+        public static readonly Option InteractiveOption = new Option(shortname: "ia", name: "interactive", usage: "[filename]", description: "interactive mode, logging to filename");
+        public static readonly Option InteractiveStopOption = new Option(shortname: "is", name: "interactive-stop", usage: "", description: "stop interactive mode", moreNames: new[] { "q", "quit", "exit" });
+
+        public static readonly Option LogVerboseOption = new Option(shortname: "lv", name: "log-verbose", usage: "", description: "verbose logging");
+        public static readonly Option LogChattyOption = new Option(shortname: "lc", name: "log-chatty", usage: "", description: "chatty logging");
+        public static readonly Option LazyOption = new Option(shortname: "lz", name: "lazy", usage: "", description: "execute readers and transformers lazily (NOT YET IMPLEMENTED FULLY)");
+
+        private static readonly Option[] _allOptions = {
+            HelpAllOption, HelpDetailedHelpOption, DebugOption,
+            ReadPluginOption, ReadOption, ReadFileOption, ReadPluginHelpOption, ReadHelpOption, ReadPluginDetailedHelpOption, ReadDetailedHelpOption,
+            ConfigurePluginOption, ConfigureOption, TransformPluginOption, TransformOption,
+            TransformTestDataOption, TransformPluginHelpOption, TransformHelpOption, TransformPluginDetailedHelpOption, TransformDetailedHelpOption,
+            WritePluginOption, WriteFileOption, WriteDipOption, WriteTestDataOption, WritePluginHelpOption, WriteHelpOption, WritePluginDetailedHelpOption, WriteDetailedHelpOption,
+            DoBreakOption, DoCommandOption, DoScriptOption, DoDefineOption, DoResetOption,
+            WatchFilesOption, UnwatchFilesOption, UnwatchTriggersOption,
+            HttpRunOption, HttpStopOption,
+            IgnoreCaseOption, InteractiveOption, InteractiveStopOption,
+            LogVerboseOption, LogChattyOption, LazyOption,
+        };
+
+        private readonly List<FileWatcher> _fileWatchers = new List<FileWatcher>();
+
+        private WebServer _webServer;
+
+        private string _interactiveLogFile { get; set; }
 
         /// <summary>
-        /// The static Main method.
+        ///     The static Main method.
         /// </summary>
         public static int Main(string[] args) {
             Log.Logger = new ConsoleLogger();
 
             var program = new Program();
             try {
-                int lastResult = program.Run(args, new GlobalContext(), null);
-                while (program.WebServerIsRunning || program.Interactive || program.HasFileWatchers) {
+                // TODO: In my first impl, I used a separate GlobalContext() for each entry - why? This defies explorative working!
+                var globalContext = new GlobalContext();
+                int lastResult = program.Run(args, globalContext, writtenMasterFiles: null);
+                while (program._webServer != null || program._interactiveLogFile != null || program._fileWatchers.Any()) {
+                    Console.WriteLine();
+                    Console.WriteLine(value: "Type /?<enter> for help; or q<enter> for stopping NDepCheck.");
+                    Console.Write(value: "NDepCheck> ");
                     string commands = Console.ReadLine();
-                    if (commands == null) {
+                    if (commands == null || commands.Trim().ToLowerInvariant().StartsWith(value: "q")) {
                         break;
                     } else {
                         commands = commands.Trim();
                         if (commands != "") {
-                            program.Run(commands.Split(' ').Select(s => s.Trim()).Where(s => s != "").ToArray(),
-                                new GlobalContext(), null);
+                            if (!string.IsNullOrWhiteSpace(program._interactiveLogFile))
+                                using (var sw = File.AppendText(program._interactiveLogFile)) {
+                                    sw.WriteLine(value: $"// {DateTime.Now:G}");
+                                    sw.WriteLine(commands);
+                                }
+                            var writtenMasterFiles = new List<string>();
+
+                            program.Run(args: commands.Split(' ').Select(s => s.Trim()).Where(s => s != "").ToArray(),
+                                globalContext: globalContext, writtenMasterFiles: writtenMasterFiles);
+
+                            program.WriteWrittenMasterFiles(writtenMasterFiles);
                         }
                     }
                 }
@@ -59,10 +142,8 @@ namespace NDepCheck {
                 Log.WriteWarning(ex.Message);
                 return FILE_NOT_FOUND_RESULT;
             } catch (Exception ex) {
-                Log.WriteError("Exception occurred: " + ex.Message + " (" + ex.GetType().FullName + ")");
-                if (Log.IsChattyEnabled) {
-                    Console.WriteLine(ex);
-                }
+                Log.WriteError(msg: "Exception occurred: " + ex.Message + " (" + ex.GetType().FullName + ")");
+                if (Log.IsChattyEnabled) Console.WriteLine(ex);
                 return EXCEPTION_RESULT;
             } finally {
                 // Main may be called multiple times; therefore we clear all caches
@@ -70,11 +151,21 @@ namespace NDepCheck {
             }
         }
 
+        internal void WriteWrittenMasterFiles(List<string> writtenMasterFiles) {
+            if (writtenMasterFiles.Any()) {
+                Console.WriteLine(value: "Written master files:");
+                writtenMasterFiles.Sort();
+                foreach (var f in writtenMasterFiles) {
+                    Console.WriteLine(value: "  " + f);
+                }
+            }
+        }
+
         public int Run(string[] args, GlobalContext globalContext, [CanBeNull] List<string> writtenMasterFiles) {
             Log.SetLevel(Log.Level.Standard);
 
             if (args.Length == 0) {
-                return UsageAndExit("No options or files specified");
+                return UsageAndExit(message: "No options or files specified");
             }
 
             bool ranAsWebServer = false;
@@ -84,303 +175,307 @@ namespace NDepCheck {
                 for (int i = 0; i < args.Length; i++) {
                     string arg = args[i];
 
-                    if (Options.ArgMatches(arg, '?')) {
-                        // -?                      Write help
-                        return UsageAndExit(null, extensiveHelp: false);
-                    } else if (Options.ArgMatches(arg, 'a')) {
-                        // -a                      Write extensive help
-                        return UsageAndExit(null, extensiveHelp: true);
-                    } else if (Options.ArgMatches(arg, 'b')) {
-                        // -b        Stop execution here; useful in -o file
-                        Log.WriteInfo("---- Stop reading options (-b)");
-                        goto DONE;
-                    } else if (Options.ArgMatches(arg, 'c')) {
-                        // -c                      Ignore case in rules
-                        globalContext.IgnoreCase = true;
+                    if (HelpAllOption.Matches(arg)) {
+                        // -?
+                        return UsageAndExit(message: null, detailed: false);
+                    } else if (HelpDetailedHelpOption.Matches(arg)) {
+                        // -!
+                        return UsageAndExit(message: null, detailed: true);
                     } else if (arg == "-debug" || arg == "/debug") {
-                        // -debug                  Start .Net debugger
+                        // -debug
                         Debugger.Launch();
-                    } else if (Options.ArgMatches(arg, 'd')) {
-                        // -d                      Watch or unwatch files
-                        // -d filepattern [- filepattern] script     Watch specifed files; and trigger script
-                        // -d + script                               Watch script and trigger it on change
-                        // -d - filepattern                          No longer watch specified files
-                        // -d ! script                               No longer watch all triggering script
-
-                        // TODO: Problem with filewatching: How long to wait after file changes?
-                        // A compile run might write a file for some time; or even write many DLLs
-                        // for minutes, and only after that a run should be triggered.
-                        // Probably impossible to solve - see R# ... Waiting for 2 or 3 secs should be ok.
-                        string suboption = Options.ExtractOptionValue(args, ref i);
-                        if (suboption.StartsWith("+")) {
-                            string scriptName = Options.ExtractNextValue(args, ref i);
-                            HasFileWatchers = globalContext.AddFileWatchers(scriptName, null, scriptName);
-                        } else if (suboption.StartsWith("-")) {
-                            string negativeFilePattern = Options.ExtractNextValue(args, ref i);
-                            HasFileWatchers = globalContext.RemoveFileWatchers(negativeFilePattern);
-                        } else if (suboption.StartsWith("!")) {
-                            string scriptName = Options.ExtractNextValue(args, ref i);
-                            HasFileWatchers = globalContext.RemoveAllFileWatchers(scriptName);
-                        } else {
-                            string positiveFilePattern = Options.ExtractNextValue(args, ref i);
-                            string scriptName = Options.ExtractNextValue(args, ref i);
-                            string negativeFilePattern;
-                            if (scriptName == "-") {
-                                negativeFilePattern = Options.ExtractNextValue(args, ref i);
-                                scriptName = Options.ExtractNextValue(args, ref i);
-                            } else {
-                                negativeFilePattern = null;
-                            }
-                            HasFileWatchers = globalContext.AddFileWatchers(positiveFilePattern, negativeFilePattern, scriptName);
-                        }
-                    } else if (Options.ArgMatches(arg, 'e', 'f')) {
-                        // -e     assembly transformer { options }
-                        // -f              transformer { options }
-                        string assembly, rendererClass;
-                        if (ExtractAssemblyAndClass(args, new[] { 'e' }, 'f', out assembly, out rendererClass, ref i)) {
-                            globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>(assembly);
-                        } else {
-                            string transformerOptions = Options.ExtractNextValue(args, ref i);
-                            globalContext.ConfigureTransformer(assembly, rendererClass, transformerOptions);
-                        }
-                    } else if (Options.ArgMatches(arg, 'h', 'i')) {
-                        // -h     assembly reader filepattern [- filepattern]
-                        // -i              reader filepattern [- filepattern]
-                        string assembly, readerClass;
-                        if (ExtractAssemblyAndClass(args, assemblyAndClassOpt: new[] { 'h' }, classOnlyOpt: 'i',
-                            assembly: out assembly, @class: out readerClass, i: ref i)) {
-                            globalContext.ShowAllPluginsAndTheirHelp<IReaderFactory>(assembly);
-                        } else {
-                            string filePattern = Options.ExtractNextValue(args, ref i);
-                            if (Options.ArgMatches(filePattern, '?')) {
-                                globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, readerClass);
-                                i++;
-                            } else {
-                                globalContext.CreateInputOption(args, ref i, filePattern, assembly, readerClass);
-                            }
-                        }
-                    } else if (Options.ArgMatches(arg, 'j')) {
-                        // -j      filepattern [- filepattern]
+                    } else if (ReadPluginOption.Matches(arg)) {
+                        // -rp    assembly reader filepattern [- filepattern]
+                        string assembly = Options.ExtractOptionValue(args, ref i);
+                        string reader = Options.ExtractNextValue(args, ref i);
+                        string filePattern = Options.ExtractNextValue(args, ref i);
+                        globalContext.CreateInputOption(args, ref i, filePattern, assembly, reader);
+                    } else if (ReadFileOption.Matches(arg)) {
+                        // -rf    reader filepattern [- filepattern]
+                        string reader = Options.ExtractOptionValue(args, ref i);
+                        string filePattern = Options.ExtractNextValue(args, ref i);
+                        globalContext.CreateInputOption(args, ref i, filePattern, "", reader);
+                    } else if (ReadOption.Matches(arg)) {
+                        // -rd    filepattern [- filepattern]
                         string filePattern = Options.ExtractOptionValue(args, ref i);
-                        globalContext.CreateInputOption(args, ref i, filePattern, assembly: "",
-                            readerClass: IsDllOrExeFile(filePattern)
-                                ? typeof(DotNetAssemblyDependencyReaderFactory).FullName
-                                : IsDipFile(filePattern) ? typeof(DipReaderFactory).FullName : null);
-                    } else if (Options.ArgMatches(arg, 'k')) {
+                        globalContext.CreateInputOption(args, ref i, filePattern, "",
+                            IsDllOrExeFile(filePattern) ? typeof(DotNetAssemblyDependencyReaderFactory).FullName :
+                            IsDipFile(filePattern) ? typeof(DipReaderFactory).FullName : null);
+                    } else if (ReadPluginHelpOption.Matches(arg)) {
+                        // -ra?    assembly
+                        string assembly = Options.ExtractOptionValue(args, ref i);
+                        globalContext.ShowAllPluginsAndTheirHelp<IReaderFactory>(assembly);
+                    } else if (ReadHelpOption.Matches(arg)) {
+                        // -rf?
+                        globalContext.ShowAllPluginsAndTheirHelp<IReaderFactory>("");
+                    } else if (ReadPluginDetailedHelpOption.Matches(arg)) {
+                        // -ra!    assembly reader
+                        string assembly = Options.ExtractOptionValue(args, ref i);
+                        string reader = Options.ExtractNextValue(args, ref i);
+                        globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, reader);
+                    } else if (ReadDetailedHelpOption.Matches(arg)) {
+                        // -rf!    reader
+                        string reader = Options.ExtractOptionValue(args, ref i);
+                        globalContext.ShowDetailedHelp<IDependencyRenderer>("", reader);
+                    } else if (ConfigurePluginOption.Matches(arg)) {
+                        // -cp    assembly transformer { options }
+                        string assembly = Options.ExtractOptionValue(args, ref i);
+                        string transformer = Options.ExtractNextValue(args, ref i);
+                        string transformerOptions = Options.ExtractNextValue(args, ref i);
+                        globalContext.ConfigureTransformer(assembly, transformer, transformerOptions);
+                    } else if (ConfigureOption.Matches(arg)) {
+                        // -cf    transformer  { options }
+                        string transformer = Options.ExtractOptionValue(args, ref i);
+                        string transformerOptions = Options.ExtractNextValue(args, ref i);
+                        globalContext.ConfigureTransformer("", transformer, transformerOptions);
+                    } else if (TransformPluginOption.Matches(arg)) {
+                        // -tp    assembly transformer [{ options }]
+                        string assembly = Options.ExtractOptionValue(args, ref i);
+                        string transformer = Options.ExtractNextValue(args, ref i);
+                        string transformerOptions = Options.ExtractNextValue(args, ref i);
+                        result = globalContext.Transform(assembly, transformer, transformerOptions);
+                    } else if (TransformOption.Matches(arg)) {
+                        // -tf    transformer  [{ options }]
+                        string transformer = Options.ExtractOptionValue(args, ref i);
+                        string transformerOptions = Options.ExtractNextValue(args, ref i);
+                        result = globalContext.Transform("", transformer, transformerOptions);
+                    } else if (TransformTestDataOption.Matches(arg)) {
+                        // -tt    assembly transformer [{ options }]
+                        string assembly = Options.ExtractOptionValue(args, ref i);
+                        string transformer = Options.ExtractNextValue(args, ref i);
+                        string transformerOptions = Options.ExtractNextValue(args, ref i);
+                        globalContext.TransformTestData(assembly, transformer, transformerOptions);
+                        globalContext.InputFilesOrTestDataSpecified = true;
+                    } else if (TransformPluginHelpOption.Matches(arg)) {
+                        // -tp?    assembly
+                        string assembly = Options.ExtractOptionValue(args, ref i);
+                        globalContext.ShowAllPluginsAndTheirHelp<ITransformer>(assembly);
+                    } else if (TransformHelpOption.Matches(arg)) {
+                        // -tf?
+                        globalContext.ShowAllPluginsAndTheirHelp<ITransformer>("");
+                    } else if (TransformPluginDetailedHelpOption.Matches(arg)) {
+                        // -ta!    assembly transformer
+                        string assembly = Options.ExtractOptionValue(args, ref i);
+                        string transformer = Options.ExtractNextValue(args, ref i);
+                        globalContext.ShowDetailedHelp<ITransformer>(assembly, transformer);
+                    } else if (TransformDetailedHelpOption.Matches(arg)) {
+                        // -tf!    transformer
+                        string transformer = Options.ExtractOptionValue(args, ref i);
+                        globalContext.ShowDetailedHelp<ITransformer>("", transformer);
+                    } else if (WritePluginOption.Matches(arg)) {
+                        // -wp    assembly writer [{ options }] filename
+                        string assembly = Options.ExtractOptionValue(args, ref i);
+                        string writer = Options.ExtractNextValue(args, ref i);
+                        string s = Options.ExtractNextValue(args, ref i);
+                        string masterFileName = Write(s, args, ref i,
+                            (writerOptions, fileName) => globalContext.RenderToFile(assembly, writer, writerOptions, fileName));
+                        writtenMasterFiles?.Add(masterFileName);
+                    } else if (WriteFileOption.Matches(arg)) {
+                        // -wr    writer  [{ options }] filename
+                        string writer = Options.ExtractOptionValue(args, ref i);
+                        string s = Options.ExtractNextValue(args, ref i);
+                        string masterFileName = Write(s, args, ref i,
+                            (writerOptions, fileName) => globalContext.RenderToFile("", writer, writerOptions, fileName));
+                        writtenMasterFiles?.Add(masterFileName);
+                    } else if (WriteDipOption.Matches(arg)) {
+                        // -wd    filename
+                        string fileName = Options.ExtractOptionValue(args, ref i);
+                        string masterFileName = globalContext.RenderToFile("", typeof(DipWriter).Name, "", fileName);
+                        writtenMasterFiles?.Add(masterFileName);
+                    } else if (WriteTestDataOption.Matches(arg)) {
+                        // -wt    assembly writer [{ options }] filename
+                        string assembly = Options.ExtractOptionValue(args, ref i);
+                        string writer = Options.ExtractNextValue(args, ref i);
+                        string s = Options.ExtractNextValue(args, ref i);
+                        Write(s, args, ref i,
+                            (writerOptions, fileName) => globalContext.RenderTestData(assembly, writer, writerOptions, fileName));
+                    } else if (WritePluginHelpOption.Matches(arg)) {
+                        // -wp?    assembly
+                        string assembly = Options.ExtractOptionValue(args, ref i);
+                        globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>(assembly);
+                    } else if (WriteHelpOption.Matches(arg)) {
+                        // -wr?
+                        globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>("");
+                    } else if (WritePluginDetailedHelpOption.Matches(arg)) {
+                        // -wp!    assembly reader
+                        string assembly = Options.ExtractOptionValue(args, ref i);
+                        string writer = Options.ExtractNextValue(args, ref i);
+                        globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, writer);
+                    } else if (WriteDetailedHelpOption.Matches(arg)) {
+                        // -wr!    reader
+                        string writer = Options.ExtractOptionValue(args, ref i);
+                        globalContext.ShowDetailedHelp<IDependencyRenderer>("", writer);
+                    } else if (DoBreakOption.Matches(arg)) {
+                        // -db
+                        Log.WriteInfo(msg: "---- Stop reading options (-b)");
+                        goto DONE;
+                    } else if (DoCommandOption.Matches(arg)) {
+                        // -dc    command
                         string cmd = Options.ExtractOptionValue(args, ref i);
                         try {
-                            if (new Process {StartInfo = new ProcessStartInfo(cmd)}.Start()) {
-                                Log.WriteInfo($"Started process '{cmd}'");
-                            } else {
-                                Log.WriteError($"Could not start process '{cmd}'");
-                            }
+                            if (new Process { StartInfo = new ProcessStartInfo(cmd) }.Start())
+                                Log.WriteInfo(msg: $"Started process '{cmd}'");
+                            else Log.WriteError(msg: $"Could not start process '{cmd}'");
                         } catch (Exception ex) {
-                            Log.WriteError($"Could not start process '{cmd}'; reason: {ex.Message}");
+                            Log.WriteError(msg: $"Could not start process '{cmd}'; reason: {ex.Message}");
                             result = EXCEPTION_RESULT;
                         }
-                    } else if (Options.ArgMatches(arg, 'l')) {
-                        // -l                      Execute readers and transformers lazily 
-                        //                         (lazy reading and transforming NOT YET IMPLEMENTED)
-                        globalContext.WorkLazily = true;
-                    } else if (Options.ArgMatches(arg, 'm')) {
-                        // -m name value           Define name as value; a redefinition with a different value is not possible
-                        string varname = Options.ExtractOptionValue(args, ref i);
-                        string varvalue = Options.ExtractNextValue(args, ref i);
-                        globalContext.SetDefine(varname, varvalue, "after -m option");
-
-                        globalContext.GlobalVars[varname] = varvalue;
-                    } else if (Options.ArgMatches(arg, 'o')) {
-                        // -o fileName             Read options from file
+                    } else if (DoScriptOption.Matches(arg)) {
+                        // -ds    filename
                         string fileName = Options.ExtractOptionValue(args, ref i);
                         result = RunFrom(fileName, globalContext, writtenMasterFiles);
-
                         // file is also an input file - and if there are no input files in -o, the error will come up there.
                         globalContext.InputFilesOrTestDataSpecified = true;
-                    } else if (Options.ArgMatches(arg, 'p', 'q', 'r')) {
-                        // -p     assembly renderer [{ options }] fileName
-                        // -q     assembly renderer [{ options }] fileName
-                        // -r              renderer [{ options }] fileName
+                    } else if (DoDefineOption.Matches(arg)) {
+                        // -dd    name value
+                        string varname = Options.ExtractOptionValue(args, ref i);
+                        string varvalue = Options.ExtractNextValue(args, ref i);
+                        globalContext.SetDefine(varname, varvalue, location: "after -dd option");
 
-                        string assembly, rendererClass;
-                        if (ExtractAssemblyAndClass(args, new[] { 'p', 'q' }, 'r', out assembly, out rendererClass, ref i)) {
-                            globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>(assembly);
-                        } else {
-                            string classOptions, fileName;
-                            if (ExtractClassOptions(args, out classOptions, out fileName, ref i)) {
-                                globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, rendererClass);
-                                i++;
-                            } else if (Options.ArgMatches(arg, 'p')) {
-                                string fn = globalContext.RenderTestData(assembly, rendererClass, classOptions, fileName);
-                                writtenMasterFiles?.Add(fn);
-                                globalContext.InputFilesOrTestDataSpecified = true;
-                            } else {
-                                string fn = globalContext.RenderToFile(assembly, rendererClass, classOptions, fileName);
-                                writtenMasterFiles?.Add(fn);
-                            }
-                        }
-                    } else if (Options.ArgMatches(arg, 's', 't', 'u')) {
-                        // -s     assembly transformer [{ options }]
-                        // -t     assembly transformer [{ options }]
-                        // -u              transformer [{ options }]
-
-                        string assembly, transformerClass;
-                        if (ExtractAssemblyAndClass(args, new[] { 's', 't' }, 'u', out assembly, out transformerClass, ref i)) {
-                            globalContext.ShowAllPluginsAndTheirHelp<ITransformer>(assembly);
-                        } else {
-                            if (i + 1 >= args.Length || Options.ArgMatches(args[i + 1], '?')) {
-                                globalContext.ShowDetailedHelp<ITransformer>(assembly, transformerClass);
-                                i++;
-                            } else {
-                                string transformerOptions = i < args.Length - 1 && args[i + 1].StartsWith("{")
-                                    ? Options.ExtractNextValue(args, ref i)
-                                    : "";
-                                if (Options.ArgMatches(arg, 's')) {
-                                    globalContext.TransformTestData(assembly, transformerClass, transformerOptions);
-                                    globalContext.InputFilesOrTestDataSpecified = true;
-                                } else {
-                                    result = globalContext.Transform(assembly, transformerClass, transformerOptions);
-                                }
-                            }
-                        }
-                    } else if (Options.ArgMatches(arg, 'v')) {
-                        // -v        verbose output
-                        Log.SetLevel(Log.Level.Verbose);
-                        WriteVersion();
-                    } else if (Options.ArgMatches(arg, 'w')) {
-                        // -w        chatty output
-                        Log.SetLevel(Log.Level.Chatty);
-                        WriteVersion();
-                    } else if (Options.ArgMatches(arg, 'x')) {
-                        // -x port fileDirectory      Run as webserver
-                        string port = Options.ExtractOptionValue(args, ref i);
-                        if (port == "-") {
-                            if (WebServerIsRunning) { 
-                                globalContext.StopWebServer();
-                            }
-                            WebServerIsRunning = false;
-                        } else { 
-                        string fileDirectory = Options.ExtractNextValue(args, ref i);
-                        globalContext.StartWebServer(this, port, fileDirectory);
-                        ranAsWebServer = true;
-                        WebServerIsRunning = true;
-                        }
-                    } else if (Options.ArgMatches(arg, 'y')) {
-                        // -y                         Toggle interactive mode
-                        Interactive = !Interactive;
-                    } else if (Options.ArgMatches(arg, 'z')) {
-                        // -z        Remove all dependencies and graphs and caches
-                        Log.WriteInfo("---- Reset of input options (-z)");
+                        globalContext.GlobalVars[varname] = varvalue;
+                    } else if (DoResetOption.Matches(arg)) {
+                        // -dr    [filename]
+                        Log.WriteInfo(msg: "---- Reset of input options (-dr)");
 
                         Intern<ItemType>.Reset();
                         Intern<ItemTail>.Reset();
                         Intern<Item>.Reset();
                         AbstractDotNetAssemblyDependencyReader.Reset();
                         globalContext.Reset();
+
+                        string fileName = Options.ExtractNextValue(args, ref i);
+                        if (fileName != null && IsDipFile(fileName)) {
+                            globalContext.CreateInputOption(args, ref i, arg, assembly: "",
+                                readerClass: typeof(DipReaderFactory).FullName);
+                        }
+                    } else if (WatchFilesOption.Matches(arg)) {
+                        // -aw    filepattern [- filepattern] script
+                        string positive = Options.ExtractOptionValue(args, ref i);
+                        string s = Options.ExtractNextValue(args, ref i);
+                        string negative, scriptName;
+                        if (s == "-") {
+                            negative = Options.ExtractNextValue(args, ref i);
+                            scriptName = Options.ExtractNextValue(args, ref i);
+                        } else {
+                            negative = null;
+                            scriptName = s;
+                        }
+                        AddFileWatchers(positive, negative, scriptName);
+                    } else if (UnwatchFilesOption.Matches(arg)) {
+                        // -au    filepattern
+                        string filePattern = Options.ExtractOptionValue(args, ref i);
+                        RemoveFileWatchers(filePattern);
+                    } else if (UnwatchTriggersOption.Matches(arg)) {
+                        // -an    script
+                        string scriptName = Options.ExtractOptionValue(args, ref i);
+                        RemoveFileWatchersOn(scriptName);
+                    } else if (HttpRunOption.Matches(arg)) {
+                        // -hr    port directory
+                        string port = Options.ExtractOptionValue(args, ref i);
+                        string fileDirectory = Options.ExtractNextValue(args, ref i);
+                        StartWebServer(program: this, port: port, fileDirectory: fileDirectory);
+                        ranAsWebServer = true;
+                    } else if (HttpRunOption.Matches(arg)) {
+                        // -hs
+                        StopWebServer();
+                    } else if (IgnoreCaseOption.Matches(arg)) {
+                        // -ic
+                        globalContext.IgnoreCase = true;
+                    } else if (InteractiveOption.Matches(arg)) {
+                        // -ia    [filename]
+                        _interactiveLogFile = Options.ExtractOptionValue(args, ref i);
+                    } else if (InteractiveStopOption.Matches(arg)) {
+                        // -is
+                        _interactiveLogFile = null;
+                    } else if (LogVerboseOption.Matches(arg)) {
+                        // -lv
+                        Log.SetLevel(Log.Level.Verbose);
+                        WriteVersion();
+                    } else if (LogChattyOption.Matches(arg)) {
+                        // -lc
+                        Log.SetLevel(Log.Level.Chatty);
+                        WriteVersion();
+                    } else if (LazyOption.Matches(arg)) {
+                        // -lz
+                        //                         (lazy reading and transforming NOT YET IMPLEMENTED)
+                        globalContext.WorkLazily = true;
                     } else if (IsDllOrExeFile(arg)) {
-                        globalContext.CreateInputOption(args, ref i, arg, "", typeof(DotNetAssemblyDependencyReaderFactory).FullName);
+                        globalContext.CreateInputOption(args, ref i, arg, assembly: "",
+                            readerClass: typeof(DotNetAssemblyDependencyReaderFactory).FullName);
                     } else if (IsDipFile(arg)) {
-                        globalContext.CreateInputOption(args, ref i, arg, "", typeof(DipReaderFactory).FullName);
+                        globalContext.CreateInputOption(args, ref i, arg, assembly: "",
+                            readerClass: typeof(DipReaderFactory).FullName);
                     } else {
-                        return UsageAndExit("Unsupported option '" + arg + "'");
+                        return UsageAndExit(message: "Unsupported option '" + arg + "'");
                     }
                 }
             } catch (ArgumentException ex) {
                 return UsageAndExit(ex.Message);
             }
 
-            if (!globalContext.InputFilesOrTestDataSpecified && !ranAsWebServer && !globalContext.HelpShown) {
-                return UsageAndExit("No input files specified");
+            if (!globalContext.InputFilesOrTestDataSpecified && !ranAsWebServer && !globalContext.HelpShown &&
+                _interactiveLogFile == null) {
+                return UsageAndExit(message: "No input files specified");
             }
 
             if (result == OK_RESULT && !globalContext.TransformingDone && !globalContext.RenderingDone) {
                 // Default action at end if nothing was done
                 globalContext.ReadAllNotYetReadIn();
-                result = globalContext.Transform("", typeof(CheckDeps).FullName, "");
-                globalContext.RenderToFile(".", typeof(RuleViolationRenderer).FullName, "", null);
+                result = globalContext.Transform(assembly: "", transformerClass: typeof(CheckDeps).FullName,
+                    transformerOptions: "");
+                globalContext.RenderToFile(assemblyName: "", rendererClassName: typeof(RuleViolationRenderer).FullName,
+                    rendererOptions: "", fileName: null);
             }
 
             DONE:
 
-            if (Log.IsVerboseEnabled) {
-                Log.WriteInfo("Completed with exitcode " + result);
-            }
+            if (Log.IsVerboseEnabled) Log.WriteInfo(msg: "Completed with exitcode " + result);
 
             return result;
         }
 
+        private static string Write(string s, string[] args, ref int i, Func<string, string, string> action) {
+            string writerOptions, fileName;
+            if (s.StartsWith("{")) {
+                writerOptions = s;
+                fileName = Options.ExtractNextValue(args, ref i);
+            } else {
+                writerOptions = "";
+                fileName = s;
+            }
+            return action(writerOptions, fileName);
+        }
+
         private static bool IsDipFile(string arg) {
-            return arg.EndsWith(".dip", StringComparison.InvariantCultureIgnoreCase);
+            return arg.EndsWith(value: ".dip", comparisonType: StringComparison.InvariantCultureIgnoreCase);
         }
 
         private static bool IsDllOrExeFile(string arg) {
-            return arg.EndsWith(".dll", StringComparison.InvariantCultureIgnoreCase) ||
-                   arg.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase);
+            return arg.EndsWith(value: ".dll", comparisonType: StringComparison.InvariantCultureIgnoreCase) ||
+                   arg.EndsWith(value: ".exe", comparisonType: StringComparison.InvariantCultureIgnoreCase);
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns><c>true</c> if classOptions is /? for 'help'</returns>
-        private static bool ExtractClassOptions(string[] args, out string classOptions, out string fileName, ref int i) {
-            string o = Options.ExtractNextValue(args, ref i);
-            if (o == null || Options.ArgMatches(o, '?')) {
-                classOptions = "";
-                fileName = "";
-                return true;
-            } else if (o.StartsWith("{")) {
-                classOptions = o;
-                fileName = Options.ExtractNextValue(args, ref i);
-                return false;
-            } else {
-                classOptions = "";
-                fileName = o;
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns><c>true</c> if option after assembly is /? for 'help'</returns>
-        private static bool ExtractAssemblyAndClass([NotNull] string[] args, char[] assemblyAndClassOpt, char classOnlyOpt,
-                                                    [NotNull] out string assembly, out string @class, ref int i) {
-            string arg = args[i];
-            if (Options.ArgMatches(arg, assemblyAndClassOpt)) {
-                assembly = Options.ExtractOptionValue(args, ref i);
-                @class = Options.ExtractNextValue(args, ref i);
-            } else if (Options.ArgMatches(arg, classOnlyOpt)) {
-                assembly = ".";
-                @class = Options.ExtractOptionValue(args, ref i);
-            } else {
-                assembly = ".";
-                @class = null;
-            }
-            return @class == null || Options.ArgMatches(@class, '?', 'h');
-        }
-
-        private int RunFrom([NotNull] string fileName, [NotNull] GlobalContext state, [CanBeNull] List<string> writtenMasterFiles) {
-            int lineNo = 0;
+        internal int RunFrom([NotNull] string fileName, [NotNull] GlobalContext state, [CanBeNull] List<string> writtenMasterFiles) {
+            var lineNo = 0;
             try {
                 var args = new List<string>();
-                bool inBraces = false;
+                var inBraces = false;
                 using (var sr = new StreamReader(fileName)) {
                     for (;;) {
                         lineNo++;
-                        string line = sr.ReadLine();
-                        if (line == null) {
-                            break;
-                        }
-                        string trimmedLine = Regex.Replace(line, "//.*$", "").Trim();
-                        IEnumerable<string> splitLine = trimmedLine.Split(' ', '\t').Select(s => s.Trim()).Where(s => s != "");
+                        var line = sr.ReadLine();
+                        if (line == null) break;
+                        var trimmedLine = Regex.Replace(line, pattern: "//.*$", replacement: "").Trim();
+                        var splitLine = trimmedLine.Split(' ', '\t').Select(s => s.Trim()).Where(s => s != "");
 
                         if (splitLine.Any() && splitLine.Last() == "{") {
                             args.AddRange(splitLine);
                             inBraces = true;
                         } else if (splitLine.Any() && splitLine.First() == "}") {
                             inBraces = false;
-                            args.AddRange(splitLine.Select(state.ExpandDefines));
+                            args.AddRange(collection: splitLine.Select(state.ExpandDefines));
                         } else if (!inBraces) {
-                            args.AddRange(splitLine.Select(state.ExpandDefines));
+                            args.AddRange(collection: splitLine.Select(state.ExpandDefines));
                         } else {
                             args.Add(line);
                         }
@@ -388,24 +483,24 @@ namespace NDepCheck {
                 }
 
                 var locallyWrittenFiles = new List<string>();
-                string previousCurrentDirectory = Environment.CurrentDirectory;
+                var previousCurrentDirectory = Environment.CurrentDirectory;
                 try {
-                    Environment.CurrentDirectory = Path.GetDirectoryName(Path.GetFullPath(fileName));
-                    return Run(args.ToArray(), state, locallyWrittenFiles);
+                    Environment.CurrentDirectory = Path.GetDirectoryName(path: Path.GetFullPath(fileName));
+                    return Run(args: args.ToArray(), globalContext: state, writtenMasterFiles: locallyWrittenFiles);
                 } finally {
-                    writtenMasterFiles?.AddRange(locallyWrittenFiles.Select(Path.GetFullPath));
+                    writtenMasterFiles?.AddRange(collection: locallyWrittenFiles.Select(Path.GetFullPath));
                     Environment.CurrentDirectory = previousCurrentDirectory;
                 }
             } catch (Exception ex) {
-                Log.WriteError("Cannot run commands in " + fileName + " (" + ex.Message + ")", fileName, lineNo);
+                Log.WriteError(msg: "Cannot run commands in " + fileName + " (" + ex.Message + ")",
+                    nestedFilenames: fileName, lineNo: lineNo);
                 return EXCEPTION_RESULT;
             }
         }
 
-        private static int UsageAndExit(string message, int exitValue = OPTIONS_PROBLEM, bool extensiveHelp = false) {
+        private int UsageAndExit(string message, int exitValue = OPTIONS_PROBLEM, bool detailed = false) {
             WriteVersion();
-            Console.Out.WriteLine(
-                @"
+            Console.Out.WriteLine(value: @"
 Usage:
    NDepCheck <option>...
 
@@ -427,120 +522,14 @@ All messages of NDepCheck are written to Console.Out.
 Options overview:
     Options can be written with leading - or /
 
-     READ
--h     assembly reader filepattern [- filepattern]
--i              reader filepattern [- filepattern]
-[-j]                   filepattern [- filepattern]
-
-       Built-in readers:
-        - DipReader      (.dip)
-        - AssemblyReader (.dll, .exe)
-       
-     HELP FOR ALL READERS
--h     assembly -?
--i              -?
-
-     HELP FOR A SINGLE READER
--h     assembly reader -?
--i              reader -?
-
-     CONFIGURE TRANSFORMER
--e     assembly transformer { options }
--f              transformer { options }
-
-     TRANSFORM
--t     assembly transformer [{ options }]
--u              transformer [{ options }]
-     
-       Built-in transformers:  
-       - CheckDependencies [-q | -u]
-           Copies dependency's count to bad count or 
-           questionable count depending on matched rules
-                -q show questionable rules
-                -u show all unused rules
-       - Projector
-           Replaces all edges by edges computed from
-           projections (! or % rules)
-       - (AssociativeHull - UNDER WORK)
-            adds all associative edges
-            cts are set to 1;0;0
-       - (RemoveTransitiveEdges - UNDER WORK)
-            Hide edges
-       - (RemoveLocalLoops - UNDER WORK)
-            Hide edges
-       - (KeepOnlyCycleEdges - UNDER WORK)
-            Hide edges
-
-     TRANSFORM TESTDATA
--s     assembly transformer [{ options }]
-
-     HELP FOR ALL TRANSFORMERS
--t     assembly -?
--u              -?
-     
-     HELP FOR A SINGLE TRANSFORMER
--t     assembly transformer -?
--u              transformer -?
-     
-     RENDER
--q     assembly renderer [{ options }] file
--r              renderer [{ options }] file
-
-                Built-in renderers:
-                - DipWriter
-                - DotRenderer [-e edgelength]
-                    -e
-                - MatrixRenderer1
-                - MatrixRenderer2
-                - MatrixGraphicsRenderer  [-x] [-y] [-b regex] [-t text] [-w width] [-h height] [-f height]
-                    -t text
-                    -w width
-                    -h height
-                    -f height
-                    -x
-                    -y
-                    -b regex
-                - ModuleAndInterfaceGraphicsRenderer [-t text] [-w width] [-h height] [-f height]
-                - RuleViolationRenderer [-x]
-                        -x as XML output
-     
-     RENDER TESTDATA
--p     assembly renderer [{ options }] file
-
-     HELP FOR ALL RENDERERS
--q     assembly -?
--r              -?
-
-     HELP FOR A SINGLE RENDERER
--q     assembly renderer -?
--r              renderer -?
-
-     OTHER
--?                Write help
--a                Write extensive help  
--b                Stop execution here; useful in -o file
--c                Ignore case in rules
--d                ....file watcher....
--debug            Start .Net debugger 
--k cmd            Run command; useful for opening an HTML file after creating it
--l                Execute readers and transformers lazily (lazy reading and transforming NOT YET IMPLEMENTED)
--m name value     Define name as value; a redefinition with a different value is not possible
--o file           Read options from file
--v                Verbose
--w                Chatty
--x port directory Start web server
--x -              Stop web server
--y                Toggle interactive mode
--z                Reset state
-");
+" + Option.CreateHelp(_allOptions, detailed: detailed));
 
             if (message != null) {
                 Log.WriteError(message);
-                Log.WriteInfo("");
+                Log.WriteInfo(msg: "");
             }
 
-            if (extensiveHelp) {
-                Console.Out.WriteLine(@"
+            if (detailed) Console.Out.WriteLine(value: @"
 
 ############# NOT YET UPDATED ##################
 
@@ -790,13 +779,58 @@ using the wildcardpath syntax):
    // Using % instead of ! puts the node in the 'outer layer', where
    // only edges to the inner layer are drawn.
             ");
-
-            }
             return exitValue;
         }
 
         private static void WriteVersion() {
-            Log.WriteInfo("NDepCheck " + VERSION + " (c) HMMüller, Th.Freudenberg 2006...2017");
+            Log.WriteInfo(msg: "NDepCheck " + VERSION + " (c) HMMüller, Th.Freudenberg 2006...2017");
+        }
+
+        private void AddFileWatchers([NotNull] string positiveFilePattern, [CanBeNull] string negativeFilePattern,
+            [NotNull] string scriptName) {
+            IEnumerable<string> files = Options.ExpandFilename(positiveFilePattern).Select(f => Path.GetFullPath(f));
+            if (negativeFilePattern != null) {
+                files = files.Except(Options.ExpandFilename(negativeFilePattern)).Select(f => Path.GetFullPath(f));
+            }
+            string fullScriptName = Path.GetFullPath(scriptName);
+            FileWatcher fw = _fileWatchers.FirstOrDefault(f => f.FullScriptName == fullScriptName);
+            if (fw == null) {
+                _fileWatchers.Add(fw = new FileWatcher(fullScriptName, this));
+            }
+            foreach (var f in files) {
+                fw.AddFile(f);
+            }
+        }
+
+        private void RemoveFileWatchers([NotNull] string filePattern) {
+            IEnumerable<string> files = Options.ExpandFilename(filePattern).Select(f => Path.GetFullPath(f));
+            foreach (var fw in _fileWatchers) {
+                foreach (var f in files) {
+                    fw.RemoveFile(f);
+                }
+            }
+        }
+
+        private void RemoveFileWatchersOn([NotNull] string scriptName) {
+            string fullScriptName = Path.GetFullPath(scriptName);
+            FileWatcher fw = _fileWatchers.FirstOrDefault(f => f.FullScriptName == fullScriptName);
+            if (fw != null) {
+                _fileWatchers.Remove(fw);
+                fw.Close();
+            }
+        }
+
+        public void StartWebServer(Program program, string port, string fileDirectory) {
+            if (_webServer != null) {
+                throw new ApplicationException("Cannot start webserver if one is already running");
+            }
+            _webServer = new WebServer(program, port, fileDirectory);
+            _webServer.Start();
+        }
+
+        public void StopWebServer() {
+            _webServer?.Stop();
+            _webServer = null;
         }
     }
 }

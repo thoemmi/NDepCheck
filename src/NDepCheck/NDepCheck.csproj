@@ -96,6 +96,7 @@
     <Compile Include="Annotations.cs" />
     <Compile Include="ConstraintSolving\Range.cs" />
     <Compile Include="ConstraintSolving\SimpleConstraintSolver.cs" />
+    <Compile Include="FileWatcher.cs" />
     <Compile Include="Reading\DipReaderFactory.cs" />
     <Compile Include="IPlugin.cs" />
     <Compile Include="SourceLocation.cs" />

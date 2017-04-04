@@ -139,10 +139,8 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                // transform testdata: keep only cycle edges
-                "-s", ".", typeof(FindCycleDeps).Name, "{", "-k", "}",
-                // write them as dip file
-                "-r", typeof(DipWriter).Name, outFile
+                Program.TransformTestDataOption.Opt, ".", typeof(FindCycleDeps).Name, "{", "-k", "}",                
+                Program.WriteDipOption.Opt, outFile
             }));
 
             using (var sw = new StreamReader(outFile)) {

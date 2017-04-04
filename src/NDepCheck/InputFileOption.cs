@@ -24,9 +24,9 @@ namespace NDepCheck {
         [NotNull]
         public IEnumerable<AbstractDependencyReader> CreateOrGetReaders([NotNull]GlobalContext options, bool needsOnlyItemTails) {
             if (_readers == null) {
-                var fileNames = new List<string>(ExpandFilename(_positive));
+                var fileNames = new List<string>(Options.ExpandFilename(_positive, ".dll", ".exe"));
                 if (_negativeOrNull != null) {
-                    var negative = new List<string>(ExpandFilename(_negativeOrNull)).ConvertAll(Path.GetFullPath);
+                    var negative = new List<string>(Options.ExpandFilename(_negativeOrNull, ".dll", ".exe")).ConvertAll(Path.GetFullPath);
                     fileNames.RemoveAll(f => negative.Contains(Path.GetFullPath(f)));
                 }
                 _readers = fileNames.Select(fileName => _readerFactory.CreateReader(fileName, options, needsOnlyItemTails)).ToArray();
@@ -34,38 +34,5 @@ namespace NDepCheck {
             return _readers;
         }
 
-        private IEnumerable<string> ExpandFilename(string pattern) {
-            if (pattern.StartsWith("@")) {
-                using (TextReader nameFile = new StreamReader(pattern.Substring(1))) {
-                    for (; ; ) {
-                        string name = nameFile.ReadLine();
-                        if (name == null) {
-                            break;
-                        }
-                        name = name.Trim();
-                        if (name != "") {
-                            yield return name;
-                        }
-                    }
-                }
-            } else if (pattern.Contains("*") || pattern.Contains("?")) {
-                int sepPos = pattern.LastIndexOf(Path.DirectorySeparatorChar);
-
-                string dir = sepPos < 0 ? "." : pattern.Substring(0, sepPos);
-                string filePattern = sepPos < 0 ? pattern : pattern.Substring(sepPos + 1);
-                foreach (string name in Directory.GetFiles(dir, filePattern)) {
-                    yield return name;
-                }
-            } else if (Directory.Exists(pattern)) {
-                foreach (string name in Directory.GetFiles(pattern, "*.dll")) {
-                    yield return name;
-                }
-                foreach (string name in Directory.GetFiles(pattern, "*.exe")) {
-                    yield return name;
-                }
-            } else {
-                yield return pattern;
-            }
-        }
     }
 }

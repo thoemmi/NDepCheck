@@ -33,13 +33,13 @@ Transformer options: [-b dipfile] [-k]
 
         public override void Configure(GlobalContext globalContext, string configureOptions) {
             Options.Parse(configureOptions,
-                new OptionAction('f', (args, j) => {
+                new OptionAction("f", (args, j) => {
                     string fullSourceName = Path.GetFullPath(Options.ExtractOptionValue(args, ref j));
                     _orderedProjections = GetOrReadChildConfiguration(globalContext,
                         () => new StreamReader(fullSourceName), fullSourceName, globalContext.IgnoreCase, "????");
                     return j;
                 }),
-                new OptionAction('p', (args, j) => {
+                new OptionAction("p", (args, j) => {
                     // A trick is used: The first line, which contains all options, should be ignored; and
                     // also the last } (which is from the surrounding options braces). Thus, 
                     // * we add // to the beginning - this comments out the first line;
@@ -143,10 +143,10 @@ Transformer options: [-b dipfile] [-k]
             if (_orderedProjections != null) {
                 string fullDipName = null;
                 bool keepOnlyProjected = false;
-                Options.Parse(transformOptions, new OptionAction('b', (args, j) => {
+                Options.Parse(transformOptions, new OptionAction("b", (args, j) => {
                     fullDipName = Path.GetFullPath(Options.ExtractOptionValue(args, ref j));
                     return j;
-                }), new OptionAction('k', (args, j) => {
+                }), new OptionAction("k", (args, j) => {
                     keepOnlyProjected = true;
                     return j;
                 }));

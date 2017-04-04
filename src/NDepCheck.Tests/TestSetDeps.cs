@@ -11,10 +11,8 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                // transform testdata
-                "-s", ".", typeof(SetDeps).Name, "{", "-b", "}",
-                // write them as dip file
-                "-r", typeof(DipWriter).Name, outFile
+                Program.TransformTestDataOption.Opt, ".", typeof(SetDeps).Name, "{", "-b", "}",                
+                Program.WriteDipOption.Opt, outFile
             }));
 
             using (var sw = new StreamReader(outFile)) {
@@ -31,10 +29,8 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                // transform testdata
-                "-s", ".", typeof(SetDeps).Name, "{", "-q", "}",
-                // write them as dip file
-                "-r", typeof(DipWriter).Name, outFile
+                Program.TransformTestDataOption.Opt, ".", typeof(SetDeps).Name, "{", "-q", "}",                
+                Program.WriteDipOption.Opt, outFile
             }));
 
             using (var sw = new StreamReader(outFile)) {
@@ -51,10 +47,8 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                // transform testdata
-                "-s", ".", typeof(SetDeps).Name, "{", "-q", "-mdefine", "}",
-                // write them as dip file
-                "-r", typeof(DipWriter).Name, outFile
+                Program.TransformTestDataOption.Opt, ".", typeof(SetDeps).Name, "{", "-q", "-m", "define", "}",                
+                Program.WriteDipOption.Opt, outFile
             }));
 
             using (var sw = new StreamReader(outFile)) {
@@ -71,10 +65,8 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                // transform testdata
-                "-s", ".", typeof(SetDeps).Name, "{", "-b", "-q", "}",
-                // write them as dip file
-                "-r", typeof(DipWriter).Name, outFile
+                Program.TransformTestDataOption.Opt, ".", typeof(SetDeps).Name, "{", "-b", "-q", "}",                
+                Program.WriteDipOption.Opt, outFile
             }));
 
             using (var sw = new StreamReader(outFile)) {
@@ -85,6 +77,5 @@ namespace NDepCheck.Tests {
                 Assert.IsTrue(o.Contains(";5;0;0;"));
             }
         }
-
     }
 }

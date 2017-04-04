@@ -173,26 +173,26 @@ namespace NDepCheck.Rendering {
 
         public override void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName) {
             DoRender(dependencies, argsAsString, baseFileName,
-                new OptionAction('b', (args, j) => {
+                new OptionAction("b", (args, j) => {
                     _bottomRegex = new Regex(Options.ExtractOptionValue(args, ref j));
                     return j;
                 }),
-                new OptionAction('t', (args, j) => {
+                new OptionAction("t", (args, j) => {
                     _title = Options.ExtractOptionValue(args, ref j);
                     return j;
                 }),
-                new OptionAction('o', (args, j) => {
+                new OptionAction("o", (args, j) => {
                     string orderField = Options.ExtractOptionValue(args, ref j);
                     if (!int.TryParse(orderField, out _orderField) || _orderField < 0) {
                         Options.Throw("No valid field index after -o", args);
                     }
                     return j;
                 }),
-                new OptionAction('x', (args, j) => {
+                new OptionAction("x", (args, j) => {
                     _showOnlyReferencedOnBottom = true;
                     return j;
                 }),
-                new OptionAction('y', (args, j) => {
+                new OptionAction("y", (args, j) => {
                     _showOnlyReferencingOnLeft = true;
                     return j;
                 }));

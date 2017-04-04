@@ -56,7 +56,7 @@ namespace NDepCheck.Rendering {
         public void Render(IEnumerable<IEdge> dependencies, string argsAsString, [CanBeNull] string baseFileName) {
             int stringLengthForIllegalEdges = -1;
             Options.Parse(argsAsString,
-                new OptionAction('e', (args, j) => {
+                new OptionAction("e", (args, j) => {
                     if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out stringLengthForIllegalEdges)) {
                         Options.Throw("No valid length after e", args);
                     }
