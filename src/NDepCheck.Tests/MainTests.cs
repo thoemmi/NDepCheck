@@ -158,7 +158,7 @@ NDepCheck:Tests ---> **
         ////    var nodes = new Dictionary<Item, Item>();
         ////    var edges = new Dictionary<FromTo, Dependency>();
 
-        ////    DependencyGrapher.ReduceGraph(new Options { IgnoreCase = _ignoreCase }, rs, deps, nodes, edges);
+        ////    DependencyGrapher.ReduceGraph(new Option { IgnoreCase = _ignoreCase }, rs, deps, nodes, edges);
 
         ////    new HideTransitiveEdges<Dependency>(new[] { "a" }).Run(edges.Values);
 
@@ -200,7 +200,7 @@ NDepCheck:Tests ---> **
         ////    var nodes = new Dictionary<Item, Item>();
         ////    var edges = new Dictionary<DependencyGrapher.FromTo, Dependency>();
 
-        ////    DependencyGrapher.ReduceGraph(new Options { IgnoreCase = _ignoreCase }, rs, deps, nodes, edges);
+        ////    DependencyGrapher.ReduceGraph(new Option { IgnoreCase = _ignoreCase }, rs, deps, nodes, edges);
 
         ////    new HideTransitiveEdges<Dependency>(new[] { "a" }).Run(edges.Values);
 
@@ -503,7 +503,7 @@ NDepCheck:Tests ---> **
                 Assert.AreEqual(0,
                     Program.Main(new[] {
                         TestAssemblyPath, Program.WriteTestDataOption.Opt, ".", typeof(ModulesAndInterfacesRenderer).Name,
-                        "{{ -w 1500 -h 1000 -t TestGOption -i MI }}", d.Filename
+                        $"{{ {GraphicsRenderer.WidthOption} 1500 {GraphicsRenderer.HeightOption} 1000 {GraphicsRenderer.TitleOption} TestGOption {ModulesAndInterfacesRenderer.InterfaceSelectorOption} MI }}", d.Filename
                     }));
             }
         }
@@ -579,7 +579,7 @@ NDepCheck:Tests ---> **
                           ! b:** ---% _b_:
                     }}
                     {Program.TransformPluginOption} . {typeof(ProjectItems).FullName} {{ }}
-                    {Program.WritePluginOption} . {typeof(DipWriter).FullName} {{ -n }} {outFile}");
+                    {Program.WritePluginOption} . {typeof(DipWriter).FullName} {{ {DipWriter.NoExampleInfoOption} }} {outFile}");
             }
 
             Assert.AreEqual(0, Program.Main(new[] { Program.DoScriptOption.Opt, ndFile }));

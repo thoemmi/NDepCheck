@@ -186,124 +186,124 @@ namespace NDepCheck {
                         Debugger.Launch();
                     } else if (ReadPluginOption.Matches(arg)) {
                         // -rp    assembly reader filepattern [- filepattern]
-                        string assembly = Options.ExtractOptionValue(args, ref i);
-                        string reader = Options.ExtractNextValue(args, ref i);
-                        string filePattern = Options.ExtractNextValue(args, ref i);
+                        string assembly = Option.ExtractOptionValue(args, ref i);
+                        string reader = Option.ExtractNextValue(args, ref i);
+                        string filePattern = Option.ExtractNextValue(args, ref i);
                         globalContext.CreateInputOption(args, ref i, filePattern, assembly, reader);
                     } else if (ReadFileOption.Matches(arg)) {
                         // -rf    reader filepattern [- filepattern]
-                        string reader = Options.ExtractOptionValue(args, ref i);
-                        string filePattern = Options.ExtractNextValue(args, ref i);
+                        string reader = Option.ExtractOptionValue(args, ref i);
+                        string filePattern = Option.ExtractNextValue(args, ref i);
                         globalContext.CreateInputOption(args, ref i, filePattern, "", reader);
                     } else if (ReadOption.Matches(arg)) {
                         // -rd    filepattern [- filepattern]
-                        string filePattern = Options.ExtractOptionValue(args, ref i);
+                        string filePattern = Option.ExtractOptionValue(args, ref i);
                         globalContext.CreateInputOption(args, ref i, filePattern, "",
                             IsDllOrExeFile(filePattern) ? typeof(DotNetAssemblyDependencyReaderFactory).FullName :
                             IsDipFile(filePattern) ? typeof(DipReaderFactory).FullName : null);
                     } else if (ReadPluginHelpOption.Matches(arg)) {
                         // -ra?    assembly
-                        string assembly = Options.ExtractOptionValue(args, ref i);
+                        string assembly = Option.ExtractOptionValue(args, ref i);
                         globalContext.ShowAllPluginsAndTheirHelp<IReaderFactory>(assembly);
                     } else if (ReadHelpOption.Matches(arg)) {
                         // -rf?
                         globalContext.ShowAllPluginsAndTheirHelp<IReaderFactory>("");
                     } else if (ReadPluginDetailedHelpOption.Matches(arg)) {
                         // -ra!    assembly reader
-                        string assembly = Options.ExtractOptionValue(args, ref i);
-                        string reader = Options.ExtractNextValue(args, ref i);
+                        string assembly = Option.ExtractOptionValue(args, ref i);
+                        string reader = Option.ExtractNextValue(args, ref i);
                         globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, reader);
                     } else if (ReadDetailedHelpOption.Matches(arg)) {
                         // -rf!    reader
-                        string reader = Options.ExtractOptionValue(args, ref i);
+                        string reader = Option.ExtractOptionValue(args, ref i);
                         globalContext.ShowDetailedHelp<IDependencyRenderer>("", reader);
                     } else if (ConfigurePluginOption.Matches(arg)) {
                         // -cp    assembly transformer { options }
-                        string assembly = Options.ExtractOptionValue(args, ref i);
-                        string transformer = Options.ExtractNextValue(args, ref i);
-                        string transformerOptions = Options.ExtractNextValue(args, ref i);
+                        string assembly = Option.ExtractOptionValue(args, ref i);
+                        string transformer = Option.ExtractNextValue(args, ref i);
+                        string transformerOptions = Option.ExtractNextValue(args, ref i);
                         globalContext.ConfigureTransformer(assembly, transformer, transformerOptions);
                     } else if (ConfigureOption.Matches(arg)) {
                         // -cf    transformer  { options }
-                        string transformer = Options.ExtractOptionValue(args, ref i);
-                        string transformerOptions = Options.ExtractNextValue(args, ref i);
+                        string transformer = Option.ExtractOptionValue(args, ref i);
+                        string transformerOptions = Option.ExtractNextValue(args, ref i);
                         globalContext.ConfigureTransformer("", transformer, transformerOptions);
                     } else if (TransformPluginOption.Matches(arg)) {
                         // -tp    assembly transformer [{ options }]
-                        string assembly = Options.ExtractOptionValue(args, ref i);
-                        string transformer = Options.ExtractNextValue(args, ref i);
-                        string transformerOptions = Options.ExtractNextValue(args, ref i);
+                        string assembly = Option.ExtractOptionValue(args, ref i);
+                        string transformer = Option.ExtractNextValue(args, ref i);
+                        string transformerOptions = Option.ExtractNextValue(args, ref i);
                         result = globalContext.Transform(assembly, transformer, transformerOptions);
                     } else if (TransformOption.Matches(arg)) {
                         // -tf    transformer  [{ options }]
-                        string transformer = Options.ExtractOptionValue(args, ref i);
-                        string transformerOptions = Options.ExtractNextValue(args, ref i);
+                        string transformer = Option.ExtractOptionValue(args, ref i);
+                        string transformerOptions = Option.ExtractNextValue(args, ref i);
                         result = globalContext.Transform("", transformer, transformerOptions);
                     } else if (TransformTestDataOption.Matches(arg)) {
                         // -tt    assembly transformer [{ options }]
-                        string assembly = Options.ExtractOptionValue(args, ref i);
-                        string transformer = Options.ExtractNextValue(args, ref i);
-                        string transformerOptions = Options.ExtractNextValue(args, ref i);
+                        string assembly = Option.ExtractOptionValue(args, ref i);
+                        string transformer = Option.ExtractNextValue(args, ref i);
+                        string transformerOptions = Option.ExtractNextValue(args, ref i);
                         globalContext.TransformTestData(assembly, transformer, transformerOptions);
                         globalContext.InputFilesOrTestDataSpecified = true;
                     } else if (TransformPluginHelpOption.Matches(arg)) {
                         // -tp?    assembly
-                        string assembly = Options.ExtractOptionValue(args, ref i);
+                        string assembly = Option.ExtractOptionValue(args, ref i);
                         globalContext.ShowAllPluginsAndTheirHelp<ITransformer>(assembly);
                     } else if (TransformHelpOption.Matches(arg)) {
                         // -tf?
                         globalContext.ShowAllPluginsAndTheirHelp<ITransformer>("");
                     } else if (TransformPluginDetailedHelpOption.Matches(arg)) {
                         // -ta!    assembly transformer
-                        string assembly = Options.ExtractOptionValue(args, ref i);
-                        string transformer = Options.ExtractNextValue(args, ref i);
+                        string assembly = Option.ExtractOptionValue(args, ref i);
+                        string transformer = Option.ExtractNextValue(args, ref i);
                         globalContext.ShowDetailedHelp<ITransformer>(assembly, transformer);
                     } else if (TransformDetailedHelpOption.Matches(arg)) {
                         // -tf!    transformer
-                        string transformer = Options.ExtractOptionValue(args, ref i);
+                        string transformer = Option.ExtractOptionValue(args, ref i);
                         globalContext.ShowDetailedHelp<ITransformer>("", transformer);
                     } else if (WritePluginOption.Matches(arg)) {
                         // -wp    assembly writer [{ options }] filename
-                        string assembly = Options.ExtractOptionValue(args, ref i);
-                        string writer = Options.ExtractNextValue(args, ref i);
-                        string s = Options.ExtractNextValue(args, ref i);
+                        string assembly = Option.ExtractOptionValue(args, ref i);
+                        string writer = Option.ExtractNextValue(args, ref i);
+                        string s = Option.ExtractNextValue(args, ref i);
                         string masterFileName = Write(s, args, ref i,
                             (writerOptions, fileName) => globalContext.RenderToFile(assembly, writer, writerOptions, fileName));
                         writtenMasterFiles?.Add(masterFileName);
                     } else if (WriteFileOption.Matches(arg)) {
                         // -wr    writer  [{ options }] filename
-                        string writer = Options.ExtractOptionValue(args, ref i);
-                        string s = Options.ExtractNextValue(args, ref i);
+                        string writer = Option.ExtractOptionValue(args, ref i);
+                        string s = Option.ExtractNextValue(args, ref i);
                         string masterFileName = Write(s, args, ref i,
                             (writerOptions, fileName) => globalContext.RenderToFile("", writer, writerOptions, fileName));
                         writtenMasterFiles?.Add(masterFileName);
                     } else if (WriteDipOption.Matches(arg)) {
                         // -wd    filename
-                        string fileName = Options.ExtractOptionValue(args, ref i);
+                        string fileName = Option.ExtractOptionValue(args, ref i);
                         string masterFileName = globalContext.RenderToFile("", typeof(DipWriter).Name, "", fileName);
                         writtenMasterFiles?.Add(masterFileName);
                     } else if (WriteTestDataOption.Matches(arg)) {
                         // -wt    assembly writer [{ options }] filename
-                        string assembly = Options.ExtractOptionValue(args, ref i);
-                        string writer = Options.ExtractNextValue(args, ref i);
-                        string s = Options.ExtractNextValue(args, ref i);
+                        string assembly = Option.ExtractOptionValue(args, ref i);
+                        string writer = Option.ExtractNextValue(args, ref i);
+                        string s = Option.ExtractNextValue(args, ref i);
                         Write(s, args, ref i,
                             (writerOptions, fileName) => globalContext.RenderTestData(assembly, writer, writerOptions, fileName));
                     } else if (WritePluginHelpOption.Matches(arg)) {
                         // -wp?    assembly
-                        string assembly = Options.ExtractOptionValue(args, ref i);
+                        string assembly = Option.ExtractOptionValue(args, ref i);
                         globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>(assembly);
                     } else if (WriteHelpOption.Matches(arg)) {
                         // -wr?
                         globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>("");
                     } else if (WritePluginDetailedHelpOption.Matches(arg)) {
                         // -wp!    assembly reader
-                        string assembly = Options.ExtractOptionValue(args, ref i);
-                        string writer = Options.ExtractNextValue(args, ref i);
+                        string assembly = Option.ExtractOptionValue(args, ref i);
+                        string writer = Option.ExtractNextValue(args, ref i);
                         globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, writer);
                     } else if (WriteDetailedHelpOption.Matches(arg)) {
                         // -wr!    reader
-                        string writer = Options.ExtractOptionValue(args, ref i);
+                        string writer = Option.ExtractOptionValue(args, ref i);
                         globalContext.ShowDetailedHelp<IDependencyRenderer>("", writer);
                     } else if (DoBreakOption.Matches(arg)) {
                         // -db
@@ -311,7 +311,7 @@ namespace NDepCheck {
                         goto DONE;
                     } else if (DoCommandOption.Matches(arg)) {
                         // -dc    command
-                        string cmd = Options.ExtractOptionValue(args, ref i);
+                        string cmd = Option.ExtractOptionValue(args, ref i);
                         try {
                             if (new Process { StartInfo = new ProcessStartInfo(cmd) }.Start())
                                 Log.WriteInfo(msg: $"Started process '{cmd}'");
@@ -322,14 +322,14 @@ namespace NDepCheck {
                         }
                     } else if (DoScriptOption.Matches(arg)) {
                         // -ds    filename
-                        string fileName = Options.ExtractOptionValue(args, ref i);
+                        string fileName = Option.ExtractOptionValue(args, ref i);
                         result = RunFrom(fileName, globalContext, writtenMasterFiles);
                         // file is also an input file - and if there are no input files in -o, the error will come up there.
                         globalContext.InputFilesOrTestDataSpecified = true;
                     } else if (DoDefineOption.Matches(arg)) {
                         // -dd    name value
-                        string varname = Options.ExtractOptionValue(args, ref i);
-                        string varvalue = Options.ExtractNextValue(args, ref i);
+                        string varname = Option.ExtractOptionValue(args, ref i);
+                        string varvalue = Option.ExtractNextValue(args, ref i);
                         globalContext.SetDefine(varname, varvalue, location: "after -dd option");
 
                         globalContext.GlobalVars[varname] = varvalue;
@@ -343,19 +343,19 @@ namespace NDepCheck {
                         AbstractDotNetAssemblyDependencyReader.Reset();
                         globalContext.Reset();
 
-                        string fileName = Options.ExtractNextValue(args, ref i);
+                        string fileName = Option.ExtractNextValue(args, ref i);
                         if (fileName != null && IsDipFile(fileName)) {
                             globalContext.CreateInputOption(args, ref i, arg, assembly: "",
                                 readerClass: typeof(DipReaderFactory).FullName);
                         }
                     } else if (WatchFilesOption.Matches(arg)) {
                         // -aw    filepattern [- filepattern] script
-                        string positive = Options.ExtractOptionValue(args, ref i);
-                        string s = Options.ExtractNextValue(args, ref i);
+                        string positive = Option.ExtractOptionValue(args, ref i);
+                        string s = Option.ExtractNextValue(args, ref i);
                         string negative, scriptName;
                         if (s == "-") {
-                            negative = Options.ExtractNextValue(args, ref i);
-                            scriptName = Options.ExtractNextValue(args, ref i);
+                            negative = Option.ExtractNextValue(args, ref i);
+                            scriptName = Option.ExtractNextValue(args, ref i);
                         } else {
                             negative = null;
                             scriptName = s;
@@ -363,16 +363,16 @@ namespace NDepCheck {
                         AddFileWatchers(positive, negative, scriptName);
                     } else if (UnwatchFilesOption.Matches(arg)) {
                         // -au    filepattern
-                        string filePattern = Options.ExtractOptionValue(args, ref i);
+                        string filePattern = Option.ExtractOptionValue(args, ref i);
                         RemoveFileWatchers(filePattern);
                     } else if (UnwatchTriggersOption.Matches(arg)) {
                         // -an    script
-                        string scriptName = Options.ExtractOptionValue(args, ref i);
+                        string scriptName = Option.ExtractOptionValue(args, ref i);
                         RemoveFileWatchersOn(scriptName);
                     } else if (HttpRunOption.Matches(arg)) {
                         // -hr    port directory
-                        string port = Options.ExtractOptionValue(args, ref i);
-                        string fileDirectory = Options.ExtractNextValue(args, ref i);
+                        string port = Option.ExtractOptionValue(args, ref i);
+                        string fileDirectory = Option.ExtractNextValue(args, ref i);
                         StartWebServer(program: this, port: port, fileDirectory: fileDirectory);
                         ranAsWebServer = true;
                     } else if (HttpRunOption.Matches(arg)) {
@@ -383,7 +383,7 @@ namespace NDepCheck {
                         globalContext.IgnoreCase = true;
                     } else if (InteractiveOption.Matches(arg)) {
                         // -ia    [filename]
-                        _interactiveLogFile = Options.ExtractOptionValue(args, ref i);
+                        _interactiveLogFile = Option.ExtractOptionValue(args, ref i);
                     } else if (InteractiveStopOption.Matches(arg)) {
                         // -is
                         _interactiveLogFile = null;
@@ -438,7 +438,7 @@ namespace NDepCheck {
             string writerOptions, fileName;
             if (s.StartsWith("{")) {
                 writerOptions = s;
-                fileName = Options.ExtractNextValue(args, ref i);
+                fileName = Option.ExtractNextValue(args, ref i);
             } else {
                 writerOptions = "";
                 fileName = s;
@@ -519,8 +519,8 @@ Typical uses:
 
 All messages of NDepCheck are written to Console.Out.
 
-Options overview:
-    Options can be written with leading - or /
+Option overview:
+    Option can be written with leading - or /
 
 " + Option.CreateHelp(_allOptions, detailed: detailed));
 
@@ -788,9 +788,9 @@ using the wildcardpath syntax):
 
         private void AddFileWatchers([NotNull] string positiveFilePattern, [CanBeNull] string negativeFilePattern,
             [NotNull] string scriptName) {
-            IEnumerable<string> files = Options.ExpandFilename(positiveFilePattern).Select(f => Path.GetFullPath(f));
+            IEnumerable<string> files = Option.ExpandFilename(positiveFilePattern).Select(f => Path.GetFullPath(f));
             if (negativeFilePattern != null) {
-                files = files.Except(Options.ExpandFilename(negativeFilePattern)).Select(f => Path.GetFullPath(f));
+                files = files.Except(Option.ExpandFilename(negativeFilePattern)).Select(f => Path.GetFullPath(f));
             }
             string fullScriptName = Path.GetFullPath(scriptName);
             FileWatcher fw = _fileWatchers.FirstOrDefault(f => f.FullScriptName == fullScriptName);
@@ -803,7 +803,7 @@ using the wildcardpath syntax):
         }
 
         private void RemoveFileWatchers([NotNull] string filePattern) {
-            IEnumerable<string> files = Options.ExpandFilename(filePattern).Select(f => Path.GetFullPath(f));
+            IEnumerable<string> files = Option.ExpandFilename(filePattern).Select(f => Path.GetFullPath(f));
             foreach (var fw in _fileWatchers) {
                 foreach (var f in files) {
                     fw.RemoveFile(f);

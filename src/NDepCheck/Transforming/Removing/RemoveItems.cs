@@ -35,9 +35,9 @@ Transformer options: [-m typename pattern] [-s] [-d] [-r]
             bool ignoreSelfCyclesInSourcesAndSinks = false;
             bool recursive = false;
 
-            Options.Parse(transformOptions, new OptionAction("m", (args, j) => {
-                string itemTypeName = Options.ExtractOptionValue(args, ref j);
-                string itemPattern = Options.ExtractNextValue(args, ref j);
+            Option.Parse(transformOptions, new OptionAction("m", (args, j) => {
+                string itemTypeName = Option.ExtractOptionValue(args, ref j);
+                string itemPattern = Option.ExtractNextValue(args, ref j);
                 ItemType itemType = ItemType.Find(itemTypeName);
                 if (itemType == null) {
                     throw new ArgumentException($"Cannot find type {itemTypeName}");

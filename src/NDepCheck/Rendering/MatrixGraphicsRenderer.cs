@@ -29,7 +29,6 @@ namespace NDepCheck.Rendering {
         private static readonly Font _lineFont = new Font(FontFamily.GenericSansSerif, 3);
 
         private Regex _bottomRegex = null;
-        private string _title = typeof(ModulesAndInterfacesRenderer).Name;
         private int _orderField = 0;
         private bool _showOnlyReferencedOnBottom = false;
         private bool _showOnlyReferencingOnLeft = false;
@@ -103,7 +102,7 @@ namespace NDepCheck.Rendering {
                 string name = GetName(iy);
                 var yPos = new VariableVector(name + ".POS", Solver);
                 IBox box = Box(yPos, boxAnchoring: BoxAnchoring.LowerRight, text: name, borderWidth: 3, boxColor: Color.Coral,
-                    boxTextPlacement: BoxTextPlacement.Left, textFont: _boxFont, drawingOrder: 1, fixingOrder: 4, 
+                    boxTextPlacement: BoxTextPlacement.Left, textFont: _boxFont, drawingOrder: 1, fixingOrder: 4,
                     htmlRef: GetYHtmlRef(iy) ?? GetXHtmlRef(iy));
                 yPos.SetX(0).SetY(y);
 
@@ -171,48 +170,46 @@ namespace NDepCheck.Rendering {
             return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
+        public static readonly Option BottomRegexOption = new Option("pb", "place-on-bottom", "&", "Regex to select elements to place on bottom; default: all items on both axes");
+        public static readonly Option OrderFieldOption = new Option("of", "order-field", "#", "Field on which items are sorted, counted from 1 up. Items with equal order are sorted by edge count. Default: internal order field, then edge count.");
+        public static readonly Option NoEmptiesOnBottomOption = new Option("nb", "no-empties-on-bottom", "", "Do not show non-referenced items on bottom; default: show all");
+        public static readonly Option NoEmptiesOnLeftOption = new Option("nl", "no-empties-on-left", "", "Do not show non-referenced items on left side; default: show all");
+
+        protected static readonly Option[] _allOptions = _allGraphicsRendererOptions
+                        .Concat(new[] { BottomRegexOption, OrderFieldOption, NoEmptiesOnBottomOption, NoEmptiesOnLeftOption }).ToArray();
+
         public override void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName) {
             DoRender(dependencies, argsAsString, baseFileName,
-                new OptionAction("b", (args, j) => {
-                    _bottomRegex = new Regex(Options.ExtractOptionValue(args, ref j));
+                BottomRegexOption.Action((args, j) => {
+                    _bottomRegex = new Regex(Option.ExtractOptionValue(args, ref j));
                     return j;
                 }),
-                new OptionAction("t", (args, j) => {
-                    _title = Options.ExtractOptionValue(args, ref j);
-                    return j;
-                }),
-                new OptionAction("o", (args, j) => {
-                    string orderField = Options.ExtractOptionValue(args, ref j);
+                OrderFieldOption.Action((args, j) => {
+                    string orderField = Option.ExtractOptionValue(args, ref j);
                     if (!int.TryParse(orderField, out _orderField) || _orderField < 0) {
-                        Options.Throw("No valid field index after -o", args);
+                        Option.Throw("No valid field index after -o", args);
                     }
                     return j;
                 }),
-                new OptionAction("x", (args, j) => {
+                NoEmptiesOnBottomOption.Action((args, j) => {
                     _showOnlyReferencedOnBottom = true;
                     return j;
                 }),
-                new OptionAction("y", (args, j) => {
+                NoEmptiesOnLeftOption.Action((args, j) => {
                     _showOnlyReferencingOnLeft = true;
                     return j;
                 }));
         }
 
         public override string GetHelp(bool detailedHelp) {
-            return @"  A GIF renderer that depicts modules and their interfaces as
+            return $@"  A GIF renderer that depicts modules and their interfaces as
   vertical bars that are connected by horizontal arrows.
   Item format: Name[:XHtmlRef[:YHtmlRef]]
   XHtmlRef and YHtmlRef, if present, are placed behind the boxes as links to click.
 
-  Options: [-b &] [-t &] [-o #] [-x] [-y] " + GetHelpUsage() + @"
-    -b &          regexp for items on bottom; default: all items on both axes
-    -t &          title text shown in diagram; default: 'ModulesAndInterfacesRenderer'
-    -o #          field on which items are sorted, counted from 1 up.
-                  Items with equal order are sorted by edge count.
-                  Default: internal order field, then edge count.
-    -x            do not show non-referenced items on bottom; default: show all
-    -y            do not show non-referencing items on left side; default: show all
-" + GetHelpExplanations();
+  {GetHelpExplanations()}
+
+{Option.CreateHelp(_allOptions, true)}";
         }
     }
 }

@@ -6,18 +6,20 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Rendering {
     public abstract class AbstractMatrixRenderer {
+        public static readonly Option MaxNameWidthOption = new Option("mw", "max-name-width", "#", "Maximal width of an item name");
+        public static readonly Option WriteBadCountOption = new Option("wb", "write-bad-count", "", "Also output count of bad dependencies");
+
+        private static readonly Option[] _allOptions = { MaxNameWidthOption, WriteBadCountOption };
+
         public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
             SomeRendererTestData.CreateSomeTestItems(out items, out dependencies);
         }
 
         public string GetHelp(bool detailedHelp) {
             return
-@"  Write a textual matrix representation of dependencies.
+$@"  Write a textual matrix representation of dependencies.
 
-  Options: [-l #] [-n] -o fileName | fileName
-    -l #       maximal width of an item name
-    -n         also output count of bad dependencies
-    fileName   output fileName";
+{Option.CreateHelp(_allOptions, true)}";
         }
     }
 
@@ -25,9 +27,9 @@ namespace NDepCheck.Rendering {
         protected static void ParseOptions(string argsAsString, out int? labelWidthOrNull, out bool withNotOkCt) {
             int lw = -1;
             bool wct = false;
-            Options.Parse(argsAsString, new OptionAction("l", (args, j) => {
-                if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out lw)) {
-                    Options.Throw("No valid length after l", args);
+            Option.Parse(argsAsString, new OptionAction("l", (args, j) => {
+                if (!int.TryParse(Option.ExtractOptionValue(args, ref j), out lw)) {
+                    Option.Throw("No valid length after l", args);
                 }
                 return j;
             }), new OptionAction("n", (args, j) => {

@@ -6,6 +6,26 @@ using System.Text;
 using JetBrains.Annotations;
 
 namespace NDepCheck {
+    public class OptionAction {
+        private readonly string _oldOption;
+        private readonly Option _newOption;
+        public readonly Func<string[], int, int> Action;
+
+        public OptionAction(Option option, Func<string[], int, int> action) {
+            _newOption = option;
+            Action = action;
+        }
+
+        public OptionAction(string option, Func<string[], int, int> action) {
+            _oldOption = option;
+            Action = action;
+        }
+
+        public bool ArgMatches(string arg) {
+            return _oldOption == null ? _newOption.Matches(arg) : Option.ArgMatches(arg, _oldOption);
+        }
+    }
+
     public class Option {
         public readonly string ShortName;
         public readonly string Name;
@@ -28,7 +48,7 @@ namespace NDepCheck {
         }
 
         public bool Matches(string arg) {
-            return Options.ArgMatches(arg, ShortName, Name) || Options.ArgMatches(arg, MoreNames);
+            return ArgMatches(arg, ShortName, Name) || ArgMatches(arg, MoreNames);
         }
 
         public static string CreateHelp(Option[] options, bool detailed) {
@@ -39,23 +59,11 @@ namespace NDepCheck {
             }
             return sb.ToString();
         }
-    }
 
-    public class OptionAction {
-        public readonly string Option;
-        public readonly Func<string[], int, int> Action;
-
-        public OptionAction(Option option, Func<string[], int, int> action) : this(option.Name, action) {
-            // empty
+        public OptionAction Action(Func<string[], int, int> action) {
+            return new OptionAction(this, action);
         }
 
-        public OptionAction(string option, Func<string[], int, int> action) {
-            Option = option;
-            Action = action;
-        }
-    }
-
-    public static class Options {
         public static bool ArgMatches(string arg, params string[] option) {
             return option.Any(o => {
                 string lower = arg.ToLowerInvariant();
@@ -163,7 +171,7 @@ namespace NDepCheck {
 
             for (int i = 0; i < args.Length; i++) {
                 string arg = args[i];
-                var optionAction = optionActions.FirstOrDefault(oa => ArgMatches(arg, oa.Option));
+                var optionAction = optionActions.FirstOrDefault(oa => oa.ArgMatches(arg));
                 if (optionAction != null) {
                     i = optionAction.Action(args, i);
                     if (i == int.MaxValue) {

@@ -54,7 +54,7 @@ namespace NDepCheck.Rendering {
 
         private static bool ParseArgs(string argsAsString) {
             bool xmlOutput = false;
-            Options.Parse(argsAsString, new OptionAction("x", (args, j) => {
+            Option.Parse(argsAsString, new OptionAction("x", (args, j) => {
                 xmlOutput = true;
                 return j;
             }));
@@ -96,7 +96,7 @@ namespace NDepCheck.Rendering {
 @"  Writes dependency rule violations to file in text or xml format.
   This is the output for the primary reason of NDepCheck: Checking rules.
 
-  Options: [-x]
+  Option: [-x]
     -x            write XML output (not possible with fileName '-', i.e. standard output)";
         }
 

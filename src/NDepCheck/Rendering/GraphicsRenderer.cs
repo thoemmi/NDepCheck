@@ -71,10 +71,25 @@ namespace NDepCheck.Rendering {
         Left, Center, Right, LeftInclined, CenterInclined, RightInclined
     }
 
-    public abstract class GraphicsRenderer<TItem, TDependency> : IRenderer<TDependency>
+    public abstract class GraphicsRenderer {
+        public static readonly Option WidthOption = new Option("gw", "gif-width", "#", "width of graphics in pixels; default: computed from height, or via minimal text size");
+        public static readonly Option HeightOption = new Option("gh", "gif-height", "#", "height of graphics in pixels; default: computed from width, or via minimal text size");
+        public static readonly Option MinTextHeightOption = new Option("mh", "minimal-text-height", "#", "minimal textheight in points (if -gif-width and -gif-height are not provided); default: 15");
+        public static readonly Option TitleOption = new Option("st", "set-title", "&", "Title text shown in diagram; default: 'ModulesAndInterfacesRenderer'");
+
+        protected static readonly Option[] _allGraphicsRendererOptions = { WidthOption, HeightOption, MinTextHeightOption, TitleOption };
+        
+        protected string GetHelpExplanations() =>
+@"  The fileName is used as a base name for writing a .gif file as well as an .html file, which contains
+    the link and popup information.
+";
+
+
+    }
+
+    public abstract class GraphicsRenderer<TItem, TDependency> : GraphicsRenderer, IRenderer<TDependency>
             where TItem : class, INode
             where TDependency : class, IEdge {
-
         private class GraphicsRendererSolver : SimpleConstraintSolver {
             private readonly GraphicsRenderer<TItem, TDependency> _renderer;
 
@@ -97,6 +112,8 @@ namespace NDepCheck.Rendering {
         }
 
         protected readonly SimpleConstraintSolver _solver;
+
+        protected string _title = typeof(ModulesAndInterfacesRenderer).Name;
 
         private static readonly bool DEBUG = false;
 
@@ -690,7 +707,6 @@ namespace NDepCheck.Rendering {
                 const int d = 4;
 
                 htmlForClicks.AppendLine(
-                    $@"<!-- -->" +
                     $@"<area shape=""poly"" coords=""{tx},{ty - d},{tx},{ty + d},{hx},{hy + d},{hx},{hy - d}"" " +
                     $@"href=""default.htm"" onClick=""alert('{edgeInfo}');return false""/>");
             }
@@ -863,19 +879,22 @@ namespace NDepCheck.Rendering {
             int height = -1;
             int minTextHeight = 15;
             if (baseFileName == null || GlobalContext.IsConsoleOutFileName(baseFileName)) {
-                Options.Throw("Cannot write graphics file to Console.Out", argsAsString);
+                Option.Throw("Cannot write graphics file to Console.Out", argsAsString);
             }
 
-            Options.Parse(argsAsString,
+            Option.Parse(argsAsString,
                 new[] {
-                new OptionAction("w", (args, j) => {
-                    width = Options.ExtractIntOptionValue(args, ref j, "No valid width after -w");
+                    WidthOption.Action((args, j) => {
+                    width = Option.ExtractIntOptionValue(args, ref j, "No valid width");
                     return j;
-                }), new OptionAction("h", (args, j) => {
-                    height = Options.ExtractIntOptionValue(args, ref j, "No valid height after -h");
+                }), HeightOption.Action((args, j) => {
+                    height = Option.ExtractIntOptionValue(args, ref j, "No valid height");
                     return j;
-                }), new OptionAction("f", (args, j) => {
-                    minTextHeight = Options.ExtractIntOptionValue(args, ref j, "No valid text height after -f");
+                }), MinTextHeightOption.Action((args, j) => {
+                    minTextHeight = Option.ExtractIntOptionValue(args, ref j, "No valid text height");
+                    return j;
+                }), TitleOption.Action((args, j) => {
+                    _title = Option.ExtractOptionValue(args, ref j);
                     return j;
                 })}.Concat(additionalOptions).ToArray());
 
@@ -886,7 +905,6 @@ namespace NDepCheck.Rendering {
             string gifFileName = GetGifFileName(baseFileName);
             try {
                 Log.WriteInfo("Writing " + gifFileName);
-                // ReSharper disable once AssignNullToNotNullAttribute -- baseFileName != null, thus gifFilename != null
                 bitMap.Save(gifFileName, ImageFormat.Gif);
             } catch (Exception ex) {
                 Log.WriteError("Cannot save GIF image to file " + gifFileName + ". Make sure the file can be written. Internal message: " + ex.Message);
@@ -894,7 +912,6 @@ namespace NDepCheck.Rendering {
             }
 
             string htmlFileName = GetHtmlFileName(baseFileName);
-            // ReSharper disable once AssignNullToNotNullAttribute -- baseFileName != null, thus htmlFileName != null
             using (var tw = new StreamWriter(htmlFileName)) {
                 Log.WriteInfo("Writing " + htmlFileName);
                 tw.WriteLine($@"<!DOCTYPE html>
@@ -936,15 +953,6 @@ namespace NDepCheck.Rendering {
         public abstract void CreateSomeTestItems(out IEnumerable<TItem> items, out IEnumerable<TDependency> dependencies);
 
         public abstract string GetHelp(bool detailedHelp);
-
-        protected string GetHelpUsage() => "  [-w #] [-h #] [-f #]";
-        protected string GetHelpExplanations() =>
-@"    -w #          width of graphics in pixels; default: computed from height, or via minimal text size
-    -h #          height of graphics in pixels; default: computed from width, or via minimal text size
-    -f #          minimal textheight in points (if -w and -h are not provided); default: 15
-    The fileName is used as a base name for writing a .gif file as well as an .html file, which contains
-    the link and popup information.
-";
 
         public string GetMasterFileName(string argsAsString, string baseFileName) {
             return GetHtmlFileName(baseFileName);

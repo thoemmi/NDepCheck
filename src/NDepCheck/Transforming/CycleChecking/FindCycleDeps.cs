@@ -52,9 +52,9 @@ Transformer options: [-m typename pattern] [-i] [-n #] [-q] [-u &]
             bool keepOnlyCycleEdges = false;
             string usageToAdd = null;
             int maxCycleLength = int.MaxValue;
-            Options.Parse(transformOptions, new OptionAction("m", (args, j) => {
-                string itemTypeName = Options.ExtractOptionValue(args, ref j);
-                string itemPattern = Options.ExtractNextValue(args, ref j);
+            Option.Parse(transformOptions, new OptionAction("m", (args, j) => {
+                string itemTypeName = Option.ExtractOptionValue(args, ref j);
+                string itemPattern = Option.ExtractNextValue(args, ref j);
                 ItemType itemType = ItemType.Find(itemTypeName);
                 if (itemType == null) {
                     throw new ArgumentException($"Cannot find type {itemTypeName}");
@@ -68,13 +68,13 @@ Transformer options: [-m typename pattern] [-i] [-n #] [-q] [-u &]
                 keepOnlyCycleEdges = true;
                 return j;
             }), new OptionAction("n", (args, j) => {
-                maxCycleLength = Options.ExtractIntOptionValue(args, ref j, "No valid cycle length after -n");
+                maxCycleLength = Option.ExtractIntOptionValue(args, ref j, "No valid cycle length after -n");
                 return j;
             }), new OptionAction("q", (args, j) => {
                 setQuestionableCount = true;
                 return j;
             }), new OptionAction("u", (args, j) => {
-                usageToAdd = Options.ExtractOptionValue(args, ref j);
+                usageToAdd = Option.ExtractOptionValue(args, ref j);
                 return j;
             }));
 

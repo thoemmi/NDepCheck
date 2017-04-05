@@ -7,6 +7,10 @@ namespace NDepCheck.Rendering {
     /// Writer for dependencies ("Edges") in standard "DIP" format
     /// </summary>
     public class DipWriter : IDependencyRenderer {
+        public static readonly Option NoExampleInfoOption = new Option("ne", "no-example", "", "Does not write example info");
+
+        private static readonly Option[] _allOptions = { NoExampleInfoOption };
+
         public static void Write(IEnumerable<IEdge> edges, TextWriter sw, bool withExampleInfo) {
             var writtenTypes = new HashSet<ItemType>();
 
@@ -29,21 +33,14 @@ namespace NDepCheck.Rendering {
         }
 
         public void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName) {
-            //int stringLengthForIllegalEdges = -1;
-            bool withExampleInfo = false;
-            Options.Parse(argsAsString, 
-                //new OptionAction("e", (args, j) => {
-                //    if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out stringLengthForIllegalEdges)) {
-                //        Options.Throw("No valid length after e", args);
-                //    }
-                //    return j;
-                //}), 
-                new OptionAction("n", (args, j) => {
-                    withExampleInfo = true;
+            bool noExampleInfo = false;
+            Option.Parse(argsAsString,
+                NoExampleInfoOption.Action((args, j) => {
+                    noExampleInfo = true;
                     return j;
                 }));
             using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(argsAsString, baseFileName))) { 
-                Write(dependencies, sw.Writer, withExampleInfo);
+                Write(dependencies, sw.Writer, !noExampleInfo);
             }
         }
 
@@ -75,13 +72,12 @@ namespace NDepCheck.Rendering {
         }
 
         public string GetHelp(bool detailedHelp) {
-            return 
-@"  Writes dependencies to .dip files, which can be read in by 
+            return
+$@"  Writes dependencies to .dip files, which can be read in by 
   NDepCheck's DipReader. This is very helpful for building pipelines 
   that process dependencies for different purposes.
 
-  Options: [-n]
-    -n       ... each edge contains an example of a dependency; default: do not write example";
+{Option.CreateHelp(_allOptions, true)}";
         }
 
         public string GetMasterFileName(string argsAsString, string baseFileName) {

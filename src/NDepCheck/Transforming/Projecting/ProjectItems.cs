@@ -32,9 +32,9 @@ Transformer options: [-b dipfile] [-k]
         #region Configure
 
         public override void Configure(GlobalContext globalContext, string configureOptions) {
-            Options.Parse(configureOptions,
+            Option.Parse(configureOptions,
                 new OptionAction("f", (args, j) => {
-                    string fullSourceName = Path.GetFullPath(Options.ExtractOptionValue(args, ref j));
+                    string fullSourceName = Path.GetFullPath(Option.ExtractOptionValue(args, ref j));
                     _orderedProjections = GetOrReadChildConfiguration(globalContext,
                         () => new StreamReader(fullSourceName), fullSourceName, globalContext.IgnoreCase, "????");
                     return j;
@@ -143,8 +143,8 @@ Transformer options: [-b dipfile] [-k]
             if (_orderedProjections != null) {
                 string fullDipName = null;
                 bool keepOnlyProjected = false;
-                Options.Parse(transformOptions, new OptionAction("b", (args, j) => {
-                    fullDipName = Path.GetFullPath(Options.ExtractOptionValue(args, ref j));
+                Option.Parse(transformOptions, new OptionAction("b", (args, j) => {
+                    fullDipName = Path.GetFullPath(Option.ExtractOptionValue(args, ref j));
                     return j;
                 }), new OptionAction("k", (args, j) => {
                     keepOnlyProjected = true;

@@ -7,13 +7,15 @@ using NDepCheck.ConstraintSolving;
 
 namespace NDepCheck.Rendering {
     public class ModulesAndInterfacesRenderer : GraphicsDependencyRenderer {
+        public static readonly Option InterfaceSelectorOption = new Option("si", "select-interface", "&", "Regexp for interface marker, i.e., items that are drawn as vertical bars");
+        public static readonly Option OrderFieldOption = new Option("of", "order-field", "#", "Field on which items are sorted, counted from 1 up. Items with equal order are sorted by edge count. Default: internal order field, then edge count.");
+
         private static readonly Font _boxFont = new Font(FontFamily.GenericSansSerif, 10);
         private static readonly Font _interfaceFont = new Font(FontFamily.GenericSansSerif, 7);
         private static readonly Font _lineFont = new Font(FontFamily.GenericSansSerif, 5);
 
         private int _orderField = -1;
-        private Regex _interfaceMarker = new Regex("^I");
-        private string _title = typeof(ModulesAndInterfacesRenderer).Name;
+        private Regex _interfaceSelector = new Regex("^I");
 
         private static string GetName(Item i) {
             return i.Values[0];
@@ -146,7 +148,7 @@ namespace NDepCheck.Rendering {
                 NumericVariable interfacePos = Solver.CreateConstant("", 18);
 
                 foreach (var mi in items.Where(mi => IsMI(mi) && GetModule(mi) == GetModule(i)).OrderBy(GetOrder)) {
-                    VariableVector miPos = new VariableVector(name + _interfaceMarker, Solver).SetX(mainBox.CenterLeft.X + interfacePos);
+                    VariableVector miPos = new VariableVector(name + _interfaceSelector, Solver).SetX(mainBox.CenterLeft.X + interfacePos);
 
                     var miBox = Box(miPos, text: GetName(mi), boxAnchoring: BoxAnchoring.UpperLeft,
                         boxTextPlacement: BoxTextPlacement.LeftUp, borderWidth: 1, boxColor: Color.LemonChiffon,
@@ -212,7 +214,7 @@ namespace NDepCheck.Rendering {
         }
 
         private bool IsMI(Item mi) {
-            return _interfaceMarker.IsMatch(GetName(mi));
+            return _interfaceSelector.IsMatch(GetName(mi));
         }
 
         public override void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
@@ -250,18 +252,16 @@ namespace NDepCheck.Rendering {
 
         public override void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName) {
             DoRender(dependencies, argsAsString, baseFileName,
-                new OptionAction("i", (args, j) => {
-                    _interfaceMarker = new Regex(Options.ExtractOptionValue(args, ref j));
+                InterfaceSelectorOption.Action((args, j) => {
+                    _interfaceSelector = new Regex(Option.ExtractOptionValue(args, ref j));
                     return j;
                 }),
-                new OptionAction("o", (args, j) => {
-                    if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out _orderField) || _orderField < 0) {
-                        Options.Throw("No valid width after -o", args);
-                    }
+                OrderFieldOption.Action((args, j) => {
+                    _orderField = Option.ExtractIntOptionValue(args, ref j, "No valid order");
                     return j;
                 }),
                 new OptionAction("t", (args, j) => {
-                    _title = Options.ExtractOptionValue(args, ref j);
+                    _title = Option.ExtractOptionValue(args, ref j);
                     return j;
                 }));
         }
@@ -270,12 +270,9 @@ namespace NDepCheck.Rendering {
             return @"  A GIF renderer that depicts modules and their interfaces as
   vertical bars that are connected by horizontal arrows.
 
-  Options: [-i &] [-t &] " + GetHelpUsage() + @"
-    -i &          regexp for interface marker, i.e., items that are
-                  drawn as vertical bars
-    -t &          title text shown in diagram
-    -o #          order field in values; default: take internal order field
-" + GetHelpExplanations();
+  {GetHelpExplanations()}
+
+{Option.CreateHelp(_allOptions, true)}";
         }
     }
 }

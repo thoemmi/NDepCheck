@@ -32,7 +32,11 @@ namespace NDepCheck.Rendering {
     }
 
     public class GenericDotRenderer : IRenderer<IEdge> {
-        private void Render(/*IEnumerable<INode> nodes, */IEnumerable<IEdge> edges, [NotNull] TextWriter output, int? stringLengthForIllegalEdges) {
+        public static readonly Option MaxExampleLengthOption = new Option("ml", "max-example-length", "#", "Maximal length of example string; default: full example");
+
+        private static readonly Option[] _allOptions = { MaxExampleLengthOption };
+
+        private void Render(/*IEnumerable<INode> nodes, */IEnumerable<IEdge> edges, [NotNull] TextWriter output, int? maxExampleLength) {
             IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdges(edges);
 
             output.WriteLine("digraph D {");
@@ -46,7 +50,7 @@ namespace NDepCheck.Rendering {
 
             foreach (var n in nodesAndEdges.Keys.OrderBy(n => n.Name)) {
                 foreach (var e in nodesAndEdges[n].Where(e => e.UsingNode.IsInner || e.UsedNode.IsInner)) {
-                    output.WriteLine(e.GetDotRepresentation(stringLengthForIllegalEdges));
+                    output.WriteLine(e.GetDotRepresentation(maxExampleLength));
                 }
             }
 
@@ -54,16 +58,15 @@ namespace NDepCheck.Rendering {
         }
 
         public void Render(IEnumerable<IEdge> dependencies, string argsAsString, [CanBeNull] string baseFileName) {
-            int stringLengthForIllegalEdges = -1;
-            Options.Parse(argsAsString,
-                new OptionAction("e", (args, j) => {
-                    if (!int.TryParse(Options.ExtractOptionValue(args, ref j), out stringLengthForIllegalEdges)) {
-                        Options.Throw("No valid length after e", args);
-                    }
+            int? maxExampleLength = null;
+            Option.Parse(argsAsString,
+                MaxExampleLengthOption.Action((args, j) => {
+                    maxExampleLength = Option.ExtractIntOptionValue(args, ref j,
+                        "No valid length after " + MaxExampleLengthOption.Name);
                     return j;
                 }));
             using (TextWriter sw = new StreamWriter(GetDotFileName(baseFileName))) {
-                Render(dependencies, sw, stringLengthForIllegalEdges);
+                Render(dependencies, sw, maxExampleLength);
             }
         }
 
@@ -79,14 +82,12 @@ namespace NDepCheck.Rendering {
 
         public string GetHelp() {
             return
-@"  Writes dependencies to file in .dot format (graphviz; see http://graphviz.org/).
+$@"  Writes dependencies to file in .dot format (graphviz; see http://graphviz.org/).
   This is helpful for smaller dependency graphs without any programming.
   For larger graphs, it is better to use or define a renderer that creates a
   specific structure, e.g., a ModulesAndInterfacesRenderer.
 
-  Options: [-e #] -o fileName | fileName
-    -e #          cutoff length of text for wrong dependencies; default: no cutoff
-    fileName      output fileName in .dot (graphviz) format";
+{Option.CreateHelp(_allOptions, true)}";
         }
 
         public string GetMasterFileName(string argsAsString, string baseFileName) {

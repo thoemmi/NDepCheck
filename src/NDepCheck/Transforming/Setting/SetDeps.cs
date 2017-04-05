@@ -37,9 +37,9 @@ Transformer options: [-m &] [-q] [-b] [-u &]
             string usage = null;
             bool addUsage = false;
 
-            Options.Parse(transformOptions,
+            Option.Parse(transformOptions,
                 new OptionAction("m", (args, j) => {
-                    match = new Regex(Options.ExtractOptionValue(args, ref j));
+                    match = new Regex(Option.ExtractOptionValue(args, ref j));
                     return j;
                 }), new OptionAction("q", (args, j) => {
                     resetQuestionable = true;
@@ -48,11 +48,11 @@ Transformer options: [-m &] [-q] [-b] [-u &]
                     resetBad = true;
                     return j;
                 }), new OptionAction("u", (args, j) => {
-                    usage = Options.ExtractOptionValue(args, ref j);
+                    usage = Option.ExtractOptionValue(args, ref j);
                     addUsage = false;
                     return j;
                 }), new OptionAction("a", (args, j) => {
-                    usage = Options.ExtractOptionValue(args, ref j);
+                    usage = Option.ExtractOptionValue(args, ref j);
                     addUsage = true;
                     return j;
                 }));

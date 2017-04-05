@@ -24,9 +24,9 @@ namespace NDepCheck {
         [NotNull]
         public IEnumerable<AbstractDependencyReader> CreateOrGetReaders([NotNull]GlobalContext options, bool needsOnlyItemTails) {
             if (_readers == null) {
-                var fileNames = new List<string>(Options.ExpandFilename(_positive, ".dll", ".exe"));
+                var fileNames = new List<string>(Option.ExpandFilename(_positive, ".dll", ".exe"));
                 if (_negativeOrNull != null) {
-                    var negative = new List<string>(Options.ExpandFilename(_negativeOrNull, ".dll", ".exe")).ConvertAll(Path.GetFullPath);
+                    var negative = new List<string>(Option.ExpandFilename(_negativeOrNull, ".dll", ".exe")).ConvertAll(Path.GetFullPath);
                     fileNames.RemoveAll(f => negative.Contains(Path.GetFullPath(f)));
                 }
                 _readers = fileNames.Select(fileName => _readerFactory.CreateReader(fileName, options, needsOnlyItemTails)).ToArray();

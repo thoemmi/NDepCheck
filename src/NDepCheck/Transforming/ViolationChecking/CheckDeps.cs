@@ -43,17 +43,17 @@ Transformer options: [-q] [-u]
         internal const string MUST_NOT_USE = "---!";
 
         public override void Configure(GlobalContext globalContext, string configureOptions) {
-            Options.Parse(configureOptions,
+            Option.Parse(configureOptions,
                 new OptionAction("e", (args, j) => {
-                    _ruleFileExtension = '.' + Options.ExtractOptionValue(args, ref j).TrimStart('.');
+                    _ruleFileExtension = '.' + Option.ExtractOptionValue(args, ref j).TrimStart('.');
                     return j;
                 }),
                 new OptionAction("s", (args, j) => {
-                    _searchRootsForRuleFiles.Add(new DirectoryInfo(Options.ExtractOptionValue(args, ref j)));
+                    _searchRootsForRuleFiles.Add(new DirectoryInfo(Option.ExtractOptionValue(args, ref j)));
                     return j;
                 }),
                 new OptionAction("f", (args, j) => {
-                    string fullSourceName = Path.GetFullPath(Options.ExtractOptionValue(args, ref j));
+                    string fullSourceName = Path.GetFullPath(Option.ExtractOptionValue(args, ref j));
                     _defaultRuleSet = GetOrReadChildConfiguration(globalContext,
                         () => new StreamReader(fullSourceName), fullSourceName, globalContext.IgnoreCase, "????");
                     return j;
@@ -170,7 +170,7 @@ Transformer options: [-q] [-u]
                 // Transformation only done if there are any dependencies. This is especially useful for the
                 // typical case that there are no inputcontext-less dependencies; and no default set is specified
                 // (which would emit an error message "no dep file for input "" found" or the like).
-                Options.Parse(transformOptions, new OptionAction("q", (args, j) => {
+                Option.Parse(transformOptions, new OptionAction("q", (args, j) => {
                     _showUnusedQuestionableRules = true;
                     return j;
                 }), new OptionAction("u", (args, j) => {
