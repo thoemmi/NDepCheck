@@ -6,7 +6,18 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.ViolationChecking {
     public class CheckDeps : AbstractTransformerWithConfigurationPerInputfile<DependencyRuleSet> {
-        // Configuration options
+        public static readonly Option RuleFileExtensionOption = new Option("re", "rule-extension", "extension", "extension for rule files");
+        public static readonly Option RuleRootDirectoryOption = new Option("rr", "rule-rootdirectory", "directory", "search directory for rule files(searched recursively)", multiple: true);
+        public static readonly Option DefaultRuleFileOption = new Option("rf", "rule-defaultfile", "filename", "default rule file");
+        public static readonly Option DefaultRulesOption = new Option("rd", "rule-defaults", "rules", "default rules");
+
+        private static readonly Option[] _configOptions = { RuleFileExtensionOption, RuleRootDirectoryOption, DefaultRuleFileOption, DefaultRulesOption };
+
+        public static readonly Option ShowUnusedQuestionableRulesOption = new Option("sq", "show-unused-questionable", "", "Show unused questionable rules");
+        public static readonly Option ShowAllUnusedRulesOption = new Option("su", "show-unused-rules", "", "Show all unused rules");
+
+        private static readonly Option[] _transformOptions = { ShowUnusedQuestionableRulesOption, ShowAllUnusedRulesOption };
+
         [NotNull, ItemNotNull]
         private readonly List<DirectoryInfo> _searchRootsForRuleFiles = new List<DirectoryInfo>();
         [NotNull]
@@ -22,17 +33,11 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
         public override string GetHelp(bool detailedHelp) {
             return
-@"  Compute dependency violations against defined rule sets.
+$@"  Compute dependency violations against defined rule sets.
     
-Configuration options: [-e extension] [-s directory] [-f rulefile | -r rules]
-        -e       extension for rule files
-        -s       search directory for rule files (searched recursively)
-        -f       default rule file
-        -r       default rules
+Configuration options: {Option.CreateHelp(_configOptions, detailedHelp)}
 
-Transformer options: [-q] [-u]
-        -q Show unused questionable rules
-        -u Show all unused rules";
+Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
         }
 
         #region Configure
@@ -44,21 +49,21 @@ Transformer options: [-q] [-u]
 
         public override void Configure(GlobalContext globalContext, string configureOptions) {
             Option.Parse(configureOptions,
-                new OptionAction("e", (args, j) => {
+                RuleFileExtensionOption.Action((args, j) => {
                     _ruleFileExtension = '.' + Option.ExtractOptionValue(args, ref j).TrimStart('.');
                     return j;
                 }),
-                new OptionAction("s", (args, j) => {
+                RuleRootDirectoryOption.Action((args, j) => {
                     _searchRootsForRuleFiles.Add(new DirectoryInfo(Option.ExtractOptionValue(args, ref j)));
                     return j;
                 }),
-                new OptionAction("f", (args, j) => {
+                DefaultRuleFileOption.Action((args, j) => {
                     string fullSourceName = Path.GetFullPath(Option.ExtractOptionValue(args, ref j));
                     _defaultRuleSet = GetOrReadChildConfiguration(globalContext,
                         () => new StreamReader(fullSourceName), fullSourceName, globalContext.IgnoreCase, "????");
                     return j;
                 }),
-                new OptionAction("r", (args, j) => {
+                DefaultRulesOption.Action((args, j) => {
                     // A trick is used: The first line, which contains all options, should be ignored; and
                     // also the last } (which is from the surrounding options braces). Thus, 
                     // * we add // to the beginning - this comments out the first line;
@@ -162,7 +167,7 @@ Transformer options: [-q] [-u]
 
         public override bool RunsPerInputContext => true;
 
-        public override int Transform(GlobalContext context, string dependenciesFileName, IEnumerable<Dependency> dependencies, 
+        public override int Transform(GlobalContext context, string dependenciesFileName, IEnumerable<Dependency> dependencies,
             string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
             if (dependencies.Any()) {
                 transformedDependencies.AddRange(dependencies);
@@ -170,10 +175,11 @@ Transformer options: [-q] [-u]
                 // Transformation only done if there are any dependencies. This is especially useful for the
                 // typical case that there are no inputcontext-less dependencies; and no default set is specified
                 // (which would emit an error message "no dep file for input "" found" or the like).
-                Option.Parse(transformOptions, new OptionAction("q", (args, j) => {
+                Option.Parse(transformOptions, 
+                    ShowUnusedQuestionableRulesOption.Action((args, j) => {
                     _showUnusedQuestionableRules = true;
                     return j;
-                }), new OptionAction("u", (args, j) => {
+                }), ShowAllUnusedRulesOption.Action((args, j) => {
                     _showUnusedRules = true;
                     return j;
                 }));

@@ -31,13 +31,15 @@ namespace NDepCheck {
         public readonly string Name;
         public readonly string Usage;
         public readonly string Description;
+        public readonly bool Multiple;
         public readonly string[] MoreNames;
 
-        public Option(string shortname, string name, string usage, string description, string[] moreNames = null) {
+        public Option(string shortname, string name, string usage, string description, bool multiple = false, string[] moreNames = null) {
             ShortName = shortname;
             Name = name;
             Usage = usage;
             Description = description;
+            Multiple = multiple;
             MoreNames = moreNames ?? new string[0];
         }
 
@@ -56,6 +58,9 @@ namespace NDepCheck {
             foreach (var o in options) {
                 sb.AppendLine("-"+ o.Name + " or -" + o.ShortName + "   " + o.Usage);
                 sb.AppendLine("    " + o.Description);
+                if (o.Multiple) {
+                    sb.AppendLine("    Can be specified more than once");
+                }
             }
             return sb.ToString();
         }

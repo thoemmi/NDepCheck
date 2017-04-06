@@ -18,12 +18,12 @@ namespace NDepCheck.Transforming.Projecting {
         public static readonly Option ProjectionFileOption = new Option("pf", "projection-file", "filename", "File containing projections");
         public static readonly Option ProjectionsOption = new Option("pl", "projection-list", "projections", "Inline projections");
 
-        private static readonly Option[] _configOptions = new[] {ProjectionFileOption, ProjectionsOption};
+        private static readonly Option[] _configOptions = { ProjectionFileOption, ProjectionsOption };
 
         public static readonly Option BackProjectionDipFileOption = new Option("bp", "back-projection-input", "filename", "Do back projection of information in dipfile; default: no back projection");
         public static readonly Option BackProjectionTrimOption = new Option("bt", "back-projection-trim", "", "When back projecting, keep only projected edges");
 
-        private static readonly Option[] _transformOptions = new[] { BackProjectionDipFileOption, BackProjectionTrimOption};
+        private static readonly Option[] _transformOptions = { BackProjectionDipFileOption, BackProjectionTrimOption };
 
         private ProjectionSet _orderedProjections;
         private Dictionary<FromTo, Dependency> _dependenciesForBackProjection;
@@ -106,8 +106,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
             return new ProjectionSet(elements);
         }
 
-        private Projection CreateProjection([NotNull] GlobalContext globalContext, [CanBeNull] ItemType sourceItemType, 
-                                   [CanBeNull]ItemType targetItemType, bool isInner, [NotNull] string ruleFileName, 
+        private Projection CreateProjection([NotNull] GlobalContext globalContext, [CanBeNull] ItemType sourceItemType,
+                                   [CanBeNull]ItemType targetItemType, bool isInner, [NotNull] string ruleFileName,
                                    int lineNo, [NotNull] string rule, bool ignoreCase, bool forLeftSide, bool forRightSide) {
             if (sourceItemType == null || targetItemType == null) {
                 Log.WriteError($"Itemtypes not defined - $ line is missing in {ruleFileName}, graph rules are ignored", ruleFileName, lineNo);
@@ -145,7 +145,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
 
         public override bool RunsPerInputContext => true;
 
-        public override int Transform(GlobalContext context, string dependenciesFileName, IEnumerable<Dependency> dependencies, 
+        public override int Transform(GlobalContext context, string dependenciesFileName, IEnumerable<Dependency> dependencies,
                             string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
             if (_orderedProjections != null) {
                 string fullDipName = null;
@@ -201,7 +201,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
             }
         }
 
-        private static FromTo ReduceEdge(IEnumerable<Projection> orderedProjections, Dependency d, 
+        private static FromTo ReduceEdge(IEnumerable<Projection> orderedProjections, Dependency d,
                                        Dictionary<FromTo, Dependency> localCollector) {
             Item usingItem = orderedProjections
                                     //.Skip(GuaranteedNonMatching(d.UsingItem))

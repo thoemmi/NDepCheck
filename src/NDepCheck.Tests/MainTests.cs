@@ -125,7 +125,8 @@ NDepCheck:Tests ---> **
                     TextWriter oldOut = Console.Out;
                     Console.SetOut(tw);
                     string[] args = { Program.LogVerboseOption.Opt,
-                        Program.ConfigureOption.Opt, typeof(CheckDeps).Name, "{", "-f", ruleFile.Filename, "}",
+                        Program.ConfigureOption.Opt, typeof(CheckDeps).Name,
+                        "{", CheckDeps.DefaultRuleFileOption.Opt, ruleFile.Filename, "}",
                         Program.ReadOption.Opt, TestAssemblyPath };
                     result = Program.Main(args);
                     Console.SetOut(oldOut);
@@ -233,7 +234,7 @@ NDepCheck:Tests ---> **
         }
 
         private static string[] CreateCheckDepsArgs(FileProvider d) {
-            return new[] { Program.ConfigureOption.Opt, typeof(CheckDeps).Name, "{", "-f=" + d.Filename, "}", TestAssemblyPath };
+            return new[] { Program.ConfigureOption.Opt, typeof(CheckDeps).Name, "{", CheckDeps.DefaultRuleFileOption + "=" + d.Filename, "}", TestAssemblyPath };
         }
 
         private static string CreateTempDotNetDepFileName() {

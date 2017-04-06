@@ -6,6 +6,7 @@ using System.Text;
 using NDepCheck.TestAssembly.dir1.dir3;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.TestAssemblyÄÖÜß.dir1.dir3;
+using NDepCheck.Transforming.ViolationChecking;
 
 namespace NDepCheck.Tests {
     [TestClass]
@@ -32,22 +33,25 @@ namespace NDepCheck.Tests {
         public void TestDOk() {
             WriteDep1To(@"a\b");
             WriteDep2To(@"a\c");
-            Assert.AreEqual(Program.OK_RESULT, Run($@"{Program.ConfigureOption} CheckDeps {{ -s %%\a }}".Split(' ')));
+            Option rr = CheckDeps.RuleRootDirectoryOption;
+            Assert.AreEqual(Program.OK_RESULT, Run($@"{Program.ConfigureOption} CheckDeps {{ {rr} %%\a }}".Split(' ')));
         }
 
         [TestMethod]
         public void TestDDOk() {
             WriteDep1To(@"a\b\x\y");
             WriteDep2To(@"a\c\x\y\z");
+            Option rr = CheckDeps.RuleRootDirectoryOption;
             Assert.AreEqual(Program.OK_RESULT, Run(
-                $@"{Program.ConfigureOption} CheckDeps {{ -s %%\a\b -s %%\a\x -s %%\a\c }}".Split(' ')));
+                $@"{Program.ConfigureOption} CheckDeps {{ {rr} %%\a\b {rr} %%\a\x {rr} %%\a\c }}".Split(' ')));
         }
 
         [TestMethod]
         public void TestDPlusOk() {
             WriteDep1PlusTo(@"a\b");
             WriteDep2PlusTo(@"a\b\c");
-            Assert.AreEqual(Program.OK_RESULT, Run($@"{Program.ConfigureOption} CheckDeps {{ -s %%\a\b }}".Split(' ')));
+            Option rr = CheckDeps.RuleRootDirectoryOption;
+            Assert.AreEqual(Program.OK_RESULT, Run($@"{Program.ConfigureOption} CheckDeps {{ {rr} %%\a\b }}".Split(' ')));
         }
 
         [TestMethod]
@@ -69,7 +73,8 @@ namespace NDepCheck.Tests {
                   * ---> *
                 ");
             WriteDep2To(@"a\b\c");
-            Assert.AreEqual(Program.OK_RESULT, Run($@"{Program.ConfigureOption} CheckDeps {{ -s %%\a\b }}".Split(' ')));
+            Option rr = CheckDeps.RuleRootDirectoryOption;
+            Assert.AreEqual(Program.OK_RESULT, Run($@"{Program.ConfigureOption} CheckDeps {{ {rr} %%\a\b }}".Split(' ')));
         }
 
         [TestMethod]
@@ -87,7 +92,8 @@ namespace NDepCheck.Tests {
                 @"+ ..\A.dep
                 ");
             WriteDep2To(@"a\b\c");
-            Assert.AreEqual(Program.OK_RESULT, Run($@"{Program.ConfigureOption} CheckDeps {{ -s %%\a\b }}".Split(' ')));
+            Option rr = CheckDeps.RuleRootDirectoryOption;
+            Assert.AreEqual(Program.OK_RESULT, Run($@"{Program.ConfigureOption} CheckDeps {{ {rr} %%\a\b }}".Split(' ')));
         }
 
         [TestMethod]
@@ -95,10 +101,11 @@ namespace NDepCheck.Tests {
             WriteDep1To(@"a\b");
             WriteDefaultSetTo(@"a\c");
 
+            Option rr = CheckDeps.RuleRootDirectoryOption;
             int result = Program.Main(new List<string> {
                     $"{Program.ReadOption}=" + GetPath("NDepCheck.TestAssembly.dll"),
                     $"{Program.ReadOption}=" + "NDepCheck.TestAssemblyÄÖÜß.*.dll", "-", "NDepCheck.TestAssemblyÄÖÜß.dll",
-                    $"{Program.ConfigureOption}=", "CheckDeps", "{", "-s=" + _basePath + @"\a", "}"
+                    $"{Program.ConfigureOption}=", "CheckDeps", "{", rr.Opt + "=" + _basePath + @"\a", "}"
             }.ToArray());
             Assert.AreEqual(Program.OK_RESULT, result);
         }
