@@ -1,15 +1,16 @@
 namespace NDepCheck.Transforming {
-    public class ItemMatch : Pattern {
-        private readonly ItemType _itemType;
-        private readonly IMatcher[] _matchers;
+    public class ItemMatch {
+        private readonly ItemPattern _itempattern;
+        private readonly MarkerPattern _markerPattern;
 
         public ItemMatch(ItemType itemType, string pattern, bool ignoreCase) {
-            _itemType = itemType;
-            _matchers = CreateMatchers(_itemType, pattern, 0, ignoreCase);
+            string[] patternParts = pattern.Split('\'');
+            _itempattern = new ItemPattern(itemType, patternParts[0], 0, ignoreCase);
+            _markerPattern = new MarkerPattern(patternParts.Length > 1 ? patternParts[1] : "");
         }
 
-        public bool Match(Item item) {
-            return Match(_itemType, _matchers, item) != null;
+        public string[] Match(Item item) {
+            return _markerPattern.Match(item) ? _itempattern.Match(item) : null;
         }
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.Transforming.Removing;
+using NDepCheck.Transforming.Marking;
 using System.Linq;
 
 namespace NDepCheck.Tests {

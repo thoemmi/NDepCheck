@@ -11,7 +11,7 @@ namespace NDepCheck {
     /// knowledge about a concrete dependency
     /// (one "using item" uses one "used item").
     /// </remarks>
-    public class Dependency : IEdge {
+    public class Dependency : ObjectWithMarkers, IEdge {
         [NotNull] private readonly Item _usingItem;
         [NotNull] private readonly Item _usedItem;
 

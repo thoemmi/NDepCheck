@@ -15,31 +15,38 @@ namespace NDepCheck.Transforming.Projecting {
         internal const string ABSTRACT_IT_RIGHT_AS_INNER = "]";
         internal const string MAP = "---%";
 
+        public static readonly Option ProjectionFileOption = new Option("pf", "projection-file", "filename", "File containing projections");
+        public static readonly Option ProjectionsOption = new Option("pl", "projection-list", "projections", "Inline projections");
+
+        private static readonly Option[] _configOptions = new[] {ProjectionFileOption, ProjectionsOption};
+
+        public static readonly Option BackProjectionDipFileOption = new Option("bp", "back-projection-input", "filename", "Do back projection of information in dipfile; default: no back projection");
+        public static readonly Option BackProjectionTrimOption = new Option("bt", "back-projection-trim", "", "When back projecting, keep only projected edges");
+
+        private static readonly Option[] _transformOptions = new[] { BackProjectionDipFileOption, BackProjectionTrimOption};
+
         private ProjectionSet _orderedProjections;
         private Dictionary<FromTo, Dependency> _dependenciesForBackProjection;
 
         public override string GetHelp(bool detailedHelp) {
-            return @"  Project ('reduce') items and dependencies with ! and % rules
+            return $@"  Project ('reduce') items and dependencies with ! and % rules
 
-Configuration options: [-f projectionfile | -p projections]
+Configuration options: {Option.CreateHelp(_configOptions, detailedHelp)}
 
-Transformer options: [-b dipfile] [-k]
-  -b dipfile     Do back projection of information in dipfile; default: no back projection
-  -k             When back projecting, keep only projected edges
-";
+Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
         }
 
         #region Configure
 
         public override void Configure(GlobalContext globalContext, string configureOptions) {
             Option.Parse(configureOptions,
-                new OptionAction("f", (args, j) => {
+                ProjectionFileOption.Action((args, j) => {
                     string fullSourceName = Path.GetFullPath(Option.ExtractOptionValue(args, ref j));
                     _orderedProjections = GetOrReadChildConfiguration(globalContext,
                         () => new StreamReader(fullSourceName), fullSourceName, globalContext.IgnoreCase, "????");
                     return j;
                 }),
-                new OptionAction("p", (args, j) => {
+                ProjectionsOption.Action((args, j) => {
                     // A trick is used: The first line, which contains all options, should be ignored; and
                     // also the last } (which is from the surrounding options braces). Thus, 
                     // * we add // to the beginning - this comments out the first line;
@@ -143,10 +150,10 @@ Transformer options: [-b dipfile] [-k]
             if (_orderedProjections != null) {
                 string fullDipName = null;
                 bool keepOnlyProjected = false;
-                Option.Parse(transformOptions, new OptionAction("b", (args, j) => {
+                Option.Parse(transformOptions, BackProjectionDipFileOption.Action((args, j) => {
                     fullDipName = Path.GetFullPath(Option.ExtractOptionValue(args, ref j));
                     return j;
-                }), new OptionAction("k", (args, j) => {
+                }), BackProjectionTrimOption.Action((args, j) => {
                     keepOnlyProjected = true;
                     return j;
                 }));

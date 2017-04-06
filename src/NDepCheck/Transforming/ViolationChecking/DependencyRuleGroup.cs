@@ -4,7 +4,7 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.ViolationChecking {
-    public class DependencyRuleGroup : Pattern {
+    public class DependencyRuleGroup {
         private static readonly Comparison<DependencyRule> _sortOnDescendingHitCount = (r1, r2) => r2.HitCount - r1.HitCount;
 
         [NotNull]
@@ -17,7 +17,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
         [NotNull]
         private readonly string _group;
         [CanBeNull]
-        private readonly IMatcher[] _groupMatchersOrNullForMainGroup;
+        private readonly ItemPattern _groupMatchOrNullForMainGroup;
         [NotNull]
         private readonly ItemType _groupType;
 
@@ -30,7 +30,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
             _groupType = groupType;
             _group = group;
-            _groupMatchersOrNullForMainGroup = group == "" ? null : CreateMatchers(groupType, group, 0, ignoreCase);
+            _groupMatchOrNullForMainGroup = group == "" ? null : new ItemPattern(groupType, group, 0, ignoreCase);
             _allowed = allowed.ToList();
             _questionable = questionable.ToList();
             _forbidden = forbidden.ToList();
@@ -53,24 +53,24 @@ namespace NDepCheck.Transforming.ViolationChecking {
         /// </summary>
         public bool AddDependencyRules([NotNull] ItemType usingItemType, [NotNull] ItemType usedItemType,
                                        [NotNull] string ruleSourceName, int lineNo, [NotNull] string line, bool ignoreCase, string previousRawUsingPattern, out string rawUsingPattern) {
-            if (line.Contains(ViolationChecking.CheckDeps.MAY_USE)) {
+            if (line.Contains(CheckDeps.MAY_USE)) {
                 IEnumerable<DependencyRule> rules = CreateDependencyRule(usingItemType, usedItemType, ruleSourceName, lineNo, line,
-                    ViolationChecking.CheckDeps.MAY_USE, false, ignoreCase, previousRawUsingPattern, out rawUsingPattern);
+                    CheckDeps.MAY_USE, false, ignoreCase, previousRawUsingPattern, out rawUsingPattern);
                 _allowed.AddRange(rules);
                 return true;
-            } else if (line.Contains(ViolationChecking.CheckDeps.MAY_USE_RECURSIVE)) {
+            } else if (line.Contains(CheckDeps.MAY_USE_RECURSIVE)) {
                 IEnumerable<DependencyRule> rules = CreateDependencyRule(usingItemType, usedItemType, ruleSourceName, lineNo, line,
-                                                           ViolationChecking.CheckDeps.MAY_USE_RECURSIVE, false, ignoreCase, previousRawUsingPattern, out rawUsingPattern);
+                                                           CheckDeps.MAY_USE_RECURSIVE, false, ignoreCase, previousRawUsingPattern, out rawUsingPattern);
                 _allowed.AddRange(rules);
                 return true;
-            } else if (line.Contains(ViolationChecking.CheckDeps.MAY_USE_WITH_WARNING)) {
+            } else if (line.Contains(CheckDeps.MAY_USE_WITH_WARNING)) {
                 IEnumerable<DependencyRule> rules = CreateDependencyRule(usingItemType, usedItemType, ruleSourceName, lineNo, line,
-                    ViolationChecking.CheckDeps.MAY_USE_WITH_WARNING, true, ignoreCase, previousRawUsingPattern, out rawUsingPattern);
+                    CheckDeps.MAY_USE_WITH_WARNING, true, ignoreCase, previousRawUsingPattern, out rawUsingPattern);
                 _questionable.AddRange(rules);
                 return true;
-            } else if (line.Contains(ViolationChecking.CheckDeps.MUST_NOT_USE)) {
+            } else if (line.Contains(CheckDeps.MUST_NOT_USE)) {
                 IEnumerable<DependencyRule> rules = CreateDependencyRule(usingItemType, usedItemType, ruleSourceName, lineNo, line,
-                                                           ViolationChecking.CheckDeps.MUST_NOT_USE, false, ignoreCase, previousRawUsingPattern, out rawUsingPattern);
+                                                           CheckDeps.MUST_NOT_USE, false, ignoreCase, previousRawUsingPattern, out rawUsingPattern);
                 _forbidden.AddRange(rules);
                 return true;
             } else {
@@ -103,11 +103,11 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
             if (Log.IsVerboseEnabled) {
                 Log.WriteInfo($"Matchers used for checking {repString} ({ruleSourceName}:{lineNo})");
-                Log.WriteInfo("  Using: " + string.Join<IMatcher>(", ", head.Using));
-                Log.WriteInfo("   Used: " + string.Join<IMatcher>(", ", head.Used));
+                Log.WriteInfo("  Using: " + string.Join<IMatcher>(", ", head.Using.Matchers));
+                Log.WriteInfo("   Used: " + string.Join<IMatcher>(", ", head.Used.Matchers));
             }
 
-            if (use == ViolationChecking.CheckDeps.MAY_USE_RECURSIVE) {
+            if (use == CheckDeps.MAY_USE_RECURSIVE) {
                 IEnumerable<DependencyRule> rulesWithMatchingUsingPattern = _allowed.Where(r => r.MatchesUsingPattern(head.Used));
 
                 result.AddRange(rulesWithMatchingUsingPattern.Select(tail => new DependencyRule(usingItemType, head.Using, usedItemType, tail.Used, rep)));
@@ -129,7 +129,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
             bool allOk = true;
 
             foreach (Dependency d in dependencies) {
-                if (_groupMatchersOrNullForMainGroup == null || Match(_groupType, _groupMatchersOrNullForMainGroup, d.UsingItem) != null) {
+                if (_groupMatchOrNullForMainGroup == null || _groupMatchOrNullForMainGroup.Match(d.UsingItem) != null) {
                     Check(d);
                     allOk &= d.BadCt == 0;
                     if (++reorgCount > nextReorg) {

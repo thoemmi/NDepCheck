@@ -1,6 +1,7 @@
 // (c) HMMüller 2006...2017
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Gibraltar;
@@ -8,7 +9,67 @@ using JetBrains.Annotations;
 using NDepCheck.Rendering;
 
 namespace NDepCheck {
-    public abstract class ItemSegment {
+    public class MarkerPattern {
+        public HashSet<string> Present { get; }
+        public HashSet<string> Absent { get; }
+
+        public MarkerPattern(string s) {
+            Present = new HashSet<string>();
+            Absent = new HashSet<string>();
+            string[] elements = s.Split('&');
+            foreach (var e in elements) {
+                string element = e.Trim();
+                if (element == "~" || element == "") {
+                    // ignore
+                } else if (element.StartsWith("~")) {
+                    Absent.Add(element.Substring(1).Trim());
+                } else {
+                    Present.Add(element);
+                }
+            }
+        }
+
+        public MarkerPattern(IEnumerable<string> present, IEnumerable<string> absent) {
+            Present = new HashSet<string>(present);
+            Absent = new HashSet<string>(absent);
+        }
+
+        public bool Match(Item item) {
+            return item.Matches(this);
+        }
+    }
+
+    public abstract class ObjectWithMarkers {
+        private HashSet<string> _markersOrNull;
+
+        public void AddMarker(string marker) {
+            if (_markersOrNull == null) {
+                _markersOrNull = new HashSet<string>();
+            }
+            _markersOrNull.Add(marker);
+        }
+
+        public void RemoveMarker(string marker) {
+            _markersOrNull.Remove(marker);
+            if (_markersOrNull.Count == 0) {
+                _markersOrNull = null;
+            }
+        }
+
+        public void ClearMarkers() {
+            _markersOrNull = null;
+        }
+
+        public bool Matches(MarkerPattern pattern) {
+            if (_markersOrNull == null) {
+                return pattern.Present.Count == 0;
+            } else {
+                return pattern.Present.IsSubsetOf(_markersOrNull) && !pattern.Absent.Overlaps(_markersOrNull);
+            }
+        }
+    }
+
+    public abstract class ItemSegment : ObjectWithMarkers {
         [NotNull]
         private readonly ItemType _type;
         [NotNull]

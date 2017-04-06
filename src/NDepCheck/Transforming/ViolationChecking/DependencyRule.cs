@@ -13,16 +13,22 @@ namespace NDepCheck.Transforming.ViolationChecking {
     /// expression, which allows back-references
     /// (like \1) between the using and the used
     /// item.</remarks>
-    public class DependencyRule : Pattern {
+    public class DependencyRule {
         [NotNull]
         private readonly ItemType _usingItemType;
         [NotNull]
         private readonly ItemType _usedItemType;
 
+        //[NotNull]
+        //private readonly IMatcher[] _using;
+        //[NotNull]
+        //private readonly IMatcher[] _used;
         [NotNull]
-        private readonly IMatcher[] _using;
+        private readonly ItemPattern _using;
         [NotNull]
-        private readonly IMatcher[] _used;
+        private readonly ItemPattern _used;
+
+
         private int _hitCount;
 
         // Dependency_ rules are created from lines with
@@ -30,12 +36,12 @@ namespace NDepCheck.Transforming.ViolationChecking {
         // below. Hence, the constructor is private.
         public DependencyRule([NotNull] ItemType usingItemType, string usingItemPattern, [NotNull] ItemType usedItemType,
             string usedItemPattern, [NotNull] DependencyRuleRepresentation rep, bool ignoreCase)
-            : this(usingItemType: usingItemType, @using : CreateMatchers(usingItemType, usingItemPattern, 0, ignoreCase), usedItemType: usedItemType, 
-                  used: CreateMatchers(usedItemType, usedItemPattern, usingItemPattern.Count(c => c == '('), ignoreCase), rep: rep) {
+            : this(usingItemType: usingItemType, @using: new ItemPattern(usingItemType, usingItemPattern, 0, ignoreCase), usedItemType: usedItemType, 
+                  used: new ItemPattern(usedItemType, usedItemPattern, usingItemPattern.Count(c => c == '('), ignoreCase), rep: rep) {
         }
 
-        public DependencyRule([NotNull] ItemType usingItemType, [NotNull] IMatcher[] @using, 
-                              [NotNull] ItemType usedItemType, [NotNull] IMatcher[] used, [NotNull] DependencyRuleRepresentation rep) {
+        public DependencyRule([NotNull] ItemType usingItemType, [NotNull] ItemPattern @using, 
+                              [NotNull] ItemType usedItemType, [NotNull] ItemPattern used, [NotNull] DependencyRuleRepresentation rep) {
             if (usingItemType == null) {
                 throw new ArgumentNullException(nameof(usingItemType));
             }
@@ -58,10 +64,10 @@ namespace NDepCheck.Transforming.ViolationChecking {
         public DependencyRuleRepresentation Representation { get; }
 
         [NotNull]
-        public IMatcher[] Using => _using;
+        public ItemPattern Using => _using;
 
         [NotNull]
-        public IMatcher[] Used => _used;
+        public ItemPattern Used => _used;
 
         public bool IsMatch(Dependency dependency) {
             // We check the types immediately, so that no unnecessary Match is run.
@@ -76,14 +82,15 @@ namespace NDepCheck.Transforming.ViolationChecking {
                 Log.WriteInfo("Checking " + dependency + " against " + Representation);
             }
 
-            string[] groupsInUsing = Match(dependency.UsingItem.Type, _using, dependency.UsingItem);
+            string[] groupsInUsing = _using.Match(dependency.UsingItem);
 
             if (groupsInUsing == null) {
                 return false;
             } else {
-                for (int i = 0; i < _used.Length; i++) {
+                IMatcher[] usedMatchers = _used.Matchers;
+                for (int i = 0; i < usedMatchers.Length; i++) {
                     string used = dependency.UsedItem.Values[i];
-                    bool isMatch = _used[i].IsMatch(used, groupsInUsing);
+                    bool isMatch = usedMatchers[i].IsMatch(used, groupsInUsing);
                     if (!isMatch) {
                         return false;
                     }
@@ -96,9 +103,11 @@ namespace NDepCheck.Transforming.ViolationChecking {
             }
         }
 
-        public bool MatchesUsingPattern(IMatcher[] matchers) {
-            for (int i = 0; i < Math.Min(_using.Length, matchers.Length); i++) {
-                if (!_using[i].MatchesAlike(matchers[i])) {
+        public bool MatchesUsingPattern(ItemPattern other) {
+            IMatcher[] usingMatchers = _using.Matchers;
+            IMatcher[] otherMatchers = other.Matchers;
+            for (int i = 0; i < Math.Min(usingMatchers.Length, otherMatchers.Length); i++) {
+                if (!usingMatchers[i].MatchesAlike(otherMatchers[i])) {
                     return false;
                 }
             }

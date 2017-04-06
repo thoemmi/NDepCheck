@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace NDepCheck.Transforming.Removing {
+namespace NDepCheck.Transforming.Marking {
     public class RemoveItems : ITransformer {
         private bool _ignoreCase;
 
@@ -79,7 +79,7 @@ Transformer options: [-m typename pattern] [-s] [-d] [-r]
             remainingNodes.UnionWith(aggregatedCounts.ColumnKeys);
 
             if (match != null) {
-                remainingNodes.RemoveWhere(i => match.Match(i));
+                remainingNodes.RemoveWhere(i => match.Match(i) != null);
             }
 
             transformedDependencies.AddRange(

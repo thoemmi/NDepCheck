@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace NDepCheck.Transforming.Removing {
+namespace NDepCheck.Transforming.Marking {
     public class RemoveDeps : ITransformer {
         public string GetHelp(bool detailedHelp) {
             return @"Remove edges.

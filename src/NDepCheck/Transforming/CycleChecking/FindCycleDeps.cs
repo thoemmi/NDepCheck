@@ -91,7 +91,7 @@ Transformer options: [-m typename pattern] [-i] [-n #] [-q] [-u &]
             var trackItems = new HashSet<Item>();
             var dependenciesOnCycles = new HashSet<Dependency>();
             var path = new Stack<Dependency>();
-            foreach (var i in from.Keys.Where(i => match == null || match.Match(i))) {
+            foreach (var i in from.Keys.Where(i => match == null || match.Match(i) != null)) {
                 FindCyclesFrom(i, i, ignoreSelfCycles, from, trackItems, maxCycleLength, foundCycleHashs, AddHash(0, i), path, dependenciesOnCycles);
             }
 

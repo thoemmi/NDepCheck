@@ -25,18 +25,18 @@ $@"  Write a textual matrix representation of dependencies.
 
     public abstract class AbstractGenericMatrixRenderer : IRenderer<IEdge> {
         protected static void ParseOptions(string argsAsString, out int? labelWidthOrNull, out bool withNotOkCt) {
-            int lw = -1;
+            int? lw = null;
             bool wct = false;
-            Option.Parse(argsAsString, new OptionAction("l", (args, j) => {
-                if (!int.TryParse(Option.ExtractOptionValue(args, ref j), out lw)) {
-                    Option.Throw("No valid length after l", args);
-                }
-                return j;
-            }), new OptionAction("n", (args, j) => {
+            Option.Parse(argsAsString,
+                AbstractMatrixRenderer.MaxNameWidthOption.Action((args, j) => {
+                    lw = Option.ExtractIntOptionValue(args, ref j, "");                    
+                    return j;
+                }),
+                AbstractMatrixRenderer.WriteBadCountOption.Action((args, j) => {
                 wct = true;
                 return j;
             }));
-            labelWidthOrNull = lw < 0 ? default(int?) : lw;
+            labelWidthOrNull = lw;
             withNotOkCt = wct;
         }
 

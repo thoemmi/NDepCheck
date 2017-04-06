@@ -533,7 +533,7 @@ NDepCheck:Tests ---> **
                 tw.Write($@"
                     {inFile}
                     {Program.ConfigureOption} {typeof(ProjectItems).Name} {{ 
-                        -p
+                        -pl
                           $ AB(A:B) ---% AB
                           ! a:** ---% _a_:
                           ! b:** ---% _b_:
@@ -573,7 +573,7 @@ NDepCheck:Tests ---> **
                 tw.Write($@"
                     {inFile}
                     {Program.ConfigurePluginOption} . {typeof(ProjectItems).Name} {{ 
-                        -p
+                        -pl
                           $ AB(A:B) ---% AB
                           ! a:** ---% _a_:
                           ! b:** ---% _b_:

@@ -7,6 +7,10 @@ using System.Xml.Linq;
 
 namespace NDepCheck.Rendering {
     public class RuleViolationRenderer : IDependencyRenderer {
+        public static readonly Option XmlOutputOption = new Option("xo", "xml-output", "", "Write output to XML file");
+
+        private static readonly Option[] _allOptions = { XmlOutputOption };
+
         public void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName) {
             bool xmlOutput = ParseArgs(argsAsString);
 
@@ -54,10 +58,11 @@ namespace NDepCheck.Rendering {
 
         private static bool ParseArgs(string argsAsString) {
             bool xmlOutput = false;
-            Option.Parse(argsAsString, new OptionAction("x", (args, j) => {
-                xmlOutput = true;
-                return j;
-            }));
+            Option.Parse(argsAsString,
+                XmlOutputOption.Action((args, j) => {
+                    xmlOutput = true;
+                    return j;
+                }));
             return xmlOutput;
         }
 
@@ -93,11 +98,10 @@ namespace NDepCheck.Rendering {
 
         public string GetHelp(bool detailedHelp) {
             return
-@"  Writes dependency rule violations to file in text or xml format.
+$@"  Writes dependency rule violations to file in text or xml format.
   This is the output for the primary reason of NDepCheck: Checking rules.
 
-  Option: [-x]
-    -x            write XML output (not possible with fileName '-', i.e. standard output)";
+{Option.CreateHelp(_allOptions, true)}";
         }
 
         public string GetMasterFileName(string argsAsString, string baseFileName) {

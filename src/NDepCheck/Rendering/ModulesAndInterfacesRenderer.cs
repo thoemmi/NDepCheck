@@ -259,10 +259,6 @@ namespace NDepCheck.Rendering {
                 OrderFieldOption.Action((args, j) => {
                     _orderField = Option.ExtractIntOptionValue(args, ref j, "No valid order");
                     return j;
-                }),
-                new OptionAction("t", (args, j) => {
-                    _title = Option.ExtractOptionValue(args, ref j);
-                    return j;
                 }));
         }
 

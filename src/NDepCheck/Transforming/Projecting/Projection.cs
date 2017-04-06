@@ -17,10 +17,7 @@ namespace NDepCheck.Transforming.Projecting {
     /// probably without a common project prefix; or
     /// to the assembly where they reside.
     /// </remarks>
-    public class Projection : Pattern, IProjectionSetElement {
-        [NotNull]
-        private readonly ItemType _sourceItemType;
-
+    public class Projection : IProjectionSetElement {
         [NotNull]
         private readonly ItemType _targetItemType;
 
@@ -33,7 +30,7 @@ namespace NDepCheck.Transforming.Projecting {
         private readonly bool _isInner;
 
         [NotNull]
-        private readonly IMatcher[] _matchers;
+        private readonly ItemMatch _itemMatch;
 
         private int _matchCount;
 
@@ -52,13 +49,12 @@ namespace NDepCheck.Transforming.Projecting {
             } else {
                 targetSegments = Enumerable.Range(1, targetItemType.Length).Select(i => "\\" + i).ToArray();
             }
-            _sourceItemType = sourceItemType;
             _targetItemType = targetItemType;
             _targetSegments = targetSegments;
             _isInner = isInner;
             ForLeftSide = forLeftSide;
             ForRightSide = forRightSide;
-            _matchers = CreateMatchers(sourceItemType, pattern, 0, ignoreCase);
+            _itemMatch = new ItemMatch(sourceItemType, pattern, ignoreCase);
         }
 
         public int MatchCount => _matchCount;
@@ -74,7 +70,7 @@ namespace NDepCheck.Transforming.Projecting {
             if (left && !ForLeftSide || !left && !ForRightSide) {
                 return null;
             } else {
-                string[] matchResultGroups = Match(_sourceItemType, _matchers, item);
+                string[] matchResultGroups = _itemMatch.Match(item);
 
                 if (matchResultGroups == null) {
                     return null;

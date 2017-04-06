@@ -5,10 +5,49 @@ using System.Text.RegularExpressions;
 
 namespace NDepCheck.Transforming.Setting {
     public class SetDeps : ITransformer {
+        /*
+          Deps
+            -cf Marking {
+                               '~y        => m
+                               '~z        => ~m
+                 a.b:x*'x&y -- 'y&z -> 'x => y
+                 a.b:x*'x&y -- 'y&z ->    => -
+             }
+
+          Items
+
+             -cf Marking {
+                         a:b.*:             => m
+                               '~z          => ~m
+                 'x&y -> a.b:x*'x&y -- 'y&z => y
+                      -> a.b:x*'x&y -- 'y&z => -
+             }
+
+    */
+
+        //public class EdgePattern {
+        //    //                                      12         3  4      5
+        //    private const string PATTERN_PATTERN = "((.*)->)?.*(--(.*))=>(.*)";
+
+        //    private readonly ItemPattern From;
+        //    private readonly MarkerPattern Edge;
+        //    private readonly ItemPattern To;
+        //    private readonly string result;
+
+        //    public EdgePattern(string p) {
+        //        MatchCollection matches = Regex.Matches(p ?? "",  PATTERN_PATTERN);
+        //        if (matches[2].Value != "") {
+        //            From = ItemPattern.
+        //        }
+
+        //    }
+        //}
+
+
         public string GetHelp(bool detailedHelp) {
             return @"Reset counts on edges.
 
-Configuration options: None
+Configuration options: [-f projectionfile | -p projections]
 
 Transformer options: [-m &] [-q] [-b] [-u &]
   -m &    Regular expression matching usage of edges to clear; default: match all

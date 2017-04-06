@@ -15,11 +15,23 @@ namespace NDepCheck.Transforming {
     /// extend regular expression in four ways (not at all,
     /// inner classes, methods, and methods of inner classes).
     /// </remarks>
-    public abstract class Pattern {
+    public sealed class ItemPattern {
         // needed so that we can work distinguish user's ("meta") *, . and \ from the ones in replacements ("regex").
-        protected const string ASTERISK_ESCAPE = "@#@";
-        protected const string DOT_ESCAPE = "@&@";
-        protected const string BACKSLASH_ESCAPE = "@$@";
+        public const string ASTERISK_ESCAPE = "@#@";
+        public const string DOT_ESCAPE = "@&@";
+        public const string BACKSLASH_ESCAPE = "@$@";
+
+        private readonly IMatcher[] _matchers;
+
+        internal static readonly string[] NO_GROUPS = new string[0];
+        
+        public ItemPattern([NotNull] ItemType itemType, [NotNull] string itemPattern, int estimatedGroupCount, bool ignoreCase) {
+            _itemType = itemType;
+            _matchers = CreateMatchers(itemType, itemPattern, estimatedGroupCount, ignoreCase);
+        }
+
+        public IMatcher[] Matchers => _matchers;
+
 
         private static string EscapePattern(string pattern) {
             return pattern.Replace("*", ASTERISK_ESCAPE).Replace(".", DOT_ESCAPE).Replace(@"\", BACKSLASH_ESCAPE);
@@ -41,9 +53,10 @@ namespace NDepCheck.Transforming {
 
         private static readonly string ASTERISKS_PATTERN = EscapePattern(@"(?:" + ASTERISK_ALONE_PATTERN + @"(?:" + SEPARATORS_REGEX + ASTERISK_ALONE_PATTERN + ")*)?");
         private static readonly string SEPARATOR_AND_ASTERISKS_PATTERN = EscapePattern(@"(?:" + SEPARATORS_REGEX + ASTERISK_ALONE_PATTERN + ")*");
+        private readonly ItemType _itemType;
 
         [NotNull]
-        protected static string ExpandAsterisks([NotNull] string pattern, bool ignoreCase) {
+        public static string ExpandAsterisks([NotNull] string pattern, bool ignoreCase) {
             // . and \ must be replaced after loops so that looking for separators works!
             RegexOptions regexOptions = ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None;
 
@@ -77,7 +90,7 @@ namespace NDepCheck.Transforming {
         }
 
         [NotNull]
-        protected static IMatcher[] CreateMatchers([NotNull] ItemType type, [NotNull] string itemPattern, int estimatedGroupCount, bool ignoreCase) {
+        public static IMatcher[] CreateMatchers([NotNull] ItemType type, [NotNull] string itemPattern, int estimatedGroupCount, bool ignoreCase) {
             var result = new List<IMatcher>();
 
             const string UNCOLLECTED_GROUP = "(?:";
@@ -156,10 +169,12 @@ namespace NDepCheck.Transforming {
             return !Regex.IsMatch(segment, @"[\\*()+?]");
         }
 
-        internal static readonly string[] NO_GROUPS = new string[0];
+        public string[] Match([NotNull] Item item) {
+            return Match(_itemType, _matchers, item);
+        }
 
         [CanBeNull]
-        protected static string[] Match([NotNull] ItemType type, [NotNull] IMatcher[] matchers, [NotNull] Item item) {
+        public static string[] Match([NotNull] ItemType type, [NotNull] IMatcher[] matchers, [NotNull] Item item) {
             if (!item.Type.Equals(type)) {
                 return null;
             }
@@ -272,7 +287,7 @@ namespace NDepCheck.Transforming {
             if (Check(value, out result)) {
                 return result;
             } else {
-                return Remember(value, _isMatch(value, _segment) ? Pattern.NO_GROUPS : null);
+                return Remember(value, _isMatch(value, _segment) ? ItemPattern.NO_GROUPS : null);
             }
         }
 
