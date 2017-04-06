@@ -148,7 +148,7 @@
     <Compile Include="Item.cs" />
     <Compile Include="Reading\ItemsOnlyDotNetAssemblyDependencyReader.cs" />
     <Compile Include="ItemType.cs" />
-    <Compile Include="Transforming\Pattern.cs" />
+    <Compile Include="Transforming\ItemPattern.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ILogger.cs" />
     <Compile Include="Option.cs" />

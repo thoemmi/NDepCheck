@@ -7,39 +7,11 @@ using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming {
-    /// <remarks>
-    /// Parent class for pattern objects (currently,
-    /// <see>DependencyRule</see> and <see>Projection</see>).
-    /// This class provides the helper methods to produce
-    /// regular expressions from wildcard patterns; and to
-    /// extend regular expression in four ways (not at all,
-    /// inner classes, methods, and methods of inner classes).
-    /// </remarks>
     public sealed class ItemPattern {
         // needed so that we can work distinguish user's ("meta") *, . and \ from the ones in replacements ("regex").
         public const string ASTERISK_ESCAPE = "@#@";
         public const string DOT_ESCAPE = "@&@";
         public const string BACKSLASH_ESCAPE = "@$@";
-
-        private readonly IMatcher[] _matchers;
-
-        internal static readonly string[] NO_GROUPS = new string[0];
-        
-        public ItemPattern([NotNull] ItemType itemType, [NotNull] string itemPattern, int estimatedGroupCount, bool ignoreCase) {
-            _itemType = itemType;
-            _matchers = CreateMatchers(itemType, itemPattern, estimatedGroupCount, ignoreCase);
-        }
-
-        public IMatcher[] Matchers => _matchers;
-
-
-        private static string EscapePattern(string pattern) {
-            return pattern.Replace("*", ASTERISK_ESCAPE).Replace(".", DOT_ESCAPE).Replace(@"\", BACKSLASH_ESCAPE);
-        }
-
-        private static string UnescapePattern(string pattern) {
-            return pattern.Replace(ASTERISK_ESCAPE, "*").Replace(DOT_ESCAPE, ".").Replace(BACKSLASH_ESCAPE, @"\");
-        }
 
         private const string SEPARATORS_REGEX = @"[./\\]";
         private const string NON_SEPARATORS_REGEX = @"[^./\\]";
@@ -53,10 +25,60 @@ namespace NDepCheck.Transforming {
 
         private static readonly string ASTERISKS_PATTERN = EscapePattern(@"(?:" + ASTERISK_ALONE_PATTERN + @"(?:" + SEPARATORS_REGEX + ASTERISK_ALONE_PATTERN + ")*)?");
         private static readonly string SEPARATOR_AND_ASTERISKS_PATTERN = EscapePattern(@"(?:" + SEPARATORS_REGEX + ASTERISK_ALONE_PATTERN + ")*");
+
+        internal static readonly string[] NO_GROUPS = new string[0];
+
         private readonly ItemType _itemType;
 
+        private readonly IMatcher[] _matchers;
+
+        public IMatcher[] Matchers => _matchers;
+
+        public ItemPattern([NotNull] ItemType itemType, [NotNull] string itemPattern, int estimatedGroupCount, bool ignoreCase) {
+            _itemType = itemType;
+
+            var result = new List<IMatcher>();
+
+            const string UNCOLLECTED_GROUP = "(?:";
+            const string UNCOLLECTED_GROUP_MASK = "(?#@#";
+            IEnumerable<string> parts = itemPattern.Replace(UNCOLLECTED_GROUP, UNCOLLECTED_GROUP_MASK)
+                .Split(':')
+                .Select(p => p.Replace(UNCOLLECTED_GROUP_MASK, UNCOLLECTED_GROUP))
+                .ToArray();
+
+            if (parts.First() == itemType.Name) {
+                // Rules may optionally start with the correct type name (when they are copied from e.g. from a violation textfile).
+                parts = parts.Skip(1);
+            }
+
+            int j = 0;
+            foreach (var p in parts) {
+                foreach (var s in p.Split(';')) {
+                    result.Add(CreateMatcher(s, estimatedGroupCount, ignoreCase));
+                    j++;
+                }
+                while (j > 0 && j < itemType.Keys.Length && itemType.Keys[j - 1] == itemType.Keys[j]) {
+                    result.Add(new AlwaysMatcher(alsoMatchDot: true, groupCount: 0));
+                    j++;
+                }
+            }
+            while (j < itemType.Keys.Length) {
+                result.Add(new AlwaysMatcher(alsoMatchDot: true, groupCount: 0));
+                j++;
+            }
+            _matchers = result.Take(itemType.Keys.Length).ToArray();
+        }
+
+        private static string EscapePattern(string pattern) {
+            return pattern.Replace("*", ASTERISK_ESCAPE).Replace(".", DOT_ESCAPE).Replace(@"\", BACKSLASH_ESCAPE);
+        }
+
+        private static string UnescapePattern(string pattern) {
+            return pattern.Replace(ASTERISK_ESCAPE, "*").Replace(DOT_ESCAPE, ".").Replace(BACKSLASH_ESCAPE, @"\");
+        }
+
         [NotNull]
-        public static string ExpandAsterisks([NotNull] string pattern, bool ignoreCase) {
+        private static string ExpandAsterisks([NotNull] string pattern, bool ignoreCase) {
             // . and \ must be replaced after loops so that looking for separators works!
             RegexOptions regexOptions = ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None;
 
@@ -90,40 +112,6 @@ namespace NDepCheck.Transforming {
         }
 
         [NotNull]
-        public static IMatcher[] CreateMatchers([NotNull] ItemType type, [NotNull] string itemPattern, int estimatedGroupCount, bool ignoreCase) {
-            var result = new List<IMatcher>();
-
-            const string UNCOLLECTED_GROUP = "(?:";
-            const string UNCOLLECTED_GROUP_MASK = "(?#@#";
-            IEnumerable<string> parts = itemPattern.Replace(UNCOLLECTED_GROUP, UNCOLLECTED_GROUP_MASK)
-                .Split(':')
-                .Select(p => p.Replace(UNCOLLECTED_GROUP_MASK, UNCOLLECTED_GROUP))
-                .ToArray();
-
-            if (parts.First() == type.Name) {
-                // Rules may optionally start with the correct type name (when they are copied from e.g. from a violation textfile).
-                parts = parts.Skip(1);
-            }
-
-            int j = 0;
-            foreach (var p in parts) {
-                foreach (var s in p.Split(';')) {
-                    result.Add(CreateMatcher(s, estimatedGroupCount, ignoreCase));
-                    j++;
-                }
-                while (j > 0 && j < type.Keys.Length && type.Keys[j - 1] == type.Keys[j]) {
-                    result.Add(new AlwaysMatcher(alsoMatchDot: true, groupCount: 0));
-                    j++;
-                }
-            }
-            while (j < type.Keys.Length) {
-                result.Add(new AlwaysMatcher(alsoMatchDot: true, groupCount: 0));
-                j++;
-            }
-            return result.Take(type.Keys.Length).ToArray();
-        }
-
-        [NotNull]
         private static IMatcher CreateMatcher([NotNull] string segment, int estimatedGroupCount, bool ignoreCase) {
             if (Regex.IsMatch(segment, @"^[\(\)-]+$")) { // Examples: (-), ()-, -(), ((-)), ((-))()
                 return new EmptyStringMatcher(groupCount: segment.Count(c => c == '('));
@@ -135,16 +123,16 @@ namespace NDepCheck.Transforming {
             } else if (segment.EndsWith("$")) {
                 return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(estimatedGroupCount) + ".*" + segment, ignoreCase, estimatedGroupCount);
             } else if (estimatedGroupCount == 0 && HasNoRegexCharsExceptPeriod(segment)) {
-                // TODO: Also allow suurrounding ()
+                // TODO: Also allow surrounding ()
                 return new EqualsMatcher(segment, ignoreCase);
             } else if (IsPrefixAndSuffixAsterisksPattern(segment)) {
-                // TODO: Also allow suurrounding ()
+                // TODO: Also allow surrounding ()
                 return new ContainsMatcher(segment, ignoreCase);
             } else if (IsSuffixAsterisksPattern(segment)) {
-                // TODO: Also allow suurrounding ()
+                // TODO: Also allow surrounding ()
                 return new StartsWithMatcher(segment, ignoreCase);
             } else if (IsPrefixAsterisksPattern(segment)) {
-                // TODO: Also allow suurrounding ()
+                // TODO: Also allow surrounding ()
                 return new EndsWithMatcher(segment, ignoreCase);
             } else {
                 string pattern = ExpandAsterisks(segment, ignoreCase);
@@ -170,19 +158,14 @@ namespace NDepCheck.Transforming {
         }
 
         public string[] Match([NotNull] Item item) {
-            return Match(_itemType, _matchers, item);
-        }
-
-        [CanBeNull]
-        public static string[] Match([NotNull] ItemType type, [NotNull] IMatcher[] matchers, [NotNull] Item item) {
-            if (!item.Type.Equals(type)) {
+            if (!item.Type.Equals(_itemType)) {
                 return null;
             }
 
             string[] groupsInItem = NO_GROUPS;
 
-            for (int i = 0; i < matchers.Length; i++) {
-                IMatcher matcher = matchers[i];
+            for (int i = 0; i < _matchers.Length; i++) {
+                IMatcher matcher = _matchers[i];
                 string value = item.Values[i];
                 string[] groups = matcher.Match(value);
                 if (groups == null) {
@@ -249,7 +232,7 @@ namespace NDepCheck.Transforming {
         }
     }
 
-    public abstract class AbstractRememberingMatcher {
+    internal abstract class AbstractRememberingMatcher {
         private readonly Dictionary<string, string[]> _seenStrings = new Dictionary<string, string[]>();
 
         protected bool Check(string s, out string[] entry) {
