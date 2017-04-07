@@ -160,18 +160,42 @@ namespace NDepCheck {
         }
 
         public void MarkAsBad() {
-            // First bad example overrides any previous example
+            SetBadCount(_ct);
+        }
+
+        public void IncrementBad() {
+            SetBadCount(_badCt + 1);
+        }
+
+        public void ResetBad() {
+            _badCt = 0;
+        }
+
+        private void SetBadCount(int value) {
+// First bad example overrides any previous example
             if (_badCt == 0 || _exampleInfo == null) {
                 _exampleInfo = UsingItemAsString + " ---! " + UsedItemAsString;
             }
-            _badCt = _ct;
+            _badCt = value;
         }
 
         public void MarkAsQuestionable() {
+            SetQuestionableCount(_ct);
+        }
+
+        public void IncrementQuestionable() {
+            SetQuestionableCount(_questionableCt + 1);
+        }
+
+        public void ResetQuestionable() {
+            _questionableCt = 0;
+        }
+
+        private void SetQuestionableCount(int value) {
             if (_badCt == 0 && _questionableCt == 0 || _exampleInfo == null) {
                 _exampleInfo = UsingItemAsString + " ---? " + UsedItemAsString;
             }
-            _questionableCt = _ct;
+            _questionableCt = value;
         }
 
         private string GetDotFontSize() {
@@ -242,14 +266,6 @@ namespace NDepCheck {
                 result[@using].Add(e);
             }
             return result;
-        }
-
-        public void ResetQuestionableCt() {
-            _questionableCt = 0;
-        }
-
-        public void ResetBadCt() {
-            _badCt = 0;
         }
     }
 }

@@ -1,12 +1,16 @@
+using JetBrains.Annotations;
+
 namespace NDepCheck.Transforming {
     public class ItemMatch {
+        [NotNull]
         private readonly ItemPattern _itempattern;
+        [NotNull]
         private readonly MarkerPattern _markerPattern;
 
-        public ItemMatch(ItemType itemType, string pattern, bool ignoreCase) {
+        public ItemMatch([CanBeNull] ItemType itemTypeOrNull, [NotNull] string pattern, bool ignoreCase) {
             string[] patternParts = pattern.Split('\'');
-            _itempattern = new ItemPattern(itemType, patternParts[0], 0, ignoreCase);
-            _markerPattern = new MarkerPattern(patternParts.Length > 1 ? patternParts[1] : "");
+            _itempattern = new ItemPattern(itemTypeOrNull, patternParts[0], 0, ignoreCase);
+            _markerPattern = new MarkerPattern(patternParts.Length > 1 ? patternParts[1] : "", ignoreCase);
         }
 
         public string[] Match(Item item) {

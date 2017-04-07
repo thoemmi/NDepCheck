@@ -127,7 +127,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
                     targetSegments = null;
                 }
 
-                var p = new Projection(sourceItemType, targetItemType, pattern, targetSegments, isInner, ignoreCase, forLeftSide, forRightSide);
+                var p = new Projection(sourceItemType, targetItemType, pattern, targetSegments, isInner, 
+                                       ignoreCase, forLeftSide, forRightSide);
 
                 if (Log.IsChattyEnabled) {
                     Log.WriteInfo("Reg.exps used for projecting " + pattern +
@@ -177,8 +178,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
                             // The edge was projected
                             Dependency replaceDataEdge;
                             if (_dependenciesForBackProjection.TryGetValue(projectedEdgeFromTo, out replaceDataEdge)) {
-                                d.ResetBadCt();
-                                d.ResetQuestionableCt();
+                                d.ResetBad();
+                                d.ResetQuestionable();
                                 d.AggregateCounts(replaceDataEdge);
                                 backProjected.Add(d);
                             }

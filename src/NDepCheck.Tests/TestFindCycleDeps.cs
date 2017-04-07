@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.Rendering;
 using NDepCheck.Transforming.CycleChecking;
 
 namespace NDepCheck.Tests {
@@ -45,7 +44,7 @@ namespace NDepCheck.Tests {
             };
             var result = new List<Dependency>();
 
-            new FindCycleDeps().Transform(new GlobalContext(), "test", deps, "-k", "test", result);
+            new FindCycleDeps().Transform(new GlobalContext(), "test", deps, FindCycleDeps.KeepOnlyCyclesOption.Opt, "test", result);
 
             result.Sort((x, y) => String.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
 
@@ -83,7 +82,7 @@ namespace NDepCheck.Tests {
             };
             var result = new List<Dependency>();
 
-            new FindCycleDeps().Transform(new GlobalContext(), "test", deps, "{ -k -i }", "test", result);
+            new FindCycleDeps().Transform(new GlobalContext(), "test", deps, $"{{ {FindCycleDeps.KeepOnlyCyclesOption} {FindCycleDeps.IgnoreSelfCyclesOption} }}", "test", result);
 
             result.Sort((x, y) => String.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
 
@@ -121,7 +120,11 @@ namespace NDepCheck.Tests {
             };
             var result = new List<Dependency>();
 
-            new FindCycleDeps().Transform(new GlobalContext(), "test", deps, "{ -k -n 3 -q }", "test", result);
+            new FindCycleDeps().Transform(new GlobalContext(), "test", deps, 
+                $"{{ {FindCycleDeps.KeepOnlyCyclesOption} " +
+                $"{FindCycleDeps.MaxCycleLengthOption} 3 " +
+                $"{FindCycleDeps.EffectOptions.SetQuestionableOption} }}",
+                "test", result);
 
             result.Sort((x, y) => String.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
 
@@ -135,11 +138,11 @@ namespace NDepCheck.Tests {
         }
 
         [TestMethod]
-        public void TestAddReverseWithRemove() {
+        public void TestKeepOnlyCycles() {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                Program.TransformTestDataOption.Opt, ".", typeof(FindCycleDeps).Name, "{", "-k", "}",                
+                Program.TransformTestDataOption.Opt, ".", typeof(FindCycleDeps).Name, "{", FindCycleDeps.KeepOnlyCyclesOption.Opt, "}",                
                 Program.WriteDipOption.Opt, outFile
             }));
 

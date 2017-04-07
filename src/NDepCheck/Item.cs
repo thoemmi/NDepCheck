@@ -13,9 +13,9 @@ namespace NDepCheck {
         public HashSet<string> Present { get; }
         public HashSet<string> Absent { get; }
 
-        public MarkerPattern(string s) {
-            Present = new HashSet<string>();
-            Absent = new HashSet<string>();
+        public MarkerPattern(string s, bool ignoreCase) {
+            Present = new HashSet<string>(GetComparer(ignoreCase));
+            Absent = new HashSet<string>(GetComparer(ignoreCase));
             string[] elements = s.Split('&');
             foreach (var e in elements) {
                 string element = e.Trim();
@@ -29,9 +29,13 @@ namespace NDepCheck {
             }
         }
 
-        public MarkerPattern(IEnumerable<string> present, IEnumerable<string> absent) {
-            Present = new HashSet<string>(present);
-            Absent = new HashSet<string>(absent);
+        public MarkerPattern(IEnumerable<string> present, IEnumerable<string> absent, bool ignoreCase) {
+            Present = new HashSet<string>(present, GetComparer(ignoreCase));
+            Absent = new HashSet<string>(absent, GetComparer(ignoreCase));
+        }
+
+        private static StringComparer GetComparer(bool ignoreCase) {
+            return ignoreCase ? StringComparer.InvariantCultureIgnoreCase : StringComparer.InvariantCulture;
         }
 
         public bool Match(Item item) {

@@ -34,10 +34,7 @@ namespace NDepCheck.Transforming.Projecting {
 
         private int _matchCount;
 
-        // GraphAbstractions are created (because of
-        // extension rules) by the factory method
-        // CreateGraphAbstractions().
-        public Projection([NotNull]ItemType sourceItemType, [NotNull]ItemType targetItemType, [NotNull]string pattern, [CanBeNull]string[] targetSegments, bool isInner, bool ignoreCase, bool forLeftSide, bool forRightSide) {
+        public Projection([CanBeNull] ItemType sourceItemTypeOrNull, [NotNull]ItemType targetItemType, [NotNull]string pattern, [CanBeNull]string[] targetSegments, bool isInner, bool ignoreCase, bool forLeftSide, bool forRightSide) {
             if (targetSegments != null) {
                 if (targetItemType.Length != targetSegments.Length) {
                     Log.WriteError($"Targettype {targetItemType.Name} has {targetItemType.Length} segments, but {targetSegments.Length} are defined in projection: {string.Join(",", targetSegments)}");
@@ -54,7 +51,7 @@ namespace NDepCheck.Transforming.Projecting {
             _isInner = isInner;
             ForLeftSide = forLeftSide;
             ForRightSide = forRightSide;
-            _itemMatch = new ItemMatch(sourceItemType, pattern, ignoreCase);
+            _itemMatch = new ItemMatch(sourceItemTypeOrNull, pattern, ignoreCase);
         }
 
         public int MatchCount => _matchCount;

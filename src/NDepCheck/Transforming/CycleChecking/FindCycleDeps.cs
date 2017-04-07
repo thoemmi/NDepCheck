@@ -5,10 +5,16 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.CycleChecking {
     public class FindCycleDeps : ITransformer {
+        public static readonly Option IgnoreSelfCyclesOption = new Option("il", "ignore-loops", "", "ignore cycles of length 1, i.e. looping from an item to itself");
+        public static readonly Option KeepOnlyCyclesOption = new Option("kc", "keep-only-cycles", "", "remove all non-cycle dependencies");
+        public static readonly Option CycleAnchorsOption = new Option("ca", "cycle-anchors", "itempattern", "nodes checked for cycles through them");
+        public static readonly Option MaxCycleLengthOption = new Option("ml", "max-length", "#", "maximum length of cycles found");
+        public static readonly DepencencyEffectOptions EffectOptions = new DepencencyEffectOptions();
+
         private bool _ignoreCase;
 
         public string GetHelp(bool detailedHelp) {
-            return @"Remove nodes - UNTESTED.
+            return @"Find cycles in dependency graph.
 
 Configuration options: None
 
@@ -16,9 +22,6 @@ Transformer options: [-m typename pattern] [-i] [-n #] [-q] [-u &]
   -m      Regular expression matching node to remove; default: match none
   -i      Ignore cycles of length 1
   -k      Keep only cycle dependencies
-  -q      Set questionable count for cycle edges; default: set bad count
-  -u &    Set usage of cycle edges to &; default: do not change usage
-  -n #    Limit length of detected cycles to #; default: do not limit length
 ";
         }
 
@@ -45,38 +48,30 @@ Transformer options: [-m typename pattern] [-i] [-n #] [-q] [-u &]
 
         public int Transform(GlobalContext context, string dependenciesFilename, IEnumerable<Dependency> dependencies, string transformOptions,
             string dependencySourceForLogging, List<Dependency> transformedDependencies) {
-
-            ItemMatch match = null;
             bool ignoreSelfCycles = false;
-            bool setQuestionableCount = false;
             bool keepOnlyCycleEdges = false;
-            string usageToAdd = null;
             int maxCycleLength = int.MaxValue;
-            Option.Parse(transformOptions, new OptionAction("m", (args, j) => {
-                string itemTypeName = Option.ExtractOptionValue(args, ref j);
-                string itemPattern = Option.ExtractNextValue(args, ref j);
-                ItemType itemType = ItemType.Find(itemTypeName);
-                if (itemType == null) {
-                    throw new ArgumentException($"Cannot find type {itemTypeName}");
-                }
-                match = new ItemMatch(itemType, itemPattern, _ignoreCase);
-                return j;
-            }), new OptionAction("i", (args, j) => {
-                ignoreSelfCycles = true;
-                return j;
-            }), new OptionAction("k", (args, j) => {
-                keepOnlyCycleEdges = true;
-                return j;
-            }), new OptionAction("n", (args, j) => {
-                maxCycleLength = Option.ExtractIntOptionValue(args, ref j, "No valid cycle length after -n");
-                return j;
-            }), new OptionAction("q", (args, j) => {
-                setQuestionableCount = true;
-                return j;
-            }), new OptionAction("u", (args, j) => {
-                usageToAdd = Option.ExtractOptionValue(args, ref j);
-                return j;
-            }));
+            ItemMatch cycleAnchors = null;
+
+           IEnumerable<Action<Dependency>> effects = EffectOptions.Parse(transformOptions, 
+                moreOptions: new[] {
+                    IgnoreSelfCyclesOption.Action((args, j) => {
+                        ignoreSelfCycles = true;
+                        return j;
+                    }),
+                    KeepOnlyCyclesOption.Action((args, j) => {
+                        keepOnlyCycleEdges = true;
+                        return j;
+                    }),
+                    CycleAnchorsOption.Action((args, j) => {
+                        cycleAnchors = new ItemMatch(null, Option.ExtractOptionValue(args, ref j), _ignoreCase);
+                        return j;
+                    }),
+                    MaxCycleLengthOption.Action((args, j) => {
+                        maxCycleLength = Option.ExtractIntOptionValue(args, ref j, "Invalid maximum cycle length");
+                        return j;
+                    })
+                });
 
             var from = new Dictionary<Item, List<Dependency>>();
             foreach (var d in dependencies) {
@@ -91,23 +86,18 @@ Transformer options: [-m typename pattern] [-i] [-n #] [-q] [-u &]
             var trackItems = new HashSet<Item>();
             var dependenciesOnCycles = new HashSet<Dependency>();
             var path = new Stack<Dependency>();
-            foreach (var i in from.Keys.Where(i => match == null || match.Match(i) != null)) {
+            foreach (var i in from.Keys.Where(i => cycleAnchors == null || cycleAnchors.Match(i) != null)) {
                 FindCyclesFrom(i, i, ignoreSelfCycles, from, trackItems, maxCycleLength, foundCycleHashs, AddHash(0, i), path, dependenciesOnCycles);
             }
 
-            foreach (var d in dependenciesOnCycles) {
-                if (setQuestionableCount) {
-                    d.MarkAsQuestionable();
-                } else {
-                    d.MarkAsBad();
-                }
-                if (usageToAdd != null) {
-                    d.AddUsage(usageToAdd);
-                }
+            if (effects.Contains(DepencencyEffectOptions.DELETE_ACTION_MARKER)) {
+                var deps = new HashSet<Dependency>(dependencies);
+                deps.ExceptWith(dependenciesOnCycles);
+                transformedDependencies.AddRange(deps);
+            } else {
+                DepencencyEffectOptions.Execute(effects, dependenciesOnCycles);
+                transformedDependencies.AddRange(keepOnlyCycleEdges ? dependenciesOnCycles : dependencies);
             }
-
-            transformedDependencies.AddRange(keepOnlyCycleEdges ? dependenciesOnCycles : dependencies);
-
             return Program.OK_RESULT;
         }
 

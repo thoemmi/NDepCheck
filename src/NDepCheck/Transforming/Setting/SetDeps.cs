@@ -99,10 +99,10 @@ Transformer options: [-m &] [-q] [-b] [-u &]
             foreach (var d in dependencies) {
                 if (match == null || d.Usage.Any(u => match.IsMatch(u))) {
                     if (resetQuestionable) {
-                        d.ResetQuestionableCt();
+                        d.ResetQuestionable();
                     }
                     if (resetBad) {
-                        d.ResetBadCt();
+                        d.ResetBad();
                     }
                     if (usage != null) {
                         if (addUsage) {

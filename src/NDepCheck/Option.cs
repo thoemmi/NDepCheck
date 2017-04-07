@@ -183,7 +183,7 @@ namespace NDepCheck {
                         break;
                     }
                 } else {
-                    Throw("Invalid option " + arg, args);
+                    Throw("Invalid option " + arg, argsAsString);
                 }
             }
         }
