@@ -170,10 +170,10 @@ namespace NDepCheck.Rendering {
             return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
-        public static readonly Option BottomRegexOption = new Option("pb", "place-on-bottom", "&", "Regex to select elements to place on bottom; default: all items on both axes");
-        public static readonly Option OrderFieldOption = new Option("of", "order-field", "#", "Field on which items are sorted, counted from 1 up. Items with equal order are sorted by edge count. Default: internal order field, then edge count.");
-        public static readonly Option NoEmptiesOnBottomOption = new Option("nb", "no-empties-on-bottom", "", "Do not show non-referenced items on bottom; default: show all");
-        public static readonly Option NoEmptiesOnLeftOption = new Option("nl", "no-empties-on-left", "", "Do not show non-referenced items on left side; default: show all");
+        public static readonly Option BottomRegexOption = new Option("pb", "place-on-bottom", "&", "Regex to select elements to place on bottom", @default: "all items on both axes");
+        public static readonly Option OrderFieldOption = new Option("of", "order-field", "#", "Field on which items are sorted, counted from 1 up. Items with equal order are sorted by edge count", @default: "internal order field, then edge count.");
+        public static readonly Option NoEmptiesOnBottomOption = new Option("nb", "no-empties-on-bottom", "", "Do not show non-referenced items on bottom", @default: "show all");
+        public static readonly Option NoEmptiesOnLeftOption = new Option("nl", "no-empties-on-left", "", "Do not show non-referenced items on left side", @default: "show all");
 
         protected static readonly Option[] _allOptions = _allGraphicsRendererOptions
                         .Concat(new[] { BottomRegexOption, OrderFieldOption, NoEmptiesOnBottomOption, NoEmptiesOnLeftOption }).ToArray();

@@ -72,10 +72,10 @@ namespace NDepCheck.Rendering {
     }
 
     public abstract class GraphicsRenderer {
-        public static readonly Option WidthOption = new Option("gw", "gif-width", "#", "width of graphics in pixels; default: computed from height, or via minimal text size");
-        public static readonly Option HeightOption = new Option("gh", "gif-height", "#", "height of graphics in pixels; default: computed from width, or via minimal text size");
-        public static readonly Option MinTextHeightOption = new Option("mh", "minimal-text-height", "#", "minimal textheight in points (if -gif-width and -gif-height are not provided); default: 15");
-        public static readonly Option TitleOption = new Option("st", "set-title", "&", "Title text shown in diagram; default: 'ModulesAndInterfacesRenderer'");
+        public static readonly Option WidthOption = new Option("gw", "gif-width", "#", "width of graphics in pixels", @default: "computed from height, or via minimal text size");
+        public static readonly Option HeightOption = new Option("gh", "gif-height", "#", "height of graphics in pixels", @default: "computed from width, or via minimal text size");
+        public static readonly Option MinTextHeightOption = new Option("mh", "minimal-text-height", "#", "minimal textheight in points (if -gif-width and -gif-height are not provided)", @default: "15");
+        public static readonly Option TitleOption = new Option("st", "set-title", "&", "Title text shown in diagram", @default: "'ModulesAndInterfacesRenderer'");
 
         protected static readonly Option[] _allGraphicsRendererOptions = { WidthOption, HeightOption, MinTextHeightOption, TitleOption };
         

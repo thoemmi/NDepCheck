@@ -30,58 +30,65 @@ namespace NDepCheck {
         public const int NO_RULE_SET_FOUND_FOR_FILE = 6;
         public const int EXCEPTION_RESULT = 7;
 
-        public static readonly Option HelpAllOption = new Option(shortname: "?", name: "help-all", usage: "", description: "write help", moreNames: new[] { "h", "help" });
-        public static readonly Option HelpDetailedHelpOption = new Option(shortname: "!", name: "help-detail", usage: "", description: "write extensive help", moreNames: new[] { "man" });
-        public static readonly Option DebugOption = new Option(shortname: "debug", name: "debug", usage: "", description: "start .Net debugger");
+        private class ProgramOption : Option {
+            public ProgramOption(string shortname, string name, string usage, string description, string[] moreNames = null)
+                : base(shortname, name, usage, description, @default: "", moreNames: moreNames) {
+                // empty
+            }
+        }
 
-        public static readonly Option ReadPluginOption = new Option(shortname: "rp", name: "read-plugin", usage: "assembly reader filepattern [- filepattern]", description: "Use <assembly.reader> to read files matching filepattern, but not second filepattern");
-        public static readonly Option ReadFileOption = new Option(shortname: "rf", name: "read-file", usage: "reader filepattern [- filepattern]", description: "Use predefined reader to read files matching filepattern, but not second filepattern");
-        public static readonly Option ReadOption = new Option(shortname: "rd", name: "read", usage: "filepattern [- filepattern]", description: "Use reader derived from file extension to read files matching filepattern, but not second filepattern");
-        public static readonly Option ReadPluginHelpOption = new Option(shortname: "ra?", name: "read-plugin-help", usage: "assembly", description: "Show help for all readers in assembly");
-        public static readonly Option ReadHelpOption = new Option(shortname: "rf?", name: "read-help", usage: "", description: "Show help for all predefined readers");
-        public static readonly Option ReadPluginDetailedHelpOption = new Option(shortname: "ra!", name: "read-plugin-detail", usage: "assembly reader", description: "Show detailed help for reader in assembly");
-        public static readonly Option ReadDetailedHelpOption = new Option(shortname: "rf!", name: "read-detail", usage: "reader", description: "Show detailed help for predefined reader");
+        public static readonly Option HelpAllOption = new ProgramOption(shortname: "?", name: "help-all", usage: "", description: "write help", moreNames: new[] { "h", "help" });
+        public static readonly Option HelpDetailedHelpOption = new ProgramOption(shortname: "!", name: "help-detail", usage: "", description: "write extensive help", moreNames: new[] { "man" });
+        public static readonly Option DebugOption = new ProgramOption(shortname: "debug", name: "debug", usage: "", description: "start .Net debugger");
 
-        public static readonly Option ConfigurePluginOption = new Option(shortname: "cp", name: "configure-plugin", usage: "assembly transformer { options }", description: "Configure <assembly.transformer> with options");
-        public static readonly Option ConfigureOption = new Option(shortname: "cf", name: "configure", usage: "reader  { options }", description: "Configure predefined transformer with options");
+        public static readonly Option ReadPluginOption = new ProgramOption(shortname: "rp", name: "read-plugin", usage: "assembly reader filepattern [- filepattern]", description: "Use <assembly.reader> to read files matching filepattern, but not second filepattern");
+        public static readonly Option ReadFileOption = new ProgramOption(shortname: "rf", name: "read-file", usage: "reader filepattern [- filepattern]", description: "Use predefined reader to read files matching filepattern, but not second filepattern");
+        public static readonly Option ReadOption = new ProgramOption(shortname: "rd", name: "read", usage: "filepattern [- filepattern]", description: "Use reader derived from file extension to read files matching filepattern, but not second filepattern");
+        public static readonly Option ReadPluginHelpOption = new ProgramOption(shortname: "ra?", name: "read-plugin-help", usage: "assembly", description: "Show help for all readers in assembly");
+        public static readonly Option ReadHelpOption = new ProgramOption(shortname: "rf?", name: "read-help", usage: "", description: "Show help for all predefined readers");
+        public static readonly Option ReadPluginDetailedHelpOption = new ProgramOption(shortname: "ra!", name: "read-plugin-detail", usage: "assembly reader", description: "Show detailed help for reader in assembly");
+        public static readonly Option ReadDetailedHelpOption = new ProgramOption(shortname: "rf!", name: "read-detail", usage: "reader", description: "Show detailed help for predefined reader");
 
-        public static readonly Option TransformPluginOption = new Option(shortname: "tp", name: "transform-plugin", usage: "assembly transformer [{ options }]", description: "Transform with <assembly.transformer> with options");
-        public static readonly Option TransformOption = new Option(shortname: "tf", name: "transform", usage: "transformer  [{ options }]", description: "Transform with predefined transformer with options");
-        public static readonly Option TransformTestDataOption = new Option(shortname: "tt", name: "transform-testdata", usage: "assembly transformer [{ options }]", description: "Transform internal testdata with <assembly.transformer> with options");
-        public static readonly Option TransformPluginHelpOption = new Option(shortname: "tp?", name: "transform-plugin-help", usage: "assembly", description: "Show help for all transformers in assembly");
-        public static readonly Option TransformHelpOption = new Option(shortname: "tf?", name: "transform-help", usage: "", description: "Show help for all predefined transformers");
-        public static readonly Option TransformPluginDetailedHelpOption = new Option(shortname: "tp!", name: "transform-plugin-detail", usage: "assembly transformer", description: "Show detailed help for transformer in assembly");
-        public static readonly Option TransformDetailedHelpOption = new Option(shortname: "tf!", name: "transform-detail", usage: "transformer", description: "Show detailed help for predefined transformer");
+        public static readonly Option ConfigurePluginOption = new ProgramOption(shortname: "cp", name: "configure-plugin", usage: "assembly transformer { options }", description: "Configure <assembly.transformer> with options");
+        public static readonly Option ConfigureOption = new ProgramOption(shortname: "cf", name: "configure", usage: "reader  { options }", description: "Configure predefined transformer with options");
 
-        public static readonly Option WritePluginOption = new Option(shortname: "wp", name: "write-plugin", usage: "assembly writer [{ options }] filename", description: "write to filename with <assembly.writer> with options");
-        public static readonly Option WriteFileOption = new Option(shortname: "wr", name: "write", usage: "writer  [{ options }] filename", description: "write to filename with predefined writer with options");
-        public static readonly Option WriteDipOption = new Option(shortname: "wd", name: "write-dip", usage: "filename", description: "write to filename with predefined writer with options");
-        public static readonly Option WriteTestDataOption = new Option(shortname: "wt", name: "write-testdata", usage: "assembly writer [{ options }] filename", description: "write internal testdata to filename with <assembly.writer> with options");
-        public static readonly Option WritePluginHelpOption = new Option(shortname: "wp?", name: "write-plugin-help", usage: "assembly", description: "Show help for all writers in assembly");
-        public static readonly Option WriteHelpOption = new Option(shortname: "wr?", name: "write-help", usage: "", description: "Show help for all predefined writers");
-        public static readonly Option WritePluginDetailedHelpOption = new Option(shortname: "wp!", name: "write-plugin-detail", usage: "assembly writer", description: "Show detailed help for writer in assembly");
-        public static readonly Option WriteDetailedHelpOption = new Option(shortname: "wr!", name: "write-detail", usage: "writer", description: "Show detailed help for predefined writer");
+        public static readonly Option TransformPluginOption = new ProgramOption(shortname: "tp", name: "transform-plugin", usage: "assembly transformer [{ options }]", description: "Transform with <assembly.transformer> with options");
+        public static readonly Option TransformOption = new ProgramOption(shortname: "tf", name: "transform", usage: "transformer  [{ options }]", description: "Transform with predefined transformer with options");
+        public static readonly Option TransformTestDataOption = new ProgramOption(shortname: "tt", name: "transform-testdata", usage: "assembly transformer [{ options }]", description: "Transform internal testdata with <assembly.transformer> with options");
+        public static readonly Option TransformPluginHelpOption = new ProgramOption(shortname: "tp?", name: "transform-plugin-help", usage: "assembly", description: "Show help for all transformers in assembly");
+        public static readonly Option TransformHelpOption = new ProgramOption(shortname: "tf?", name: "transform-help", usage: "", description: "Show help for all predefined transformers");
+        public static readonly Option TransformPluginDetailedHelpOption = new ProgramOption(shortname: "tp!", name: "transform-plugin-detail", usage: "assembly transformer", description: "Show detailed help for transformer in assembly");
+        public static readonly Option TransformDetailedHelpOption = new ProgramOption(shortname: "tf!", name: "transform-detail", usage: "transformer", description: "Show detailed help for predefined transformer");
 
-        public static readonly Option DoBreakOption = new Option(shortname: "db", name: "do-break", usage: "", description: "stop execution; useful for debugging of -df");
-        public static readonly Option DoCommandOption = new Option(shortname: "dc", name: "do-command", usage: "command", description: "execute shell command; useful for opening result file");
-        public static readonly Option DoScriptOption = new Option(shortname: "ds", name: "do-script", usage: "filename", description: "execute NDepCheck script");
-        public static readonly Option DoDefineOption = new Option(shortname: "dd", name: "do-define", usage: "name value", description: "define name as value");
-        public static readonly Option DoResetOption = new Option(shortname: "dr", name: "do-reset", usage: "[filename]", description: "reset state; and read file as dip file");
+        public static readonly Option WritePluginOption = new ProgramOption(shortname: "wp", name: "write-plugin", usage: "assembly writer [{ options }] filename", description: "write to filename with <assembly.writer> with options");
+        public static readonly Option WriteFileOption = new ProgramOption(shortname: "wr", name: "write", usage: "writer  [{ options }] filename", description: "write to filename with predefined writer with options");
+        public static readonly Option WriteDipOption = new ProgramOption(shortname: "wd", name: "write-dip", usage: "filename", description: "write to filename with predefined writer with options");
+        public static readonly Option WriteTestDataOption = new ProgramOption(shortname: "wt", name: "write-testdata", usage: "assembly writer [{ options }] filename", description: "write internal testdata to filename with <assembly.writer> with options");
+        public static readonly Option WritePluginHelpOption = new ProgramOption(shortname: "wp?", name: "write-plugin-help", usage: "assembly", description: "Show help for all writers in assembly");
+        public static readonly Option WriteHelpOption = new ProgramOption(shortname: "wr?", name: "write-help", usage: "", description: "Show help for all predefined writers");
+        public static readonly Option WritePluginDetailedHelpOption = new ProgramOption(shortname: "wp!", name: "write-plugin-detail", usage: "assembly writer", description: "Show detailed help for writer in assembly");
+        public static readonly Option WriteDetailedHelpOption = new ProgramOption(shortname: "wr!", name: "write-detail", usage: "writer", description: "Show detailed help for predefined writer");
 
-        public static readonly Option WatchFilesOption = new Option(shortname: "aw", name: "watch-files", usage: "filepattern [- filepattern] script", description: "Watch files");
-        public static readonly Option UnwatchFilesOption = new Option(shortname: "au", name: "unwatch-files", usage: "filepattern", description: "Unwatch files specified by filepattern");
-        public static readonly Option UnwatchTriggersOption = new Option(shortname: "an", name: "unwatch-triggers", usage: "script", description: "No longer watch all files triggering script");
+        public static readonly Option DoBreakOption = new ProgramOption(shortname: "db", name: "do-break", usage: "", description: "stop execution; useful for debugging of -df");
+        public static readonly Option DoCommandOption = new ProgramOption(shortname: "dc", name: "do-command", usage: "command", description: "execute shell command; useful for opening result file");
+        public static readonly Option DoScriptOption = new ProgramOption(shortname: "ds", name: "do-script", usage: "filename", description: "execute NDepCheck script");
+        public static readonly Option DoDefineOption = new ProgramOption(shortname: "dd", name: "do-define", usage: "name value", description: "define name as value");
+        public static readonly Option DoResetOption = new ProgramOption(shortname: "dr", name: "do-reset", usage: "[filename]", description: "reset state; and read file as dip file");
 
-        public static readonly Option HttpRunOption = new Option(shortname: "hr", name: "http-run", usage: "port directory", description: "run internal webserver");
-        public static readonly Option HttpStopOption = new Option(shortname: "hs", name: "http-stop", usage: "", description: "stop internal webserver");
+        public static readonly Option WatchFilesOption = new ProgramOption(shortname: "aw", name: "watch-files", usage: "filepattern [- filepattern] script", description: "Watch files");
+        public static readonly Option UnwatchFilesOption = new ProgramOption(shortname: "au", name: "unwatch-files", usage: "filepattern", description: "Unwatch files specified by filepattern");
+        public static readonly Option UnwatchTriggersOption = new ProgramOption(shortname: "an", name: "unwatch-triggers", usage: "script", description: "No longer watch all files triggering script");
 
-        public static readonly Option IgnoreCaseOption = new Option(shortname: "ic", name: "ignore-case", usage: "", description: "ignore case at multiple places");
-        public static readonly Option InteractiveOption = new Option(shortname: "ia", name: "interactive", usage: "[filename]", description: "interactive mode, logging to filename");
-        public static readonly Option InteractiveStopOption = new Option(shortname: "is", name: "interactive-stop", usage: "", description: "stop interactive mode", moreNames: new[] { "q", "quit", "exit" });
+        public static readonly Option HttpRunOption = new ProgramOption(shortname: "hr", name: "http-run", usage: "port directory", description: "run internal webserver");
+        public static readonly Option HttpStopOption = new ProgramOption(shortname: "hs", name: "http-stop", usage: "", description: "stop internal webserver");
 
-        public static readonly Option LogVerboseOption = new Option(shortname: "lv", name: "log-verbose", usage: "", description: "verbose logging");
-        public static readonly Option LogChattyOption = new Option(shortname: "lc", name: "log-chatty", usage: "", description: "chatty logging");
-        public static readonly Option LazyOption = new Option(shortname: "lz", name: "lazy", usage: "", description: "execute readers and transformers lazily (NOT YET IMPLEMENTED FULLY)");
+        public static readonly Option IgnoreCaseOption = new ProgramOption(shortname: "ic", name: "ignore-case", usage: "", description: "ignore case at multiple places");
+        public static readonly Option InteractiveOption = new ProgramOption(shortname: "ia", name: "interactive", usage: "[filename]", description: "interactive mode, logging to filename");
+        public static readonly Option InteractiveStopOption = new ProgramOption(shortname: "is", name: "interactive-stop", usage: "", description: "stop interactive mode", moreNames: new[] { "q", "quit", "exit" });
+
+        public static readonly Option LogVerboseOption = new ProgramOption(shortname: "lv", name: "log-verbose", usage: "", description: "verbose logging");
+        public static readonly Option LogChattyOption = new ProgramOption(shortname: "lc", name: "log-chatty", usage: "", description: "chatty logging");
+        public static readonly Option LazyOption = new ProgramOption(shortname: "lz", name: "lazy", usage: "", description: "execute readers and transformers lazily (NOT YET IMPLEMENTED FULLY)");
 
         private static readonly Option[] _allOptions = {
             HelpAllOption, HelpDetailedHelpOption, DebugOption,
@@ -337,11 +344,7 @@ namespace NDepCheck {
                         // -dr    [filename]
                         Log.WriteInfo(msg: "---- Reset of input options (-dr)");
 
-                        Intern<ItemType>.Reset();
-                        Intern<ItemTail>.Reset();
-                        Intern<Item>.Reset();
-                        AbstractDotNetAssemblyDependencyReader.Reset();
-                        globalContext.Reset();
+                        globalContext.ResetAll();
 
                         string fileName = Option.ExtractNextValue(args, ref i);
                         if (fileName != null && IsDipFile(fileName)) {

@@ -4,11 +4,7 @@ using System.IO;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming {
-    public abstract class AbstractTransformer {
-        
-    }
-
-    public abstract class AbstractTransformerWithConfigurationPerInputfile<TConfigurationPerInputfile> : AbstractTransformer, ITransformer {
+    public abstract class AbstractTransformerWithConfigurationPerInputfile<TConfigurationPerInputfile> : ITransformer {
         public abstract string GetHelp(bool detailedHelp);
 
         #region Configure
@@ -23,11 +19,11 @@ namespace NDepCheck.Transforming {
         public abstract void Configure(GlobalContext globalContext, [NotNull] string configureOptions);
 
         public TConfigurationPerInputfile GetOrReadChildConfiguration(GlobalContext globalContext, 
-            Func<TextReader> createReader, string fullSourceName,bool ignoreCase, string fileIncludeStack) {
+            Func<TextReader> createReader, string fullSourceName, bool ignoreCase, string fileIncludeStack) {
             TConfigurationPerInputfile childConfiguration;
             if (!_fileName2config.TryGetValue(fullSourceName, out childConfiguration)) {
                 using (var tr = createReader()) {
-                    childConfiguration =  CreateConfigurationFromText(globalContext, fullSourceName, 0, tr, ignoreCase,
+                    childConfiguration = CreateConfigurationFromText(globalContext, fullSourceName, 0, tr, ignoreCase,
                         fileIncludeStack + "+" + fullSourceName);
                     _fileName2config[fullSourceName] = childConfiguration;
                 }

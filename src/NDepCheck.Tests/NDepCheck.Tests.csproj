@@ -82,8 +82,8 @@
     <Compile Include="TestRemoveDeps.cs" />
     <Compile Include="TestRendering.cs" />
     <Compile Include="TestAddReverseDeps.cs" />
-    <Compile Include="TestRemoveItems.cs" />
-    <Compile Include="TestSetDeps.cs" />
+    <Compile Include="TestMarkSpecialItems .cs" />
+    <Compile Include="TestModifyDeps.cs" />
     <Compile Include="TestTopologicalOrder.cs" />
     <Compile Include="TestUnhideCycles.cs" />
     <Compile Include="TestNode.cs" />

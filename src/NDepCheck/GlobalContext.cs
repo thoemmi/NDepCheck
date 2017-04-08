@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Gibraltar;
 using JetBrains.Annotations;
 using Microsoft.SqlServer.Server;
 using NDepCheck.Reading;
@@ -255,7 +256,7 @@ namespace NDepCheck {
         //[CanBeNull]
         //public string DefaultRuleSource { get; set; }
 
-        public void Reset() {
+        public void ResetAll() {
             _inputContexts.Clear();
             _dependenciesWithoutInputContext = Enumerable.Empty<Dependency>();
 
@@ -263,6 +264,12 @@ namespace NDepCheck {
 
             RenderingDone = false;
             TransformingDone = false;
+
+            Intern<ItemType>.Reset();
+            Intern<ItemTail>.Reset();
+            Intern<Item>.Reset();
+            AbstractDotNetAssemblyDependencyReader.Reset();
+
         }
 
         public AbstractDotNetAssemblyDependencyReader GetDotNetAssemblyReaderFor(string usedAssembly) {

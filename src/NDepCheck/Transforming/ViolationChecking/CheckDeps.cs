@@ -6,15 +6,15 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.ViolationChecking {
     public class CheckDeps : AbstractTransformerWithConfigurationPerInputfile<DependencyRuleSet> {
-        public static readonly Option RuleFileExtensionOption = new Option("re", "rule-extension", "extension", "extension for rule files");
-        public static readonly Option RuleRootDirectoryOption = new Option("rr", "rule-rootdirectory", "directory", "search directory for rule files(searched recursively)", multiple: true);
-        public static readonly Option DefaultRuleFileOption = new Option("rf", "rule-defaultfile", "filename", "default rule file");
-        public static readonly Option DefaultRulesOption = new Option("rd", "rule-defaults", "rules", "default rules");
+        public static readonly Option RuleFileExtensionOption = new Option("re", "rule-extension", "extension", "extension for rule files", @default: ".dep");
+        public static readonly Option RuleRootDirectoryOption = new Option("rr", "rule-rootdirectory", "directory", "search directory for rule files (searched recursively)", @default: "no search for rule files", multiple: true);
+        public static readonly Option DefaultRuleFileOption = new Option("rf", "rule-defaultfile", "filename", "default rule file", @default: "no default rule file");
+        public static readonly Option DefaultRulesOption = new Option("rd", "rule-defaults", "rules", "default rules", @default: "no default rules");
 
         private static readonly Option[] _configOptions = { RuleFileExtensionOption, RuleRootDirectoryOption, DefaultRuleFileOption, DefaultRulesOption };
 
-        public static readonly Option ShowUnusedQuestionableRulesOption = new Option("sq", "show-unused-questionable", "", "Show unused questionable rules");
-        public static readonly Option ShowAllUnusedRulesOption = new Option("su", "show-unused-rules", "", "Show all unused rules");
+        public static readonly Option ShowUnusedQuestionableRulesOption = new Option("sq", "show-unused-questionable", "", "Show unused questionable rules", @default: false);
+        public static readonly Option ShowAllUnusedRulesOption = new Option("su", "show-unused-rules", "", "Show all unused rules", @default: false);
 
         private static readonly Option[] _transformOptions = { ShowUnusedQuestionableRulesOption, ShowAllUnusedRulesOption };
 

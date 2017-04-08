@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.Rendering;
-using NDepCheck.Transforming.Marking;
+using NDepCheck.Transforming.Modifying;
 using System.Linq;
 
 namespace NDepCheck.Tests {
@@ -18,7 +18,10 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                Program.TransformTestDataOption.Opt, ".", typeof(RemoveDeps).Name, "{", "-i", "}",
+                Program.ConfigureOption.Opt, typeof(ModifyDeps).Name, "{",
+                    ModifyDeps.ModificationsOption.Opt, "--=->=>delete", "--->=>",
+                "}",
+                Program.TransformTestDataOption.Opt, ".", typeof(ModifyDeps).Name,
                 Program.WriteFileOption.Opt, typeof(DipWriter).Name, outFile
             }));
 
@@ -33,13 +36,16 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                Program.TransformTestDataOption.Opt, ".", typeof(RemoveDeps).Name, "{", "-o", "}",
+                Program.ConfigureOption.Opt, typeof(ModifyDeps).Name, "{",
+                    ModifyDeps.ModificationsOption.Opt, "--~?~!'->=>delete", "--->=>",
+                "}",
+                Program.TransformTestDataOption.Opt, ".", typeof(ModifyDeps).Name,
                 Program.WriteDipOption.Opt, outFile
             }));
 
             using (var sw = new StreamReader(outFile)) {
                 string o = sw.ReadToEnd();
-                AssertEdgeCount(3, o);
+                AssertEdgeCount(2, o);
             }
         }
 
@@ -48,7 +54,10 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                Program.TransformTestDataOption.Opt, ".", typeof(RemoveDeps).Name, "{", "-b", "}",
+                Program.ConfigureOption.Opt, typeof(ModifyDeps).Name, "{",
+                    ModifyDeps.ModificationsOption.Opt, "--!'->=>delete", "--->=>",
+                "}",
+                Program.TransformTestDataOption.Opt, ".", typeof(ModifyDeps).Name,
                 Program.WriteDipOption.Opt, outFile
             }));
 
@@ -63,13 +72,16 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                Program.TransformTestDataOption.Opt, ".", typeof(RemoveDeps).Name, "{", "-q", "}",
+                Program.ConfigureOption.Opt, typeof(ModifyDeps).Name, "{",
+                    ModifyDeps.ModificationsOption.Opt, "--?'->=>delete", "--->=>",
+                "}",
+                Program.TransformTestDataOption.Opt, ".", typeof(ModifyDeps).Name,
                 Program.WriteDipOption.Opt, outFile
             }));
 
             using (var sw = new StreamReader(outFile)) {
                 string o = sw.ReadToEnd();
-                AssertEdgeCount(3, o);
+                AssertEdgeCount(2, o);
             }
         }
 
@@ -78,7 +90,10 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                Program.TransformTestDataOption.Opt, ".", typeof(RemoveDeps).Name, "{", "-m", "inherit", "}",
+                Program.ConfigureOption.Opt, typeof(ModifyDeps).Name, "{",
+                    ModifyDeps.ModificationsOption.Opt, "--'use->=>delete", "--->=>",
+                "}",
+                Program.TransformTestDataOption.Opt, ".", typeof(ModifyDeps).Name,
                 Program.WriteDipOption.Opt, outFile
             }));
 

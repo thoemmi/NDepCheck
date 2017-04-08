@@ -27,9 +27,7 @@ namespace NDepCheck {
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem, [CanBeNull] ISourceLocation source,
             [CanBeNull] string usage, int ct, int questionableCt = 0, int badCt = 0,
             [CanBeNull] string exampleInfo = null, [CanBeNull] InputContext inputContext = null) : this(
-                usingItem, usedItem, source, UsageToSet(usage), ct, questionableCt, badCt, exampleInfo, inputContext) { }
-
-
+                usingItem, usedItem, source, usage == null ? null : usage.Split('&', '+', ','), ct, questionableCt, badCt, exampleInfo, inputContext) { }
 
         /// <summary>
         /// Create a dependency.
@@ -37,16 +35,16 @@ namespace NDepCheck {
         /// <param name="usingItem">The using item.</param>
         /// <param name="usedItem">The used item.</param>
         /// <param name="source">Name of the file.</param>
-        /// <param name="usage"></param>
+        /// <param name="markers"></param>
         /// <param name="ct"></param>
         /// <param name="questionableCt"></param>
         /// <param name="badCt"></param>
         /// <param name="exampleInfo"></param>
         /// <param name="inputContext"></param>
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem,
-            [CanBeNull] ISourceLocation source, [NotNull] IEnumerable<string> usage,
+            [CanBeNull] ISourceLocation source, [CanBeNull] IEnumerable<string> markers,
             int ct, int questionableCt = 0, int badCt = 0, [CanBeNull] string exampleInfo = null,
-            [CanBeNull] InputContext inputContext = null) {
+            [CanBeNull] InputContext inputContext = null) : base(markers) {
             if (usingItem == null) {
                 throw new ArgumentNullException(nameof(usingItem));
             }
@@ -58,23 +56,10 @@ namespace NDepCheck {
             InputContext = inputContext;
             inputContext?.AddDependency(this);
             Source = source; // != null ? string.Intern(fileName) : null;
-            Usage = new HashSet<string>(usage);
             _ct = ct;
             _questionableCt = questionableCt;
             _badCt = badCt;
             _exampleInfo = exampleInfo;
-        }
-
-        public void SetUsage(string usage) {
-            Usage = UsageToSet(usage);
-        }
-
-        public void AddUsage(string usage) {
-            Usage.UnionWith(UsageToSet(usage));
-        }
-
-        private static HashSet<string> UsageToSet(string usage) {
-            return new HashSet<string>(usage?.Split('+').Where(s => !string.IsNullOrWhiteSpace(s)) ?? Enumerable.Empty<string>());
         }
 
         /// <summary>
@@ -96,11 +81,6 @@ namespace NDepCheck {
         [CanBeNull] 
         public ISourceLocation Source {
             get;
-        }
-
-        [NotNull]
-        public HashSet<string> Usage {
-            get; private set;
         }
 
         [NotNull]
@@ -226,14 +206,14 @@ namespace NDepCheck {
 
         public string AsDipStringWithTypes(bool withExampleInfo) {
             string exampleInfo = withExampleInfo ? _exampleInfo : null;
-            string usage = string.Join("+", Usage.OrderBy(s => s));
+            string usage = string.Join("+", Markers.OrderBy(s => s));
             return $"{_usingItem.AsStringWithOrderAndType()} {EdgeConstants.DIP_ARROW} "
                  + $"{usage};{_ct};{_questionableCt};{_badCt};{Source?.AsDipString()};{exampleInfo} "
                  + $"{EdgeConstants.DIP_ARROW} {_usedItem.AsStringWithOrderAndType()}";
         }
 
         public void AggregateCounts(Dependency d) {
-            Usage.UnionWith(d.Usage);
+            AddMarkers(d.Markers);
             _ct += d.Ct;
             _questionableCt += d.QuestionableCt;
             _badCt += d.BadCt;

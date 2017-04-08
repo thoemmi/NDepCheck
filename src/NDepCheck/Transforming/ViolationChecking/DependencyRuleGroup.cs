@@ -129,7 +129,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
             bool allOk = true;
 
             foreach (Dependency d in dependencies) {
-                if (_groupMatchOrNullForMainGroup == null || _groupMatchOrNullForMainGroup.Match(d.UsingItem) != null) {
+                if (_groupMatchOrNullForMainGroup == null || _groupMatchOrNullForMainGroup.Matches(d.UsingItem) != null) {
                     Check(d);
                     allOk &= d.BadCt == 0;
                     if (++reorgCount > nextReorg) {

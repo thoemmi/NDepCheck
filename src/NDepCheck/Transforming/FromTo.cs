@@ -21,12 +21,12 @@ namespace NDepCheck.Transforming {
         }
 
         public FromTo AggregateEdge(Dependency d, Dictionary<FromTo, Dependency> edgeCollector) {
-            Dependency edge;
-            if (!edgeCollector.TryGetValue(this, out edge)) {
-                edge = new Dependency(From, To, d.Source, d.Usage, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo);
-                edgeCollector.Add(this, edge);
+            Dependency result;
+            if (!edgeCollector.TryGetValue(this, out result)) {
+                result = new Dependency(From, To, d.Source, d.Markers, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo);
+                edgeCollector.Add(this, result);
             } else {
-                edge.AggregateCounts(d);
+                result.AggregateCounts(d);
             }
             return this;
         }

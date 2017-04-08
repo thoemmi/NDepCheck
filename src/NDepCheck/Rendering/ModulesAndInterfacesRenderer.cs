@@ -7,8 +7,8 @@ using NDepCheck.ConstraintSolving;
 
 namespace NDepCheck.Rendering {
     public class ModulesAndInterfacesRenderer : GraphicsDependencyRenderer {
-        public static readonly Option InterfaceSelectorOption = new Option("si", "select-interface", "&", "Regexp for interface marker, i.e., items that are drawn as vertical bars");
-        public static readonly Option OrderFieldOption = new Option("of", "order-field", "#", "Field on which items are sorted, counted from 1 up. Items with equal order are sorted by edge count. Default: internal order field, then edge count.");
+        public static readonly Option InterfaceSelectorOption = new Option("si", "select-interface", "&", "Regexp for interface marker, i.e., items that are drawn as vertical bars", @default: null);
+        public static readonly Option OrderFieldOption = new Option("of", "order-field", "#", "Field on which items are sorted, counted from 1 up. Items with equal order are sorted by edge count.", @default: "internal order field, then edge count.");
 
         private static readonly Font _boxFont = new Font(FontFamily.GenericSansSerif, 10);
         private static readonly Font _interfaceFont = new Font(FontFamily.GenericSansSerif, 7);

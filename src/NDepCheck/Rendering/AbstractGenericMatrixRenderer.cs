@@ -6,8 +6,8 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Rendering {
     public abstract class AbstractMatrixRenderer {
-        public static readonly Option MaxNameWidthOption = new Option("mw", "max-name-width", "#", "Maximal width of an item name");
-        public static readonly Option WriteBadCountOption = new Option("wb", "write-bad-count", "", "Also output count of bad dependencies");
+        public static readonly Option MaxNameWidthOption = new Option("mw", "max-name-width", "#", "Maximal width of an item name", @default: "full length of name");
+        public static readonly Option WriteBadCountOption = new Option("wb", "write-bad-count", "", "Also output count of bad dependencies", @default: false);
 
         private static readonly Option[] _allOptions = { MaxNameWidthOption, WriteBadCountOption };
 

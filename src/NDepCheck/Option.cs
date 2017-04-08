@@ -7,22 +7,12 @@ using JetBrains.Annotations;
 
 namespace NDepCheck {
     public class OptionAction {
-        private readonly string _oldOption;
-        private readonly Option _newOption;
+        public Option Option { get; }
         public readonly Func<string[], int, int> Action;
 
         public OptionAction(Option option, Func<string[], int, int> action) {
-            _newOption = option;
+            Option = option;
             Action = action;
-        }
-
-        public OptionAction(string option, Func<string[], int, int> action) {
-            _oldOption = option;
-            Action = action;
-        }
-
-        public bool ArgMatches(string arg) {
-            return _oldOption == null ? _newOption.Matches(arg) : Option.ArgMatches(arg, _oldOption);
         }
     }
 
@@ -32,18 +22,33 @@ namespace NDepCheck {
         public readonly string Usage;
         public readonly string Description;
         public readonly bool Multiple;
+        public readonly string Default;
         public readonly string[] MoreNames;
+        public readonly Option OrElse;
 
-        public Option(string shortname, string name, string usage, string description, bool multiple = false, string[] moreNames = null) {
+        public Option(string shortname, string name, string usage, string description, Option orElse, string[] moreNames = null) 
+            : this(shortname, name, usage, description, @default: "", multiple: false, moreNames: moreNames) {
+            OrElse = orElse; // not yet used ...
+        }
+
+        public Option(string shortname, string name, string usage, string description, bool @default, string[] moreNames = null) 
+            : this(shortname, name, usage, description, @default: @default ? "true" : "false", multiple: false, moreNames: moreNames) {
+        }
+
+        public Option(string shortname, string name, string usage, string description, string @default, 
+                      bool multiple = false, string[] moreNames = null) {
             ShortName = shortname;
             Name = name;
             Usage = usage;
             Description = description;
             Multiple = multiple;
+            Default = @default;
             MoreNames = moreNames ?? new string[0];
         }
 
         public string Opt => "-" + Name;
+
+        public bool Required => Default == null;
 
         public override string ToString() {
             return "/" + ShortName;
@@ -53,13 +58,17 @@ namespace NDepCheck {
             return ArgMatches(arg, ShortName, Name) || ArgMatches(arg, MoreNames);
         }
 
-        public static string CreateHelp(Option[] options, bool detailed) {
+        public static string CreateHelp(IEnumerable<Option> options, bool detailed) {
             var sb = new StringBuilder();
             foreach (var o in options) {
-                sb.AppendLine("-"+ o.Name + " or -" + o.ShortName + "   " + o.Usage);
+                sb.AppendLine("-" + o.Name + " or -" + o.ShortName + "   " + o.Usage);
                 sb.AppendLine("    " + o.Description);
-                if (o.Multiple) {
-                    sb.AppendLine("    Can be specified more than once");
+                if (o.Default == null) {
+                    sb.AppendLine(o.Multiple ? "    Required; can be specified more than once" : "    Required");
+                } else {
+                    sb.AppendLine(o.Multiple
+                        ? $"    Default: {o.Default}; can be specified more than once"
+                        : $"    Default: {o.Default}");
                 }
             }
             return sb.ToString();
@@ -143,6 +152,9 @@ namespace NDepCheck {
                 string value = args[++i];
                 if (value.StartsWith("{")) {
                     return CollectMultipleArgs(args, ref i, value);
+                } else if (value.StartsWith("/") || value.StartsWith("-")) {
+                    --i;
+                    return null;
                 } else {
                     return value;
                 }
@@ -174,17 +186,31 @@ namespace NDepCheck {
                 args = new[] { argsAsString };
             }
 
+            HashSet<Option> requiredOptions =
+                new HashSet<Option>(optionActions.Where(oa => oa.Option != null && oa.Option.Required).Select(oa => oa.Option));
+
             for (int i = 0; i < args.Length; i++) {
                 string arg = args[i];
-                var optionAction = optionActions.FirstOrDefault(oa => oa.ArgMatches(arg));
+                OptionAction optionAction = optionActions.FirstOrDefault(oa => oa.Option.Matches(arg));
                 if (optionAction != null) {
+                    requiredOptions.Remove(optionAction.Option);
                     i = optionAction.Action(args, i);
                     if (i == int.MaxValue) {
                         break;
                     }
                 } else {
-                    Throw("Invalid option " + arg, argsAsString);
+                    string message;
+                    if (arg.Count(c => c == '/' || c == '-') > 1) {
+                        message = "Invalid option " + arg + ", maybe {...} missing";                    
+                    } else {
+                        message = "Invalid option " + arg;
+                    }
+                    Throw(message, argsAsString);
                 }
+            }
+
+            if (requiredOptions.Any()) {
+                Throw("Missing required options: " + string.Join(", ", requiredOptions.OrderBy(o => o.Name).Select(o => o.Name)), argsAsString);
             }
         }
 

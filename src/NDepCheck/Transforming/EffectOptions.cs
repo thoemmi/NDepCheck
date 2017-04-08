@@ -12,9 +12,9 @@ namespace NDepCheck.Transforming {
         public static readonly Action<T> DELETE_ACTION_MARKER = x => { };
 
         protected EffectOptions([NotNull] string sort) {
-            AddMarkerOption = new Option("am", "add-marker", "marker", "add a marker to the " + sort, multiple: true);
-            RemoveMarkerOption = new Option("rm", "remove-marker", "marker", "remove a marker from the " + sort, multiple: true);
-            DeleteOption = new Option("d" + sort.First(), "delete-" + sort, "", "delete the " + sort);
+            AddMarkerOption = new Option("am", "add-marker", "marker", "add a marker to the " + sort, @default: "", multiple: true);
+            RemoveMarkerOption = new Option("rm", "remove-marker", "marker", "remove a marker from the " + sort, @default: "", multiple: true);
+            DeleteOption = new Option("d" + sort.First(), "delete-" + sort, "", "delete the " + sort, @default: "keep " + sort);
         }
 
         protected IEnumerable<Option> BaseOptions => new[] { AddMarkerOption, RemoveMarkerOption, DeleteOption };
@@ -58,21 +58,21 @@ namespace NDepCheck.Transforming {
     }
 
     public class DepencencyEffectOptions : EffectOptions<Dependency> {
-        public readonly Option SetBadOption = new Option("s!", "set-bad", "", "set-bad counter to edge counter");
+        public readonly Option SetBadOption = new Option("s!", "set-bad", "", "Set bad counter to edge counter", @default: "");
 
         public readonly Option IncrementBadOption = new Option("i!", "increment-bad", "",
-            "increment-bad counter by 1", multiple: true);
+            "Increment bad counter by 1", @default: "", multiple: true);
 
-        public readonly Option ResetBadOption = new Option("r!", "reset-bad", "", "reset-bad counter to0");
+        public readonly Option ResetBadOption = new Option("r!", "reset-bad", "", "Reset bad counter to 0", @default: "");
 
         public readonly Option SetQuestionableOption = new Option("s?", "set-questionable", "",
-            "set-questionable counter to edge counter");
+            "Set questionable counter to edge counter", @default: "");
 
         public readonly Option IncrementQuestionableOption = new Option("i?", "increment-questionable", "",
-            "increment-questionable counter by 1", multiple: true);
+            "Increment questionable counter by 1", @default: "", multiple: true);
 
         public readonly Option ResetQuestionableOption = new Option("r?", "reset-questionable", "",
-            "reset-questionable counter to 0");
+            "Reset questionable counter to 0", @default: "");
 
         public DepencencyEffectOptions() : base("dependency") {
         }

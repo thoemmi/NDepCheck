@@ -157,7 +157,7 @@ namespace NDepCheck.Transforming {
             return !Regex.IsMatch(segment, @"[\\*()+?]");
         }
 
-        public string[] Match([NotNull] Item item) {
+        public string[] Matches([NotNull] Item item) {
             if (_itemTypeOrNull != null && !item.Type.Equals(_itemTypeOrNull)) {
                 return null;
             }
@@ -167,7 +167,7 @@ namespace NDepCheck.Transforming {
             for (int i = 0; i < _matchers.Length; i++) {
                 IMatcher matcher = _matchers[i];
                 string value = item.Values[i];
-                string[] groups = matcher.Match(value);
+                string[] groups = matcher.Matches(value);
                 if (groups == null) {
                     return null;
                 }
@@ -195,7 +195,7 @@ namespace NDepCheck.Transforming {
             return _alsoMatchDot || !value.Contains('.');
         }
 
-        public string[] Match(string value) {
+        public string[] Matches(string value) {
             return Enumerable.Repeat(value, _groupCount).ToArray();
         }
 
@@ -219,7 +219,7 @@ namespace NDepCheck.Transforming {
             return value == "";
         }
 
-        public string[] Match(string value) {
+        public string[] Matches(string value) {
             return value == "" ? _groups : null;
         }
 
@@ -262,10 +262,10 @@ namespace NDepCheck.Transforming {
         }
 
         public bool IsMatch(string value, string[] groups) {
-            return Match(value) != null;
+            return Matches(value) != null;
         }
 
-        public string[] Match(string value) {
+        public string[] Matches(string value) {
             string[] result;
             if (Check(value, out result)) {
                 return result;
@@ -346,7 +346,7 @@ namespace NDepCheck.Transforming {
             return isMatch;
         }
 
-        public string[] Match(string value) {
+        public string[] Matches(string value) {
             Match m = _regex.Match(value);
             if (m.Success) {
                 string[] groups = new string[m.Groups.Count - 1];
@@ -395,7 +395,7 @@ namespace NDepCheck.Transforming {
             return isMatch;
         }
 
-        public string[] Match(string value) {
+        public string[] Matches(string value) {
             Match m = _regex.Match(value);
             if (m.Success) {
                 string[] groups = new string[m.Groups.Count - 1];

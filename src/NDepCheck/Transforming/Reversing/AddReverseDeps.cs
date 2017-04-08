@@ -1,25 +1,28 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace NDepCheck.Transforming.Reversing {
     public class AddReverseDeps : ITransformer {
+        public static readonly Option MatchOption = new Option("dm", "dependency-match", "&", "Match to select dependencies to reverse", @default: "reverse all edges", multiple: true);
+        public static readonly Option RemoveOriginalOption = new Option("ro", "remove-original", "", "If present, original dependency of a newly created reverse dependency is removed", @default:false);
+        public static readonly Option MarkerToAddOption = new Option("ma", "marker-to-add", "&", "Marker added to newly created reverse dependencies", @default: "none");
+
+        private static readonly Option[] _transformOptions = { MatchOption, RemoveOriginalOption, MarkerToAddOption };
+
+        private bool _ignoreCase;
+
         public string GetHelp(bool detailedHelp) {
-            return @"Add reverse edges.
+            return $@"Add reverse edges.
 
 Configuration options: None
 
-Transformer options: [-m &] [-u &] [-r]
-  -m &    Regular expression matching usage of edges to reverse; default: match all
-  -u &    Set usage of created edges; default: copy from reversed edge
-  -r      Remove original edge
-";
+Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
         }
 
         public bool RunsPerInputContext => false;
 
         public void Configure(GlobalContext globalContext, string configureOptions) {
-            // empty
+            _ignoreCase = globalContext.IgnoreCase;
         }
 
         public int Transform(GlobalContext context, string dependenciesFilename, IEnumerable<Dependency> dependencies,
@@ -27,19 +30,21 @@ Transformer options: [-m &] [-u &] [-r]
 
             // Only items are changed (Order is added)
 
-            Regex match = null;
-            string usage = null;
+            var matches = new List<DependencyMatch>();
+            string markerToAdd = null;
             bool removeOriginal = false;
 
             Option.Parse(transformOptions,
-                new OptionAction("m", (args, j) => {
-                    match = new Regex(Option.ExtractOptionValue(args, ref j));
+                MatchOption.Action((args, j) => {
+                    matches.Add(new DependencyMatch(Option.ExtractOptionValue(args, ref j), _ignoreCase));
                     return j;
-                }), new OptionAction("u", (args, j) => {
-                    usage = Option.ExtractOptionValue(args, ref j);
-                    return j;
-                }), new OptionAction("r", (args, j) => {
+                }), 
+                RemoveOriginalOption.Action((args, j) => {
                     removeOriginal = true;
+                    return j;
+                }), 
+                MarkerToAddOption.Action((args, j) => {
+                    markerToAdd = Option.ExtractOptionValue(args, ref j).Trim('\'').Trim();
                     return j;
                 }));
 
@@ -47,15 +52,13 @@ Transformer options: [-m &] [-u &] [-r]
                 if (!removeOriginal) {
                     transformedDependencies.Add(d);
                 }
-                if (match == null || d.Usage.Any(u => match.IsMatch(u))) {
-                    var newUsage = new HashSet<string>(d.Usage);
-                    if (match != null) {
-                        newUsage.RemoveWhere(u => match.IsMatch(u));
+                if (!matches.Any() || matches.Any(m => m.Match(d))) {
+                    var newDependency = new Dependency(d.UsedItem, d.UsingItem, d.Source,
+                        d.Markers, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo, d.InputContext);
+                    if (markerToAdd != null) {
+                        newDependency.AddMarker(markerToAdd);
                     }
-                    newUsage.Add(usage);
-
-                    transformedDependencies.Add(new Dependency(d.UsedItem, d.UsingItem, d.Source, 
-                        newUsage, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo, d.InputContext));
+                    transformedDependencies.Add(newDependency);
                 }
             }
             return Program.OK_RESULT;

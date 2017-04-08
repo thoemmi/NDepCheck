@@ -1,8 +1,7 @@
 ﻿using System.IO;
 using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.Rendering;
-using NDepCheck.Transforming.Setting;
+using NDepCheck.Transforming.Modifying;
 using NDepCheck.Transforming.Reversing;
 
 namespace NDepCheck.Tests {
@@ -13,7 +12,15 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                Program.TransformTestDataOption.Opt, ".", typeof(AddReverseDeps).Name, "{", "-m=inherit", "-u=derived", "}",                
+                Program.TransformTestDataOption.Opt, ".", typeof(AddReverseDeps).Name, "{",
+                    // Do not remove original: AddReverseDeps.RemoveOriginalOption.Opt,
+                    AddReverseDeps.MatchOption.Opt, "'inherit",
+                    AddReverseDeps.MarkerToAddOption.Opt, "derived",
+                "}",
+                Program.ConfigureOption.Opt, typeof(ModifyDeps).Name, "{",
+                    ModifyDeps.ModificationsOption.Opt, "--'derived->=>-inherit", "--->=>",
+                "}",
+                Program.TransformOption.Opt, typeof(ModifyDeps).Name,
                 Program.WriteDipOption.Opt, outFile
             }));
 
@@ -30,7 +37,15 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                Program.TransformTestDataOption.Opt, ".", typeof(AddReverseDeps).Name, "{", "-r", "-m", "inherit", "-u", "derived", "}",                
+                Program.TransformTestDataOption.Opt, ".", typeof(AddReverseDeps).Name, "{",
+                    AddReverseDeps.RemoveOriginalOption.Opt, 
+                    AddReverseDeps.MatchOption.Opt, "'inherit",
+                    AddReverseDeps.MarkerToAddOption.Opt, "derived",
+                "}",
+                Program.ConfigureOption.Opt, typeof(ModifyDeps).Name, "{",
+                    ModifyDeps.ModificationsOption.Opt, "--->=>-inherit",
+                "}",
+                Program.TransformOption.Opt, typeof(ModifyDeps).Name,
                 Program.WriteDipOption.Opt, outFile
             }));
 

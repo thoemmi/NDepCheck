@@ -82,7 +82,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
                 Log.WriteInfo("Checking " + dependency + " against " + Representation);
             }
 
-            string[] groupsInUsing = _using.Match(dependency.UsingItem);
+            string[] groupsInUsing = _using.Matches(dependency.UsingItem);
 
             if (groupsInUsing == null) {
                 return false;

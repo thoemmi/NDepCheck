@@ -1,17 +1,17 @@
 ﻿using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.Rendering;
-using NDepCheck.Transforming.Setting;
+using NDepCheck.Transforming.Modifying;
 
 namespace NDepCheck.Tests {
     [TestClass]
-    public class TestSetDeps {
+    public class TestModifyDeps {
         [TestMethod]
         public void TestResetBadCt() {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                Program.TransformTestDataOption.Opt, ".", typeof(SetDeps).Name, "{", "-b", "}",                
+                Program.ConfigureOption.Opt, typeof(ModifyDeps).Name, "{", ModifyDeps.ModificationsOption.Opt, "--->=>reset-bad", "}",
+                Program.TransformTestDataOption.Opt, ".", typeof(ModifyDeps).Name,
                 Program.WriteDipOption.Opt, outFile
             }));
 
@@ -29,7 +29,8 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                Program.TransformTestDataOption.Opt, ".", typeof(SetDeps).Name, "{", "-q", "}",                
+                Program.ConfigureOption.Opt, typeof(ModifyDeps).Name, "{", ModifyDeps.ModificationsOption.Opt, "--->=>reset-questionable", "}",
+                Program.TransformTestDataOption.Opt, ".", typeof(ModifyDeps).Name,
                 Program.WriteDipOption.Opt, outFile
             }));
 
@@ -43,11 +44,15 @@ namespace NDepCheck.Tests {
         }
 
         [TestMethod]
-        public void TestResetMatch() {
+        public void TestSimpleMatchReset() {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                Program.TransformTestDataOption.Opt, ".", typeof(SetDeps).Name, "{", "-q", "-m", "define", "}",                
+                Program.ConfigureOption.Opt, typeof(ModifyDeps).Name, "{", ModifyDeps.ModificationsOption.Opt,
+                    "--'define->=>reset-questionable",
+                    "--->=>",
+                "}",
+                Program.TransformTestDataOption.Opt, ".", typeof(ModifyDeps).Name,
                 Program.WriteDipOption.Opt, outFile
             }));
 
@@ -65,7 +70,10 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                Program.TransformTestDataOption.Opt, ".", typeof(SetDeps).Name, "{", "-b", "-q", "}",                
+                Program.ConfigureOption.Opt, typeof(ModifyDeps).Name, "{",
+                    ModifyDeps.ModificationsOption.Opt, "--->=>reset-bad,reset-questionable",
+                "}",
+                Program.TransformTestDataOption.Opt, ".", typeof(ModifyDeps).Name,
                 Program.WriteDipOption.Opt, outFile
             }));
 

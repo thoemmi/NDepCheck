@@ -15,13 +15,13 @@ namespace NDepCheck.Transforming.Projecting {
         internal const string ABSTRACT_IT_RIGHT_AS_INNER = "]";
         internal const string MAP = "---%";
 
-        public static readonly Option ProjectionFileOption = new Option("pf", "projection-file", "filename", "File containing projections");
-        public static readonly Option ProjectionsOption = new Option("pl", "projection-list", "projections", "Inline projections");
+        public static readonly Option ProjectionFileOption = new Option("pf", "projection-file", "filename", "File containing projections", @default: "");
+        public static readonly Option ProjectionsOption = new Option("pl", "projection-list", "projections", "Inline projections", orElse: ProjectionFileOption);
 
         private static readonly Option[] _configOptions = { ProjectionFileOption, ProjectionsOption };
 
-        public static readonly Option BackProjectionDipFileOption = new Option("bp", "back-projection-input", "filename", "Do back projection of information in dipfile; default: no back projection");
-        public static readonly Option BackProjectionTrimOption = new Option("bt", "back-projection-trim", "", "When back projecting, keep only projected edges");
+        public static readonly Option BackProjectionDipFileOption = new Option("bp", "back-projection-input", "filename", "Do back projection of information in dipfile", @default: "no back projection");
+        public static readonly Option BackProjectionTrimOption = new Option("bt", "back-projection-trim", "", "When back projecting, keep only projected edges", @default: false);
 
         private static readonly Option[] _transformOptions = { BackProjectionDipFileOption, BackProjectionTrimOption };
 
@@ -52,7 +52,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
                     // * we add // to the beginning - this comments out the first line;
                     // * and trim } at the end.
                     _orderedProjections = GetOrReadChildConfiguration(globalContext,
-                        () => new StringReader("//" + configureOptions.Trim().TrimEnd('}')), "-p", globalContext.IgnoreCase, "????");
+                        () => new StringReader("//" + configureOptions.Trim().TrimEnd('}')), ProjectionsOption.ShortName, globalContext.IgnoreCase, "????");
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;
                 })
@@ -216,10 +216,10 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
                                     .FirstOrDefault(n => n != null);
 
             if (usingItem == null) {
-                Log.WriteInfo("No projection pattern found for " + d.UsingItem.AsString() + " - I ignore it");
+                Log.WriteWarning("No projection pattern found for " + d.UsingItem.AsString() + " - I ignore it");
                 return null;
             } else if (usedItem == null) {
-                Log.WriteInfo("No projection pattern found for " + d.UsedItem.AsString() + " - I ignore it");
+                Log.WriteWarning("No projection pattern found for " + d.UsedItem.AsString() + " - I ignore it");
                 return null;
             } else if (usingItem.IsEmpty() || usedItem.IsEmpty()) {
                 // ignore this edge!

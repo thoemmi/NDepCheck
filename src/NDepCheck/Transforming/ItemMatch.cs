@@ -13,8 +13,8 @@ namespace NDepCheck.Transforming {
             _markerPattern = new MarkerPattern(patternParts.Length > 1 ? patternParts[1] : "", ignoreCase);
         }
 
-        public string[] Match(Item item) {
-            return _markerPattern.Match(item) ? _itempattern.Match(item) : null;
+        public string[] Matches(Item item) {
+            return _markerPattern.Match(item) ? _itempattern.Matches(item) : null;
         }
     }
 }

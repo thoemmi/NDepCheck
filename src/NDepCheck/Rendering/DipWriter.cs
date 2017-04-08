@@ -7,7 +7,7 @@ namespace NDepCheck.Rendering {
     /// Writer for dependencies ("Edges") in standard "DIP" format
     /// </summary>
     public class DipWriter : IDependencyRenderer {
-        public static readonly Option NoExampleInfoOption = new Option("ne", "no-example", "", "Does not write example info");
+        public static readonly Option NoExampleInfoOption = new Option("ne", "no-example", "", "Does not write example info", @default:false);
 
         private static readonly Option[] _allOptions = { NoExampleInfoOption };
 

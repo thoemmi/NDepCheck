@@ -32,7 +32,7 @@ namespace NDepCheck.Rendering {
     }
 
     public class GenericDotRenderer : IRenderer<IEdge> {
-        public static readonly Option MaxExampleLengthOption = new Option("ml", "max-example-length", "#", "Maximal length of example string; default: full example");
+        public static readonly Option MaxExampleLengthOption = new Option("ml", "max-example-length", "#", "Maximal length of example string", @default:"full example");
 
         private static readonly Option[] _allOptions = { MaxExampleLengthOption };
 

@@ -67,7 +67,7 @@ namespace NDepCheck.Transforming.Projecting {
             if (left && !ForLeftSide || !left && !ForRightSide) {
                 return null;
             } else {
-                string[] matchResultGroups = _itemMatch.Match(item);
+                string[] matchResultGroups = _itemMatch.Matches(item);
 
                 if (matchResultGroups == null) {
                     return null;

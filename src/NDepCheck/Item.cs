@@ -9,77 +9,13 @@ using JetBrains.Annotations;
 using NDepCheck.Rendering;
 
 namespace NDepCheck {
-    public class MarkerPattern {
-        public HashSet<string> Present { get; }
-        public HashSet<string> Absent { get; }
-
-        public MarkerPattern(string s, bool ignoreCase) {
-            Present = new HashSet<string>(GetComparer(ignoreCase));
-            Absent = new HashSet<string>(GetComparer(ignoreCase));
-            string[] elements = s.Split('&');
-            foreach (var e in elements) {
-                string element = e.Trim();
-                if (element == "~" || element == "") {
-                    // ignore
-                } else if (element.StartsWith("~")) {
-                    Absent.Add(element.Substring(1).Trim());
-                } else {
-                    Present.Add(element);
-                }
-            }
-        }
-
-        public MarkerPattern(IEnumerable<string> present, IEnumerable<string> absent, bool ignoreCase) {
-            Present = new HashSet<string>(present, GetComparer(ignoreCase));
-            Absent = new HashSet<string>(absent, GetComparer(ignoreCase));
-        }
-
-        private static StringComparer GetComparer(bool ignoreCase) {
-            return ignoreCase ? StringComparer.InvariantCultureIgnoreCase : StringComparer.InvariantCulture;
-        }
-
-        public bool Match(Item item) {
-            return item.Matches(this);
-        }
-    }
-
-    public abstract class ObjectWithMarkers {
-        private HashSet<string> _markersOrNull;
-
-        public void AddMarker(string marker) {
-            if (_markersOrNull == null) {
-                _markersOrNull = new HashSet<string>();
-            }
-            _markersOrNull.Add(marker);
-        }
-
-        public void RemoveMarker(string marker) {
-            _markersOrNull.Remove(marker);
-            if (_markersOrNull.Count == 0) {
-                _markersOrNull = null;
-            }
-        }
-
-        public void ClearMarkers() {
-            _markersOrNull = null;
-        }
-
-        public bool Matches(MarkerPattern pattern) {
-            if (_markersOrNull == null) {
-                return pattern.Present.Count == 0;
-            } else {
-                return pattern.Present.IsSubsetOf(_markersOrNull) && !pattern.Absent.Overlaps(_markersOrNull);
-            }
-        }
-    }
-
     public abstract class ItemSegment : ObjectWithMarkers {
         [NotNull]
         private readonly ItemType _type;
         [NotNull]
         public readonly string[] Values;
 
-        protected ItemSegment([NotNull] ItemType type, [NotNull] string[] values) {
+        protected ItemSegment([NotNull] ItemType type, [NotNull] string[] values) : base(markers: null) {
             _type = type;
             Values = values.Select(v => v == null ? null : string.Intern(v)).ToArray();
         }
@@ -226,6 +162,27 @@ namespace NDepCheck {
         [NotNull]
         public Item Append([CanBeNull] ItemTail additionalValues) {
             return additionalValues == null ? this : new Item(additionalValues.Type, IsInner, Values.Concat(additionalValues.Values).ToArray()).SetOrder(Order);
+        }
+
+        public static Dictionary<Item, IEnumerable<Dependency>> AggregateIncomingDependencies(IEnumerable<Dependency> dependencies) {
+            return AggregateDependencies(dependencies, d => d.UsedItem);
+        }
+
+        public static Dictionary<Item, IEnumerable<Dependency>> AggregateOutgoingDependencies(IEnumerable<Dependency> dependencies) {
+            return AggregateDependencies(dependencies, d => d.UsingItem);
+        }
+
+        private static Dictionary<Item, IEnumerable<Dependency>> AggregateDependencies(IEnumerable<Dependency> dependencies, Func<Dependency, Item> d2i) {
+            var result = new Dictionary<Item, List<Dependency>>();
+            foreach (var d in dependencies) {
+                List<Dependency> list;
+                Item key = d2i(d);
+                if (!result.TryGetValue(key, out list)) {
+                    result.Add(key, list = new List<Dependency>());
+                }
+                list.Add(d);
+            }
+            return result.ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<Dependency>) kvp.Value);
         }
     }
 }

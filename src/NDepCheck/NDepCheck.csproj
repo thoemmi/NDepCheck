@@ -97,6 +97,8 @@
     <Compile Include="ConstraintSolving\Range.cs" />
     <Compile Include="ConstraintSolving\SimpleConstraintSolver.cs" />
     <Compile Include="FileWatcher.cs" />
+    <Compile Include="MarkerPattern.cs" />
+    <Compile Include="ObjectWithMarkers.cs" />
     <Compile Include="Reading\DipReaderFactory.cs" />
     <Compile Include="IPlugin.cs" />
     <Compile Include="SourceLocation.cs" />
@@ -113,10 +115,12 @@
     <Compile Include="Reading\FullDotNetAssemblyDependencyReader.cs" />
     <Compile Include="Gibraltar\StringReference.cs" />
     <Compile Include="Transforming\CycleChecking\FindCycleDeps.cs" />
+    <Compile Include="Transforming\DependencyMatch.cs" />
     <Compile Include="Transforming\EffectOptions.cs" />
     <Compile Include="Transforming\ItemMatch.cs" />
-    <Compile Include="Transforming\Marking\RemoveItems.cs" />
-    <Compile Include="Transforming\Marking\RemoveDeps.cs" />
+    <Compile Include="Transforming\SpecialNodes\MarkSpecialItems .cs" />
+    <Compile Include="Transforming\Modifying\ItemAction.cs" />
+    <Compile Include="Transforming\Modifying\ModifyItems.cs" />
     <Compile Include="Transforming\Reversing\AddReverseDeps.cs" />
     <Compile Include="Transforming\GraphTransformations\HideOuterGraph.cs" />
     <Compile Include="Transforming\GraphTransformations\AssociativeHull.cs" />
@@ -132,7 +136,8 @@
     <Compile Include="Transforming\MatrixDictionary.cs" />
     <Compile Include="Transforming\Projecting\IProjectionSetElement.cs" />
     <Compile Include="Transforming\Projecting\ProjectionSet.cs" />
-    <Compile Include="Transforming\Setting\SetDeps.cs" />
+    <Compile Include="Transforming\Modifying\DependencyAction.cs" />
+    <Compile Include="Transforming\Modifying\ModifyDeps.cs" />
     <Compile Include="Transforming\ViolationChecking\DependencyRuleGroup.cs" />
     <Compile Include="Transforming\ViolationChecking\DependencyRuleSet.cs" />
     <Compile Include="Transforming\ViolationChecking\DependencyRule.cs" />
