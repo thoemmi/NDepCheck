@@ -26,13 +26,13 @@ namespace NDepCheck {
         public readonly string[] MoreNames;
         public readonly Option OrElse;
 
-        public Option(string shortname, string name, string usage, string description, Option orElse, string[] moreNames = null) 
-            : this(shortname, name, usage, description, @default: "", multiple: false, moreNames: moreNames) {
+        public Option(string shortname, string name, string usage, string description, Option orElse, bool multiple = false, string[] moreNames = null) 
+            : this(shortname, name, usage, description, @default: "", multiple: multiple, moreNames: moreNames) {
             OrElse = orElse; // not yet used ...
         }
 
-        public Option(string shortname, string name, string usage, string description, bool @default, string[] moreNames = null) 
-            : this(shortname, name, usage, description, @default: @default ? "true" : "false", multiple: false, moreNames: moreNames) {
+        public Option(string shortname, string name, string usage, string description, bool @default, bool multiple = false, string[] moreNames = null) 
+            : this(shortname, name, usage, description, @default: @default ? "true" : "false", multiple: multiple, moreNames: moreNames) {
         }
 
         public Option(string shortname, string name, string usage, string description, string @default, 

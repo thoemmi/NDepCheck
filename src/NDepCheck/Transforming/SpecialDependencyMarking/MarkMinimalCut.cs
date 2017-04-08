@@ -6,12 +6,13 @@ namespace NDepCheck.Transforming.SpecialDependencyMarking {
     public class MarkMinimalCutDeps {
         public static readonly Option MatchSourceOption = new Option("ms", "match-sources", "&", "Match to select source items", @default: null, multiple: true);
         public static readonly Option MatchTargetOption = new Option("mt", "match-targets", "&", "Match to select target items", @default: null, multiple: true);
-        public static readonly Option MarkerToAddOption = new Option("ma", "marker-to-add", "&", "Marker added to identified items", @default: null);
+        public static readonly Option DepsMarkerOption = new Option("dm", "dependency-cut-marker", "&", "Marker added to dependencies on minimal cut", @default: null);
+        public static readonly Option SourceMarkerOption = new Option("sm", "source-set-marker", "&", "Marker added to items in source side graph (necessary for empty cut)", multiple: true, orElse: DepsMarkerOption);
         public static readonly Option UseQuestionableCountOption = new Option("uq", "use-questionable-count", "", "Use questionable count as weight", @default: "Use bad count");
         public static readonly Option UseCountOption = new Option("uc", "use-count", "", "Use count as weight", @default: "Use bad count");
 
         private static readonly Option[] _transformOptions = {
-            MatchSourceOption, MatchTargetOption, MarkerToAddOption
+            MatchSourceOption, MatchTargetOption, DepsMarkerOption
         };
 
         private bool _ignoreCase;
@@ -53,7 +54,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
 
             var sourceMatches = new List<ItemMatch>();
             var targetMatches = new List<ItemMatch>();
-            //string markerToAddToSourceSide = null;
+            string markerToAddToSourceSide = null;
             //string markerToAddToTargetSide = null;
             string markerToAddToCut = null;
             Func<Dependency, int> weightForCut = d => d.BadCt;
@@ -75,15 +76,23 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
                     weightForCut = d => d.Ct;
                     return j;
                 }),
-                MarkerToAddOption.Action((args, j) => {
+                DepsMarkerOption.Action((args, j) => {
                     markerToAddToCut = Option.ExtractOptionValue(args, ref j).Trim('\'').Trim();
+                    return j;
+                }),
+                SourceMarkerOption.Action((args, j) => {
+                    markerToAddToSourceSide = Option.ExtractOptionValue(args, ref j).Trim('\'').Trim();
                     return j;
                 }));
 
             var items = new HashSet<Item>(dependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
             var sourceItems = new List<Item>(items.Where(i => sourceMatches.Any(m => m.Matches(i) != null)));
             var targetItems = new HashSet<Item>(items.Where(i => targetMatches.Any(m => m.Matches(i) != null)));
-            if (targetItems.Overlaps(sourceItems)) {
+            if (!sourceItems.Any()) {
+                throw new ApplicationException("No source items found - minimal cut cannot be computed");
+            } else if (!targetItems.Any()) {
+                throw new ApplicationException("No target items found - minimal cut cannot be computed");
+            } else if (targetItems.Overlaps(sourceItems)) {
                 throw new ApplicationException("Source and target items overlap - minimal cut cannot be computed");
             }
 
@@ -118,9 +127,12 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
                 AddReachableInResidualGraph(i, reachableFromSources, outgoing, incoming);
             }
 
-            // Find minimal cut
+            // Find minimal cut and add markers
             foreach (var s in reachableFromSources) {
-                foreach (var d in outgoing[s].Where(e => !reachableFromSources.Contains(e.UsedItem))) {
+                if (markerToAddToSourceSide != null) {
+                    s.AddMarker(markerToAddToSourceSide);
+                }
+                foreach (var d in GetList(outgoing, s).Where(e => !reachableFromSources.Contains(e.UsedItem))) {
                     d.Dependency.AddMarker(markerToAddToCut);
                 }
             }
@@ -136,15 +148,20 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
             }
         }
 
+        private static IEnumerable<Edge> GetList(Dictionary<Item, List<Edge>> dictionary, Item item) {
+            List<Edge> result;
+            dictionary.TryGetValue(item, out result);
+            return result ?? Enumerable.Empty<Edge>();
+        }
+
         private int IncreaseFlow(Item item, int maxPossibleFlowIncreaseAlongPath, HashSet<Item> visited,
-            Dictionary<Item, List<Edge>> outgoing, Dictionary<Item, List<Edge>> incoming,
-            HashSet<Item> targetItems) {
+            Dictionary<Item, List<Edge>> outgoing, Dictionary<Item, List<Edge>> incoming, HashSet<Item> targetItems) {
             if (targetItems.Contains(item)) {
                 return maxPossibleFlowIncreaseAlongPath;
             } else {
-                foreach (var e in outgoing[item]) {
+                foreach (var e in GetList(outgoing, item)) {
                     int possibleFlowIncrease = Math.Min(maxPossibleFlowIncreaseAlongPath, e.Capacity - e.Flow);
-                    int actualIncrease = ComputeActualIncrease(visited, outgoing, incoming, targetItems, 
+                    int actualIncrease = ComputeActualIncrease(visited, outgoing, incoming, targetItems,
                                                                possibleFlowIncrease, e.UsedItem);
                     if (actualIncrease > 0) {
                         // There is a path to the end with free capacity actualReduction - we reduce current edge!
@@ -152,16 +169,14 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
                         return actualIncrease;
                     }
                 }
-                if (incoming.ContainsKey(item)) { // not true for sources - no need to check for back flows there!
-                    foreach (var e in incoming[item]) {
-                        int possiblePushedBackFlow = Math.Min(maxPossibleFlowIncreaseAlongPath, e.Flow);
-                        int actualIncrease = ComputeActualIncrease(visited, outgoing, incoming, targetItems,
-                                                                   possiblePushedBackFlow, e.UsingItem);
-                        if (actualIncrease > 0) {
-                            // There is a path to the end with free capacity actualReduction - we reduce current edge!
-                            e.Flow -= actualIncrease;
-                            return actualIncrease;
-                        }
+                foreach (var e in GetList(incoming, item)) {
+                    int possiblePushedBackFlow = Math.Min(maxPossibleFlowIncreaseAlongPath, e.Flow);
+                    int actualIncrease = ComputeActualIncrease(visited, outgoing, incoming, targetItems,
+                                                               possiblePushedBackFlow, e.UsingItem);
+                    if (actualIncrease > 0) {
+                        // There is a path to the end with free capacity actualReduction - we reduce current edge!
+                        e.Flow -= actualIncrease;
+                        return actualIncrease;
                     }
                 }
                 return 0;
@@ -179,17 +194,16 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
             }
         }
 
-        private void AddReachableInResidualGraph(Item item, HashSet<Item> reachableFromSources, Dictionary<Item, List<Edge>> outgoing, Dictionary<Item, List<Edge>> incoming) {
-            foreach (var e in outgoing[item].Where(e => e.InResidual)) {
+        private void AddReachableInResidualGraph(Item item, HashSet<Item> reachableFromSources,
+            Dictionary<Item, List<Edge>> outgoing, Dictionary<Item, List<Edge>> incoming) {
+            foreach (var e in GetList(outgoing, item).Where(e => e.InResidual)) {
                 if (reachableFromSources.Add(e.UsedItem)) {
                     AddReachableInResidualGraph(e.UsedItem, reachableFromSources, outgoing, incoming);
                 }
             }
-            if (incoming.ContainsKey(item)) { // not true for sources
-                foreach (var e in incoming[item].Where(e => e.ReverseInResidual)) {
-                    if (reachableFromSources.Add(e.UsingItem)) {
-                        AddReachableInResidualGraph(e.UsingItem, reachableFromSources, outgoing, incoming);
-                    }
+            foreach (var e in GetList(incoming, item).Where(e => e.ReverseInResidual)) {
+                if (reachableFromSources.Add(e.UsingItem)) {
+                    AddReachableInResidualGraph(e.UsingItem, reachableFromSources, outgoing, incoming);
                 }
             }
         }
