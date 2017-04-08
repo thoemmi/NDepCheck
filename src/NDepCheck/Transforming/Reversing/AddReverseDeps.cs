@@ -11,12 +11,12 @@ namespace NDepCheck.Transforming.Reversing {
 
         private bool _ignoreCase;
 
-        public string GetHelp(bool detailedHelp) {
+        public string GetHelp(bool detailedHelp, string filter) {
             return $@"Add reverse edges.
 
 Configuration options: None
 
-Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
+Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)}";
         }
 
         public bool RunsPerInputContext => false;

@@ -9,10 +9,10 @@ namespace NDepCheck.Transforming.Modifying {
 
         private static readonly Option[] _configOptions = { ModificationsFileOption, ModificationsOption };
 
-        public override string GetHelp(bool detailedHelp) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             return $@"Modify counts and markers on items.
 
-Configuration options: {Option.CreateHelp(_configOptions, detailedHelp)}
+Configuration options: {Option.CreateHelp(_configOptions, detailedHelp, filter)}
 
 Transformer options: None";
         }

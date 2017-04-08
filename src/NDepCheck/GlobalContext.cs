@@ -64,6 +64,14 @@ namespace NDepCheck {
 
         public bool WorkLazily { get; set; }
 
+        public string Name { get; }
+
+        private static int _cxtId = 0;
+
+        public GlobalContext() {
+            Name = "[" + ++_cxtId + "]";
+        }
+
         public void CreateInputOption(string filePattern, string negativeFilePattern, string assembly,
             string readerClass) {
             _inputFileSpecs.Add(new InputFileOption(filePattern, negativeFilePattern,
@@ -102,18 +110,18 @@ namespace NDepCheck {
             }
         }
 
-        public string RenderToFile([NotNull] string assemblyName, [NotNull] string rendererClassName,
-            string rendererOptions, [CanBeNull] string fileName) {
+        public string RenderToFile([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName,
+            [CanBeNull] string rendererOptions, [CanBeNull] string fileName) {
+            IDependencyRenderer renderer = GetOrCreatePlugin<IDependencyRenderer>(assemblyName, rendererClassName);
+
             ReadAllNotYetReadIn();
 
             IEnumerable<Dependency> allDependencies = GetAllDependencies();
-            IDependencyRenderer renderer = GetOrCreatePlugin<IDependencyRenderer>(assemblyName, rendererClassName);
-
             string masterFileName = renderer.GetMasterFileName(rendererOptions, fileName);
             if (WorkLazily && File.Exists(masterFileName)) {
                 // we dont do anything - TODO check change dates of input files vs. the master file's last update date
             } else {
-                renderer.Render(allDependencies, rendererOptions, fileName, IgnoreCase);
+                renderer.Render(allDependencies, rendererOptions ?? "", fileName, IgnoreCase);
             }
             RenderingDone = true;
 
@@ -124,7 +132,11 @@ namespace NDepCheck {
             return _inputContexts.SelectMany(ic => ic.Dependencies).Concat(_dependenciesWithoutInputContext).ToArray();
         }
 
-        private T GetOrCreatePlugin<T>(string assemblyName, string pluginClassName) where T : IPlugin {
+        private T GetOrCreatePlugin<T>([CanBeNull] string assemblyName, [CanBeNull] string pluginClassName) where T : IPlugin {
+            if (pluginClassName == null) {
+                throw new ArgumentNullException(nameof(pluginClassName), "Plugin class name missing");
+            }
+
             IEnumerable<Type> pluginTypes = GetPluginTypes<T>(assemblyName);
             Type pluginType =
                 pluginTypes.FirstOrDefault(
@@ -149,7 +161,7 @@ namespace NDepCheck {
             }
         }
 
-        private static IOrderedEnumerable<Type> GetPluginTypes<T>(string assemblyName) {
+        private static IOrderedEnumerable<Type> GetPluginTypes<T>([CanBeNull] string assemblyName) {
             try {
                 Assembly pluginAssembly = string.IsNullOrWhiteSpace(assemblyName) || assemblyName == "."
                     ? typeof(GlobalContext).Assembly
@@ -164,7 +176,7 @@ namespace NDepCheck {
             }
         }
 
-        public string RenderTestData([NotNull] string assemblyName, [NotNull] string rendererClassName,
+        public string RenderTestData([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName,
             string rendererOptions, [NotNull] string baseFileName) {
             IDependencyRenderer renderer = GetOrCreatePlugin<IDependencyRenderer>(assemblyName, rendererClassName);
 
@@ -190,12 +202,12 @@ namespace NDepCheck {
             InputFilesOrTestDataSpecified = true;
         }
 
-        public void ShowAllPluginsAndTheirHelp<T>(string assemblyName) {
+        public void ShowAllPluginsAndTheirHelp<T>(string assemblyName, string filter) where T : IPlugin {
             foreach (var t in GetPluginTypes<T>(assemblyName)) {
                 try {
-                    IDependencyRenderer renderer = (IDependencyRenderer)Activator.CreateInstance(t);
+                    T renderer = (T) Activator.CreateInstance(t);
                     Log.WriteInfo("=============================================\r\n" + t.FullName + ":\r\n" +
-                                  renderer.GetHelp(detailedHelp: false) + "\r\n");
+                                  renderer.GetHelp(detailedHelp: false, filter: filter) + "\r\n");
                 } catch (Exception ex) {
                     Log.WriteError("Cannot print help for Renderer " + t.FullName + "; reason: " + ex.Message);
                 }
@@ -283,11 +295,11 @@ namespace NDepCheck {
             return result;
         }
 
-        public void ShowDetailedHelp<T>(string assembly, string pluginClassName) where T : IPlugin {
+        public void ShowDetailedHelp<T>(string assembly, string pluginClassName, string filter) where T : IPlugin {
             try {
                 T plugin = GetOrCreatePlugin<T>(assembly, pluginClassName);
                 Log.WriteInfo("=============================================\r\n" + plugin.GetType().FullName + ":\r\n" +
-                              plugin.GetHelp(detailedHelp: false) + "\r\n");
+                              plugin.GetHelp(detailedHelp: false, filter: filter) + "\r\n");
             } catch (Exception ex) {
                 Log.WriteError(
                     $"Cannot print help for plugin {pluginClassName} in assembly {assembly}; reason: {ex.Message}");

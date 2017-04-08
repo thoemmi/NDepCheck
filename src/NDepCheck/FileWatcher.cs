@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -27,8 +26,8 @@ namespace NDepCheck {
 
         public void AddFile(string fullFileName) {
             if (!_watchers.ContainsKey(fullFileName)) {
-                var watcher = new FileSystemWatcher(fullFileName);
-                watcher.Changed += (o, e) => Trigger();
+                var watcher = new FileSystemWatcher(Path.GetDirectoryName(fullFileName));
+                watcher.Changed += (o, e) => Trigger(e.FullPath);
                 watcher.EnableRaisingEvents = true;
                 _watchers.Add(fullFileName, watcher);
             }
@@ -41,10 +40,12 @@ namespace NDepCheck {
             }
         }
 
-        private void Trigger() {
-            lock (_watchers) {
-                _triggered = true;
-                Monitor.PulseAll(_watchers);
+        private void Trigger(string filename) {
+            if (_watchers.ContainsKey(filename)) {
+                lock (_watchers) {
+                    _triggered = true;
+                    Monitor.PulseAll(_watchers);
+                }
             }
         }
 
@@ -62,7 +63,7 @@ namespace NDepCheck {
                 Thread.Sleep(2000);
                 _triggered = false;
                 var writtenMasterFiles = new List<string>();
-                _program.RunFrom(FullScriptName, new GlobalContext(), writtenMasterFiles);
+                _program.RunFrom(FullScriptName, new GlobalContext(), writtenMasterFiles, logCommands: true);
                 _program.WriteWrittenMasterFiles(writtenMasterFiles);
             }
         }

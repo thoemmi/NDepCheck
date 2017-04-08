@@ -16,12 +16,12 @@ namespace NDepCheck.Transforming.CycleChecking {
 
         private bool _ignoreCase;
 
-        public string GetHelp(bool detailedHelp) {
+        public string GetHelp(bool detailedHelp, string filter) {
             return $@"Find cycles in dependency graph.
 
 Configuration options: None
 
-Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
+Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)}";
         }
 
         public bool RunsPerInputContext => false;

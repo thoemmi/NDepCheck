@@ -17,11 +17,11 @@ namespace NDepCheck.Rendering {
             SomeRendererTestData.CreateSomeTestItems(out items, out dependencies);
         }
 
-        public string GetHelp(bool detailedHelp) {
+        public string GetHelp(bool detailedHelp, string filter) {
             return
 $@"  Write a textual matrix representation of dependencies.
 
-{Option.CreateHelp(_allOptions, true)}";
+{Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
     }
 

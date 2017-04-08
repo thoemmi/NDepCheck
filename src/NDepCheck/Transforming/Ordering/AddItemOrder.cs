@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace NDepCheck.Transforming.Ordering {
     public class AddItemOrder : ITransformer {
-        public string GetHelp(bool detailedHelp) {
+        public string GetHelp(bool detailedHelp, string filter) {
             return
                 @"Adds a field to each item for a bottom to top order. The field is a 4-digit integer number, starting at 0001";
         }

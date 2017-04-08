@@ -16,12 +16,12 @@ namespace NDepCheck.Transforming.SpecialDependencyMarking {
 
         private bool _ignoreCase;
 
-        public string GetHelp(bool detailedHelp) {
+        public string GetHelp(bool detailedHelp, string filter) {
             return $@"Mark dependencies with special properties - UNTESTED.
 
 Configuration options: None
 
-Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
+Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)}";
         }
 
         public bool RunsPerInputContext => true;

@@ -13,7 +13,7 @@ namespace NDepCheck.Reading {
         [NotNull]
         public abstract AbstractDependencyReader CreateReader([NotNull]string fileName, [NotNull]GlobalContext options, bool needsOnlyItemTails);
 
-        public abstract string GetHelp(bool detailedHelp);
+        public abstract string GetHelp(bool detailedHelp, string filter);
     }
 
     public abstract class AbstractDependencyReader {

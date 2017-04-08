@@ -45,7 +45,7 @@ namespace NDepCheck.TestRenderer {
             items = localItems;
         }
 
-        public override string GetHelp(bool detailedHelp) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             return "TestRendererForLoadFromAssembly";
         }
     }

@@ -31,13 +31,13 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
         HashSet<DependencyRuleGroup> _allCheckedGroups;
 
-        public override string GetHelp(bool detailedHelp) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             return
 $@"  Compute dependency violations against defined rule sets.
     
-Configuration options: {Option.CreateHelp(_configOptions, detailedHelp)}
+Configuration options: {Option.CreateHelp(_configOptions, detailedHelp, filter)}
 
-Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
+Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)}";
         }
 
         #region Configure

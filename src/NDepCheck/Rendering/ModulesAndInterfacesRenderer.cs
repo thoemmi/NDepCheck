@@ -262,13 +262,13 @@ namespace NDepCheck.Rendering {
                 }));
         }
 
-        public override string GetHelp(bool detailedHelp) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             return @"  A GIF renderer that depicts modules and their interfaces as
   vertical bars that are connected by horizontal arrows.
 
   {GetHelpExplanations()}
 
-{Option.CreateHelp(_allOptions, true)}";
+{Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
     }
 }

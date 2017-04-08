@@ -5,7 +5,7 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming {
     public abstract class AbstractTransformerWithConfigurationPerInputfile<TConfigurationPerInputfile> : ITransformer {
-        public abstract string GetHelp(bool detailedHelp);
+        public abstract string GetHelp(bool detailedHelp, string filter);
 
         #region Configure
 

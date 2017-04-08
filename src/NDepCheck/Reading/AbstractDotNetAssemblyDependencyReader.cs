@@ -55,7 +55,7 @@ namespace NDepCheck.Reading {
             }
         }
 
-        public override string GetHelp(bool detailedHelp) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             string result = @"Read data from .Net assembly file (.dll or .exe)
 
 This reader returns items of two types:

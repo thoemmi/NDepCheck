@@ -71,13 +71,13 @@ namespace NDepCheck.Rendering {
             return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: ct, questionableCt: questionable);
         }
 
-        public string GetHelp(bool detailedHelp) {
+        public string GetHelp(bool detailedHelp, string filter) {
             return
 $@"  Writes dependencies to .dip files, which can be read in by 
   NDepCheck's DipReader. This is very helpful for building pipelines 
   that process dependencies for different purposes.
 
-{Option.CreateHelp(_allOptions, true)}";
+{Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
         public string GetMasterFileName(string argsAsString, string baseFileName) {

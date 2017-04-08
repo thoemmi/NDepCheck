@@ -25,12 +25,12 @@ namespace NDepCheck.Transforming.Projecting {
         private ProjectionSet _orderedProjections;
         private Dictionary<FromTo, Dependency> _dependenciesForBackProjection;
 
-        public override string GetHelp(bool detailedHelp) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             return $@"  Project ('reduce') items and dependencies with ! and % rules
 
-Configuration options: {Option.CreateHelp(_configOptions, detailedHelp)}
+Configuration options: {Option.CreateHelp(_configOptions, detailedHelp, filter)}
 
-Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
+Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)}";
         }
 
         #region Configure

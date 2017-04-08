@@ -54,13 +54,13 @@ namespace NDepCheck.Reading {
                             int ct, questionableCt, badCt;
                             var usage = Get(properties, 0);
                             if (!int.TryParse(Get(properties, 1, "1"), out ct)) {
-                                throw new DipReaderException("Cannot parse count: " + Get(properties, 1));
+                                throw new DipReaderException($"Cannot parse count '{Get(properties, 1)}'");
                             }
                             if (!int.TryParse(Get(properties, 2, "0"), out questionableCt)) {
-                                throw new DipReaderException("Cannot parse questionableCt: " + Get(properties, 2));
+                                throw new DipReaderException($"Cannot parse questionableCt '{Get(properties, 2)}'");
                             }
                             if (!int.TryParse(Get(properties, 3, "0"), out badCt)) {
-                                throw new DipReaderException("Cannot parse badCt: " + Get(properties, 3));
+                                throw new DipReaderException($"Cannot parse badCt '{Get(properties, 3)}'");
                             }
 
                             string[] source = Get(properties, 4).Split('|');

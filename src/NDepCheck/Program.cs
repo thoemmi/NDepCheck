@@ -18,7 +18,7 @@ namespace NDepCheck {
     ///     All static methods may run in parallel.
     /// </remarks>
     public class Program {
-        private const string VERSION = "V.3.3";
+        private const string VERSION = "V.3.5";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 1;
@@ -37,8 +37,8 @@ namespace NDepCheck {
             }
         }
 
-        public static readonly Option HelpAllOption = new ProgramOption(shortname: "?", name: "help-all", usage: "", description: "write help", moreNames: new[] { "h", "help" });
-        public static readonly Option HelpDetailedHelpOption = new ProgramOption(shortname: "!", name: "help-detail", usage: "", description: "write extensive help", moreNames: new[] { "man" });
+        public static readonly Option HelpAllOption = new ProgramOption(shortname: "?", name: "help-all", usage: "[filter]", description: "write help", moreNames: new[] { "h", "help" });
+        public static readonly Option HelpDetailedHelpOption = new ProgramOption(shortname: "!", name: "help-detail", usage: "[filter]", description: "write extensive help", moreNames: new[] { "man" });
         public static readonly Option DebugOption = new ProgramOption(shortname: "debug", name: "debug", usage: "", description: "start .Net debugger");
 
         public static readonly Option ReadPluginOption = new ProgramOption(shortname: "rp", name: "read-plugin", usage: "assembly reader filepattern [- filepattern]", description: "Use <assembly.reader> to read files matching filepattern, but not second filepattern");
@@ -72,6 +72,7 @@ namespace NDepCheck {
         public static readonly Option DoBreakOption = new ProgramOption(shortname: "db", name: "do-break", usage: "", description: "stop execution; useful for debugging of -df");
         public static readonly Option DoCommandOption = new ProgramOption(shortname: "dc", name: "do-command", usage: "command", description: "execute shell command; useful for opening result file");
         public static readonly Option DoScriptOption = new ProgramOption(shortname: "ds", name: "do-script", usage: "filename", description: "execute NDepCheck script");
+        public static readonly Option DoScriptLoggedOption = new ProgramOption(shortname: "dl", name: "do-script-logged", usage: "filename", description: "execute NDepCheck script with log output");
         public static readonly Option DoDefineOption = new ProgramOption(shortname: "dd", name: "do-define", usage: "name value", description: "define name as value");
         public static readonly Option DoResetOption = new ProgramOption(shortname: "dr", name: "do-reset", usage: "[filename]", description: "reset state; and read file as dip file");
 
@@ -119,11 +120,11 @@ namespace NDepCheck {
             try {
                 // TODO: In my first impl, I used a separate GlobalContext() for each entry - why? This defies explorative working!
                 var globalContext = new GlobalContext();
-                int lastResult = program.Run(args, globalContext, writtenMasterFiles: null);
+                int lastResult = program.Run(args, globalContext, writtenMasterFiles: null, logCommands: false);
                 while (program._webServer != null || program._interactiveLogFile != null || program._fileWatchers.Any()) {
                     Console.WriteLine();
                     Console.WriteLine(value: "Type /?<enter> for help; or q<enter> for stopping NDepCheck.");
-                    Console.Write(value: "NDepCheck> ");
+                    Console.Write(value: globalContext.Name + " NDepCheck> ");
                     string commands = Console.ReadLine();
                     if (commands == null || commands.Trim().ToLowerInvariant().StartsWith(value: "q")) {
                         break;
@@ -138,7 +139,7 @@ namespace NDepCheck {
                             var writtenMasterFiles = new List<string>();
 
                             program.Run(args: commands.Split(' ').Select(s => s.Trim()).Where(s => s != "").ToArray(),
-                                globalContext: globalContext, writtenMasterFiles: writtenMasterFiles);
+                                globalContext: globalContext, writtenMasterFiles: writtenMasterFiles, logCommands: false);
 
                             program.WriteWrittenMasterFiles(writtenMasterFiles);
                         }
@@ -168,7 +169,7 @@ namespace NDepCheck {
             }
         }
 
-        public int Run(string[] args, GlobalContext globalContext, [CanBeNull] List<string> writtenMasterFiles) {
+        public int Run(string[] args, GlobalContext globalContext, [CanBeNull] List<string> writtenMasterFiles, bool logCommands) {
             Log.SetLevel(Log.Level.Standard);
 
             if (args.Length == 0) {
@@ -181,13 +182,18 @@ namespace NDepCheck {
             try {
                 for (int i = 0; i < args.Length; i++) {
                     string arg = args[i];
+                    if (logCommands) {
+                        Log.WriteInfo($">>>> Starting {arg}");
+                    }
 
                     if (HelpAllOption.Matches(arg)) {
-                        // -?
-                        return UsageAndExit(message: null, detailed: false);
+                        // -? [filter]
+                        string filter = Option.ExtractOptionValue(args, ref i);
+                        return UsageAndExit(message: null, detailed: false, filter: filter);
                     } else if (HelpDetailedHelpOption.Matches(arg)) {
-                        // -!
-                        return UsageAndExit(message: null, detailed: true);
+                        // -! [filter]
+                        string filter = Option.ExtractOptionValue(args, ref i);
+                        return UsageAndExit(message: null, detailed: true, filter: filter);
                     } else if (arg == "-debug" || arg == "/debug") {
                         // -debug
                         Debugger.Launch();
@@ -209,21 +215,25 @@ namespace NDepCheck {
                             IsDllOrExeFile(filePattern) ? typeof(DotNetAssemblyDependencyReaderFactory).FullName :
                             IsDipFile(filePattern) ? typeof(DipReaderFactory).FullName : null);
                     } else if (ReadPluginHelpOption.Matches(arg)) {
-                        // -ra?    assembly
+                        // -ra?    assembly [filter]
                         string assembly = Option.ExtractOptionValue(args, ref i);
-                        globalContext.ShowAllPluginsAndTheirHelp<IReaderFactory>(assembly);
+                        string filter = Option.ExtractNextValue(args, ref i);
+                        globalContext.ShowAllPluginsAndTheirHelp<IReaderFactory>(assembly, filter);
                     } else if (ReadHelpOption.Matches(arg)) {
-                        // -rf?
-                        globalContext.ShowAllPluginsAndTheirHelp<IReaderFactory>("");
+                        // -rf? [filter]
+                        string filter = Option.ExtractOptionValue(args, ref i);
+                        globalContext.ShowAllPluginsAndTheirHelp<IReaderFactory>("", filter);
                     } else if (ReadPluginDetailedHelpOption.Matches(arg)) {
                         // -ra!    assembly reader
                         string assembly = Option.ExtractOptionValue(args, ref i);
                         string reader = Option.ExtractNextValue(args, ref i);
-                        globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, reader);
+                        string filter = Option.ExtractNextValue(args, ref i);
+                        globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, reader, filter);
                     } else if (ReadDetailedHelpOption.Matches(arg)) {
                         // -rf!    reader
                         string reader = Option.ExtractOptionValue(args, ref i);
-                        globalContext.ShowDetailedHelp<IDependencyRenderer>("", reader);
+                        string filter = Option.ExtractNextValue(args, ref i);
+                        globalContext.ShowDetailedHelp<IDependencyRenderer>("", reader, filter);
                     } else if (ConfigurePluginOption.Matches(arg)) {
                         // -cp    assembly transformer { options }
                         string assembly = Option.ExtractOptionValue(args, ref i);
@@ -256,19 +266,23 @@ namespace NDepCheck {
                     } else if (TransformPluginHelpOption.Matches(arg)) {
                         // -tp?    assembly
                         string assembly = Option.ExtractOptionValue(args, ref i);
-                        globalContext.ShowAllPluginsAndTheirHelp<ITransformer>(assembly);
+                        string filter = Option.ExtractNextValue(args, ref i);
+                        globalContext.ShowAllPluginsAndTheirHelp<ITransformer>(assembly, filter);
                     } else if (TransformHelpOption.Matches(arg)) {
                         // -tf?
-                        globalContext.ShowAllPluginsAndTheirHelp<ITransformer>("");
+                        string filter = Option.ExtractOptionValue(args, ref i);
+                        globalContext.ShowAllPluginsAndTheirHelp<ITransformer>("", filter);
                     } else if (TransformPluginDetailedHelpOption.Matches(arg)) {
                         // -ta!    assembly transformer
                         string assembly = Option.ExtractOptionValue(args, ref i);
                         string transformer = Option.ExtractNextValue(args, ref i);
-                        globalContext.ShowDetailedHelp<ITransformer>(assembly, transformer);
+                        string filter = Option.ExtractNextValue(args, ref i);
+                        globalContext.ShowDetailedHelp<ITransformer>(assembly, transformer, filter);
                     } else if (TransformDetailedHelpOption.Matches(arg)) {
                         // -tf!    transformer
                         string transformer = Option.ExtractOptionValue(args, ref i);
-                        globalContext.ShowDetailedHelp<ITransformer>("", transformer);
+                        string filter = Option.ExtractNextValue(args, ref i);
+                        globalContext.ShowDetailedHelp<ITransformer>("", transformer, filter);
                     } else if (WritePluginOption.Matches(arg)) {
                         // -wp    assembly writer [{ options }] filename
                         string assembly = Option.ExtractOptionValue(args, ref i);
@@ -299,19 +313,23 @@ namespace NDepCheck {
                     } else if (WritePluginHelpOption.Matches(arg)) {
                         // -wp?    assembly
                         string assembly = Option.ExtractOptionValue(args, ref i);
-                        globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>(assembly);
+                        string filter = Option.ExtractNextValue(args, ref i);
+                        globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>(assembly, filter);
                     } else if (WriteHelpOption.Matches(arg)) {
                         // -wr?
-                        globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>("");
+                        string filter = Option.ExtractOptionValue(args, ref i);
+                        globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>("", filter);
                     } else if (WritePluginDetailedHelpOption.Matches(arg)) {
                         // -wp!    assembly reader
                         string assembly = Option.ExtractOptionValue(args, ref i);
                         string writer = Option.ExtractNextValue(args, ref i);
-                        globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, writer);
+                        string filter = Option.ExtractNextValue(args, ref i);
+                        globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, writer, filter);
                     } else if (WriteDetailedHelpOption.Matches(arg)) {
                         // -wr!    reader
                         string writer = Option.ExtractOptionValue(args, ref i);
-                        globalContext.ShowDetailedHelp<IDependencyRenderer>("", writer);
+                        string filter = Option.ExtractNextValue(args, ref i);
+                        globalContext.ShowDetailedHelp<IDependencyRenderer>("", writer, filter);
                     } else if (DoBreakOption.Matches(arg)) {
                         // -db
                         Log.WriteInfo(msg: "---- Stop reading options (-b)");
@@ -327,10 +345,10 @@ namespace NDepCheck {
                             Log.WriteError(msg: $"Could not start process '{cmd}'; reason: {ex.Message}");
                             result = EXCEPTION_RESULT;
                         }
-                    } else if (DoScriptOption.Matches(arg)) {
+                    } else if (DoScriptOption.Matches(arg) || DoScriptLoggedOption.Matches(arg)) {
                         // -ds    filename
                         string fileName = Option.ExtractOptionValue(args, ref i);
-                        result = RunFrom(fileName, globalContext, writtenMasterFiles);
+                        result = RunFrom(fileName, globalContext, writtenMasterFiles, logCommands: DoScriptLoggedOption.Matches(arg));
                         // file is also an input file - and if there are no input files in -o, the error will come up there.
                         globalContext.InputFilesOrTestDataSpecified = true;
                     } else if (DoDefineOption.Matches(arg)) {
@@ -352,7 +370,7 @@ namespace NDepCheck {
                                 readerClass: typeof(DipReaderFactory).FullName);
                         }
                     } else if (WatchFilesOption.Matches(arg)) {
-                        // -aw    filepattern [- filepattern] script
+                        // -aw    [filepattern [- filepattern]] script
                         string positive = Option.ExtractOptionValue(args, ref i);
                         string s = Option.ExtractNextValue(args, ref i);
                         string negative, scriptName;
@@ -361,7 +379,7 @@ namespace NDepCheck {
                             scriptName = Option.ExtractNextValue(args, ref i);
                         } else {
                             negative = null;
-                            scriptName = s;
+                            scriptName = s ?? positive;
                         }
                         AddFileWatchers(positive, negative, scriptName);
                     } else if (UnwatchFilesOption.Matches(arg)) {
@@ -386,7 +404,7 @@ namespace NDepCheck {
                         globalContext.IgnoreCase = true;
                     } else if (InteractiveOption.Matches(arg)) {
                         // -ia    [filename]
-                        _interactiveLogFile = Option.ExtractOptionValue(args, ref i);
+                        _interactiveLogFile = Option.ExtractOptionValue(args, ref i) ?? "";
                     } else if (InteractiveStopOption.Matches(arg)) {
                         // -is
                         _interactiveLogFile = null;
@@ -411,23 +429,28 @@ namespace NDepCheck {
                     } else {
                         return UsageAndExit(message: "Unsupported option '" + arg + "'");
                     }
+
+                    if (logCommands) {
+                        Log.WriteInfo($">>>> Finished {arg}");
+                    }
                 }
             } catch (ArgumentException ex) {
                 return UsageAndExit(ex.Message);
             }
 
-            if (!globalContext.InputFilesOrTestDataSpecified && !ranAsWebServer && !globalContext.HelpShown &&
-                _interactiveLogFile == null) {
-                return UsageAndExit(message: "No input files specified");
-            }
+            if (!_fileWatchers.Any() && _interactiveLogFile == null) {
+                if (!globalContext.InputFilesOrTestDataSpecified && !ranAsWebServer && !globalContext.HelpShown) {
+                    return UsageAndExit(message: "No input files specified");
+                }
 
-            if (result == OK_RESULT && !globalContext.TransformingDone && !globalContext.RenderingDone) {
-                // Default action at end if nothing was done
-                globalContext.ReadAllNotYetReadIn();
-                result = globalContext.Transform(assembly: "", transformerClass: typeof(CheckDeps).FullName,
-                    transformerOptions: "");
-                globalContext.RenderToFile(assemblyName: "", rendererClassName: typeof(RuleViolationRenderer).FullName,
-                    rendererOptions: "", fileName: null);
+                if (result == OK_RESULT && !globalContext.TransformingDone && !globalContext.RenderingDone) {
+                    // Default action at end if nothing was done
+                    globalContext.ReadAllNotYetReadIn();
+                    result = globalContext.Transform(assembly: "", transformerClass: typeof(CheckDeps).FullName,
+                        transformerOptions: "");
+                    globalContext.RenderToFile(assemblyName: "",
+                        rendererClassName: typeof(RuleViolationRenderer).FullName, rendererOptions: "", fileName: null);
+                }
             }
 
             DONE:
@@ -458,7 +481,7 @@ namespace NDepCheck {
                    arg.EndsWith(value: ".exe", comparisonType: StringComparison.InvariantCultureIgnoreCase);
         }
 
-        internal int RunFrom([NotNull] string fileName, [NotNull] GlobalContext state, [CanBeNull] List<string> writtenMasterFiles) {
+        internal int RunFrom([NotNull] string fileName, [NotNull] GlobalContext state, [CanBeNull] List<string> writtenMasterFiles, bool logCommands) {
             var lineNo = 0;
             try {
                 var args = new List<string>();
@@ -488,8 +511,8 @@ namespace NDepCheck {
                 var locallyWrittenFiles = new List<string>();
                 var previousCurrentDirectory = Environment.CurrentDirectory;
                 try {
-                    Environment.CurrentDirectory = Path.GetDirectoryName(path: Path.GetFullPath(fileName));
-                    return Run(args: args.ToArray(), globalContext: state, writtenMasterFiles: locallyWrittenFiles);
+                    Environment.CurrentDirectory = Path.GetDirectoryName(path: Path.GetFullPath(fileName)) ?? "";
+                    return Run(args: args.ToArray(), globalContext: state, writtenMasterFiles: locallyWrittenFiles, logCommands: logCommands);
                 } finally {
                     writtenMasterFiles?.AddRange(collection: locallyWrittenFiles.Select(Path.GetFullPath));
                     Environment.CurrentDirectory = previousCurrentDirectory;
@@ -501,7 +524,8 @@ namespace NDepCheck {
             }
         }
 
-        private int UsageAndExit(string message, int exitValue = OPTIONS_PROBLEM, bool detailed = false) {
+        private int UsageAndExit([NotNull] string message, int exitValue = OPTIONS_PROBLEM,
+                                 bool detailed = false, [NotNull] string filter = "") {
             WriteVersion();
             Console.Out.WriteLine(value: @"
 Usage:
@@ -525,14 +549,13 @@ All messages of NDepCheck are written to Console.Out.
 Option overview:
     Option can be written with leading - or /
 
-" + Option.CreateHelp(_allOptions, detailed: detailed));
+" + Option.CreateHelp(_allOptions, detailed: detailed, filter: filter));
 
-            if (message != null) {
-                Log.WriteError(message);
-                Log.WriteInfo(msg: "");
-            }
+            Log.WriteError(message);
+            Log.WriteInfo(msg: "");
 
-            if (detailed) Console.Out.WriteLine(value: @"
+            if (detailed) {
+                Console.Out.WriteLine(value: @"
 
 ############# NOT YET UPDATED ##################
 
@@ -780,8 +803,8 @@ using the wildcardpath syntax):
         ! ()System.**
 
    // Using % instead of ! puts the node in the 'outer layer', where
-   // only edges to the inner layer are drawn.
-            ");
+   // only edges to the inner layer are drawn.");
+            }
             return exitValue;
         }
 

@@ -9,7 +9,7 @@ namespace NDepCheck.Reading {
             return new DipReader(fileName);
         }
 
-        public override string GetHelp(bool detailedHelp) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             string result = @"Read data from .dip file. 
 
 The itemtypes of the read dependencies are defined in the .dip file.";

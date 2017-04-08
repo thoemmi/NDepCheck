@@ -58,9 +58,11 @@ namespace NDepCheck {
             return ArgMatches(arg, ShortName, Name) || ArgMatches(arg, MoreNames);
         }
 
-        public static string CreateHelp(IEnumerable<Option> options, bool detailed) {
+        [NotNull]
+        public static string CreateHelp(IEnumerable<Option> options, bool detailed, string filter) {
             var sb = new StringBuilder();
-            foreach (var o in options) {
+            foreach (var o in options.Where(o => (o.Name + "/" + o.ShortName + "/" + o.Description)
+                                                 .IndexOf(filter ?? "", StringComparison.InvariantCultureIgnoreCase) >= 0)) {
                 sb.AppendLine("-" + o.Name + " or -" + o.ShortName + "   " + o.Usage);
                 sb.AppendLine("    " + o.Description);
                 if (o.Default == null) {
@@ -74,6 +76,7 @@ namespace NDepCheck {
             return sb.ToString();
         }
 
+        [NotNull]
         public OptionAction Action(Func<string[], int, int> action) {
             return new OptionAction(this, action);
         }
@@ -93,6 +96,7 @@ namespace NDepCheck {
         /// <summary>
         /// Helper method to get option value of value 
         /// </summary>
+        [CanBeNull]
         public static string ExtractOptionValue(string[] args, ref int i) {
             string optionValue;
             string arg = args[i];
@@ -132,6 +136,7 @@ namespace NDepCheck {
             return value;
         }
 
+        [NotNull]
         private static string CollectMultipleArgs(string[] args, ref int i, string value) {
             // Collect everything up to }
             var sb = new StringBuilder(value);
@@ -145,6 +150,7 @@ namespace NDepCheck {
             return sb.ToString();
         }
 
+        [CanBeNull]
         public static string ExtractNextValue(string[] args, ref int i) {
             if (i >= args.Length - 1) {
                 return null;
@@ -214,6 +220,7 @@ namespace NDepCheck {
             }
         }
 
+        [NotNull, ItemNotNull]
         public static IEnumerable<string> ExpandFilename(string pattern, params string[] extensions) {
             if (pattern.StartsWith("@")) {
                 using (TextReader nameFile = new StreamReader(pattern.Substring(1))) {
@@ -233,6 +240,10 @@ namespace NDepCheck {
 
                 string dir = sepPos < 0 ? "." : pattern.Substring(0, sepPos);
                 string filePattern = sepPos < 0 ? pattern : pattern.Substring(sepPos + 1);
+                if (!Directory.Exists(dir)) {
+                    throw new IOException($"Directory '{dir}' does not exist (current directory is '{Environment.CurrentDirectory}')");
+                }
+
                 foreach (string name in Directory.GetFiles(dir, filePattern)) {
                     yield return name;
                 }

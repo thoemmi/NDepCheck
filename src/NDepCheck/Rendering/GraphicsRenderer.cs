@@ -952,7 +952,7 @@ namespace NDepCheck.Rendering {
 
         public abstract void CreateSomeTestItems(out IEnumerable<TItem> items, out IEnumerable<TDependency> dependencies);
 
-        public abstract string GetHelp(bool detailedHelp);
+        public abstract string GetHelp(bool detailedHelp, string filter);
 
         public string GetMasterFileName(string argsAsString, string baseFileName) {
             return GetHtmlFileName(baseFileName);

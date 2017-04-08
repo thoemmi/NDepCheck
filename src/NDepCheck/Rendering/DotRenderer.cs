@@ -23,8 +23,8 @@ namespace NDepCheck.Rendering {
             SomeRendererTestData.CreateSomeTestItems(out items, out dependencies);
         }
 
-        public string GetHelp(bool detailedHelp) {
-            return _delegate.GetHelp();
+        public string GetHelp(bool detailedHelp, string filter) {
+            return _delegate.GetHelp(detailedHelp, filter);
         }
 
         public string GetMasterFileName(string argsAsString, string baseFileName) {
@@ -87,14 +87,14 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public string GetHelp() {
+        public string GetHelp(bool detailedHelp, string filter) {
             return
 $@"  Writes dependencies to file in .dot format (graphviz; see http://graphviz.org/).
   This is helpful for smaller dependency graphs without any programming.
   For larger graphs, it is better to use or define a renderer that creates a
   specific structure, e.g., a ModulesAndInterfacesRenderer.
 
-{Option.CreateHelp(_allOptions, true)}";
+{Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
         public string GetMasterFileName(string argsAsString, string baseFileName) {

@@ -36,7 +36,7 @@ namespace NDepCheck.Tests {
                                        new Dependency(i1, i2, new TextFileSource("Test", 2), "Test", ct: 1) };
             }
 
-            public override string GetHelp(bool extensiveHelp) {
+            public override string GetHelp(bool extensiveHelp, string filter) {
                 return "DelegteTestRenderer";
             }
         }
@@ -271,7 +271,7 @@ namespace NDepCheck.Tests {
                 CreateSomeTestItems(5, "spiral", out items, out dependencies);
             }
 
-            public override string GetHelp(bool extensiveHelp) {
+            public override string GetHelp(bool extensiveHelp, string filter) {
                 return "SomewhatComplexTestRenderer";
             }
         }

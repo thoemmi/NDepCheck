@@ -96,12 +96,12 @@ namespace NDepCheck.Rendering {
                 };
         }
 
-        public string GetHelp(bool detailedHelp) {
+        public string GetHelp(bool detailedHelp, string filter) {
             return
 $@"  Writes dependency rule violations to file in text or xml format.
   This is the output for the primary reason of NDepCheck: Checking rules.
 
-{Option.CreateHelp(_allOptions, true)}";
+{Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
         public string GetMasterFileName(string argsAsString, string baseFileName) {
