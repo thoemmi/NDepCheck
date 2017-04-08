@@ -50,7 +50,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
             bool ignoreSelfCycles = false;
             bool keepOnlyCycleEdges = false;
             int maxCycleLength = int.MaxValue;
-            ItemMatch cycleAnchors = null;
+            ItemMatch cycleAnchorsMatch = null;
 
             IEnumerable<Action<Dependency>> effects = EffectOptions.Parse(transformOptions,
                  moreOptions: new[] {
@@ -63,7 +63,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
                         return j;
                     }),
                     CycleAnchorsOption.Action((args, j) => {
-                        cycleAnchors = new ItemMatch(null, Option.ExtractOptionValue(args, ref j), _ignoreCase);
+                        cycleAnchorsMatch = new ItemMatch(null, Option.ExtractOptionValue(args, ref j), _ignoreCase);
                         return j;
                     }),
                     MaxCycleLengthOption.Action((args, j) => {
@@ -85,7 +85,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
             var trackItems = new HashSet<Item>();
             var dependenciesOnCycles = new HashSet<Dependency>();
             var path = new Stack<Dependency>();
-            foreach (var i in from.Keys.Where(i => cycleAnchors == null || cycleAnchors.Matches(i) != null)) {
+            foreach (var i in from.Keys.Where(i => ItemMatch.Matches(cycleAnchorsMatch, i))) {
                 FindCyclesFrom(i, i, ignoreSelfCycles, from, trackItems, maxCycleLength, foundCycleHashs, AddHash(0, i), path, dependenciesOnCycles);
             }
 

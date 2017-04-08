@@ -96,38 +96,38 @@ namespace NDepCheck.Tests {
         public void TestSimpleGraphAbstractionMatches() {
             ItemType testType = ItemType.New("NC", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" });
             ItemType simpleType = ItemType.New("N", new[] { "NAME", }, new[] { "" });
-            var g1 = new Projection(testType, simpleType, "**():", null, false, IGNORECASE, true, true);
+            var g1 = new Projection(testType, simpleType, "**():", null, IGNORECASE, true, true);
 
-            var gn1 = new Projection(testType, simpleType, "(n)*", null, false, IGNORECASE, true, true);
-            var gn2 = new Projection(testType, simpleType, "(n)*:", null, false, IGNORECASE, true, true);
-            var gn3 = new Projection(testType, simpleType, "(n)**", null, false, IGNORECASE, true, true);
-            var gn4 = new Projection(testType, simpleType, "(n)**:", null, false, IGNORECASE, true, true);
-            var gn5 = new Projection(testType, simpleType, "(n)1", null, false, IGNORECASE, true, true);
-            var gn6 = new Projection(testType, simpleType, "(n)1:", null, false, IGNORECASE, true, true);
-            var gn7 = new Projection(testType, simpleType, "(*n)1:", null, false, IGNORECASE, true, true);
-            var gn8 = new Projection(testType, simpleType, "**(n)1:", null, false, IGNORECASE, true, true);
+            var gn1 = new Projection(testType, simpleType, "(n)*", null, IGNORECASE, true, true);
+            var gn2 = new Projection(testType, simpleType, "(n)*:", null, IGNORECASE, true, true);
+            var gn3 = new Projection(testType, simpleType, "(n)**", null, IGNORECASE, true, true);
+            var gn4 = new Projection(testType, simpleType, "(n)**:", null, IGNORECASE, true, true);
+            var gn5 = new Projection(testType, simpleType, "(n)1", null, IGNORECASE, true, true);
+            var gn6 = new Projection(testType, simpleType, "(n)1:", null, IGNORECASE, true, true);
+            var gn7 = new Projection(testType, simpleType, "(*n)1:", null, IGNORECASE, true, true);
+            var gn8 = new Projection(testType, simpleType, "**(n)1:", null, IGNORECASE, true, true);
 
-            var hn1 = new Projection(testType, simpleType, "n(*)", null, false, IGNORECASE, true, true);
-            var hn2 = new Projection(testType, simpleType, "n(*):", null, false, IGNORECASE, true, true);
-            var hn3 = new Projection(testType, simpleType, "n(**)", null, false, IGNORECASE, true, true);
-            var hn4 = new Projection(testType, simpleType, "n(**):", null, false, IGNORECASE, true, true);
-            var hn5 = new Projection(testType, simpleType, "n(1)", null, false, IGNORECASE, true, true);
-            var hn6 = new Projection(testType, simpleType, "n(1):", null, false, IGNORECASE, true, true);
-            var hn7 = new Projection(testType, simpleType, "*n(1):", null, false, IGNORECASE, true, true);
-            var hn8 = new Projection(testType, simpleType, "**n(1):", null, false, IGNORECASE, true, true);
+            var hn1 = new Projection(testType, simpleType, "n(*)", null, IGNORECASE, true, true);
+            var hn2 = new Projection(testType, simpleType, "n(*):", null, IGNORECASE, true, true);
+            var hn3 = new Projection(testType, simpleType, "n(**)", null, IGNORECASE, true, true);
+            var hn4 = new Projection(testType, simpleType, "n(**):", null, IGNORECASE, true, true);
+            var hn5 = new Projection(testType, simpleType, "n(1)", null, IGNORECASE, true, true);
+            var hn6 = new Projection(testType, simpleType, "n(1):", null, IGNORECASE, true, true);
+            var hn7 = new Projection(testType, simpleType, "*n(1):", null, IGNORECASE, true, true);
+            var hn8 = new Projection(testType, simpleType, "**n(1):", null, IGNORECASE, true, true);
 
-            var gc1 = new Projection(testType, simpleType, ":(c)*", null, false, IGNORECASE, true, true);
-            var gc2 = new Projection(testType, simpleType, ":(c)**", null, false, IGNORECASE, true, true);
-            var gc3 = new Projection(testType, simpleType, ":(*c)1", null, false, IGNORECASE, true, true);
-            var gc4 = new Projection(testType, simpleType, ":(**c)1", null, false, IGNORECASE, true, true);
+            var gc1 = new Projection(testType, simpleType, ":(c)*", null, IGNORECASE, true, true);
+            var gc2 = new Projection(testType, simpleType, ":(c)**", null, IGNORECASE, true, true);
+            var gc3 = new Projection(testType, simpleType, ":(*c)1", null, IGNORECASE, true, true);
+            var gc4 = new Projection(testType, simpleType, ":(**c)1", null, IGNORECASE, true, true);
 
-            var hc1 = new Projection(testType, simpleType, ":c(*)", null, false, IGNORECASE, true, true);
-            var hc2 = new Projection(testType, simpleType, ":c(*)*", null, false, IGNORECASE, true, true);
-            var hc3 = new Projection(testType, simpleType, ":*c(1)", null, false, IGNORECASE, true, true);
-            var hc4 = new Projection(testType, simpleType, ":**c(1)", null, false, IGNORECASE, true, true);
+            var hc1 = new Projection(testType, simpleType, ":c(*)", null, IGNORECASE, true, true);
+            var hc2 = new Projection(testType, simpleType, ":c(*)*", null, IGNORECASE, true, true);
+            var hc3 = new Projection(testType, simpleType, ":*c(1)", null, IGNORECASE, true, true);
+            var hc4 = new Projection(testType, simpleType, ":**c(1)", null, IGNORECASE, true, true);
 
-            var gnc1 = new Projection(testType, simpleType, "n(*):(c)*", new[] { "\\1+\\2" }, false, IGNORECASE, true, true);
-            var gnc2 = new Projection(testType, simpleType, "n(**):(c)**", new[] { "\\1+\\2" }, false, IGNORECASE, true, true);
+            var gnc1 = new Projection(testType, simpleType, "n(*):(c)*", new[] { "\\1+\\2" }, IGNORECASE, true, true);
+            var gnc2 = new Projection(testType, simpleType, "n(**):(c)**", new[] { "\\1+\\2" }, IGNORECASE, true, true);
 
             Item i = Item.New(testType, "n1", "c1");
 
@@ -169,47 +169,47 @@ namespace NDepCheck.Tests {
         public void TestRegexGraphAbstractionMatches() {
             ItemType testType = ItemType.New("NC", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" });
             ItemType simpleType = ItemType.New("N", new[] { "NAME" }, new[] { "" });
-            var g1 = new Projection(testType, simpleType, "^.*()$:", null, false, IGNORECASE, true, true);
+            var g1 = new Projection(testType, simpleType, "^.*()$:", null, IGNORECASE, true, true);
 
             // ReSharper disable InconsistentNaming
-            var gn1a = new Projection(testType, simpleType, "^(n).*", null, false, IGNORECASE, true, true);
-            var gn1b = new Projection(testType, simpleType, "^(n).*$", null, false, IGNORECASE, true, true);
-            var gn1c = new Projection(testType, simpleType, "(n).*$", null, false, IGNORECASE, true, true);
-            var gn2a = new Projection(testType, simpleType, "^(n).*:", null, false, IGNORECASE, true, true);
-            var gn2b = new Projection(testType, simpleType, "^(n).*$:", null, false, IGNORECASE, true, true);
-            var gn2c = new Projection(testType, simpleType, "(n).*$:", null, false, IGNORECASE, true, true);
-            var gn5a = new Projection(testType, simpleType, "^(n)1", null, false, IGNORECASE, true, true);
-            var gn5b = new Projection(testType, simpleType, "^(n)1$", null, false, IGNORECASE, true, true);
-            var gn5c = new Projection(testType, simpleType, "(n)1$", null, false, IGNORECASE, true, true);
-            var gn6a = new Projection(testType, simpleType, "^(n)1:", null, false, IGNORECASE, true, true);
-            var gn6b = new Projection(testType, simpleType, "^(n)1$:", null, false, IGNORECASE, true, true);
-            var gn6c = new Projection(testType, simpleType, "(n)1$:", null, false, IGNORECASE, true, true);
-            var gn7a = new Projection(testType, simpleType, "^(.*n)1:", null, false, IGNORECASE, true, true);
-            var gn7b = new Projection(testType, simpleType, "^(.*n)1$:", null, false, IGNORECASE, true, true);
-            var gn7c = new Projection(testType, simpleType, "(.*n)1$:", null, false, IGNORECASE, true, true);
+            var gn1a = new Projection(testType, simpleType, "^(n).*", null, IGNORECASE, true, true);
+            var gn1b = new Projection(testType, simpleType, "^(n).*$", null, IGNORECASE, true, true);
+            var gn1c = new Projection(testType, simpleType, "(n).*$", null, IGNORECASE, true, true);
+            var gn2a = new Projection(testType, simpleType, "^(n).*:", null, IGNORECASE, true, true);
+            var gn2b = new Projection(testType, simpleType, "^(n).*$:", null, IGNORECASE, true, true);
+            var gn2c = new Projection(testType, simpleType, "(n).*$:", null, IGNORECASE, true, true);
+            var gn5a = new Projection(testType, simpleType, "^(n)1", null, IGNORECASE, true, true);
+            var gn5b = new Projection(testType, simpleType, "^(n)1$", null, IGNORECASE, true, true);
+            var gn5c = new Projection(testType, simpleType, "(n)1$", null, IGNORECASE, true, true);
+            var gn6a = new Projection(testType, simpleType, "^(n)1:", null, IGNORECASE, true, true);
+            var gn6b = new Projection(testType, simpleType, "^(n)1$:", null, IGNORECASE, true, true);
+            var gn6c = new Projection(testType, simpleType, "(n)1$:", null, IGNORECASE, true, true);
+            var gn7a = new Projection(testType, simpleType, "^(.*n)1:", null, IGNORECASE, true, true);
+            var gn7b = new Projection(testType, simpleType, "^(.*n)1$:", null, IGNORECASE, true, true);
+            var gn7c = new Projection(testType, simpleType, "(.*n)1$:", null, IGNORECASE, true, true);
 
-            var hn1a = new Projection(testType, simpleType, "^n(.*)", null, false, IGNORECASE, true, true);
-            var hn1b = new Projection(testType, simpleType, "^n(.*)$", null, false, IGNORECASE, true, true);
-            var hn1c = new Projection(testType, simpleType, "n(.*)$", null, false, IGNORECASE, true, true);
-            var hn2a = new Projection(testType, simpleType, "^n(.*):", null, false, IGNORECASE, true, true);
-            var hn2b = new Projection(testType, simpleType, "^n(.*)$:", null, false, IGNORECASE, true, true);
-            var hn2c = new Projection(testType, simpleType, "n(.*)$:", null, false, IGNORECASE, true, true);
-            var hn5a = new Projection(testType, simpleType, "^n(1)", null, false, IGNORECASE, true, true);
-            var hn5b = new Projection(testType, simpleType, "^n(1)$", null, false, IGNORECASE, true, true);
-            var hn5c = new Projection(testType, simpleType, "n(1)$", null, false, IGNORECASE, true, true);
-            var hn6a = new Projection(testType, simpleType, "^n(1):", null, false, IGNORECASE, true, true);
-            var hn6b = new Projection(testType, simpleType, "^n(1)$:", null, false, IGNORECASE, true, true);
-            var hn6c = new Projection(testType, simpleType, "n(1)$:", null, false, IGNORECASE, true, true);
-            var hn7a = new Projection(testType, simpleType, "^.*n(1):", null, false, IGNORECASE, true, true);
-            var hn7b = new Projection(testType, simpleType, "^.*n(1)$:", null, false, IGNORECASE, true, true);
-            var hn7c = new Projection(testType, simpleType, ".*n(1)$:", null, false, IGNORECASE, true, true);
+            var hn1a = new Projection(testType, simpleType, "^n(.*)", null, IGNORECASE, true, true);
+            var hn1b = new Projection(testType, simpleType, "^n(.*)$", null, IGNORECASE, true, true);
+            var hn1c = new Projection(testType, simpleType, "n(.*)$", null, IGNORECASE, true, true);
+            var hn2a = new Projection(testType, simpleType, "^n(.*):", null, IGNORECASE, true, true);
+            var hn2b = new Projection(testType, simpleType, "^n(.*)$:", null, IGNORECASE, true, true);
+            var hn2c = new Projection(testType, simpleType, "n(.*)$:", null, IGNORECASE, true, true);
+            var hn5a = new Projection(testType, simpleType, "^n(1)", null, IGNORECASE, true, true);
+            var hn5b = new Projection(testType, simpleType, "^n(1)$", null, IGNORECASE, true, true);
+            var hn5c = new Projection(testType, simpleType, "n(1)$", null, IGNORECASE, true, true);
+            var hn6a = new Projection(testType, simpleType, "^n(1):", null, IGNORECASE, true, true);
+            var hn6b = new Projection(testType, simpleType, "^n(1)$:", null, IGNORECASE, true, true);
+            var hn6c = new Projection(testType, simpleType, "n(1)$:", null, IGNORECASE, true, true);
+            var hn7a = new Projection(testType, simpleType, "^.*n(1):", null, IGNORECASE, true, true);
+            var hn7b = new Projection(testType, simpleType, "^.*n(1)$:", null, IGNORECASE, true, true);
+            var hn7c = new Projection(testType, simpleType, ".*n(1)$:", null, IGNORECASE, true, true);
 
-            var gc1a = new Projection(testType, simpleType, ":^(c).*", null, false, IGNORECASE, true, true);
-            var gc1b = new Projection(testType, simpleType, ":^(c).*$", null, false, IGNORECASE, true, true);
-            var gc1c = new Projection(testType, simpleType, ":(c).*$", null, false, IGNORECASE, true, true);
-            var gc3a = new Projection(testType, simpleType, ":^(.*c)1", null, false, IGNORECASE, true, true);
-            var gc3b = new Projection(testType, simpleType, ":^(.*c)1$", null, false, IGNORECASE, true, true);
-            var gc3c = new Projection(testType, simpleType, ":(.*c)1$", null, false, IGNORECASE, true, true);
+            var gc1a = new Projection(testType, simpleType, ":^(c).*", null, IGNORECASE, true, true);
+            var gc1b = new Projection(testType, simpleType, ":^(c).*$", null, IGNORECASE, true, true);
+            var gc1c = new Projection(testType, simpleType, ":(c).*$", null, IGNORECASE, true, true);
+            var gc3a = new Projection(testType, simpleType, ":^(.*c)1", null, IGNORECASE, true, true);
+            var gc3b = new Projection(testType, simpleType, ":^(.*c)1$", null, IGNORECASE, true, true);
+            var gc3c = new Projection(testType, simpleType, ":(.*c)1$", null, IGNORECASE, true, true);
             // ReSharper restore InconsistentNaming
 
             //var hc1 = new GraphAbstraction_(":c(*)", false);
@@ -276,7 +276,7 @@ namespace NDepCheck.Tests {
         public void TestAsterisks() {
             ItemType testType = ItemType.New("T", new[] { "NAME", }, new[] { "" });
             ItemType simpleType = ItemType.New("N", new[] { "NAME", }, new[] { "" });
-            var g1 = new Projection(testType, simpleType, "(**)", null, false, IGNORECASE, true, true);
+            var g1 = new Projection(testType, simpleType, "(**)", null, IGNORECASE, true, true);
 
             Assert.AreEqual("n1", g1.Match(Item.New(testType, "n1"), true).Name);
             Assert.AreEqual("n1.n2", g1.Match(Item.New(testType, "n1.n2"), true).Name);
@@ -288,8 +288,8 @@ namespace NDepCheck.Tests {
         public void TestProblemWithTests() {
             ItemType testType = ItemType.New("A", new[] { "ASSEMBLY", }, new[] { "NAME" });
             ItemType simpleType = ItemType.New("N", new[] { "NAME", }, new[] { "" });
-            var g1 = new Projection(testType, simpleType, "**Tests**", null, false, IGNORECASE, true, true);
-            var g2 = new Projection(testType, simpleType, "**Tests**()", null, false, IGNORECASE, true, true);
+            var g1 = new Projection(testType, simpleType, "**Tests**", null, IGNORECASE, true, true);
+            var g2 = new Projection(testType, simpleType, "**Tests**()", null, IGNORECASE, true, true);
 
             Assert.AreEqual("\\1", g1.Match(Item.New(testType, "Framework.Core.NunitTests.IBOL"), true).Name);
             Assert.AreEqual("", g2.Match(Item.New(testType, "Framework.Core.NunitTests.IBOL"), true).Name);
@@ -323,7 +323,8 @@ namespace NDepCheck.Tests {
         public void TestAmpersand() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
 
-            var ga = new Projection(itemType, itemType, "(**):(**):(**)", new[] { "\\1", "\\2", "\\3", "", "", "", "" }, false, false, true, true);
+            var ga = new Projection(itemType, itemType, "(**):(**):(**)", new[] { "\\1", "\\2", "\\3", "", "", "", "" },
+                                    ignoreCase: false, forLeftSide: true, forRightSide: true);
 
             Item used = Item.New(itemType, "System", "Byte&", "mscorlib", "4.0.0.0", "", "", "");
 

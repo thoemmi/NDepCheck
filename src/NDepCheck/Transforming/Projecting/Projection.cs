@@ -27,14 +27,13 @@ namespace NDepCheck.Transforming.Projecting {
         public bool ForLeftSide { get; }
         public bool ForRightSide { get; }
 
-        private readonly bool _isInner;
-
         [NotNull]
         private readonly ItemMatch _itemMatch;
 
         private int _matchCount;
 
-        public Projection([CanBeNull] ItemType sourceItemTypeOrNull, [NotNull]ItemType targetItemType, [NotNull]string pattern, [CanBeNull]string[] targetSegments, bool isInner, bool ignoreCase, bool forLeftSide, bool forRightSide) {
+        public Projection([CanBeNull] ItemType sourceItemTypeOrNull, [NotNull]ItemType targetItemType, [NotNull]string pattern, 
+            [CanBeNull]string[] targetSegments, bool ignoreCase, bool forLeftSide, bool forRightSide) {
             if (targetSegments != null) {
                 if (targetItemType.Length != targetSegments.Length) {
                     Log.WriteError($"Targettype {targetItemType.Name} has {targetItemType.Length} segments, but {targetSegments.Length} are defined in projection: {string.Join(",", targetSegments)}");
@@ -48,7 +47,6 @@ namespace NDepCheck.Transforming.Projecting {
             }
             _targetItemType = targetItemType;
             _targetSegments = targetSegments;
-            _isInner = isInner;
             ForLeftSide = forLeftSide;
             ForRightSide = forRightSide;
             _itemMatch = new ItemMatch(sourceItemTypeOrNull, pattern, ignoreCase);
@@ -78,7 +76,7 @@ namespace NDepCheck.Transforming.Projecting {
                         int matchResultIndex = i;
                         targets = targets.Select(s => s.Replace("\\" + (matchResultIndex + 1), matchResultGroups[matchResultIndex]));
                     }
-                    return Item.New(_targetItemType, _isInner, targets.Select(t => ExpandHexChars(t)).ToArray()).SetOrder(item.Order);
+                    return Item.New(_targetItemType, targets.Select(t => ExpandHexChars(t)).ToArray()).SetOrder(item.Order);
                 }
             }
         }

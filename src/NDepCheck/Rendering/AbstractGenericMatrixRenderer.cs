@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
+using NDepCheck.Transforming;
 
 namespace NDepCheck.Rendering {
     public abstract class AbstractMatrixRenderer {
         public static readonly Option MaxNameWidthOption = new Option("mw", "max-name-width", "#", "Maximal width of an item name", @default: "full length of name");
         public static readonly Option WriteBadCountOption = new Option("wb", "write-bad-count", "", "Also output count of bad dependencies", @default: false);
+        public static readonly Option InnerMatchOption = new Option("im", "inner-item", "#", "Match to mark item as inner item", @default: "all items are inner");
 
-        private static readonly Option[] _allOptions = { MaxNameWidthOption, WriteBadCountOption };
+        private static readonly Option[] _allOptions = { MaxNameWidthOption, WriteBadCountOption, InnerMatchOption };
 
         public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
             SomeRendererTestData.CreateSomeTestItems(out items, out dependencies);
@@ -24,20 +26,27 @@ $@"  Write a textual matrix representation of dependencies.
     }
 
     public abstract class AbstractGenericMatrixRenderer : IRenderer<IEdge> {
-        protected static void ParseOptions(string argsAsString, out int? labelWidthOrNull, out bool withNotOkCt) {
+        protected static void ParseOptions(string argsAsString, bool ignoreCase, out int? labelWidthOrNull, 
+                                           out bool withNotOkCt, out ItemMatch innerMatch) {
             int? lw = null;
             bool wct = false;
+            ItemMatch im = null;
             Option.Parse(argsAsString,
                 AbstractMatrixRenderer.MaxNameWidthOption.Action((args, j) => {
-                    lw = Option.ExtractIntOptionValue(args, ref j, "");                    
+                    lw = Option.ExtractIntOptionValue(args, ref j, "");
                     return j;
                 }),
                 AbstractMatrixRenderer.WriteBadCountOption.Action((args, j) => {
-                wct = true;
-                return j;
-            }));
+                    wct = true;
+                    return j;
+                }),
+                AbstractMatrixRenderer.InnerMatchOption.Action((args, j) => {
+                    im = new ItemMatch(null, Option.ExtractOptionValue(args, ref j), ignoreCase);
+                    return j;
+                }));
             labelWidthOrNull = lw;
             withNotOkCt = wct;
+            innerMatch = im;
         }
 
         private static List<INode> MoreOrLessTopologicalSort(IEnumerable<IEdge> edges) {
@@ -108,7 +117,7 @@ $@"  Write a textual matrix representation of dependencies.
         }
 
         protected static string NodeId(INode n, string nodeFormat, Dictionary<INode, int> node2Index) {
-            return (n.IsInner ? '!' : '%') + string.Format(nodeFormat, node2Index[n]);
+            return string.Format(nodeFormat, node2Index[n]);
         }
 
         protected static string FormatCt(bool withNotOkCt, string ctFormat, bool rightUpper, IWithCt e) {
@@ -119,12 +128,12 @@ $@"  Write a textual matrix representation of dependencies.
                        : "");
         }
 
-        protected void Render(IEnumerable<IEdge> edges,
+        protected void Render(IEnumerable<IEdge> edges, ItemMatch innerMatchOrNull,
             [NotNull] TextWriter output, int? labelWidthOrNull, bool withNotOkCt) {
             IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdges(edges);
 
             var innerAndReachableOuterNodes =
-                new HashSet<INode>(nodesAndEdges.Where(n => n.Key.IsInner).SelectMany(kvp => new[] { kvp.Key }.Concat(kvp.Value.Select(e => e.UsedNode))));
+                new HashSet<INode>(nodesAndEdges.Where(n => ItemMatch.Matches(innerMatchOrNull, n.Key)).SelectMany(kvp => new[] { kvp.Key }.Concat(kvp.Value.Select(e => e.UsedNode))));
 
             IEnumerable<INode> sortedNodes = MoreOrLessTopologicalSort(edges).Where(n => innerAndReachableOuterNodes.Contains(n));
 
@@ -133,7 +142,7 @@ $@"  Write a textual matrix representation of dependencies.
                 int m = 0;
                 Dictionary<INode, int> node2Index = sortedNodes.ToDictionary(n => n, n => ++m);
 
-                IEnumerable<INode> topNodes = sortedNodes.Where(n => n.IsInner);
+                IEnumerable<INode> topNodes = sortedNodes.Where(n => ItemMatch.Matches(innerMatchOrNull, n));
 
                 int labelWidth = labelWidthOrNull ?? Math.Max(Math.Min(sortedNodes.Max(n => n.Name.Length), 30), 4);
                 int colWidth = Math.Max(1 + ("" + edges.Max(e => e.Ct)).Length, // 1+ because of loop prefix
@@ -151,7 +160,7 @@ $@"  Write a textual matrix representation of dependencies.
             string nodeFormat, Dictionary<INode, int> node2Index, bool withNotOkCt, IEnumerable<INode> sortedNodes,
             string ctFormat, IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges);
 
-        public abstract void Render(IEnumerable<IEdge> dependencies, string argsAsString, string baseFileName);
+        public abstract void Render(IEnumerable<IEdge> dependencies, string argsAsString, string baseFileName, bool ignoreCase);
 
         public abstract void RenderToStreamForUnitTests(IEnumerable<IEdge> dependencies, Stream stream);
 

@@ -10,9 +10,6 @@ namespace NDepCheck.Transforming.Projecting {
         internal const string ABSTRACT_IT_LEFT = "<";
         internal const string ABSTRACT_IT_BOTH = "!";
         internal const string ABSTRACT_IT_RIGHT = ">";
-        internal const string ABSTRACT_IT_LEFT_AS_INNER = "[";
-        internal const string ABSTRACT_IT_BOTH_AS_INNER = "|";
-        internal const string ABSTRACT_IT_RIGHT_AS_INNER = "]";
         internal const string MAP = "---%";
 
         public static readonly Option ProjectionFileOption = new Option("pf", "projection-file", "filename", "File containing projections", @default: "");
@@ -87,15 +84,11 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
                         bool left = line.StartsWith(ABSTRACT_IT_LEFT);
                         bool right = line.StartsWith(ABSTRACT_IT_RIGHT);
                         bool both = line.StartsWith(ABSTRACT_IT_BOTH);
-                        bool leftInner = line.StartsWith(ABSTRACT_IT_LEFT_AS_INNER);
-                        bool rightInner = line.StartsWith(ABSTRACT_IT_RIGHT_AS_INNER);
-                        bool bothInner = line.StartsWith(ABSTRACT_IT_BOTH_AS_INNER);
-                        if (left || both || right || leftInner || rightInner || bothInner) {
+                        if (left || both || right) {
                             Projection p = CreateProjection(globalContext, sourceItemType, targetItemType,
-                                isInner: leftInner || rightInner || bothInner, ruleFileName: ruleSourceName,
+                                ruleFileName: ruleSourceName,
                                 lineNo: lineNo, rule: line.Substring(1).Trim(), ignoreCase: ignoreCase,
-                                forLeftSide: left || both || leftInner || bothInner,
-                                forRightSide: both || right || bothInner || rightInner);
+                                forLeftSide: left || both , forRightSide: both || right);
                             elements.Add(p);
                             return true;
                         } else {
@@ -107,7 +100,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
         }
 
         private Projection CreateProjection([NotNull] GlobalContext globalContext, [CanBeNull] ItemType sourceItemType,
-                                   [CanBeNull]ItemType targetItemType, bool isInner, [NotNull] string ruleFileName,
+                                   [CanBeNull]ItemType targetItemType, [NotNull] string ruleFileName,
                                    int lineNo, [NotNull] string rule, bool ignoreCase, bool forLeftSide, bool forRightSide) {
             if (sourceItemType == null || targetItemType == null) {
                 Log.WriteError($"Itemtypes not defined - $ line is missing in {ruleFileName}, graph rules are ignored", ruleFileName, lineNo);
@@ -127,7 +120,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
                     targetSegments = null;
                 }
 
-                var p = new Projection(sourceItemType, targetItemType, pattern, targetSegments, isInner, 
+                var p = new Projection(sourceItemType, targetItemType, pattern, targetSegments, 
                                        ignoreCase, forLeftSide, forRightSide);
 
                 if (Log.IsChattyEnabled) {

@@ -1,13 +1,14 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using NDepCheck.Transforming;
 
 namespace NDepCheck.Rendering {
     public class MatrixRenderer2 : AbstractMatrixRenderer, IDependencyRenderer {
         private readonly GenericMatrixRenderer2 _delegate = new GenericMatrixRenderer2();
 
-        public void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName) {
-            _delegate.Render(dependencies, argsAsString, baseFileName);
+        public void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
+            _delegate.Render(dependencies, argsAsString, baseFileName, ignoreCase);
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
@@ -51,17 +52,18 @@ namespace NDepCheck.Rendering {
 
         public override void RenderToStreamForUnitTests(IEnumerable<IEdge> dependencies, Stream stream) {
             using (var sw = new StreamWriter(stream)) {
-                Render(dependencies, sw, null, true);
+                Render(dependencies, null, sw, null, true);
             }
         }
 
-        public override void Render(IEnumerable<IEdge> dependencies, string argsAsString, string baseFileName) {
+        public override void Render(IEnumerable<IEdge> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
             int? labelWidthOrNull;
             bool withNotOkCt;
-            ParseOptions(argsAsString, out labelWidthOrNull, out withNotOkCt);
-
+            ItemMatch itemMatchOrNull;
+            ParseOptions(argsAsString, ignoreCase, out labelWidthOrNull, out withNotOkCt, out itemMatchOrNull);
+             
             using (var sw = new StreamWriter(GetCSVFileName(baseFileName))) {
-                Render(dependencies, sw, labelWidthOrNull, withNotOkCt);
+                Render(dependencies, null/*TODO: InnerMatch?*/, sw, labelWidthOrNull, withNotOkCt);
             }
         }
 

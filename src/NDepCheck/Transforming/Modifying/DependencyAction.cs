@@ -63,9 +63,9 @@ namespace NDepCheck.Transforming.Modifying {
         }
 
         public bool Match(Dependency d) {
-            return (_usingMatch == null || _usingMatch.Matches(d.UsingItem) != null)
-                   && (_dependencyMatch == null || _dependencyMatch.Match(d))
-                   && (_usedMatch == null || _usedMatch.Matches(d.UsedItem) != null);
+            return ItemMatch.Matches(_usingMatch, d.UsingItem)
+                   && (_dependencyMatch == null || _dependencyMatch.Matches(d))
+                   && ItemMatch.Matches(_usedMatch, d.UsedItem);
         }
 
         public bool Apply(Dependency d) {

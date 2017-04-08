@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
+using NDepCheck.Transforming;
 
 namespace NDepCheck.Rendering {
     /// <summary>
@@ -10,8 +11,8 @@ namespace NDepCheck.Rendering {
     public class DotRenderer : IDependencyRenderer {
         private readonly GenericDotRenderer _delegate = new GenericDotRenderer();
 
-        public void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName) {
-            _delegate.Render(dependencies, argsAsString, baseFileName);
+        public void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
+            _delegate.Render(dependencies, argsAsString, baseFileName, ignoreCase);
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
@@ -33,23 +34,24 @@ namespace NDepCheck.Rendering {
 
     public class GenericDotRenderer : IRenderer<IEdge> {
         public static readonly Option MaxExampleLengthOption = new Option("ml", "max-example-length", "#", "Maximal length of example string", @default:"full example");
+        public static readonly Option InnerMatchOption = new Option("im", "inner-item", "#", "Match to mark item as inner item", @default: "all items are inner");
 
-        private static readonly Option[] _allOptions = { MaxExampleLengthOption };
+        private static readonly Option[] _allOptions = { MaxExampleLengthOption, InnerMatchOption };
 
-        private void Render(/*IEnumerable<INode> nodes, */IEnumerable<IEdge> edges, [NotNull] TextWriter output, int? maxExampleLength) {
+        private void Render(IEnumerable<IEdge> edges, [NotNull] TextWriter output, ItemMatch innerMatch, int? maxExampleLength) {
             IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdges(edges);
 
             output.WriteLine("digraph D {");
             output.WriteLine("ranksep = 1.5;");
 
             foreach (var n in nodesAndEdges.Keys.OrderBy(n => n.Name)) {
-                output.WriteLine("\"" + n.Name + "\" [shape=" + (n.IsInner ? "box,style=bold" : "oval") + "];");
+                output.WriteLine("\"" + n.Name + "\" [shape=" + (ItemMatch.Matches(innerMatch, n) ? "box,style=bold" : "oval") + "];");
             }
 
             output.WriteLine();
 
             foreach (var n in nodesAndEdges.Keys.OrderBy(n => n.Name)) {
-                foreach (var e in nodesAndEdges[n].Where(e => e.UsingNode.IsInner || e.UsedNode.IsInner)) {
+                foreach (var e in nodesAndEdges[n].Where(e => ItemMatch.Matches(innerMatch, e.UsingNode) || ItemMatch.Matches(innerMatch, e.UsedNode))) {
                     output.WriteLine(e.GetDotRepresentation(maxExampleLength));
                 }
             }
@@ -57,16 +59,21 @@ namespace NDepCheck.Rendering {
             output.WriteLine("}");
         }
 
-        public void Render(IEnumerable<IEdge> dependencies, string argsAsString, [CanBeNull] string baseFileName) {
+        public void Render(IEnumerable<IEdge> dependencies, string argsAsString, [CanBeNull] string baseFileName, bool ignoreCase) {
             int? maxExampleLength = null;
+            ItemMatch innerMatch = null;
             Option.Parse(argsAsString,
                 MaxExampleLengthOption.Action((args, j) => {
                     maxExampleLength = Option.ExtractIntOptionValue(args, ref j,
                         "No valid length after " + MaxExampleLengthOption.Name);
                     return j;
+                }),
+                AbstractMatrixRenderer.InnerMatchOption.Action((args, j) => {
+                    innerMatch = new ItemMatch(null, Option.ExtractOptionValue(args, ref j), ignoreCase);
+                    return j;
                 }));
             using (TextWriter sw = new StreamWriter(GetDotFileName(baseFileName))) {
-                Render(dependencies, sw, maxExampleLength);
+                Render(dependencies, sw, innerMatch, maxExampleLength);
             }
         }
 
@@ -76,7 +83,7 @@ namespace NDepCheck.Rendering {
 
         public void RenderToStreamForUnitTests(IEnumerable<IEdge> dependencies, Stream stream) {
             using (var sw = new StreamWriter(stream)) {
-                Render(dependencies, sw, null);
+                Render(dependencies, sw, null, null);
             }
         }
 

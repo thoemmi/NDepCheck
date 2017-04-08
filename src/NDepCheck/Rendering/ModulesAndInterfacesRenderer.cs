@@ -250,7 +250,7 @@ namespace NDepCheck.Rendering {
             return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
-        public override void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName) {
+        public override void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
             DoRender(dependencies, argsAsString, baseFileName,
                 InterfaceSelectorOption.Action((args, j) => {
                     _interfaceSelector = new Regex(Option.ExtractOptionValue(args, ref j));

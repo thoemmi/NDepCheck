@@ -1,9 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.Rendering;
-using NDepCheck.Transforming.GraphTransformations;
 
 namespace NDepCheck.Tests {
     [TestClass]

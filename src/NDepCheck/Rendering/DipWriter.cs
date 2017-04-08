@@ -32,7 +32,7 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName) {
+        public void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
             bool noExampleInfo = false;
             Option.Parse(argsAsString,
                 NoExampleInfoOption.Action((args, j) => {

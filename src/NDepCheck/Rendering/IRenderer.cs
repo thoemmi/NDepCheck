@@ -12,9 +12,9 @@ namespace NDepCheck.Rendering {
         /// <param name="dependencies"></param>
         /// <param name="argsAsString"></param>
         /// <param name="baseFileName"></param>
+        /// <param name="ignoreCase"></param>
         /// <returns>Returns full name of written masterfile; or null if not written</returns>
-        void Render([ItemNotNull] [NotNull] IEnumerable<TDependency> dependencies, [NotNull] string argsAsString, 
-                    [CanBeNull] string baseFileName);
+        void Render([ItemNotNull] [NotNull] IEnumerable<TDependency> dependencies, [NotNull] string argsAsString, [CanBeNull] string baseFileName, bool ignoreCase);
 
         /// <summary>
         /// Render dependencies to stream

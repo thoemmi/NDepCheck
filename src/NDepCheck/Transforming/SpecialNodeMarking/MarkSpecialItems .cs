@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
-namespace NDepCheck.Transforming.SpecialNodes {
+namespace NDepCheck.Transforming.SpecialNodeMarking {
     public class MarkSpecialItems : ITransformer {
         public static readonly Option MatchOption = new Option("im", "item-match", "&", "Match to select items to check", @default: "select all", multiple: true);
         public static readonly Option MarkerToAddOption = new Option("ma", "marker-to-add", "&", "Marker added to identified items", @default: null);
@@ -71,7 +71,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
 
             Dependency[] matchingDependencies = dependencies
                 .Where(d => !matches.Any()
-                        || matches.Any(m => m.Matches(d.UsingItem) != null) && matches.Any(m => m.Matches(d.UsedItem) != null))
+                        || matches.Any(m => ItemMatch.Matches(m, d.UsingItem)) && matches.Any(m => ItemMatch.Matches(m, d.UsedItem)))
                 .ToArray();
 
             MatrixDictionary<Item, int> aggregatedCounts = MatrixDictionary.CreateCounts(matchingDependencies, d => d.Ct);

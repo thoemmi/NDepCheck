@@ -28,7 +28,7 @@ namespace NDepCheck.Transforming {
             _markerPattern = new MarkerPattern(patternParts.Length > 1 ? patternParts[1] : "", ignoreCase);
         }
 
-        public bool Match(Dependency dependency) {
+        public bool Matches(Dependency dependency) {
             if (!_markerPattern.Match(dependency)) {
                 return false;
             } else if (_isSingleCycle.HasValue && _isSingleCycle.Value != Equals(dependency.UsingItem, dependency.UsedItem)) {

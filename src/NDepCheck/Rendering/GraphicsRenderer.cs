@@ -869,7 +869,7 @@ namespace NDepCheck.Rendering {
             return bitmap;
         }
 
-        public virtual void Render(IEnumerable<TDependency> dependencies, string argsAsString, string baseFileName) {
+        public virtual void Render(IEnumerable<TDependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
             DoRender(dependencies, argsAsString, baseFileName);
         }
 

@@ -178,7 +178,7 @@ namespace NDepCheck.Rendering {
         protected static readonly Option[] _allOptions = _allGraphicsRendererOptions
                         .Concat(new[] { BottomRegexOption, OrderFieldOption, NoEmptiesOnBottomOption, NoEmptiesOnLeftOption }).ToArray();
 
-        public override void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName) {
+        public override void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
             DoRender(dependencies, argsAsString, baseFileName,
                 BottomRegexOption.Action((args, j) => {
                     _bottomRegex = new Regex(Option.ExtractOptionValue(args, ref j));

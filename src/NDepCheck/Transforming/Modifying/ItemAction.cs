@@ -55,10 +55,10 @@ namespace NDepCheck.Transforming.Modifying {
 
         public bool Matches([CanBeNull] IEnumerable<Dependency> incoming, Item i, [CanBeNull] IEnumerable<Dependency> outgoing) {
             return (_atLeastOneIncomingDependencyMatch == null
-                    || incoming != null && incoming.Any(d => _atLeastOneIncomingDependencyMatch.Match(d)))
-                && (_itemMatch == null || _itemMatch.Matches(i) != null)
-                && (_atLeastOneOutgoingDependencyMatch == null 
-                    || outgoing != null && outgoing.Any(d => _atLeastOneOutgoingDependencyMatch.Match(d)));
+                    || incoming != null && incoming.Any(d => _atLeastOneIncomingDependencyMatch.Matches(d)))
+                && ItemMatch.Matches(_itemMatch, i)
+                && (_atLeastOneOutgoingDependencyMatch == null
+                    || outgoing != null && outgoing.Any(d => _atLeastOneOutgoingDependencyMatch.Matches(d)));
         }
 
         public bool Apply(Item i) {

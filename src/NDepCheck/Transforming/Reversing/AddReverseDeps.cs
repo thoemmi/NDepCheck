@@ -52,7 +52,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
                 if (!removeOriginal) {
                     transformedDependencies.Add(d);
                 }
-                if (!matches.Any() || matches.Any(m => m.Match(d))) {
+                if (!matches.Any() || matches.Any(m => m.Matches(d))) {
                     var newDependency = new Dependency(d.UsedItem, d.UsingItem, d.Source,
                         d.Markers, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo, d.InputContext);
                     if (markerToAdd != null) {

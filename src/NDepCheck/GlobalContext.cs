@@ -6,11 +6,9 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using Gibraltar;
 using JetBrains.Annotations;
-using Microsoft.SqlServer.Server;
 using NDepCheck.Reading;
 using NDepCheck.Rendering;
 using NDepCheck.Transforming;
-using NDepCheck.WebServing;
 
 namespace NDepCheck {
     public class NamedTextWriter : IDisposable {
@@ -115,7 +113,7 @@ namespace NDepCheck {
             if (WorkLazily && File.Exists(masterFileName)) {
                 // we dont do anything - TODO check change dates of input files vs. the master file's last update date
             } else {
-                renderer.Render(allDependencies, rendererOptions, fileName);
+                renderer.Render(allDependencies, rendererOptions, fileName, IgnoreCase);
             }
             RenderingDone = true;
 
@@ -174,7 +172,7 @@ namespace NDepCheck {
             IEnumerable<Dependency> dependencies;
 
             renderer.CreateSomeTestItems(out items, out dependencies);
-            renderer.Render(dependencies, rendererOptions, baseFileName);
+            renderer.Render(dependencies, rendererOptions, baseFileName, IgnoreCase);
 
             RenderingDone = true;
 

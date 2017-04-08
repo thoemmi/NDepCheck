@@ -13,14 +13,13 @@ namespace NDepCheck.Tests {
             TestEdge[] edges;
             SetupDAG(out nodes, out edges);
 
-
             using (var s = new MemoryStream()) {
                 new GenericMatrixRenderer1().RenderToStreamForUnitTests(edges, s);
             
-                Assert.AreEqual(@"Id;Name;!1;  ;!2;  ;!3;  
-!1;n3  ; 1;  ;  ;  ;  ;  
-!2;n2  ; 1;  ;  ;  ;  ;  
-!3;n1  ; 1;  ; 1;  ;  ;  
+                Assert.AreEqual(@"Id;Name;1;  ;2;  ;3;  
+1;n3  ; 1;  ;  ;  ;  ;  
+2;n2  ; 1;  ;  ;  ;  ;  
+3;n1  ; 1;  ; 1;  ;  ;  
 ", Encoding.ASCII.GetString(s.ToArray()));
             }
         }
@@ -34,10 +33,10 @@ namespace NDepCheck.Tests {
 
             using (var s = new MemoryStream()) {
                 new GenericMatrixRenderer1().RenderToStreamForUnitTests(edges, s);
-                Assert.AreEqual(@"Id;Name;!1;  ;!2;  ;!3;  
-!1;n3  ; 1;  ;  ;  ;  ;  
-!2;n2  ; 1;  ;  ;  ;  ;  
-!3;n1  ; 1;  ; 1;  ;  ;  
+                Assert.AreEqual(@"Id;Name;1;  ;2;  ;3;  
+1;n3  ; 1;  ;  ;  ;  ;  
+2;n2  ; 1;  ;  ;  ;  ;  
+3;n1  ; 1;  ; 1;  ;  ;  
 ", Encoding.ASCII.GetString(s.ToArray()));
             }
         }
@@ -74,10 +73,10 @@ namespace NDepCheck.Tests {
 
             using (var s = new MemoryStream()) {
                 new GenericMatrixRenderer1().RenderToStreamForUnitTests(edges, s);
-                Assert.AreEqual(@"Id  ;Name;!001;    ;!002;    ;!003;    
-!001;n3  ;    ;    ;    ;    ;#  7;    
-!002;n2  ;  55;    ;    ;    ;    ;    
-!003;n1  ; 111;    ;  77;    ; 999;    
+                Assert.AreEqual(@"Id  ;Name;001;    ;002;    ;003;    
+001;n3  ;    ;    ;    ;    ;#  7;    
+002;n2  ;  55;    ;    ;    ;    ;    
+003;n1  ; 111;    ;  77;    ; 999;    
 ", Encoding.ASCII.GetString(s.ToArray()));
             }
 
@@ -96,10 +95,10 @@ namespace NDepCheck.Tests {
 
             using (var s = new MemoryStream()) {
                 new GenericMatrixRenderer1().RenderToStreamForUnitTests(edges, s);
-                Assert.AreEqual(@"Id  ;Name;!001;    ;!002;    ;!003;    
-!001;n3  ; 109;~ 54;#106;* 53;#103;* 51
-!002;n2  ; 108;~ 54; 105;~ 52;#102;* 51
-!003;n1  ; 107;~ 53; 104;~ 52; 101;~ 50
+                Assert.AreEqual(@"Id  ;Name;001;    ;002;    ;003;    
+001;n3  ; 109;~ 54;#106;* 53;#103;* 51
+002;n2  ; 108;~ 54; 105;~ 52;#102;* 51
+003;n1  ; 107;~ 53; 104;~ 52; 101;~ 50
 ", Encoding.ASCII.GetString(s.ToArray()));
             }
         }
