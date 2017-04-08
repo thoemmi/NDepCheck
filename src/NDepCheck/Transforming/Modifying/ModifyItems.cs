@@ -63,9 +63,9 @@ Transformer options: None";
             } else {
 
                 Dictionary<Item, IEnumerable<Dependency>> items2incoming =
-                    Item.AggregateIncomingDependencies(dependencies);
+                    Item.CollectIncomingDependenciesMap(dependencies);
                 Dictionary<Item, IEnumerable<Dependency>> items2outgoing =
-                    Item.AggregateIncomingDependencies(dependencies);
+                    Item.CollectIncomingDependenciesMap(dependencies);
 
                 var allItems = new HashSet<Item>(items2incoming.Keys.Concat(items2outgoing.Keys));
 
@@ -100,9 +100,9 @@ Transformer options: None";
             var a = Item.New(ItemType.SIMPLE, "A");
             var b = Item.New(ItemType.SIMPLE, "B");
             return new[] {
-                new Dependency(a, a, source: null, usage: "", ct:10, questionableCt:5, badCt:3),
-                new Dependency(a, b, source: null, usage: "use+define", ct:1, questionableCt:0,badCt: 0),
-                new Dependency(b, a, source: null, usage: "define", ct:5, questionableCt:0, badCt:2),
+                new Dependency(a, a, source: null, markers: "", ct:10, questionableCt:5, badCt:3),
+                new Dependency(a, b, source: null, markers: "use+define", ct:1, questionableCt:0,badCt: 0),
+                new Dependency(b, a, source: null, markers: "define", ct:5, questionableCt:0, badCt:2),
             };
         }
     }

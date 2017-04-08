@@ -70,7 +70,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
             }
 
             if (markTransitiveDependencies) {
-                Dictionary<Item, IEnumerable<Dependency>> outgoing = Item.AggregateOutgoingDependencies(matchingDependencies);
+                Dictionary<Item, IEnumerable<Dependency>> outgoing = Item.CollectOutgoingDependenciesMap(matchingDependencies);
                 foreach (var root in outgoing.Keys) {
                     var itemsAtDistance1FromRoot = new Dictionary<Item, List<Dependency>>();
                     foreach (var d in outgoing[root]) {
@@ -134,22 +134,22 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
             Item j = Item.New(ItemType.SIMPLE, "Jy");
             return new[] {
                 // Pure sources
-                new Dependency(a, b, source: null, usage: "", ct: 10, questionableCt: 5, badCt: 3),
-                new Dependency(b, c, source: null, usage: "", ct: 1, questionableCt: 0, badCt: 0),
+                new Dependency(a, b, source: null, markers: "", ct: 10, questionableCt: 5, badCt: 3),
+                new Dependency(b, c, source: null, markers: "", ct: 1, questionableCt: 0, badCt: 0),
 
                 // Long cycle
-                new Dependency(c, d, source: null, usage: "", ct: 5, questionableCt: 0, badCt: 2),
-                new Dependency(d, c, source: null, usage: "", ct: 5, questionableCt: 0, badCt: 2),
+                new Dependency(c, d, source: null, markers: "", ct: 5, questionableCt: 0, badCt: 2),
+                new Dependency(d, c, source: null, markers: "", ct: 5, questionableCt: 0, badCt: 2),
 
-                new Dependency(d, e, source: null, usage: "", ct: 5, questionableCt: 3, badCt: 2),
+                new Dependency(d, e, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
                 // Self cycle
-                new Dependency(e, e, source: null, usage: "", ct: 5, questionableCt: 3, badCt: 2),
+                new Dependency(e, e, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
                 // Pure sinks
-                new Dependency(e, f, source: null, usage: "", ct: 5, questionableCt: 3, badCt: 2),
-                new Dependency(f, g, source: null, usage: "", ct: 5, questionableCt: 3, badCt: 2),
-                new Dependency(g, h, source: null, usage: "", ct: 5, questionableCt: 3, badCt: 2),
-                new Dependency(h, i, source: null, usage: "", ct: 5, questionableCt: 3, badCt: 2),
-                new Dependency(h, j, source: null, usage: "", ct: 5, questionableCt: 3, badCt: 2)
+                new Dependency(e, f, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                new Dependency(f, g, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                new Dependency(g, h, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                new Dependency(h, i, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                new Dependency(h, j, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2)
             };
         }
     }

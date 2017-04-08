@@ -63,27 +63,27 @@ namespace NDepCheck.Transforming.Ordering {
             //  =========================
             //    |  25 127 431   0 #
             return new[] {
-                new Dependency(a, a, source: null, usage: "", ct:10),
-                new Dependency(a, a, source: null, usage: "", ct:5),
+                new Dependency(a, a, source: null, markers: "", ct:10),
+                new Dependency(a, a, source: null, markers: "", ct:5),
 
-                new Dependency(a, b, source: null, usage: "", ct:100),
+                new Dependency(a, b, source: null, markers: "", ct:100),
 
-                new Dependency(b, a, source: null, usage: "", ct:1),
-                new Dependency(b, a, source: null, usage: "", ct:1),
-                new Dependency(b, a, source: null, usage: "", ct:1),
+                new Dependency(b, a, source: null, markers: "", ct:1),
+                new Dependency(b, a, source: null, markers: "", ct:1),
+                new Dependency(b, a, source: null, markers: "", ct:1),
 
-                new Dependency(b, b, source: null, usage: "", ct:20),
+                new Dependency(b, b, source: null, markers: "", ct:20),
 
-                new Dependency(b, c, source: null, usage: "", ct:100),
-                new Dependency(b, c, source: null, usage: "", ct:1),
+                new Dependency(b, c, source: null, markers: "", ct:100),
+                new Dependency(b, c, source: null, markers: "", ct:1),
 
-                new Dependency(c, a, source: null, usage: "", ct:7),
-                new Dependency(c, b, source: null, usage: "", ct:5),
-                new Dependency(c, c, source: null, usage: "", ct:30),
+                new Dependency(c, a, source: null, markers: "", ct:7),
+                new Dependency(c, b, source: null, markers: "", ct:5),
+                new Dependency(c, c, source: null, markers: "", ct:30),
 
-                new Dependency(d, b, source: null, usage: "", ct:1),
-                new Dependency(d, b, source: null, usage: "", ct:1),
-                new Dependency(d, c, source: null, usage: "", ct:300),
+                new Dependency(d, b, source: null, markers: "", ct:1),
+                new Dependency(d, b, source: null, markers: "", ct:1),
+                new Dependency(d, c, source: null, markers: "", ct:300),
             };
         }
     }

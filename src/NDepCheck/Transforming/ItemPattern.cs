@@ -28,17 +28,14 @@ namespace NDepCheck.Transforming {
 
         internal static readonly string[] NO_GROUPS = new string[0];
 
-        private readonly ItemType _itemTypeOrNull;
+        [NotNull]
+        private readonly ItemType _itemType;
 
         private readonly IMatcher[] _matchers;
 
         public IMatcher[] Matchers => _matchers;
 
         public ItemPattern([CanBeNull] ItemType itemTypeOrNull, [NotNull] string itemPattern, int estimatedGroupCount, bool ignoreCase) {
-            _itemTypeOrNull = itemTypeOrNull;
-
-            var result = new List<IMatcher>();
-
             const string UNCOLLECTED_GROUP = "(?:";
             const string UNCOLLECTED_GROUP_MASK = "(?#@#";
             IEnumerable<string> parts = itemPattern.Replace(UNCOLLECTED_GROUP, UNCOLLECTED_GROUP_MASK)
@@ -46,10 +43,24 @@ namespace NDepCheck.Transforming {
                 .Select(p => p.Replace(UNCOLLECTED_GROUP_MASK, UNCOLLECTED_GROUP))
                 .ToArray();
 
-            if (parts.First() == itemTypeOrNull.Name) {
+            if (itemTypeOrNull == null) {
                 // Rules may optionally start with the correct type name (when they are copied from e.g. from a violation textfile).
-                parts = parts.Skip(1);
+                ItemType type = ItemType.Find(parts.First());
+                if (type != null) {
+                    parts = parts.Skip(1);
+                    _itemType = type;
+                } else {
+                    _itemType = ItemType.Generic(parts.Count());
+                }
+            } else {
+                if (parts.First() == itemTypeOrNull.Name) {
+                    // Rules may optionally start with the correct type name (when they are copied from e.g. from a violation textfile).
+                    parts = parts.Skip(1);
+                }
+                _itemType = itemTypeOrNull;
             }
+
+            var result = new List<IMatcher>();
 
             int j = 0;
             foreach (var p in parts) {
@@ -57,16 +68,16 @@ namespace NDepCheck.Transforming {
                     result.Add(CreateMatcher(s, estimatedGroupCount, ignoreCase));
                     j++;
                 }
-                while (j > 0 && j < itemTypeOrNull.Keys.Length && itemTypeOrNull.Keys[j - 1] == itemTypeOrNull.Keys[j]) {
+                while (j > 0 && j < _itemType.Keys.Length && _itemType.Keys[j - 1] == _itemType.Keys[j]) {
                     result.Add(new AlwaysMatcher(alsoMatchDot: true, groupCount: 0));
                     j++;
                 }
             }
-            while (j < itemTypeOrNull.Keys.Length) {
+            while (j < _itemType.Keys.Length) {
                 result.Add(new AlwaysMatcher(alsoMatchDot: true, groupCount: 0));
                 j++;
             }
-            _matchers = result.Take(itemTypeOrNull.Keys.Length).ToArray();
+            _matchers = result.Take(_itemType.Keys.Length).ToArray();
         }
 
         private static string EscapePattern(string pattern) {
@@ -158,7 +169,7 @@ namespace NDepCheck.Transforming {
         }
 
         public string[] Matches([NotNull] Item item) {
-            if (_itemTypeOrNull != null && !item.Type.Equals(_itemTypeOrNull)) {
+            if (!item.Type.Equals(_itemType)) {
                 return null;
             }
 

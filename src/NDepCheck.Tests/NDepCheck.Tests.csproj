@@ -79,6 +79,7 @@
     <Compile Include="TestConstraints.cs" />
     <Compile Include="TestEdge.cs" />
     <Compile Include="TestHideTransitiveEdges.cs" />
+    <Compile Include="TestMarkMinimalCutDeps.cs" />
     <Compile Include="TestRemoveDeps.cs" />
     <Compile Include="TestRendering.cs" />
     <Compile Include="TestAddReverseDeps.cs" />

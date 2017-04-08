@@ -82,24 +82,19 @@ namespace NDepCheck {
         private string _asStringWithType;
         private string _order;
 
-        private Item([NotNull] ItemType type, bool isInner, string[] values)
+        private Item([NotNull] ItemType type, string[] values)
             : base(type, values) {
             if (type.Length != values.Length) {
                 throw new ArgumentException("keys.Length != values.Length", nameof(values));
             }
-            IsInner = isInner;
-        }
-
-        public static Item New([NotNull]ItemType type, bool isInner, [ItemNotNull] string[] values) {
-            return Intern<Item>.GetReference(new Item(type, isInner, values));
-        }
-
-        public static Item New([NotNull]ItemType type, [NotNull]string reducedName, bool isInner) {
-            return New(type, isInner, reducedName.Split(':'));
         }
 
         public static Item New([NotNull]ItemType type, [ItemNotNull] params string[] values) {
-            return New(type, isInner: false, values: values);
+            return Intern<Item>.GetReference(new Item(type, values));
+        }
+
+        public static Item New([NotNull]ItemType type, [NotNull]string reducedName) {
+            return New(type, reducedName.Split(':'));
         }
 
         /// <summary>
@@ -119,15 +114,13 @@ namespace NDepCheck {
 
         public string Name => AsString();
 
-        public bool IsInner { get; }
-
         public bool IsEmpty() {
             return Values.All(s => s == "");
         }
 
         public override bool Equals(object obj) {
             var other = obj as Item;
-            return other != null && other.IsInner == IsInner && EqualsSegment(other);
+            return other != null && EqualsSegment(other);
         }
 
         public override int GetHashCode() {
@@ -161,28 +154,31 @@ namespace NDepCheck {
 
         [NotNull]
         public Item Append([CanBeNull] ItemTail additionalValues) {
-            return additionalValues == null ? this : new Item(additionalValues.Type, IsInner, Values.Concat(additionalValues.Values).ToArray()).SetOrder(Order);
+            return additionalValues == null ? this : new Item(additionalValues.Type, Values.Concat(additionalValues.Values).ToArray()).SetOrder(Order);
         }
 
-        public static Dictionary<Item, IEnumerable<Dependency>> AggregateIncomingDependencies(IEnumerable<Dependency> dependencies) {
-            return AggregateDependencies(dependencies, d => d.UsedItem);
+        public static Dictionary<Item, IEnumerable<Dependency>> CollectIncomingDependenciesMap(IEnumerable<Dependency> dependencies) {
+            return CollectMap(dependencies, d => d.UsedItem, d => d)
+                    .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<Dependency>)kvp.Value);
         }
 
-        public static Dictionary<Item, IEnumerable<Dependency>> AggregateOutgoingDependencies(IEnumerable<Dependency> dependencies) {
-            return AggregateDependencies(dependencies, d => d.UsingItem);
+        public static Dictionary<Item, IEnumerable<Dependency>> CollectOutgoingDependenciesMap(IEnumerable<Dependency> dependencies) {
+            return CollectMap(dependencies, d => d.UsingItem, d => d)
+                    .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<Dependency>)kvp.Value);
         }
 
-        private static Dictionary<Item, IEnumerable<Dependency>> AggregateDependencies(IEnumerable<Dependency> dependencies, Func<Dependency, Item> d2i) {
-            var result = new Dictionary<Item, List<Dependency>>();
+        public static Dictionary<Item, List<T>> CollectMap<T>(IEnumerable<Dependency> dependencies, 
+                                            Func<Dependency, Item> getItem, Func<Dependency, T> createT) {
+            var result = new Dictionary<Item, List<T>>();
             foreach (var d in dependencies) {
-                List<Dependency> list;
-                Item key = d2i(d);
+                List<T> list;
+                Item key = getItem(d);
                 if (!result.TryGetValue(key, out list)) {
-                    result.Add(key, list = new List<Dependency>());
+                    result.Add(key, list = new List<T>());
                 }
-                list.Add(d);
+                list.Add(createT(d));
             }
-            return result.ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<Dependency>) kvp.Value);
+            return result;
         }
     }
 }

@@ -8,7 +8,19 @@ namespace NDepCheck {
     public class ItemType : IEquatable<ItemType> {
         private static readonly Dictionary<string, ItemType> _allTypes = new Dictionary<string, ItemType>();
 
-        public static readonly ItemType SIMPLE = New("SIMPLE", new[] { "Data " }, new[] { "" });
+        [NotNull]
+        public static readonly ItemType SIMPLE = New("SIMPLE", new[] { "Name" }, new[] { "" });
+
+        [NotNull]
+        public static ItemType Generic(int fieldNr) {
+            if (fieldNr < 1 || fieldNr > 40) {
+                throw new ArgumentException("fieldNr must be 1...40", nameof(fieldNr));
+            }
+            return fieldNr == 1 ? SIMPLE : 
+                New("GENERIC_" + fieldNr, 
+                        Enumerable.Range(1, fieldNr).Select(i => "Field_" + i).ToArray(),
+                        Enumerable.Range(1, fieldNr).Select(i => "").ToArray());
+        }
 
         [NotNull]
         public readonly string Name;

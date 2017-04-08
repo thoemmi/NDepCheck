@@ -25,9 +25,9 @@ namespace NDepCheck {
         [CanBeNull] private string _exampleInfo;
 
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem, [CanBeNull] ISourceLocation source,
-            [CanBeNull] string usage, int ct, int questionableCt = 0, int badCt = 0,
+            [NotNull] string markers, int ct, int questionableCt = 0, int badCt = 0,
             [CanBeNull] string exampleInfo = null, [CanBeNull] InputContext inputContext = null) : this(
-                usingItem, usedItem, source, usage == null ? null : usage.Split('&', '+', ','), ct, questionableCt, badCt, exampleInfo, inputContext) { }
+                usingItem, usedItem, source, markers: markers.Split('&', '+', ','), ct: ct, questionableCt: questionableCt, badCt: badCt, exampleInfo: exampleInfo, inputContext: inputContext) { }
 
         /// <summary>
         /// Create a dependency.
@@ -206,9 +206,9 @@ namespace NDepCheck {
 
         public string AsDipStringWithTypes(bool withExampleInfo) {
             string exampleInfo = withExampleInfo ? _exampleInfo : null;
-            string usage = string.Join("+", Markers.OrderBy(s => s));
+            string markers = string.Join("+", Markers.OrderBy(s => s));
             return $"{_usingItem.AsStringWithOrderAndType()} {EdgeConstants.DIP_ARROW} "
-                 + $"{usage};{_ct};{_questionableCt};{_badCt};{Source?.AsDipString()};{exampleInfo} "
+                 + $"{markers};{_ct};{_questionableCt};{_badCt};{Source?.AsDipString()};{exampleInfo} "
                  + $"{EdgeConstants.DIP_ARROW} {_usedItem.AsStringWithOrderAndType()}";
         }
 

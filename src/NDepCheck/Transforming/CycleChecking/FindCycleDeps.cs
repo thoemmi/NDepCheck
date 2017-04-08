@@ -158,19 +158,19 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
             //          ^  ^         |
             // h<=>i->j-+  +---------+
             return new[] {
-                new Dependency(a,b,source: null, usage: "", ct:1), // on cycle
-                new Dependency(b,a,source: null, usage: "", ct:1), // on cycle
-                new Dependency(b,c,source: null, usage: "", ct:1),
-                new Dependency(c,d,source: null, usage: "", ct:1),
-                new Dependency(d,e,source: null, usage: "", ct:1), // on cycle
-                new Dependency(e,f,source: null, usage: "", ct:1), // on cycle
-                new Dependency(f,e,source: null, usage: "", ct:1), // on cycle
-                new Dependency(f,g,source: null, usage: "", ct:1), // on cycle
-                new Dependency(g,d,source: null, usage: "", ct:1), // on cycle
-                new Dependency(h,i,source: null, usage: "", ct:1), // on cycle
-                new Dependency(i,h,source: null, usage: "", ct:1), // on cycle
-                new Dependency(i,j,source: null, usage: "", ct:1),
-                new Dependency(j,c,source: null, usage: "", ct:1),
+                new Dependency(a,b,source: null, markers: "", ct:1), // on cycle
+                new Dependency(b,a,source: null, markers: "", ct:1), // on cycle
+                new Dependency(b,c,source: null, markers: "", ct:1),
+                new Dependency(c,d,source: null, markers: "", ct:1),
+                new Dependency(d,e,source: null, markers: "", ct:1), // on cycle
+                new Dependency(e,f,source: null, markers: "", ct:1), // on cycle
+                new Dependency(f,e,source: null, markers: "", ct:1), // on cycle
+                new Dependency(f,g,source: null, markers: "", ct:1), // on cycle
+                new Dependency(g,d,source: null, markers: "", ct:1), // on cycle
+                new Dependency(h,i,source: null, markers: "", ct:1), // on cycle
+                new Dependency(i,h,source: null, markers: "", ct:1), // on cycle
+                new Dependency(i,j,source: null, markers: "", ct:1),
+                new Dependency(j,c,source: null, markers: "", ct:1),
             };
         }
     }

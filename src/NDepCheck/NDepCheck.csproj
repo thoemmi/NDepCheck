@@ -118,6 +118,7 @@
     <Compile Include="Transforming\DependencyMatch.cs" />
     <Compile Include="Transforming\EffectOptions.cs" />
     <Compile Include="Transforming\ItemMatch.cs" />
+    <Compile Include="Transforming\SpecialDependencyMarking\MarkMinimalCut.cs" />
     <Compile Include="Transforming\SpecialDependencyMarking\MarkSpecialDependencies.cs" />
     <Compile Include="Transforming\SpecialNodeMarking\MarkSpecialItems .cs" />
     <Compile Include="Transforming\Modifying\ItemAction.cs" />
