@@ -144,7 +144,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
             } else {
                 foreach (var e in outgoing[item]) {
                     int possibleFlowIncrease = Math.Min(maxPossibleFlowIncreaseAlongPath, e.Capacity - e.Flow);
-                    int actualIncrease = ComputeActualIncrease(visited, outgoing, incoming, targetItems, possibleFlowIncrease, e.UsedItem);
+                    int actualIncrease = ComputeActualIncrease(visited, outgoing, incoming, targetItems, 
+                                                               possibleFlowIncrease, e.UsedItem);
                     if (actualIncrease > 0) {
                         // There is a path to the end with free capacity actualReduction - we reduce current edge!
                         e.Flow += actualIncrease;
@@ -154,8 +155,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
                 if (incoming.ContainsKey(item)) { // not true for sources - no need to check for back flows there!
                     foreach (var e in incoming[item]) {
                         int possiblePushedBackFlow = Math.Min(maxPossibleFlowIncreaseAlongPath, e.Flow);
-                        var actualIncrease = ComputeActualIncrease(visited, outgoing, incoming, targetItems,
-                            possiblePushedBackFlow, e.UsedItem);
+                        int actualIncrease = ComputeActualIncrease(visited, outgoing, incoming, targetItems,
+                                                                   possiblePushedBackFlow, e.UsingItem);
                         if (actualIncrease > 0) {
                             // There is a path to the end with free capacity actualReduction - we reduce current edge!
                             e.Flow -= actualIncrease;
@@ -167,15 +168,14 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
             }
         }
 
-        private int ComputeActualIncrease(HashSet<Item> visited, Dictionary<Item, List<Edge>> outgoing, 
-                                          Dictionary<Item, List<Edge>> incoming, HashSet<Item> targetItems,
-            int possibleFlowIncrease, Item usedItem) {
-            try {
-                return possibleFlowIncrease > 0 && visited.Add(usedItem)
-                    ? IncreaseFlow(usedItem, possibleFlowIncrease, visited, outgoing, incoming, targetItems)
-                    : 0;
-            } finally {
-                visited.Remove(usedItem);
+        private int ComputeActualIncrease(HashSet<Item> visited, Dictionary<Item, List<Edge>> outgoing,
+            Dictionary<Item, List<Edge>> incoming, HashSet<Item> targetItems, int possibleFlowIncrease, Item nextItem) {
+            if (possibleFlowIncrease > 0 && visited.Add(nextItem)) {
+                int result = IncreaseFlow(nextItem, possibleFlowIncrease, visited, outgoing, incoming, targetItems);
+                visited.Remove(nextItem);
+                return result;
+            } else {
+                return 0;
             }
         }
 
@@ -199,34 +199,24 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp)}";
         }
 
         public IEnumerable<Dependency> GetTestDependencies() {
-            Item a = Item.New(ItemType.SIMPLE, "Ax");
-            Item b = Item.New(ItemType.SIMPLE, "Bx");
-            Item c = Item.New(ItemType.SIMPLE, "Cloop");
-            Item d = Item.New(ItemType.SIMPLE, "Dloop");
-            Item e = Item.New(ItemType.SIMPLE, "Eselfloop");
-            Item f = Item.New(ItemType.SIMPLE, "Fy");
-            Item g = Item.New(ItemType.SIMPLE, "Gy");
-            Item h = Item.New(ItemType.SIMPLE, "Hy");
-            Item i = Item.New(ItemType.SIMPLE, "Iy");
-            Item j = Item.New(ItemType.SIMPLE, "Jy");
+            // Graph from http://web.stanford.edu/class/cs97si/08-network-flow-problems.pdf p.7
+            Item s = Item.New(ItemType.SIMPLE, "s");
+            Item a = Item.New(ItemType.SIMPLE, "a");
+            Item b = Item.New(ItemType.SIMPLE, "b");
+            Item c = Item.New(ItemType.SIMPLE, "c");
+            Item d = Item.New(ItemType.SIMPLE, "d");
+            Item t = Item.New(ItemType.SIMPLE, "t");
             return new[] {
-                // Pure sources
-                new Dependency(a, b, source: null, markers: "", ct: 10, questionableCt: 5, badCt: 3),
-                new Dependency(b, c, source: null, markers: "", ct: 1, questionableCt: 0, badCt: 0),
-
-                // Long cycle
-                new Dependency(c, d, source: null, markers: "", ct: 5, questionableCt: 0, badCt: 2),
-                new Dependency(d, c, source: null, markers: "", ct: 5, questionableCt: 0, badCt: 2),
-
-                new Dependency(d, e, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                // Self cycle
-                new Dependency(e, e, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                // Pure sinks
-                new Dependency(e, f, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                new Dependency(f, g, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                new Dependency(g, h, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                new Dependency(h, i, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                new Dependency(h, j, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2)
+                new Dependency(s, a, null, "s->a", 101, 16, 0),
+                new Dependency(s, c, null, "s->c", 103, 13, 0),
+                new Dependency(a, b, null, "a->b", 112, 12, 0),
+                new Dependency(a, c, null, "a->c", 113, 10, 0),
+                new Dependency(b, c, null, "b->c", 123, 9, 0),
+                new Dependency(b, t, null, "b->t", 125, 20, 0),
+                new Dependency(c, a, null, "c->a", 131, 4, 0),
+                new Dependency(c, d, null, "c->d", 134, 14, 0),
+                new Dependency(d, b, null, "d->b", 142, 7, 0),
+                new Dependency(d, t, null, "d->t", 145, 4, 0),
             };
         }
     }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using JetBrains.Annotations;
@@ -83,6 +84,7 @@ namespace NDepCheck {
             return Equals(obj as ItemType);
         }
 
+        [DebuggerHidden]
         public override int GetHashCode() {
             return Name.GetHashCode();
         }

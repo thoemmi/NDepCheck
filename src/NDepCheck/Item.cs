@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Gibraltar;
@@ -22,6 +23,7 @@ namespace NDepCheck {
 
         public ItemType Type => _type;
 
+        [DebuggerStepThrough]
         protected bool EqualsSegment(ItemSegment other) {
             if (other == null) {
                 return false;
@@ -41,11 +43,12 @@ namespace NDepCheck {
             }
         }
 
+        [DebuggerStepThrough]
         protected int SegmentHashCode() {
             int h = _type.GetHashCode();
 
-            foreach (var t in Values.Where(s => s != null)) {
-                h ^= t.GetHashCode();
+            foreach (var t in Values) {
+                h ^= (t ?? "").GetHashCode();
             }
             return h;
         }
@@ -67,6 +70,7 @@ namespace NDepCheck {
             return EqualsSegment(other as ItemTail);
         }
 
+        [DebuggerHidden]
         public override int GetHashCode() {
             return SegmentHashCode();
         }
@@ -118,11 +122,13 @@ namespace NDepCheck {
             return Values.All(s => s == "");
         }
 
+        [DebuggerStepThrough]
         public override bool Equals(object obj) {
             var other = obj as Item;
             return other != null && EqualsSegment(other);
         }
 
+        [DebuggerHidden]
         public override int GetHashCode() {
             return SegmentHashCode();
         }
