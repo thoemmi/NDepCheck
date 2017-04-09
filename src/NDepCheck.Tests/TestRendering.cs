@@ -42,7 +42,7 @@ namespace NDepCheck.Tests {
         }
 
         private static void CreateAndRender(Action<DelegteTestRenderer> placeObjects) {
-            new DelegteTestRenderer(placeObjects).Render(Enumerable.Empty<Dependency>(), 
+            new DelegteTestRenderer(placeObjects).Render(new GlobalContext(), Enumerable.Empty<Dependency>(), 
                                     "", Path.GetTempFileName(), ignoreCase: false);
         }
 
@@ -284,7 +284,7 @@ namespace NDepCheck.Tests {
                     (from, i) => items.Skip(i).Select(to => new Dependency(from, to, new TextFileSource(prefix, i), "Use", 10 * i))).ToArray();
 
             string tempFile = Path.GetTempFileName();
-            new SomewhatComplexTestRenderer(boxHeight).Render(dependencies, "", tempFile, ignoreCase: false);
+            new SomewhatComplexTestRenderer(boxHeight).Render(new GlobalContext(), dependencies, "", tempFile, ignoreCase: false);
         }
 
         [TestMethod]

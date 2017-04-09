@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using Gibraltar;
 using JetBrains.Annotations;
+using NDepCheck.Calculating;
 using NDepCheck.Reading;
 using NDepCheck.Rendering;
 using NDepCheck.Transforming;
@@ -26,6 +27,7 @@ namespace NDepCheck {
     }
 
     public class GlobalContext {
+        private const string HELP_SEPARATOR = "=============================================\r\n";
         internal bool RenderingDone { get; set; }
         internal bool TransformingDone { get; set; }
         internal bool InputFilesOrTestDataSpecified { get; set; }
@@ -44,7 +46,10 @@ namespace NDepCheck {
         [NotNull, ItemNotNull]
         private readonly List<InputContext> _inputContexts = new List<InputContext>();
 
-        private IEnumerable<Dependency> _dependenciesWithoutInputContext = Enumerable.Empty<Dependency>();
+        private readonly Stack<IEnumerable<Dependency>> _dependenciesWithoutInputContextStack =
+            new Stack<IEnumerable<Dependency>>();
+
+        private IEnumerable<Dependency> DependenciesWithoutInputContext => _dependenciesWithoutInputContextStack.Peek();
 
         [NotNull]
         private readonly List<IPlugin> _plugins = new List<IPlugin>();
@@ -70,6 +75,7 @@ namespace NDepCheck {
 
         public GlobalContext() {
             Name = "[" + ++_cxtId + "]";
+            _dependenciesWithoutInputContextStack.Push(Enumerable.Empty<Dependency>());
         }
 
         public void CreateInputOption(string filePattern, string negativeFilePattern, string assembly,
@@ -81,8 +87,7 @@ namespace NDepCheck {
         public void SetDefine(string key, string value, string location) {
             if (GlobalVars.ContainsKey(key)) {
                 if (GlobalVars[key] != value) {
-                    throw new ApplicationException(
-                        $"'{key}' cannot be redefined as '{value}' {location}");
+                    throw new ApplicationException($"'{key}' cannot be redefined as '{value}' {location}");
                 }
             } else {
                 GlobalVars.Add(key, value);
@@ -110,18 +115,17 @@ namespace NDepCheck {
             }
         }
 
-        public string RenderToFile([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName,
-            [CanBeNull] string rendererOptions, [CanBeNull] string fileName) {
+        public string RenderToFile([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName, [CanBeNull] string rendererOptions, [CanBeNull] string fileName) {
             IDependencyRenderer renderer = GetOrCreatePlugin<IDependencyRenderer>(assemblyName, rendererClassName);
 
             ReadAllNotYetReadIn();
 
             IEnumerable<Dependency> allDependencies = GetAllDependencies();
-            string masterFileName = renderer.GetMasterFileName(rendererOptions, fileName);
+            string masterFileName = renderer.GetMasterFileName(this, rendererOptions, fileName);
             if (WorkLazily && File.Exists(masterFileName)) {
                 // we dont do anything - TODO check change dates of input files vs. the master file's last update date
             } else {
-                renderer.Render(allDependencies, rendererOptions ?? "", fileName, IgnoreCase);
+                renderer.Render(this, allDependencies, rendererOptions ?? "", fileName, IgnoreCase);
             }
             RenderingDone = true;
 
@@ -129,10 +133,11 @@ namespace NDepCheck {
         }
 
         private IEnumerable<Dependency> GetAllDependencies() {
-            return _inputContexts.SelectMany(ic => ic.Dependencies).Concat(_dependenciesWithoutInputContext).ToArray();
+            return _inputContexts.SelectMany(ic => ic.Dependencies).Concat(DependenciesWithoutInputContext).ToArray();
         }
 
-        private T GetOrCreatePlugin<T>([CanBeNull] string assemblyName, [CanBeNull] string pluginClassName) where T : IPlugin {
+        private T GetOrCreatePlugin<T>([CanBeNull] string assemblyName, [CanBeNull] string pluginClassName)
+            where T : IPlugin {
             if (pluginClassName == null) {
                 throw new ArgumentNullException(nameof(pluginClassName), "Plugin class name missing");
             }
@@ -162,7 +167,9 @@ namespace NDepCheck {
         }
 
         private static string ShowAssemblyName(string assemblyName) {
-            return string.IsNullOrWhiteSpace(assemblyName) ? typeof(GlobalContext).Assembly.GetName().Name : assemblyName;
+            return string.IsNullOrWhiteSpace(assemblyName)
+                ? typeof(GlobalContext).Assembly.GetName().Name
+                : assemblyName;
         }
 
         private static IOrderedEnumerable<Type> GetPluginTypes<T>([CanBeNull] string assemblyName) {
@@ -176,23 +183,23 @@ namespace NDepCheck {
                         .Where(t => typeof(T).IsAssignableFrom(t) && !t.IsAbstract && t.IsClass)
                         .OrderBy(t => t.FullName);
             } catch (Exception ex) {
-                throw new ApplicationException($"Cannot load types from assembly '{ShowAssemblyName(assemblyName)}'; reason: {ex.Message}");
+                throw new ApplicationException(
+                    $"Cannot load types from assembly '{ShowAssemblyName(assemblyName)}'; reason: {ex.Message}");
             }
         }
 
-        public string RenderTestData([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName,
-            string rendererOptions, [NotNull] string baseFileName) {
+        public string RenderTestData([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName, string rendererOptions, [NotNull] string baseFileName) {
             IDependencyRenderer renderer = GetOrCreatePlugin<IDependencyRenderer>(assemblyName, rendererClassName);
 
             IEnumerable<Item> items;
             IEnumerable<Dependency> dependencies;
 
             renderer.CreateSomeTestItems(out items, out dependencies);
-            renderer.Render(dependencies, rendererOptions, baseFileName, IgnoreCase);
+            renderer.Render(this, dependencies, rendererOptions, baseFileName, IgnoreCase);
 
             RenderingDone = true;
 
-            return renderer.GetMasterFileName(rendererOptions, baseFileName);
+            return renderer.GetMasterFileName(this, rendererOptions, baseFileName);
         }
 
         public void CreateInputOption(string[] args, ref int i, string filePattern, string assembly, string readerClass) {
@@ -207,38 +214,55 @@ namespace NDepCheck {
         }
 
         public void ShowAllPluginsAndTheirHelp<T>(string assemblyName, string filter) where T : IPlugin {
-            foreach (var t in GetPluginTypes<T>(assemblyName)) {
+            IEnumerable<Type> pluginTypes = GetPluginTypes<T>(assemblyName);
+            var matched = new List<Type>();
+            foreach (var t in pluginTypes) {
                 try {
                     T renderer = (T)Activator.CreateInstance(t);
                     string help = t.FullName + ":\r\n" + renderer.GetHelp(detailedHelp: false, filter: "");
                     if (help.IndexOf(filter ?? "", StringComparison.InvariantCultureIgnoreCase) >= 0) {
-                        Log.WriteInfo("=============================================\r\n" + help + "\r\n");
+                        Log.WriteInfo(HELP_SEPARATOR + help + "\r\n");
+                        matched.Add(t);
                     }
                 } catch (Exception ex) {
                     Log.WriteError($"Cannot print help for renderer '{t.FullName}'; reason: {ex.Message}");
                 }
             }
-            Log.WriteInfo("=============================================\r\n");
-            HelpShown = true;
+            switch (matched.Count) {
+                case 0:
+                    Log.WriteWarning($"Found no plugin types in '{ShowAssemblyName(assemblyName)}' match '{filter}'");
+                    break;
+                case 1:
+                    Log.WriteInfo(HELP_SEPARATOR);
+                    ShowDetailedHelp<T>(assemblyName, matched[0].FullName, "");
+                    break;
+                default:
+                    Log.WriteInfo(HELP_SEPARATOR);
+                    break;
+            }
         }
 
         public void TransformTestData(string assembly, string transformerClass, string transformerOptions) {
             ITransformer transformer = GetOrCreatePlugin<ITransformer>(assembly, transformerClass);
-            _dependenciesWithoutInputContext = transformer.GetTestDependencies();
+            _dependenciesWithoutInputContextStack.Push(transformer.GetTestDependencies());
 
             var newDependenciesCollector = new List<Dependency>();
-            transformer.Transform(this, "TestData", _dependenciesWithoutInputContext, transformerOptions, "TestData", newDependenciesCollector);
+            transformer.Transform(this, "TestData", DependenciesWithoutInputContext, transformerOptions, "TestData",
+                newDependenciesCollector);
 
-            _dependenciesWithoutInputContext = newDependenciesCollector;
+            _dependenciesWithoutInputContextStack.Pop();
+            _dependenciesWithoutInputContextStack.Push(newDependenciesCollector);
         }
 
-        public int Transform(string assembly, string transformerClass, string transformerOptions) {
+        public int Transform([CanBeNull] string assembly, [NotNull] string transformerClass,
+            [CanBeNull] string transformerOptions) {
             ReadAllNotYetReadIn();
 
             ITransformer transformer = GetOrCreatePlugin<ITransformer>(assembly, transformerClass);
 
             var newDependenciesCollector = new List<Dependency>();
             int result = Program.OK_RESULT;
+            int sum;
             if (transformer.RunsPerInputContext) {
                 foreach (var ic in _inputContexts) {
                     string dependencySourceForLogging = "dependencies in file " + ic.Filename;
@@ -247,34 +271,56 @@ namespace NDepCheck {
                     result = Math.Max(result, r);
                 }
                 {
-                    int r = transformer.Transform(this, "", _dependenciesWithoutInputContext, transformerOptions,
+                    int r = transformer.Transform(this, "", DependenciesWithoutInputContext, transformerOptions,
                         "generated dependencies", newDependenciesCollector);
                     result = Math.Max(result, r);
                 }
+                sum = 0;
                 foreach (var ic in _inputContexts) {
-                    ic.SetDependencies(newDependenciesCollector.Where(d => d.InputContext == ic));
+                    sum += ic.PushDependencies(newDependenciesCollector.Where(d => d.InputContext == ic));
                 }
-                _dependenciesWithoutInputContext =
-                    newDependenciesCollector.Where(d => d.InputContext == null).ToArray();
+                sum +=
+                    PushDependenciesWithoutInputContext(
+                        newDependenciesCollector.Where(d => d.InputContext == null).ToArray());
             } else {
                 result = transformer.Transform(this, "", GetAllDependencies(), transformerOptions, "all dependencies",
                     newDependenciesCollector);
-                _dependenciesWithoutInputContext = newDependenciesCollector.ToArray();
+                sum = 0;
+                sum += PushDependenciesWithoutInputContext(newDependenciesCollector.ToArray());
+                // Also push on input contexts to keep all dependecy stacks synchronous
+                foreach (var ic in _inputContexts) {
+                    sum += ic.PushDependencies(ic.Dependencies);
+                }
             }
+            Log.WriteInfo($"{sum} dependencies");
 
             return result;
+        }
+
+        private int PushDependenciesWithoutInputContext(Dependency[] dependencies) {
+            _dependenciesWithoutInputContextStack.Push(dependencies);
+            return dependencies.Length;
+        }
+
+        public void UndoTransform() {
+            if (_dependenciesWithoutInputContextStack.Count > 1) {
+                _dependenciesWithoutInputContextStack.Pop();
+                int sum = _dependenciesWithoutInputContextStack.Peek().Count();
+                foreach (var ic in _inputContexts) {
+                    sum += ic.PopDependencies();
+                }
+                Log.WriteInfo($"{sum} dependencies");
+            }
         }
 
         public RegexOptions GetIgnoreCase() {
             return IgnoreCase ? RegexOptions.IgnoreCase : RegexOptions.None;
         }
 
-        //[CanBeNull]
-        //public string DefaultRuleSource { get; set; }
-
         public void ResetAll() {
             _inputContexts.Clear();
-            _dependenciesWithoutInputContext = Enumerable.Empty<Dependency>();
+            _dependenciesWithoutInputContextStack.Clear();
+            _dependenciesWithoutInputContextStack.Push(Enumerable.Empty<Dependency>());
 
             _inputFileSpecs.Clear();
 
@@ -301,11 +347,11 @@ namespace NDepCheck {
             return result;
         }
 
-        public void ShowDetailedHelp<T>([CanBeNull] string assemblyName, [NotNull] string pluginClassName, [CanBeNull] string filter) 
-                where T : IPlugin {
+        public void ShowDetailedHelp<T>([CanBeNull] string assemblyName, [NotNull] string pluginClassName,
+            [CanBeNull] string filter) where T : IPlugin {
             try {
                 T plugin = GetOrCreatePlugin<T>(assemblyName, pluginClassName);
-                Log.WriteInfo("=============================================\r\n" + plugin.GetType().FullName + ":\r\n" +
+                Log.WriteInfo(HELP_SEPARATOR + plugin.GetType().FullName + ":\r\n" +
                               plugin.GetHelp(detailedHelp: true, filter: filter) + "\r\n");
             } catch (Exception ex) {
                 Log.WriteError(
@@ -314,10 +360,11 @@ namespace NDepCheck {
             HelpShown = true;
         }
 
-        public void ConfigureTransformer([CanBeNull] string assemblyName, [NotNull] string transformerClass, [CanBeNull] string transformerOptions) {
+        public void ConfigureTransformer([CanBeNull] string assemblyName, [NotNull] string transformerClass,
+            [CanBeNull] string transformerOptions, bool forceReloadConfiguration) {
             try {
                 ITransformer plugin = GetOrCreatePlugin<ITransformer>(assemblyName, transformerClass);
-                plugin.Configure(this, transformerOptions ?? "");
+                plugin.Configure(this, transformerOptions, forceReloadConfiguration);
             } catch (Exception ex) {
                 Log.WriteError(
                     $"Cannot configure plugin '{transformerClass}' in assembly '{ShowAssemblyName(assemblyName)}'; reason: {ex.Message}");
@@ -352,5 +399,74 @@ namespace NDepCheck {
             return ItemType.New(name, parts.Skip(1).ToArray());
         }
 
+        public void LogAboutNDependencies(int maxCount, [CanBeNull] string pattern) {
+            DependencyMatch m = pattern == null ? null : new DependencyMatch(pattern, IgnoreCase);
+            InputContext[] nonEmptyInputContexts = _inputContexts.Where(ic => ic.Dependencies.Any()).ToArray();
+            maxCount = Math.Max(3 * nonEmptyInputContexts.Length, maxCount);
+            int depsPerContext = maxCount / (nonEmptyInputContexts.Length + 1);
+            foreach (var ic in nonEmptyInputContexts) {
+                foreach (var d in ic.Dependencies.Where(d => m == null || m.Matches(d)).Take(depsPerContext)) {
+                    maxCount--;
+                    Log.WriteInfo(d.AsDipStringWithTypes(false));
+                }
+                Log.WriteInfo("...");
+            }
+            foreach (var d in DependenciesWithoutInputContext.Where(d => m == null || m.Matches(d)).Take(maxCount)) {
+                Log.WriteInfo(d.AsDipStringWithTypes(false));
+            }
+        }
+
+        public void LogDependencyCount(string pattern) {
+            DependencyMatch m = pattern == null ? null : new DependencyMatch(pattern, IgnoreCase);
+            int sum = DependenciesWithoutInputContext.Count(d => m == null || m.Matches(d));
+            foreach (var ic in _inputContexts) {
+                sum += ic.Dependencies.Count(d => m == null || m.Matches(d));
+            }
+            Log.WriteInfo(sum + " dependencies" + (m == null ? "" : " matching " + pattern));
+            foreach (var d in GetAllDependencies().Where(d => m == null || m.Matches(d)).Take(3)) {
+                Log.WriteInfo(d.AsDipStringWithTypes(false));
+            }
+        }
+
+        public void LogItemCount(string pattern) {
+            ItemMatch m = pattern == null ? null : new ItemMatch(null, pattern, IgnoreCase);
+            IEnumerable<Item> allItems = new HashSet<Item>(GetAllDependencies().SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
+            IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.Matches(m, i));
+            Log.WriteInfo(matchingItems.Count() + " items" + (m == null ? "" : " matching " + pattern));
+            foreach (var i in matchingItems.Take(3)) {
+                Log.WriteInfo(i.AsStringWithOrderAndType());
+            }
+        }
+
+        public void ShowAllVars() {
+            foreach (var v in GlobalVars.Keys.OrderBy(k => k)) {
+                Log.WriteInfo($"-dd {v,-15} {GlobalVars[v]}");
+            }
+        }
+
+        public string NormalizeLine([CanBeNull] string line) {
+            if (line != null) {
+                int commentStart = line.IndexOf("//", StringComparison.InvariantCulture);
+                if (commentStart >= 0) {
+                    line = line.Substring(0, commentStart);
+                }
+                return ExpandDefines(line.Trim()).Trim();
+            } else {
+                return null;
+            }
+        }
+
+        public void Calculate(string varname, string assembly, string calculatorClass, IEnumerable<string> input) {
+            ICalculator calculator = GetOrCreatePlugin<ICalculator>(assembly, calculatorClass);
+            if (GlobalVars.ContainsKey(varname)) {
+                throw new ArgumentException($"Variable {varname} is already defined");
+            }
+            try {
+                string result = calculator.Calculate(input.ToArray());
+                GlobalVars[varname] = result;
+            } catch (Exception ex) {
+                Log.WriteError($"Cannot compute value with ${calculatorClass}; reason: {ex.GetType().Name} '{ex.Message}'");
+            }
+        }
     }
 }

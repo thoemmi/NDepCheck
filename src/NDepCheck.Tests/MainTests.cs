@@ -511,7 +511,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TestExtendedROptionHelp() {
-            Assert.AreEqual(0, Program.Main(new[] { Program.WriteHelpOption.Opt }));
+            Assert.AreEqual(1, Program.Main(new[] { Program.WriteHelpOption.Opt }));
         }
 
         [TestMethod]
@@ -533,8 +533,7 @@ NDepCheck:Tests ---> **
             using (TextWriter tw = new StreamWriter(ndFile)) {
                 tw.Write($@"
                     {inFile}
-                    {Program.ConfigureOption} {typeof(ProjectItems).Name} {{ 
-                        -pl
+                    {Program.ConfigureOption} {typeof(ProjectItems).Name} {{ -pl
                           $ AB(A:B) ---% AB
                           ! a:** ---% _a_:
                           ! b:** ---% _b_:
@@ -596,21 +595,21 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TestHelpForAllReaders() {
-            Assert.AreEqual(0, Program.Main(new[] { Program.ReadPluginHelpOption.Opt, "." }));
-            Assert.AreEqual(0, Program.Main(new[] { Program.ReadHelpOption.Opt }));
+            Assert.AreEqual(1, Program.Main(new[] { Program.ReadPluginHelpOption.Opt, "." }));
+            Assert.AreEqual(1, Program.Main(new[] { Program.ReadHelpOption.Opt }));
         }
 
         [TestMethod]
         public void TestHelpForAllTransformers() {
-            Assert.AreEqual(0, Program.Main(new[] { Program.TransformPluginHelpOption.Opt, "." }));
-            Assert.AreEqual(0, Program.Main(new[] { Program.TransformHelpOption.Opt }));
+            Assert.AreEqual(1, Program.Main(new[] { Program.TransformPluginHelpOption.Opt, "." }));
+            Assert.AreEqual(1, Program.Main(new[] { Program.TransformHelpOption.Opt }));
         }
 
         [TestMethod]
         public void TestHelpForAllRenderers() {
-            Assert.AreEqual(0, Program.Main(new[] { Program.WritePluginHelpOption.Opt, "." }));
-            Assert.AreEqual(0, Program.Main(new[] { Program.WritePluginHelpOption.Opt }));
-            Assert.AreEqual(0, Program.Main(new[] { Program.WriteHelpOption.Opt }));
+            Assert.AreEqual(1, Program.Main(new[] { Program.WritePluginHelpOption.Opt, "." }));
+            Assert.AreEqual(1, Program.Main(new[] { Program.WritePluginHelpOption.Opt }));
+            Assert.AreEqual(1, Program.Main(new[] { Program.WriteHelpOption.Opt }));
         }
     }
 }

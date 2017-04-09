@@ -32,14 +32,14 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
+        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
             bool noExampleInfo = false;
-            Option.Parse(argsAsString,
+            Option.Parse(globalContext, argsAsString,
                 NoExampleInfoOption.Action((args, j) => {
                     noExampleInfo = true;
                     return j;
                 }));
-            using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(argsAsString, baseFileName))) { 
+            using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(globalContext, argsAsString, baseFileName))) { 
                 Write(dependencies, sw.Writer, !noExampleInfo);
             }
         }
@@ -80,7 +80,7 @@ $@"  Writes dependencies to .dip files, which can be read in by
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
-        public string GetMasterFileName(string argsAsString, string baseFileName) {
+        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
             return GlobalContext.CreateFullFileName(baseFileName, ".dip");
         }
     }

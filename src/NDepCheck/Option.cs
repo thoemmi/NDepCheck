@@ -61,6 +61,9 @@ namespace NDepCheck {
         [NotNull]
         public static string CreateHelp(IEnumerable<Option> options, bool detailed, string filter) {
             var sb = new StringBuilder();
+            if (detailed) {
+                sb.AppendLine();
+            }
             int lineLength = 0;
             foreach (var o in options.Where(o => (o.Name + "/" + o.ShortName + "/" + o.Description)
                                                  .IndexOf(filter ?? "", StringComparison.InvariantCultureIgnoreCase) >= 0)) {
@@ -108,11 +111,20 @@ namespace NDepCheck {
             });
         }
 
+        [NotNull]
+        public static string ExtractRequiredOptionValue(string[] args, ref int i, string message) {
+            string optionValue = ExtractOptionValue(args, ref i);
+            if (string.IsNullOrWhiteSpace(optionValue)) {
+                throw new ArgumentException(message);
+            }
+            return optionValue;
+        }
+
         /// <summary>
         /// Helper method to get option value of value 
         /// </summary>
         [CanBeNull]
-        public static string ExtractOptionValue(string[] args, ref int i) {
+        public static string ExtractOptionValue(string[] args, ref int i, bool allowOptionValue = false) {
             string optionValue;
             string arg = args[i];
             string[] argparts = arg.Split(new[] { '=' }, 2);
@@ -131,7 +143,7 @@ namespace NDepCheck {
             if (optionValue == null) {
                 i = nextI;
                 return null;
-            } else if (LooksLikeAnOption(optionValue)) {
+            } else if (!allowOptionValue && LooksLikeAnOption(optionValue)) {
                 // This is the following option - i is not changed
                 return null;
             } else if (optionValue.StartsWith("{")) {
@@ -173,14 +185,14 @@ namespace NDepCheck {
         }
 
         [CanBeNull]
-        public static string ExtractNextValue(string[] args, ref int i) {
+        public static string ExtractNextValue(string[] args, ref int i, bool allowOptionValue = false) {
             if (i >= args.Length - 1) {
                 return null;
             } else {
                 string value = args[++i];
                 if (value.StartsWith("{")) {
                     return CollectMultipleArgs(args, ref i, value);
-                } else if (LooksLikeAnOption(value)) {
+                } else if (!allowOptionValue && LooksLikeAnOption(value)) {
                     --i;
                     return null;
                 } else {
@@ -197,19 +209,29 @@ namespace NDepCheck {
             throw new ArgumentException(message + " (provided options: " + argsAsString + ")");
         }
 
-        internal static void Parse([NotNull] string argsAsString, params OptionAction[] optionActions) {
-            if (argsAsString == null) {
-                throw new ArgumentNullException(nameof(argsAsString));
-            }
+        internal static void Parse([NotNull] GlobalContext globalContext, [CanBeNull] string argsAsString, params OptionAction[] optionActions) {
             string[] args;
-            if (argsAsString.StartsWith("{")) {
-                args =
-                    argsAsString.Split(' ', '\r', '\n')
-                        .Select(a => a.TrimStart('{').TrimEnd('}').Trim())
-                        .Where(a => a != "")
-                        .ToArray();
-            } else if (argsAsString == "") {
+            if (string.IsNullOrWhiteSpace(argsAsString)) {
                 args = new string[0];
+            } else if (argsAsString.StartsWith("{")) {
+                var list = new List<string>();
+                using (var sr = new StringReader(argsAsString)) {
+                    for (;;) {
+                        string line = globalContext.NormalizeLine(sr.ReadLine());
+                        if (line == null) {
+                            break;
+                        }
+                        if (line == "") {
+                            // ignore;
+                        } else {
+                            list.AddRange(
+                                line.Split(' ', '\r', '\n')
+                                    .Select(a => a.TrimStart('{').TrimEnd('}').Trim())
+                                    .Where(a => a != ""));
+                        }
+                    }
+                }
+                args = list.ToArray();
             } else {
                 args = new[] { argsAsString };
             }

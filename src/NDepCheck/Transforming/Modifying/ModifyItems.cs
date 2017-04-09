@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.Modifying {
     public class ModifyItems : AbstractTransformerWithConfigurationPerInputfile<IEnumerable<ItemAction>> {
@@ -10,23 +11,65 @@ namespace NDepCheck.Transforming.Modifying {
         private static readonly Option[] _configOptions = { ModificationsFileOption, ModificationsOption };
 
         public override string GetHelp(bool detailedHelp, string filter) {
-            return $@"Modify counts and markers on items.
+            string result = $@"Modify counts and markers on items.
 
 Configuration options: {Option.CreateHelp(_configOptions, detailedHelp, filter)}
 
 Transformer options: None";
+            if (detailedHelp) {
+                result += @"
+
+Configuration format:
+
+Configuration files support the standard options + for include,
+// for comments, macro definitions (see -help files).
+
+Item modifications always have the format
+
+    incomingMatch -> itemMatch -- outgoingMatch => itemAction
+
+Each part can be empty, therefore the simplest modification (which does
+nothing) is -> -- => or, equivalently, ->--=>.
+
+An item is modified if
+* at least one incoming dependency matches incomingMatch; or incomingMatch is empty;
+* the item matches itemMatch; or itemMatch is empty; and
+* at least one outgoing dependency matches outgoingMatch; or outgoingMatch is empty.
+
+The four parts have the following syntax:
+    incomingMatch, outgoingMatch
+        dependency pattern (see -help dependency)
+
+    itemMatch
+        item pattern (see -help itempattern)
+
+    itemAction
+        a space- or comma-separated list of:
+            ignore (or nothing)           is ignored
+            +marker                       add marker to item
+            -marker                       remove marker from item
+            - or delete                   delete item and all its incoming and
+                                          outgoing dependences
+
+Examples:
+   'From -> -- 'To => +FromTo      Add marker FromTo to items where at least one
+                                   incoming dependency has marker From and at least
+                                   one outgoing dependency has marker To
+   -- 'OnCycle -> -                Delete all items having marker OnCycle";
+            }
+            return result;
         }
 
         public override bool RunsPerInputContext => false;
 
         private IEnumerable<ItemAction> _orderedActions;
 
-        public override void Configure(GlobalContext globalContext, string configureOptions) {
-            Option.Parse(configureOptions,
+        public override void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
+            Option.Parse(globalContext, configureOptions,
                 ModificationsFileOption.Action((args, j) => {
-                    string fullSourceName = Path.GetFullPath(Option.ExtractOptionValue(args, ref j));
+                    string fullSourceName = Path.GetFullPath(Option.ExtractRequiredOptionValue(args, ref j, "missing modifications filename"));
                     _orderedActions = GetOrReadChildConfiguration(globalContext,
-                        () => new StreamReader(fullSourceName), fullSourceName, globalContext.IgnoreCase, "????");
+                        () => new StreamReader(fullSourceName), fullSourceName, globalContext.IgnoreCase, "????", forceReload);
                     return j;
                 }),
                 ModificationsOption.Action((args, j) => {
@@ -35,18 +78,18 @@ Transformer options: None";
                     // * we add // to the beginning - this comments out the first line;
                     // * and trim } at the end.
                     _orderedActions = GetOrReadChildConfiguration(globalContext,
-                        () => new StringReader("//" + configureOptions.Trim().TrimEnd('}')), ModificationsOption.ShortName, globalContext.IgnoreCase, "????");
+                        () => new StringReader("//" + (configureOptions ?? "").Trim().TrimEnd('}')), 
+                        ModificationsOption.ShortName, globalContext.IgnoreCase, "????", forceReload);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;
                 })
             );
         }
 
-        protected override IEnumerable<ItemAction> CreateConfigurationFromText(GlobalContext globalContext,
-            string fullConfigFileName, int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack) {
+        protected override IEnumerable<ItemAction> CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName, int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration) {
 
             var actions = new List<ItemAction>();
-            ProcessTextInner(globalContext, fullConfigFileName, startLineNo, tr, ignoreCase, fileIncludeStack,
+            ProcessTextInner(globalContext, fullConfigFileName, startLineNo, tr, ignoreCase, fileIncludeStack, forceReloadConfiguration,
                 onIncludedConfiguration: (e, n) => actions.AddRange(e),
                 onLineWithLineNo: (line, lineNo) => {
                     actions.Add(new ItemAction(line.Trim(), ignoreCase, fullConfigFileName, startLineNo));
@@ -55,7 +98,7 @@ Transformer options: None";
             return actions;
         }
 
-        public override int Transform(GlobalContext context, string dependenciesFilename, IEnumerable<Dependency> dependencies,
+        public override int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
             string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
             if (_orderedActions == null) {

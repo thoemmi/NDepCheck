@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
+using JetBrains.Annotations;
 
 namespace NDepCheck.Rendering {
     public class RuleViolationRenderer : IDependencyRenderer {
@@ -11,8 +12,9 @@ namespace NDepCheck.Rendering {
 
         private static readonly Option[] _allOptions = { XmlOutputOption };
 
-        public void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
-            bool xmlOutput = ParseArgs(argsAsString);
+        public void Render([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, 
+                           string argsAsString, string baseFileName, bool ignoreCase) {
+            bool xmlOutput = ParseArgs(globalContext, argsAsString);
 
             if (baseFileName == null || GlobalContext.IsConsoleOutFileName(baseFileName)) {
                 var consoleLogger = new ConsoleLogger();
@@ -56,9 +58,9 @@ namespace NDepCheck.Rendering {
             return Path.ChangeExtension(baseFileName, ".xml");
         }
 
-        private static bool ParseArgs(string argsAsString) {
+        private static bool ParseArgs([NotNull] GlobalContext globalContext, [CanBeNull] string argsAsString) {
             bool xmlOutput = false;
-            Option.Parse(argsAsString,
+            Option.Parse(globalContext, argsAsString,
                 XmlOutputOption.Action((args, j) => {
                     xmlOutput = true;
                     return j;
@@ -104,8 +106,8 @@ $@"  Writes dependency rule violations to file in text or xml format.
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
-        public string GetMasterFileName(string argsAsString, string baseFileName) {
-            bool xmlOutput = ParseArgs(argsAsString);
+        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
+            bool xmlOutput = ParseArgs(globalContext, argsAsString);
             return xmlOutput ? GetXmlFileName(baseFileName) : GetTextFileName(baseFileName);
         }
     }

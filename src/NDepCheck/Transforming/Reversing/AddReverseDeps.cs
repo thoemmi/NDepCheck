@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.Reversing {
     public class AddReverseDeps : ITransformer {
@@ -21,12 +22,12 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
         public bool RunsPerInputContext => false;
 
-        public void Configure(GlobalContext globalContext, string configureOptions) {
+        public void Configure(GlobalContext globalContext, string configureOptions, bool forceReload) {
             _ignoreCase = globalContext.IgnoreCase;
         }
 
-        public int Transform(GlobalContext context, string dependenciesFilename, IEnumerable<Dependency> dependencies,
-            string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
+        public int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
+            [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
             // Only items are changed (Order is added)
 
@@ -34,7 +35,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             string markerToAdd = null;
             bool removeOriginal = false;
 
-            Option.Parse(transformOptions,
+            Option.Parse(globalContext, transformOptions,
                 MatchOption.Action((args, j) => {
                     matches.Add(new DependencyMatch(Option.ExtractOptionValue(args, ref j), _ignoreCase));
                     return j;
@@ -44,7 +45,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     return j;
                 }), 
                 MarkerToAddOption.Action((args, j) => {
-                    markerToAdd = Option.ExtractOptionValue(args, ref j).Trim('\'').Trim();
+                    markerToAdd = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim();
                     return j;
                 }));
 

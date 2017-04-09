@@ -16,15 +16,15 @@ namespace NDepCheck.Transforming {
 
         private readonly Dictionary<string, TConfigurationPerInputfile> _fileName2config = new Dictionary<string, TConfigurationPerInputfile>();
 
-        public abstract void Configure(GlobalContext globalContext, [NotNull] string configureOptions);
+        public abstract void Configure(GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload);
 
         public TConfigurationPerInputfile GetOrReadChildConfiguration(GlobalContext globalContext, 
-            Func<TextReader> createReader, string fullSourceName, bool ignoreCase, string fileIncludeStack) {
+            Func<TextReader> createReader, string fullSourceName, bool ignoreCase, string fileIncludeStack, bool forceReload) {
             TConfigurationPerInputfile childConfiguration;
-            if (!_fileName2config.TryGetValue(fullSourceName, out childConfiguration)) {
+            if (forceReload || !_fileName2config.TryGetValue(fullSourceName, out childConfiguration)) {
                 using (var tr = createReader()) {
                     childConfiguration = CreateConfigurationFromText(globalContext, fullSourceName, 0, tr, ignoreCase,
-                        fileIncludeStack + "+" + fullSourceName);
+                        fileIncludeStack + "+" + fullSourceName, forceReload);
                     _fileName2config[fullSourceName] = childConfiguration;
                 }
             }
@@ -41,40 +41,33 @@ namespace NDepCheck.Transforming {
             return new Uri(path).LocalPath;
         }
 
-        protected abstract TConfigurationPerInputfile CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
-            int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack);
+        protected abstract TConfigurationPerInputfile CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName, 
+            int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration);
 
         protected void ProcessTextInner(GlobalContext globalContext, string fullConfigFileName, int startLineNo, TextReader tr,
-            bool ignoreCase, string fileIncludeStack, 
+            bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
             [NotNull] Action<TConfigurationPerInputfile,string> onIncludedConfiguration,
             [NotNull] Func<string, int, bool> onLineWithLineNo) {
 
             int lineNo = startLineNo;
 
             for (;;) {
-                string line = tr.ReadLine();
+                string line = globalContext.NormalizeLine(tr.ReadLine());
 
                 if (line == null) {
                     break;
                 }
-
-                int commentStart = line.IndexOf("//", StringComparison.InvariantCulture);
-                if (commentStart >= 0) {
-                    line = line.Substring(0, commentStart);
-                }
-
-                line = globalContext.ExpandDefines(line.Trim()).Trim();
                 lineNo++;
 
                 try {
-                    if (line == "" || line.StartsWith("#") || line.StartsWith("//")) {
+                    if (line == "" || line.StartsWith("//")) {
                         // ignore;
                     } else if (line.StartsWith("+")) {
                         string includeFilename = line.Substring(1).Trim();
                         string fullIncludeFileName = Path.Combine(Path.GetDirectoryName(fullConfigFileName) ?? @"\", includeFilename);
                         TConfigurationPerInputfile childConfiguration = GetOrReadChildConfiguration(globalContext,                             
                             () => new StreamReader(fullIncludeFileName), fullIncludeFileName,
-                            ignoreCase, fileIncludeStack);
+                            ignoreCase, fileIncludeStack, forceReloadConfiguration);
                         onIncludedConfiguration(childConfiguration, fullConfigFileName);
                     } else if (line.Contains(ASSIGN)) {
                         KeyValuePair<string, string> kvp = ParseVariableDefinition(fullConfigFileName, lineNo, line);
@@ -107,8 +100,8 @@ namespace NDepCheck.Transforming {
 
         public abstract bool RunsPerInputContext { get; }
 
-        public abstract int Transform(GlobalContext context, string dependenciesFileName, IEnumerable<Dependency> dependencies, 
-            string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies);
+        public abstract int Transform(GlobalContext globalContext, string dependenciesFileName, IEnumerable<Dependency> dependencies, 
+            [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies);
 
         public abstract IEnumerable<Dependency> GetTestDependencies();
 

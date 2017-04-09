@@ -11,8 +11,8 @@ namespace NDepCheck.Rendering {
     public class DotRenderer : IDependencyRenderer {
         private readonly GenericDotRenderer _delegate = new GenericDotRenderer();
 
-        public void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
-            _delegate.Render(dependencies, argsAsString, baseFileName, ignoreCase);
+        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
+            _delegate.Render(globalContext, dependencies, argsAsString, baseFileName, ignoreCase);
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
@@ -27,8 +27,8 @@ namespace NDepCheck.Rendering {
             return _delegate.GetHelp(detailedHelp, filter);
         }
 
-        public string GetMasterFileName(string argsAsString, string baseFileName) {
-            return _delegate.GetMasterFileName(argsAsString, baseFileName);
+        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
+            return _delegate.GetMasterFileName(globalContext, argsAsString, baseFileName);
         }
     }
 
@@ -59,17 +59,17 @@ namespace NDepCheck.Rendering {
             output.WriteLine("}");
         }
 
-        public void Render(IEnumerable<IEdge> dependencies, string argsAsString, [CanBeNull] string baseFileName, bool ignoreCase) {
+        public void Render(GlobalContext globalContext, IEnumerable<IEdge> dependencies, string argsAsString, [CanBeNull] string baseFileName, bool ignoreCase) {
             int? maxExampleLength = null;
             ItemMatch innerMatch = null;
-            Option.Parse(argsAsString,
+            Option.Parse(globalContext, argsAsString,
                 MaxExampleLengthOption.Action((args, j) => {
                     maxExampleLength = Option.ExtractIntOptionValue(args, ref j,
                         "No valid length after " + MaxExampleLengthOption.Name);
                     return j;
                 }),
                 AbstractMatrixRenderer.InnerMatchOption.Action((args, j) => {
-                    innerMatch = new ItemMatch(null, Option.ExtractOptionValue(args, ref j), ignoreCase);
+                    innerMatch = new ItemMatch(null, Option.ExtractRequiredOptionValue(args, ref j, "Pattern for selecting inner items missing"), ignoreCase);
                     return j;
                 }));
             using (TextWriter sw = new StreamWriter(GetDotFileName(baseFileName))) {
@@ -97,7 +97,7 @@ $@"  Writes dependencies to file in .dot format (graphviz; see http://graphviz.o
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
-        public string GetMasterFileName(string argsAsString, string baseFileName) {
+        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
             return GetDotFileName(baseFileName);
         }
     }

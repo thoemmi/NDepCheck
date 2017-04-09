@@ -49,7 +49,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             public bool ReverseInResidual => Flow > 0;
         }
 
-        public int Transform(GlobalContext context, string dependenciesFilename, IEnumerable<Dependency> dependencies,
+        public int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
             string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
             var sourceMatches = new List<ItemMatch>();
@@ -59,13 +59,13 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             string markerToAddToCut = null;
             Func<Dependency, int> weightForCut = d => d.BadCt;
 
-            Option.Parse(transformOptions,
+            Option.Parse(globalContext, transformOptions,
                 MatchSourceOption.Action((args, j) => {
-                    sourceMatches.Add(new ItemMatch(null, Option.ExtractOptionValue(args, ref j), _ignoreCase));
+                    sourceMatches.Add(new ItemMatch(null, Option.ExtractRequiredOptionValue(args, ref j, "Match pattern missing"), _ignoreCase));
                     return j;
                 }),
                 MatchTargetOption.Action((args, j) => {
-                    targetMatches.Add(new ItemMatch(null, Option.ExtractOptionValue(args, ref j), _ignoreCase));
+                    targetMatches.Add(new ItemMatch(null, Option.ExtractRequiredOptionValue(args, ref j, "Match pattern missing"), _ignoreCase));
                     return j;
                 }),
                 UseQuestionableCountOption.Action((args, j) => {
@@ -77,11 +77,11 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     return j;
                 }),
                 DepsMarkerOption.Action((args, j) => {
-                    markerToAddToCut = Option.ExtractOptionValue(args, ref j).Trim('\'').Trim();
+                    markerToAddToCut = Option.ExtractRequiredOptionValue(args, ref j, "Dependency marker missing").Trim('\'').Trim();
                     return j;
                 }),
                 SourceMarkerOption.Action((args, j) => {
-                    markerToAddToSourceSide = Option.ExtractOptionValue(args, ref j).Trim('\'').Trim();
+                    markerToAddToSourceSide = Option.ExtractRequiredOptionValue(args, ref j, "Source marker missing").Trim('\'').Trim();
                     return j;
                 }));
 

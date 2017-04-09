@@ -1,21 +1,21 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.Ordering {
     public class AddItemOrder : ITransformer {
         public string GetHelp(bool detailedHelp, string filter) {
-            return
-                @"Adds a field to each item for a bottom to top order. The field is a 4-digit integer number, starting at 0001";
+            return @"Adds a field to each item for a bottom to top order. The field is a 4-digit integer number, starting at 0001";
         }
 
         public bool RunsPerInputContext => false;
 
-        public void Configure(GlobalContext globalContext, string configureOptions) {
+        public void Configure(GlobalContext globalContext, string configureOptions, bool forceReload) {
             // empty
         }
 
-        public int Transform(GlobalContext context, string dependenciesFilename, IEnumerable<Dependency> dependencies, 
-            string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
+        public int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
+            [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
             // Only items are changed (Order is added)
             transformedDependencies.AddRange(dependencies);
@@ -33,7 +33,8 @@ namespace NDepCheck.Transforming.Ordering {
                     aggregatedCounts.ColumnKeys.Select(
                         k => new {
                             Item = k,
-                            Ratio = aggregatedCounts.GetRowSum(k) / (aggregatedCounts.GetColumnSum(k) + aggregatedCounts.GetRowSum(k) + 0.001m)
+                            Ratio = aggregatedCounts.GetRowSum(k) / 
+                                   (aggregatedCounts.GetColumnSum(k) + aggregatedCounts.GetRowSum(k) + 0.001m)
                         });
                 decimal minToRatio = itemsToRatios.Min(ir => ir.Ratio);
                 Item minItem = itemsToRatios.First(ir => ir.Ratio == minToRatio).Item;

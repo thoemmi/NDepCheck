@@ -26,12 +26,12 @@ $@"  Write a textual matrix representation of dependencies.
     }
 
     public abstract class AbstractGenericMatrixRenderer : IRenderer<IEdge> {
-        protected static void ParseOptions(string argsAsString, bool ignoreCase, out int? labelWidthOrNull, 
-                                           out bool withNotOkCt, out ItemMatch innerMatch) {
+        protected static void ParseOptions(GlobalContext globalContext, string argsAsString, bool ignoreCase, 
+                                           out int? labelWidthOrNull, out bool withNotOkCt, out ItemMatch innerMatch) {
             int? lw = null;
             bool wct = false;
             ItemMatch im = null;
-            Option.Parse(argsAsString,
+            Option.Parse(globalContext, argsAsString,
                 AbstractMatrixRenderer.MaxNameWidthOption.Action((args, j) => {
                     lw = Option.ExtractIntOptionValue(args, ref j, "");
                     return j;
@@ -41,7 +41,7 @@ $@"  Write a textual matrix representation of dependencies.
                     return j;
                 }),
                 AbstractMatrixRenderer.InnerMatchOption.Action((args, j) => {
-                    im = new ItemMatch(null, Option.ExtractOptionValue(args, ref j), ignoreCase);
+                    im = new ItemMatch(null, Option.ExtractRequiredOptionValue(args, ref j, "Missing pattern for inner match"), ignoreCase);
                     return j;
                 }));
             labelWidthOrNull = lw;
@@ -160,7 +160,7 @@ $@"  Write a textual matrix representation of dependencies.
             string nodeFormat, Dictionary<INode, int> node2Index, bool withNotOkCt, IEnumerable<INode> sortedNodes,
             string ctFormat, IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges);
 
-        public abstract void Render(IEnumerable<IEdge> dependencies, string argsAsString, string baseFileName, bool ignoreCase);
+        public abstract void Render(GlobalContext globalContext, IEnumerable<IEdge> dependencies, string argsAsString, string baseFileName, bool ignoreCase);
 
         public abstract void RenderToStreamForUnitTests(IEnumerable<IEdge> dependencies, Stream stream);
 
@@ -168,6 +168,6 @@ $@"  Write a textual matrix representation of dependencies.
             return $"{GetType().Name} usage: -___ outputfileName";
         }
 
-        public abstract string GetMasterFileName(string argsAsString, string baseFileName);
+        public abstract string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName);
     }
 }

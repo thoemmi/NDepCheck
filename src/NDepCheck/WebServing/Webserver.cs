@@ -36,94 +36,100 @@ namespace NDepCheck.WebServing {
         public void GetContextCallback(IAsyncResult result) {
             HttpListenerContext context = _listener.EndGetContext(result);
             HttpListenerRequest request = context.Request;
-            HttpListenerResponse response = context.Response;
+            try {
+                HttpListenerResponse response = context.Response;
 
-            var sbDebug = new StringBuilder();
-            sbDebug.AppendLine($"HttpMethod:  {request.HttpMethod}");
-            sbDebug.AppendLine($"Uri:         {request.Url.AbsoluteUri}");
-            sbDebug.AppendLine($"LocalPath:   {request.Url.LocalPath}");
-            foreach (string key in request.QueryString.Keys) {
-                sbDebug.AppendLine($"Query:      {key} = {request.QueryString[key]}");
-            }
-            Log.WriteDebug(sbDebug.ToString());
-
-            string responseString;
-            if (request.Url.LocalPath.EndsWith("/run")) {
-                _listener.BeginGetContext(GetContextCallback, null);
-
-                var args = new List<string>();
-                foreach (string key in request.QueryString.AllKeys.OrderBy(k => k)) {
-                    args.Add(request.QueryString[key]);
+                var sbDebug = new StringBuilder();
+                sbDebug.AppendLine($"HttpMethod:  {request.HttpMethod}");
+                sbDebug.AppendLine($"Uri:         {request.Url.AbsoluteUri}");
+                sbDebug.AppendLine($"LocalPath:   {request.Url.LocalPath}");
+                foreach (string key in request.QueryString.Keys) {
+                    sbDebug.AppendLine($"Query:      {key} = {request.QueryString[key]}");
                 }
+                Log.WriteDebug(sbDebug.ToString());
 
-                ILogger oldLogger = Log.Logger;
-                try {
-                    var stringBuilderLogger = new StringBuilderLogger();
-                    Log.Logger = stringBuilderLogger;
+                string responseString;
+                if (request.Url.LocalPath.EndsWith("/run")) {
+                    _listener.BeginGetContext(GetContextCallback, null);
 
-                    var writtenMasterFiles = new List<string>();
-                    // Each call runs with its own environment=GlobalContext; this is necessary
-                    // so that each one can set its own defines.
+                    var args = new List<string>();
+                    foreach (string key in request.QueryString.AllKeys.OrderBy(k => k)) {
+                        args.Add(request.QueryString[key]);
+                    }
 
-                    string previousCurrentDirectory = Environment.CurrentDirectory;
-                    int runResult;
+                    ILogger oldLogger = Log.Logger;
                     try {
-                        Environment.CurrentDirectory = _fullFileDirectory;
-                        runResult = _program.Run(args.ToArray(), new GlobalContext(), writtenMasterFiles, logCommands: true);
+                        var stringBuilderLogger = new StringBuilderLogger();
+                        Log.Logger = stringBuilderLogger;
+
+                        var writtenMasterFiles = new List<string>();
+                        // Each call runs with its own environment=GlobalContext; this is necessary
+                        // so that each one can set its own defines.
+
+                        string previousCurrentDirectory = Environment.CurrentDirectory;
+                        int runResult;
+                        try {
+                            Environment.CurrentDirectory = _fullFileDirectory;
+                            runResult = _program.Run(args.ToArray(), new GlobalContext(), writtenMasterFiles,
+                                logCommands: true);
+                        } finally {
+                            Environment.CurrentDirectory = previousCurrentDirectory;
+                        }
+
+                        if (runResult != Program.OK_RESULT) {
+                            stringBuilderLogger.WriteWarning($"Run had result {runResult} - see problems above");
+                        }
+
+                        if (stringBuilderLogger.HasWarningsOrErrors) {
+                            responseString = WrapAsHtmlBody(stringBuilderLogger.GetString());
+                            // send errors to client
+                        } else if (writtenMasterFiles.Count > 1) {
+                            // send file selection HTML to client - UNTESTED
+                            var sb = new StringBuilder();
+                            sb.AppendLine("<ol>");
+                            foreach (var f in writtenMasterFiles) {
+                                sb.AppendLine($@"<li><a href=""{FILES_PREFIX}{f}"">{f}</a></li>");
+                            }
+                            sb.AppendLine("<ol>");
+                            responseString = WrapAsHtmlBody(sb.ToString());
+                        } else if (writtenMasterFiles.Count == 1) {
+                            // send single file output
+                            using (var sr = new StreamReader(writtenMasterFiles[0])) {
+                                responseString = sr.ReadToEnd();
+                            }
+                        } else {
+                            // send logger output to client
+                            responseString = WrapAsHtmlBody(stringBuilderLogger.GetString());
+                        }
                     } finally {
-                        Environment.CurrentDirectory = previousCurrentDirectory;
+                        Log.Logger = oldLogger;
                     }
 
-                    if (runResult != Program.OK_RESULT) {
-                        stringBuilderLogger.WriteWarning($"Run had result {runResult} - see problems above");
-                    }
+                    Log.WriteDebug($"Response: '{responseString}'");
 
-                    if (stringBuilderLogger.HasWarningsOrErrors) {
-                        responseString = WrapAsHtmlBody(stringBuilderLogger.GetString());
-                        // send errors to client
-                    } else if (writtenMasterFiles.Count > 1) {
-                        // send file selection HTML to client
-                        var sb = new StringBuilder();
-                        sb.AppendLine("<ol>");
-                        foreach (var f in writtenMasterFiles) {
-                            sb.AppendLine($@"<li><a href=""YYY/{f}"">{f}</a></li>");
-                        }
-                        sb.AppendLine("<ol>");
-                        responseString = WrapAsHtmlBody(sb.ToString());
-                    } else if (writtenMasterFiles.Count == 1) {
-                        // send single file output
-                        using (var sr = new StreamReader(writtenMasterFiles[0])) {
-                            responseString = sr.ReadToEnd();
-                        }
-                    } else {
-                        // send logger output to client
-                        responseString = WrapAsHtmlBody(stringBuilderLogger.GetString());
+                    SendStringReponse(responseString, response);
+                } else if (request.Url.LocalPath.StartsWith(FILES_PREFIX)) {
+                    _listener.BeginGetContext(GetContextCallback, null);
+
+                    // Send file
+                    string localFileName = Path.Combine(_fullFileDirectory,
+                        request.Url.LocalPath.Substring(FILES_PREFIX.Length));
+
+                    using (var sr = new StreamReader(localFileName)) {
+                        response.ContentLength64 = sr.BaseStream.Length;
+                        sr.BaseStream.CopyTo(response.OutputStream);
                     }
-                } finally {
-                    Log.Logger = oldLogger;
+                } else {
+                    _listener.BeginGetContext(GetContextCallback, null);
+
+                    string message = $"WebServer: URL cannot be handled - neither /run nor /files, but {request.Url}";
+                    Log.WriteWarning(message);
+                    responseString = WrapAsHtmlBody(message);
+
+                    SendStringReponse(responseString, response);
                 }
-
-                Log.WriteDebug($"Response: '{responseString}'");
-
-                SendStringReponse(responseString, response);
-            } else if (request.Url.LocalPath.StartsWith(FILES_PREFIX)) {
-                _listener.BeginGetContext(GetContextCallback, null);
-
-                // Send file
-                string localFileName = Path.Combine(_fullFileDirectory, request.Url.LocalPath.Substring(FILES_PREFIX.Length));
-
-                using (var sr = new StreamReader(localFileName)) {
-                    response.ContentLength64 = sr.BaseStream.Length;
-                    sr.BaseStream.CopyTo(response.OutputStream);
-                }
-            } else {
-                _listener.BeginGetContext(GetContextCallback, null);
-
-                string message = $"WebServer: URL cannot be handled - neither /run nor /files, but {request.Url}";
-                Log.WriteWarning(message);
-                responseString = WrapAsHtmlBody(message);
-
-                SendStringReponse(responseString, response);
+            } catch (Exception ex) {
+                Log.WriteError($"Cannot handle web request {request.Url}; reason: {ex.GetType().Name} '{ex.Message}'");
             }
         }
 

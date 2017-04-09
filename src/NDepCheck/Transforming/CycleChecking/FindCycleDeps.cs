@@ -5,14 +5,23 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.CycleChecking {
     public class FindCycleDeps : ITransformer {
-        public static readonly Option IgnoreSelfCyclesOption = new Option("il", "ignore-loops", "", "ignore cycles of length 1, i.e. looping from an item to itself", @default: false);
-        public static readonly Option KeepOnlyCyclesOption = new Option("kc", "keep-only-cycles", "", "remove all non-cycle dependencies", @default: false);
-        public static readonly Option CycleAnchorsOption = new Option("ca", "cycle-anchors", "itempattern", "nodes checked for cycles through them", @default: "all nodes are checked");
-        public static readonly Option MaxCycleLengthOption = new Option("ml", "max-length", "#", "maximum length of cycles found", @default: "arbitrary length");
-        public static readonly DepencencyEffectOptions EffectOptions = new DepencencyEffectOptions();
+        public static readonly Option IgnoreSelfCyclesOption = new Option("il", "ignore-loops", "",
+            "ignore cycles of length 1, i.e. looping from an item to itself", @default: false);
+
+        public static readonly Option KeepOnlyCyclesOption = new Option("kc", "keep-only-cycles", "",
+            "remove all non-cycle dependencies", @default: false);
+
+        public static readonly Option CycleAnchorsOption = new Option("ca", "cycle-anchors", "itempattern",
+            "nodes checked for cycles through them", @default: "all nodes are checked");
+
+        public static readonly Option MaxCycleLengthOption = new Option("ml", "max-length", "#",
+            "maximum length of cycles found", @default: "arbitrary length");
+
+        public static readonly DependencyEffectOptions EffectOptions = new DependencyEffectOptions();
 
         private static readonly IEnumerable<Option> _transformOptions =
-            EffectOptions.AllOptions.Concat(new[] { IgnoreSelfCyclesOption, KeepOnlyCyclesOption, CycleAnchorsOption, MaxCycleLengthOption });
+            EffectOptions.AllOptions.Concat(new[]
+                { IgnoreSelfCyclesOption, KeepOnlyCyclesOption, CycleAnchorsOption, MaxCycleLengthOption });
 
         private bool _ignoreCase;
 
@@ -26,7 +35,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
         public bool RunsPerInputContext => false;
 
-        public void Configure(GlobalContext globalContext, string configureOptions) {
+        public void Configure(GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
             _ignoreCase = globalContext.IgnoreCase;
         }
 
@@ -45,96 +54,86 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
         }
 
-        public int Transform(GlobalContext context, string dependenciesFilename, IEnumerable<Dependency> dependencies, string transformOptions,
-            string dependencySourceForLogging, List<Dependency> transformedDependencies) {
+        public int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
+            [CanBeNull] string transformOptions, string dependencySourceForLogging,
+            List<Dependency> transformedDependencies) {
             bool ignoreSelfCycles = false;
             bool keepOnlyCycleEdges = false;
             int maxCycleLength = int.MaxValue;
             ItemMatch cycleAnchorsMatch = null;
 
-            IEnumerable<Action<Dependency>> effects = EffectOptions.Parse(transformOptions,
-                 moreOptions: new[] {
-                    IgnoreSelfCyclesOption.Action((args, j) => {
-                        ignoreSelfCycles = true;
-                        return j;
-                    }),
-                    KeepOnlyCyclesOption.Action((args, j) => {
-                        keepOnlyCycleEdges = true;
-                        return j;
-                    }),
-                    CycleAnchorsOption.Action((args, j) => {
-                        cycleAnchorsMatch = new ItemMatch(null, Option.ExtractOptionValue(args, ref j), _ignoreCase);
-                        return j;
-                    }),
-                    MaxCycleLengthOption.Action((args, j) => {
-                        maxCycleLength = Option.ExtractIntOptionValue(args, ref j, "Invalid maximum cycle length");
-                        return j;
-                    })
-                 });
+            IEnumerable<Action<Dependency>> effects = EffectOptions.Parse(globalContext: globalContext, 
+                argsAsString: transformOptions, moreOptions: new[] {
+                IgnoreSelfCyclesOption.Action((args, j) => {
+                    ignoreSelfCycles = true;
+                    return j;
+                }),
+                KeepOnlyCyclesOption.Action((args, j) => {
+                    keepOnlyCycleEdges = true;
+                    return j;
+                }),
+                CycleAnchorsOption.Action((args, j) => {
+                    cycleAnchorsMatch = new ItemMatch(null,
+                        Option.ExtractRequiredOptionValue(args, ref j, "missing anchor name"), _ignoreCase);
+                    return j;
+                }),
+                MaxCycleLengthOption.Action((args, j) => {
+                    maxCycleLength = Option.ExtractIntOptionValue(args, ref j, "Invalid maximum cycle length");
+                    return j;
+                })
+            });
 
-            var from = new Dictionary<Item, List<Dependency>>();
-            foreach (var d in dependencies) {
-                List<Dependency> edges;
-                if (!from.TryGetValue(d.UsingItem, out edges)) {
-                    from.Add(d.UsingItem, edges = new List<Dependency>());
-                }
-                edges.Add(d);
-            }
+            Dictionary<Item, IEnumerable<Dependency>> outgoing = Item.CollectOutgoingDependenciesMap(dependencies);
 
             var foundCycleHashs = new HashSet<int>();
-            var trackItems = new HashSet<Item>();
             var dependenciesOnCycles = new HashSet<Dependency>();
-            var path = new Stack<Dependency>();
-            foreach (var i in from.Keys.Where(i => ItemMatch.Matches(cycleAnchorsMatch, i))) {
-                FindCyclesFrom(i, i, ignoreSelfCycles, from, trackItems, maxCycleLength, foundCycleHashs, AddHash(0, i), path, dependenciesOnCycles);
+            foreach (var i in outgoing.Keys.Where(i => ItemMatch.Matches(cycleAnchorsMatch, i)).OrderBy(i => i.Name)) {
+                var pathHeadFromI = new Stack<Dependency>();
+                var visitedItem2CheckedPathLengthBehindVisitedItem = new Dictionary<Item, int>();
+                FindCyclesFrom(i, i, ignoreSelfCycles, outgoing, visitedItem2CheckedPathLengthBehindVisitedItem, 
+                    maxCycleLength, foundCycleHashs, AddHash(0, i), pathHeadFromI, dependenciesOnCycles);
             }
 
-            if (effects.Contains(DepencencyEffectOptions.DELETE_ACTION_MARKER)) {
+            if (effects.Contains(DependencyEffectOptions.DELETE_ACTION_MARKER)) {
                 var deps = new HashSet<Dependency>(dependencies);
                 deps.ExceptWith(dependenciesOnCycles);
                 transformedDependencies.AddRange(deps);
             } else {
-                DepencencyEffectOptions.Execute(effects, dependenciesOnCycles);
+                DependencyEffectOptions.Execute(effects, dependenciesOnCycles);
                 transformedDependencies.AddRange(keepOnlyCycleEdges ? dependenciesOnCycles : dependencies);
             }
             return Program.OK_RESULT;
         }
 
-        private void FindCyclesFrom(Item rootItem, Item tailItem, bool ignoreCyclesInThisRecursion,
-                                    Dictionary<Item, List<Dependency>> from, HashSet<Item> trackItems,
-                                    int restLength, HashSet<int> foundCycleHashs, int pathHash, Stack<Dependency> path,
-                                    HashSet<Dependency> dependenciesOnCycles) {
-            if (restLength > 0) {
-                trackItems.Add(tailItem);
-                foreach (var nextDep in from[tailItem]) {
-                    var newTail = nextDep.UsedItem;
-                    path.Push(nextDep);
-                    if (trackItems.Contains(newTail)) {
-                        if (!ignoreCyclesInThisRecursion && Equals(newTail, rootItem)) {
-                            // We found a cycle through the rootItem
+        private void FindCyclesFrom(Item root, Item tail, bool ignoreCyclesInThisRecursion,
+            Dictionary<Item, IEnumerable<Dependency>> outgoing, Dictionary<Item, int> allVisitedItems, int restLength,
+            HashSet<int> foundCycleHashs, int pathHash, Stack<Dependency> pathFromRoot, HashSet<Dependency> dependenciesOnCycles) {
+            int checkedBehindTail;
+            if ((!allVisitedItems.TryGetValue(tail, out checkedBehindTail) || checkedBehindTail < restLength)
+                && restLength > 0 && outgoing.ContainsKey(tail)) {
+                allVisitedItems[tail] = restLength;
+                // we are at this item for the first time - check whether we find a path back to the root item
+                foreach (var nextDep in outgoing[tail]) {
+                    Item newTail = nextDep.UsedItem;
+                    pathFromRoot.Push(nextDep);
+                    if (!ignoreCyclesInThisRecursion && Equals(newTail, root)) {
+                        // We found a cycle to the rootItem!
 
-                            pathHash ^= restLength;
-                            if (foundCycleHashs.Contains(pathHash)) {
-                                // The cycle was already found via another node
-                                // - we ignore it.
-                            } else {
-                                // New cycle found; we record it
-                                foreach (var pathDep in path) {
-                                    dependenciesOnCycles.Add(pathDep);
-                                }
-                                foundCycleHashs.Add(pathHash);
-                            }
+                        pathHash ^= restLength;
+                        if (foundCycleHashs.Contains(pathHash)) {
+                            // The cycle was already found via another node
+                            // - we ignore it.
                         } else {
-                            // We found another cycle; we ignore it, but
-                            // stop recursing
+                            // New cycle found; we record it
+                            dependenciesOnCycles.UnionWith(pathFromRoot);
+                            foundCycleHashs.Add(pathHash);
                         }
                     } else {
-                        FindCyclesFrom(rootItem, newTail, false, from, trackItems, restLength - 1, foundCycleHashs,
-                                       AddHash(pathHash, newTail), path, dependenciesOnCycles);
+                        FindCyclesFrom(root, newTail, false, outgoing, allVisitedItems, restLength - 1, foundCycleHashs,
+                            AddHash(pathHash, newTail), pathFromRoot, dependenciesOnCycles);
                     }
-                    path.Pop();
+                    pathFromRoot.Pop();
                 }
-                trackItems.Remove(tailItem);
             }
         }
 

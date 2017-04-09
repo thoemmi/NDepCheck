@@ -14,7 +14,6 @@ namespace NDepCheck.Rendering {
         VariableVector Center {
             get;
         }
-
         VariableVector LowerLeft {
             get;
         }
@@ -39,7 +38,6 @@ namespace NDepCheck.Rendering {
         VariableVector CenterBottom {
             get;
         }
-
         VariableVector Diagonal {
             get;
         }
@@ -78,7 +76,7 @@ namespace NDepCheck.Rendering {
         public static readonly Option TitleOption = new Option("st", "set-title", "&", "Title text shown in diagram", @default: "'ModulesAndInterfacesRenderer'");
 
         protected static readonly Option[] _allGraphicsRendererOptions = { WidthOption, HeightOption, MinTextHeightOption, TitleOption };
-        
+
         protected string GetHelpExplanations() =>
 @"  The fileName is used as a base name for writing a .gif file as well as an .html file, which contains
     the link and popup information.
@@ -824,8 +822,8 @@ namespace NDepCheck.Rendering {
                 throw new InvalidOperationException(errors + _solver.GetState(maxLines: 20000));
             }
 
-            // 5% margin on all sides
-            const float BORDER = 0.1f;
+            // 1% margin on all sides
+            const float BORDER = 0.02f;
 
             if (width <= 0) {
                 if (height <= 0) {
@@ -849,10 +847,18 @@ namespace NDepCheck.Rendering {
                     // nothing to compute
                 }
             }
+            if (width + height > 20000) {
+                // scale back enormous diagrams
+                float hugeScale = 20000f / (width + height);
+                width = (int)(width * hugeScale);
+                height = (int)(height * hugeScale);
+            }
 
             double scaleX = width * (1 - 2 * BORDER) / (maxX - minX);
             double scaleY = height * (1 - 2 * BORDER) / (maxY - minY);
             float scale = (float)Math.Min(scaleX, scaleY); // No distortion!
+
+            Log.WriteInfo($"Creating image of size {width}x{height}px");
 
             var bitmap = new Bitmap(width, height);
             using (Graphics graphics = Graphics.FromImage(bitmap)) {
@@ -869,12 +875,11 @@ namespace NDepCheck.Rendering {
             return bitmap;
         }
 
-        public virtual void Render(IEnumerable<TDependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
-            DoRender(dependencies, argsAsString, baseFileName);
+        public virtual void Render(GlobalContext globalContext, IEnumerable<TDependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
+            DoRender(globalContext, dependencies, argsAsString, baseFileName);
         }
 
-        protected string DoRender(IEnumerable<TDependency> dependencies,
-                                string argsAsString, string baseFileName, params OptionAction[] additionalOptions) {
+        protected string DoRender(GlobalContext globalContext, IEnumerable<TDependency> dependencies, string argsAsString, string baseFileName, params OptionAction[] additionalOptions) {
             int width = -1;
             int height = -1;
             int minTextHeight = 15;
@@ -882,21 +887,21 @@ namespace NDepCheck.Rendering {
                 Option.Throw("Cannot write graphics file to Console.Out", argsAsString);
             }
 
-            Option.Parse(argsAsString,
+            Option.Parse(globalContext, argsAsString,
                 new[] {
                     WidthOption.Action((args, j) => {
-                    width = Option.ExtractIntOptionValue(args, ref j, "No valid width");
-                    return j;
-                }), HeightOption.Action((args, j) => {
-                    height = Option.ExtractIntOptionValue(args, ref j, "No valid height");
-                    return j;
-                }), MinTextHeightOption.Action((args, j) => {
-                    minTextHeight = Option.ExtractIntOptionValue(args, ref j, "No valid text height");
-                    return j;
-                }), TitleOption.Action((args, j) => {
-                    _title = Option.ExtractOptionValue(args, ref j);
-                    return j;
-                })}.Concat(additionalOptions).ToArray());
+                        width = Option.ExtractIntOptionValue(args, ref j, "No valid width");
+                        return j;
+                    }), HeightOption.Action((args, j) => {
+                        height = Option.ExtractIntOptionValue(args, ref j, "No valid height");
+                        return j;
+                    }), MinTextHeightOption.Action((args, j) => {
+                        minTextHeight = Option.ExtractIntOptionValue(args, ref j, "No valid text height");
+                        return j;
+                    }), TitleOption.Action((args, j) => {
+                        _title = Option.ExtractOptionValue(args, ref j);
+                        return j;
+                    })}.Concat(additionalOptions).ToArray());
 
 
             StringBuilder htmlForClicks = new StringBuilder();
@@ -907,7 +912,7 @@ namespace NDepCheck.Rendering {
                 Log.WriteInfo("Writing " + gifFileName);
                 bitMap.Save(gifFileName, ImageFormat.Gif);
             } catch (Exception ex) {
-                Log.WriteError("Cannot save GIF image to file " + gifFileName + ". Make sure the file can be written. Internal message: " + ex.Message);
+                Log.WriteError("Cannot save GIF image to file " + gifFileName + ". Make sure the file can be written (e.g., that directory is created). Internal message: " + ex.Message);
                 throw;
             }
 
@@ -954,7 +959,7 @@ namespace NDepCheck.Rendering {
 
         public abstract string GetHelp(bool detailedHelp, string filter);
 
-        public string GetMasterFileName(string argsAsString, string baseFileName) {
+        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
             return GetHtmlFileName(baseFileName);
         }
     }

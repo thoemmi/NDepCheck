@@ -28,6 +28,7 @@ namespace NDepCheck.Rendering {
         private static readonly Font _boxFont = new Font(FontFamily.GenericSansSerif, 10);
         private static readonly Font _lineFont = new Font(FontFamily.GenericSansSerif, 3);
 
+        // TODO: Replace with ItemMatcher
         private Regex _bottomRegex = null;
         private int _orderField = 0;
         private bool _showOnlyReferencedOnBottom = false;
@@ -178,10 +179,10 @@ namespace NDepCheck.Rendering {
         protected static readonly Option[] _allOptions = _allGraphicsRendererOptions
                         .Concat(new[] { BottomRegexOption, OrderFieldOption, NoEmptiesOnBottomOption, NoEmptiesOnLeftOption }).ToArray();
 
-        public override void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
-            DoRender(dependencies, argsAsString, baseFileName,
+        public override void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
+            DoRender(globalContext, dependencies, argsAsString, baseFileName,
                 BottomRegexOption.Action((args, j) => {
-                    _bottomRegex = new Regex(Option.ExtractOptionValue(args, ref j));
+                    _bottomRegex = new Regex(Option.ExtractRequiredOptionValue(args, ref j, "Regex for selection of bottom items missing"));
                     return j;
                 }),
                 OrderFieldOption.Action((args, j) => {

@@ -24,7 +24,6 @@ namespace NDepCheck.Transforming.Projecting {
 
         private ProjectionSet _orderedProjections;
         private Dictionary<FromTo, Dependency> _dependenciesForBackProjection;
-
         public override string GetHelp(bool detailedHelp, string filter) {
             string result = $@"  Project ('reduce') items and dependencies
 
@@ -45,7 +44,7 @@ $ type ---% type
 
 Projections:
 < pattern [---% result]
-| pattern [---% result]
+! pattern [---% result]
 > pattern [---% result]
 
 where
@@ -80,12 +79,12 @@ Examples:
 
         #region Configure
 
-        public override void Configure(GlobalContext globalContext, string configureOptions) {
-            Option.Parse(configureOptions,
+        public override void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
+            Option.Parse(globalContext, configureOptions,
                 ProjectionFileOption.Action((args, j) => {
-                    string fullSourceName = Path.GetFullPath(Option.ExtractOptionValue(args, ref j) ?? "missing_path");
+                    string fullSourceName = Path.GetFullPath(Option.ExtractRequiredOptionValue(args, ref j, "missing projections filename"));
                     _orderedProjections = GetOrReadChildConfiguration(globalContext,
-                        () => new StreamReader(fullSourceName), fullSourceName, globalContext.IgnoreCase, "????");
+                        () => new StreamReader(fullSourceName), fullSourceName, globalContext.IgnoreCase, "????", forceReload);
                     return j;
                 }),
                 ProjectionsOption.Action((args, j) => {
@@ -94,15 +93,15 @@ Examples:
                     // * we add // to the beginning - this comments out the first line;
                     // * and trim } at the end.
                     _orderedProjections = GetOrReadChildConfiguration(globalContext,
-                        () => new StringReader("//" + configureOptions.Trim().TrimEnd('}')), ProjectionsOption.ShortName, globalContext.IgnoreCase, "????");
+                        () => new StringReader("//" + (configureOptions ?? "").Trim().TrimEnd('}')), ProjectionsOption.ShortName, 
+                        globalContext.IgnoreCase, "????", forceReload);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;
                 })
             );
         }
 
-        protected override ProjectionSet CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
-            int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack) {
+        protected override ProjectionSet CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName, int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration) {
 
             ItemType sourceItemType = null;
             ItemType targetItemType = null;
@@ -112,6 +111,7 @@ Examples:
             var elements = new List<IProjectionSetElement>();
 
             ProcessTextInner(globalContext, fullConfigFileName, startLineNo, tr, ignoreCase, fileIncludeStack,
+                forceReloadConfiguration,
                 onIncludedConfiguration: (e, n) => elements.Add(e),
                 onLineWithLineNo: (line, lineNo) => {
                     if (line.StartsWith("$")) {
@@ -184,13 +184,13 @@ Examples:
 
         public override bool RunsPerInputContext => true;
 
-        public override int Transform(GlobalContext context, string dependenciesFileName, IEnumerable<Dependency> dependencies,
+        public override int Transform(GlobalContext globalContext, string dependenciesFileName, IEnumerable<Dependency> dependencies,
                             string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
             if (_orderedProjections != null) {
                 string fullDipName = null;
                 bool keepOnlyProjected = false;
-                Option.Parse(transformOptions, BackProjectionDipFileOption.Action((args, j) => {
-                    fullDipName = Path.GetFullPath(Option.ExtractOptionValue(args, ref j) ?? "missing_path");
+                Option.Parse(globalContext, transformOptions, BackProjectionDipFileOption.Action((args, j) => {
+                    fullDipName = Path.GetFullPath(Option.ExtractRequiredOptionValue(args, ref j, "missing back projection source filename"));
                     return j;
                 }), BackProjectionTrimOption.Action((args, j) => {
                     keepOnlyProjected = true;
@@ -210,8 +210,11 @@ Examples:
 
                     var localCollector = new Dictionary<FromTo, Dependency>();
                     var backProjected = new List<Dependency>();
+                    int missingPatternCount = 0;
                     foreach (var d in dependencies) {
-                        FromTo projectedEdgeFromTo = ReduceEdge(_orderedProjections.AllProjections, d, localCollector);
+                        FromTo projectedEdgeFromTo = ReduceEdge(_orderedProjections.AllProjections, d, 
+                                                                localCollector, () => OnMissingPattern(ref missingPatternCount));
+
                         if (projectedEdgeFromTo != null) {
                             // The edge was projected
                             Dependency replaceDataEdge;
@@ -228,8 +231,10 @@ Examples:
                 } else {
                     // Forward projection
                     var localCollector = new Dictionary<FromTo, Dependency>();
+                    int missingPatternCount = 0;
                     foreach (var d in dependencies) {
-                        ReduceEdge(_orderedProjections.AllProjections, d, localCollector);
+                        ReduceEdge(_orderedProjections.AllProjections, d, localCollector,
+                                   () => OnMissingPattern(ref missingPatternCount));
                     }
                     transformedDependencies.AddRange(localCollector.Values);
                 }
@@ -240,8 +245,16 @@ Examples:
             }
         }
 
-        private static FromTo ReduceEdge(IEnumerable<Projection> orderedProjections, Dependency d,
-                                       Dictionary<FromTo, Dependency> localCollector) {
+        private static bool OnMissingPattern(ref int missingPatternCount) {
+            missingPatternCount++;
+            if (missingPatternCount == 1000) {
+                Log.WriteError("After 1000 missing patterns, no more missing patterns are logged");
+            }
+            return missingPatternCount < 1000;
+        }
+
+        private FromTo ReduceEdge(IEnumerable<Projection> orderedProjections, Dependency d,
+                                       Dictionary<FromTo, Dependency> localCollector, Func< bool> onMissingPattern) {
             Item usingItem = orderedProjections
                                     //.Skip(GuaranteedNonMatching(d.UsingItem))
                                     //.SkipWhile(ga => ga != FirstPossibleAbstractionInCache(d.UsingItem, skipCache))
@@ -254,10 +267,14 @@ Examples:
                                     .FirstOrDefault(n => n != null);
 
             if (usingItem == null) {
-                Log.WriteWarning("No projection pattern found for " + d.UsingItem.AsString() + " - I ignore it");
+                if (onMissingPattern()) {
+                    Log.WriteWarning("No projection pattern found for " + d.UsingItem.AsString() + " - I ignore it");
+                }
                 return null;
             } else if (usedItem == null) {
-                Log.WriteWarning("No projection pattern found for " + d.UsedItem.AsString() + " - I ignore it");
+                if (onMissingPattern()) {
+                    Log.WriteWarning("No projection pattern found for " + d.UsedItem.AsString() + " - I ignore it");
+                }
                 return null;
             } else if (usingItem.IsEmpty() || usedItem.IsEmpty()) {
                 // ignore this edge!

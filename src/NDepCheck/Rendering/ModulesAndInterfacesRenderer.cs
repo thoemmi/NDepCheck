@@ -15,6 +15,7 @@ namespace NDepCheck.Rendering {
         private static readonly Font _lineFont = new Font(FontFamily.GenericSansSerif, 5);
 
         private int _orderField = -1;
+        // TODO: Replace with ItemMatcher
         private Regex _interfaceSelector = new Regex("^I");
 
         private static string GetName(Item i) {
@@ -250,10 +251,10 @@ namespace NDepCheck.Rendering {
             return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
-        public override void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
-            DoRender(dependencies, argsAsString, baseFileName,
+        public override void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
+            DoRender(globalContext, dependencies, argsAsString, baseFileName,
                 InterfaceSelectorOption.Action((args, j) => {
-                    _interfaceSelector = new Regex(Option.ExtractOptionValue(args, ref j));
+                    _interfaceSelector = new Regex(Option.ExtractRequiredOptionValue(args, ref j, "Regex for interface selector missing"));
                     return j;
                 }),
                 OrderFieldOption.Action((args, j) => {

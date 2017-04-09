@@ -1,9 +1,10 @@
 ﻿
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.SpecialDependencyMarking {
-    public class MarkSpecialDependencies : ITransformer {
+    public class MarkSpecialDeps : ITransformer {
         public static readonly Option MatchOption = new Option("dm", "dependency-match", "&", "Match to select dependencies to check", @default: "select all", multiple: true);
         public static readonly Option MarkerToAddOption = new Option("ma", "marker-to-add", "&", "Marker added to identified items", @default: null);
         //public static readonly Option RecursiveMarkOption = new Option("mr", "mark-recursively", "", "Repeat marking", @default: false);
@@ -26,12 +27,12 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
         public bool RunsPerInputContext => true;
 
-        public void Configure(GlobalContext globalContext, string configureOptions) {
+        public void Configure(GlobalContext globalContext, string configureOptions, bool forceReload) {
             _ignoreCase = globalContext.IgnoreCase;
         }
 
-        public int Transform(GlobalContext context, string dependenciesFilename, IEnumerable<Dependency> dependencies,
-            string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
+        public int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
+            [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
             var matches = new List<DependencyMatch>();
             bool markSingleCycleNodes = false;
@@ -39,7 +40,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             bool markTransitiveDependencies = false;
             string markerToAdd = null;
 
-            Option.Parse(transformOptions,
+            Option.Parse(globalContext, transformOptions,
                 MatchOption.Action((args, j) => {
                     matches.Add(new DependencyMatch(Option.ExtractOptionValue(args, ref j), _ignoreCase));
                     return j;
@@ -53,7 +54,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     markTransitiveDependencies = true;
                     return j;
                 }), MarkerToAddOption.Action((args, j) => {
-                    markerToAdd = Option.ExtractOptionValue(args, ref j).Trim('\'').Trim();
+                    markerToAdd = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim();
                     return j;
                 }));
 

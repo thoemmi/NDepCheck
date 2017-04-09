@@ -47,20 +47,20 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         internal const string MAY_USE_WITH_WARNING = "---?";
         internal const string MUST_NOT_USE = "---!";
 
-        public override void Configure(GlobalContext globalContext, string configureOptions) {
-            Option.Parse(configureOptions,
+        public override void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
+            Option.Parse(globalContext, configureOptions,
                 RuleFileExtensionOption.Action((args, j) => {
-                    _ruleFileExtension = '.' + Option.ExtractOptionValue(args, ref j).TrimStart('.');
+                    _ruleFileExtension = '.' + Option.ExtractRequiredOptionValue(args, ref j, "missing extension").TrimStart('.');
                     return j;
                 }),
                 RuleRootDirectoryOption.Action((args, j) => {
-                    _searchRootsForRuleFiles.Add(new DirectoryInfo(Option.ExtractOptionValue(args, ref j)));
+                    _searchRootsForRuleFiles.Add(new DirectoryInfo(Option.ExtractRequiredOptionValue(args, ref j, "missing rule-search root directory")));
                     return j;
                 }),
                 DefaultRuleFileOption.Action((args, j) => {
-                    string fullSourceName = Path.GetFullPath(Option.ExtractOptionValue(args, ref j));
+                    string fullSourceName = Path.GetFullPath(Option.ExtractRequiredOptionValue(args, ref j, "missing default rules filename"));
                     _defaultRuleSet = GetOrReadChildConfiguration(globalContext,
-                        () => new StreamReader(fullSourceName), fullSourceName, globalContext.IgnoreCase, "????");
+                        () => new StreamReader(fullSourceName), fullSourceName, globalContext.IgnoreCase, "????", forceReload);
                     return j;
                 }),
                 DefaultRulesOption.Action((args, j) => {
@@ -69,15 +69,15 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     // * we add // to the beginning - this comments out the first line;
                     // * and trim } at the end.
                     _defaultRuleSet = GetOrReadChildConfiguration(globalContext,
-                        () => new StringReader("//" + configureOptions.Trim().TrimEnd('}')), "-r", globalContext.IgnoreCase, "????");
+                        () => new StringReader("//" + (configureOptions ?? "").Trim().TrimEnd('}')), "-r", 
+                        globalContext.IgnoreCase, "????", forceReload);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;
                 })
             );
         }
 
-        protected override DependencyRuleSet CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
-            int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack) {
+        protected override DependencyRuleSet CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName, int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration) {
 
             ItemType usingItemType = null;
             ItemType usedItemType = null;
@@ -92,6 +92,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             var ruleGroups = new List<DependencyRuleGroup>();
             var children = new List<DependencyRuleSet>();
             ProcessTextInner(globalContext, fullConfigFileName, startLineNo, tr, ignoreCase, fileIncludeStack,
+                forceReloadConfiguration,
                 onIncludedConfiguration: (e, n) => children.Add(e),
                 onLineWithLineNo: (line, lineNo) => {
                     if (line.StartsWith("$")) {
@@ -167,7 +168,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
         public override bool RunsPerInputContext => true;
 
-        public override int Transform(GlobalContext context, string dependenciesFileName, IEnumerable<Dependency> dependencies,
+        public override int Transform(GlobalContext globalContext, string dependenciesFileName, IEnumerable<Dependency> dependencies,
             string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
             if (dependencies.Any()) {
                 transformedDependencies.AddRange(dependencies);
@@ -175,14 +176,14 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 // Transformation only done if there are any dependencies. This is especially useful for the
                 // typical case that there are no inputcontext-less dependencies; and no default set is specified
                 // (which would emit an error message "no dep file for input "" found" or the like).
-                Option.Parse(transformOptions, 
+                Option.Parse(globalContext, transformOptions, 
                     ShowUnusedQuestionableRulesOption.Action((args, j) => {
-                    _showUnusedQuestionableRules = true;
-                    return j;
-                }), ShowAllUnusedRulesOption.Action((args, j) => {
-                    _showUnusedRules = true;
-                    return j;
-                }));
+                        _showUnusedQuestionableRules = true;
+                        return j;
+                    }), ShowAllUnusedRulesOption.Action((args, j) => {
+                        _showUnusedRules = true;
+                        return j;
+                    }));
 
                 var fullRuleFileNames = new List<string>();
                 foreach (var root in _searchRootsForRuleFiles) {
@@ -209,8 +210,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 } else {
                     string fullRuleFileName = fullRuleFileNames[0];
                     ruleSetForAssembly = File.Exists(fullRuleFileName)
-                        ? GetOrReadChildConfiguration(context, () => new StreamReader(fullRuleFileName),
-                            fullRuleFileName, context.IgnoreCase, "...")
+                        ? GetOrReadChildConfiguration(globalContext, () => new StreamReader(fullRuleFileName),
+                            fullRuleFileName, globalContext.IgnoreCase, "...", forceReload: false)
                         : null;
                 }
 
@@ -231,7 +232,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 // (c) keep a callback list of checked rules ...
 
                 _allCheckedGroups = new HashSet<DependencyRuleGroup>();
-                return CheckDependencies(context, dependencies, dependencySourceForLogging, ruleSetForAssembly);
+                return CheckDependencies(globalContext, dependencies, dependencySourceForLogging, ruleSetForAssembly);
             } else {
                 return Program.OK_RESULT;
             }

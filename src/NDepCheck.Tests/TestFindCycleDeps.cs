@@ -82,7 +82,8 @@ namespace NDepCheck.Tests {
             };
             var result = new List<Dependency>();
 
-            new FindCycleDeps().Transform(new GlobalContext(), "test", deps, $"{{ {FindCycleDeps.KeepOnlyCyclesOption} {FindCycleDeps.IgnoreSelfCyclesOption} }}", "test", result);
+            new FindCycleDeps().Transform(new GlobalContext(), "test", deps,
+                $"{{ {FindCycleDeps.KeepOnlyCyclesOption} {FindCycleDeps.IgnoreSelfCyclesOption} }}", "test", result);
 
             result.Sort((x, y) => String.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
 
@@ -120,21 +121,20 @@ namespace NDepCheck.Tests {
             };
             var result = new List<Dependency>();
 
+            const string marker = "Cycle";
             new FindCycleDeps().Transform(new GlobalContext(), "test", deps, 
                 $"{{ {FindCycleDeps.KeepOnlyCyclesOption} " +
                 $"{FindCycleDeps.MaxCycleLengthOption} 3 " +
-                $"{FindCycleDeps.EffectOptions.SetQuestionableOption} }}",
+                $"{FindCycleDeps.EffectOptions.AddMarkerOption} {marker} }}",
                 "test", result);
 
             result.Sort((x, y) => String.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
 
             Assert.AreEqual(2, result.Count);
             Assert.AreEqual(b, result[0].UsingItem);
-            Assert.AreEqual(0, result[0].BadCt);
-            Assert.AreEqual(1, result[0].QuestionableCt);
+            Assert.IsTrue(result[0].Markers.Contains(marker));
             Assert.AreEqual(c, result[1].UsingItem);
-            Assert.AreEqual(0, result[1].BadCt);
-            Assert.AreEqual(1, result[1].QuestionableCt);
+            Assert.IsTrue(result[1].Markers.Contains(marker));
         }
 
         [TestMethod]

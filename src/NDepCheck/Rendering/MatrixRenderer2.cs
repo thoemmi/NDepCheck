@@ -7,16 +7,16 @@ namespace NDepCheck.Rendering {
     public class MatrixRenderer2 : AbstractMatrixRenderer, IDependencyRenderer {
         private readonly GenericMatrixRenderer2 _delegate = new GenericMatrixRenderer2();
 
-        public void Render(IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
-            _delegate.Render(dependencies, argsAsString, baseFileName, ignoreCase);
+        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
+            _delegate.Render(globalContext, dependencies, argsAsString, baseFileName, ignoreCase);
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
             _delegate.RenderToStreamForUnitTests(dependencies, output);
         }
 
-        public string GetMasterFileName(string argsAsString, string baseFileName) {
-            return _delegate.GetMasterFileName(argsAsString, baseFileName);
+        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
+            return _delegate.GetMasterFileName(globalContext, argsAsString, baseFileName);
         }
     }
 
@@ -56,11 +56,11 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public override void Render(IEnumerable<IEdge> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
+        public override void Render(GlobalContext globalContext, IEnumerable<IEdge> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
             int? labelWidthOrNull;
             bool withNotOkCt;
             ItemMatch itemMatchOrNull;
-            ParseOptions(argsAsString, ignoreCase, out labelWidthOrNull, out withNotOkCt, out itemMatchOrNull);
+            ParseOptions(globalContext, argsAsString, ignoreCase, out labelWidthOrNull, out withNotOkCt, out itemMatchOrNull);
              
             using (var sw = new StreamWriter(GetCSVFileName(baseFileName))) {
                 Render(dependencies, null/*TODO: InnerMatch?*/, sw, labelWidthOrNull, withNotOkCt);
@@ -71,7 +71,7 @@ namespace NDepCheck.Rendering {
             return GlobalContext.CreateFullFileName(baseFileName, ".csv");
         }
 
-        public override string GetMasterFileName(string argsAsString, string baseFileName) {
+        public override string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
             return GetCSVFileName(baseFileName);
         }
     }

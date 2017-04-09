@@ -29,11 +29,11 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
         public bool RunsPerInputContext => true;
 
-        public void Configure(GlobalContext globalContext, string configureOptions) {
+        public void Configure(GlobalContext globalContext, string configureOptions, bool forceReload) {
             _ignoreCase = globalContext.IgnoreCase;
         }
 
-        public int Transform(GlobalContext context, string dependenciesFilename, IEnumerable<Dependency> dependencies,
+        public int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
             string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
             var matches = new List<ItemMatch>();
@@ -44,9 +44,9 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             bool recursive = false;
             string markerToAdd = null;
 
-            Option.Parse(transformOptions,
+            Option.Parse(globalContext, transformOptions,
                 MatchOption.Action((args, j) => {
-                    matches.Add(new ItemMatch(null, Option.ExtractOptionValue(args, ref j), _ignoreCase));
+                    matches.Add(new ItemMatch(null, Option.ExtractRequiredOptionValue(args, ref j, "missing match definition"), _ignoreCase));
                     return j;
                 }), MarkSingleCyclesOption.Action((args, j) => {
                     markSingleCycleNodes = true;
@@ -64,7 +64,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     markSinks = true;
                     return j;
                 }), MarkerToAddOption.Action((args, j) => {
-                    markerToAdd = Option.ExtractOptionValue(args, ref j).Trim('\'').Trim();
+                    markerToAdd = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim();
                     return j;
                 }));
 

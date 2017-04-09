@@ -44,9 +44,9 @@
             Logger.WriteWarning(msg, nestedFilenames, lineNo);
         }
 
-        internal static void WriteInfo(string msg) {
+        internal static void WriteInfo(string msg, bool collapse = false) {
             // Identical infos are collapsed - helps with chatty output on checking
-            if (msg != _previousInfo) {
+            if (!collapse || msg != _previousInfo) {
                 Logger.WriteInfo(msg);
             }
             _previousInfo = msg;

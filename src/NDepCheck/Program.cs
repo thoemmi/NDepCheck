@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Gibraltar;
 using JetBrains.Annotations;
+using NDepCheck.Calculating;
 using NDepCheck.Reading;
 using NDepCheck.Rendering;
 using NDepCheck.Transforming;
@@ -54,6 +55,7 @@ namespace NDepCheck {
 
         public static readonly Option TransformPluginOption = new ProgramOption(shortname: "tp", name: "transform-plugin", usage: "assembly transformer [{ options }]", description: "Transform with <assembly.transformer> with options");
         public static readonly Option TransformOption = new ProgramOption(shortname: "tf", name: "transform", usage: "transformer  [{ options }]", description: "Transform with predefined transformer with options");
+        public static readonly Option TransformUndo = new ProgramOption(shortname: "tu", name: "transform-undo", usage: "", description: "Undo transformation");
         public static readonly Option TransformTestDataOption = new ProgramOption(shortname: "tt", name: "transform-testdata", usage: "assembly transformer [{ options }]", description: "Transform internal testdata with <assembly.transformer> with options");
         public static readonly Option TransformPluginHelpOption = new ProgramOption(shortname: "tp?", name: "transform-plugin-help", usage: "assembly [filter]", description: "Show help for all transformers in assembly");
         public static readonly Option TransformHelpOption = new ProgramOption(shortname: "tf?", name: "transform-help", usage: "[filter]", description: "Show help for all predefined transformers");
@@ -68,6 +70,13 @@ namespace NDepCheck {
         public static readonly Option WriteHelpOption = new ProgramOption(shortname: "wr?", name: "write-help", usage: "[filter]", description: "Show help for all predefined writers");
         public static readonly Option WritePluginDetailedHelpOption = new ProgramOption(shortname: "wp!", name: "write-plugin-detail", usage: "assembly writer [filter]", description: "Show detailed help for writer in assembly");
         public static readonly Option WriteDetailedHelpOption = new ProgramOption(shortname: "wr!", name: "write-detail", usage: "writer [filter]", description: "Show detailed help for predefined writer");
+
+        public static readonly Option CalculatePluginOption = new ProgramOption(shortname: "xp", name: "calculate-plugin", usage: "varname assembly calculator [define ...]", description: "Use <assembly.calculator> to calculate value assigned to varname");
+        public static readonly Option CalculateOption = new ProgramOption(shortname: "xf", name: "calculate-file", usage: "varname calculator [define ...]", description: "Use predefined calculator to calculate value assigned to varname");
+        public static readonly Option CalculatePluginHelpOption = new ProgramOption(shortname: "xa?", name: "calculate-plugin-help", usage: "assembly [filter]", description: "Show help for all calculators in assembly");
+        public static readonly Option CalculateHelpOption = new ProgramOption(shortname: "xf?", name: "calculate-help", usage: "[filter]", description: "Show help for all predefined calculators");
+        public static readonly Option CalculatePluginDetailedHelpOption = new ProgramOption(shortname: "xa!", name: "calculate-plugin-detail", usage: "assembly calculator [filter]", description: "Show detailed help for calculator in assembly");
+        public static readonly Option CalculateDetailedHelpOption = new ProgramOption(shortname: "xf!", name: "calculate-detail", usage: "calculator [filter]", description: "Show detailed help for predefined calculator");
 
         public static readonly Option DoBreakOption = new ProgramOption(shortname: "db", name: "do-break", usage: "", description: "stop execution; useful for debugging of -df");
         public static readonly Option DoCommandOption = new ProgramOption(shortname: "dc", name: "do-command", usage: "command", description: "execute shell command; useful for opening result file");
@@ -84,9 +93,15 @@ namespace NDepCheck {
         public static readonly Option HttpStopOption = new ProgramOption(shortname: "hs", name: "http-stop", usage: "", description: "stop internal webserver");
 
         public static readonly Option IgnoreCaseOption = new ProgramOption(shortname: "ic", name: "ignore-case", usage: "", description: "ignore case at multiple places");
+
         public static readonly Option InteractiveOption = new ProgramOption(shortname: "ia", name: "interactive", usage: "[filename]", description: "interactive mode, logging to filename");
         public static readonly Option InteractiveStopOption = new ProgramOption(shortname: "is", name: "interactive-stop", usage: "", description: "stop interactive mode", moreNames: new[] { "q", "quit", "exit" });
+        public static readonly Option InteractiveWriteOption = new ProgramOption(shortname: "iw", name: "interactive-write", usage: "# [pattern]", description: "write about # dependencies matching pattern from all sources");
+        public static readonly Option InteractiveDependencyMatchOption = new ProgramOption(shortname: "id", name: "interactive-match", usage: "[pattern]", description: "Show number of dependencies matching pattern from all sources");
+        public static readonly Option InteractiveItemMatchOption = new ProgramOption(shortname: "ii", name: "interactive-match", usage: "[pattern]", description: "Show number of items matching pattern from all sources");
 
+        public static readonly Option CurrentDirectoryOption = new ProgramOption(shortname: "cd", name: "current-directory", usage: "[directory]", description: "show or change current directory");
+        public static readonly Option GarbageCollectionOption = new ProgramOption(shortname: "gc", name: "garbage-collect", usage: "", description: "run garbage collection");
         public static readonly Option LogVerboseOption = new ProgramOption(shortname: "lv", name: "log-verbose", usage: "", description: "verbose logging");
         public static readonly Option LogChattyOption = new ProgramOption(shortname: "lc", name: "log-chatty", usage: "", description: "chatty logging");
         public static readonly Option LazyOption = new ProgramOption(shortname: "lz", name: "lazy", usage: "", description: "execute readers and transformers lazily (NOT YET IMPLEMENTED FULLY)");
@@ -94,14 +109,16 @@ namespace NDepCheck {
         private static readonly Option[] _allOptions = {
             HelpAllOption, HelpDetailedHelpOption, DebugOption,
             ReadPluginOption, ReadOption, ReadFileOption, ReadPluginHelpOption, ReadHelpOption, ReadPluginDetailedHelpOption, ReadDetailedHelpOption,
-            ConfigurePluginOption, ConfigureOption, TransformPluginOption, TransformOption,
+            ConfigurePluginOption, ConfigureOption, TransformPluginOption, TransformOption, TransformUndo,
             TransformTestDataOption, TransformPluginHelpOption, TransformHelpOption, TransformPluginDetailedHelpOption, TransformDetailedHelpOption,
             WritePluginOption, WriteFileOption, WriteDipOption, WriteTestDataOption, WritePluginHelpOption, WriteHelpOption, WritePluginDetailedHelpOption, WriteDetailedHelpOption,
-            DoBreakOption, DoCommandOption, DoScriptOption, DoDefineOption, DoResetOption,
+            CalculatePluginOption, CalculateOption, CalculatePluginHelpOption, CalculateHelpOption, CalculatePluginDetailedHelpOption, CalculateDetailedHelpOption,
+            DoBreakOption, DoCommandOption, DoScriptOption, DoScriptLoggedOption, DoDefineOption, DoResetOption,
             WatchFilesOption, UnwatchFilesOption, UnwatchTriggersOption,
             HttpRunOption, HttpStopOption,
-            IgnoreCaseOption, InteractiveOption, InteractiveStopOption,
-            LogVerboseOption, LogChattyOption, LazyOption,
+            IgnoreCaseOption,
+            InteractiveOption, InteractiveStopOption,InteractiveWriteOption, InteractiveDependencyMatchOption, InteractiveItemMatchOption,
+            CurrentDirectoryOption, GarbageCollectionOption, LogVerboseOption, LogChattyOption, LazyOption,
         };
 
         private readonly List<FileWatcher> _fileWatchers = new List<FileWatcher>();
@@ -128,16 +145,14 @@ namespace NDepCheck {
                     Console.Write(value: globalContext.Name + " NDepCheck> ");
                     Console.ResetColor();
                     string commands = Console.ReadLine();
-                    if (commands == null || commands.Trim().ToLowerInvariant().StartsWith(value: "q")) {
+                    if (commands == null
+                         || commands.Trim().ToLowerInvariant().StartsWith(value: "q")
+                         || commands.Trim().ToLowerInvariant() == "exit") {
                         break;
                     } else {
                         commands = commands.Trim();
                         if (commands != "") {
-                            if (!string.IsNullOrWhiteSpace(program._interactiveLogFile))
-                                using (var sw = File.AppendText(program._interactiveLogFile)) {
-                                    sw.WriteLine(value: $"// {DateTime.Now:G}");
-                                    sw.WriteLine(commands);
-                                }
+                            InteractiveLog(program, commands);
                             var writtenMasterFiles = new List<string>();
 
                             program.Run(args: commands.Split(' ').Select(s => s.Trim()).Where(s => s != "").ToArray(),
@@ -158,6 +173,15 @@ namespace NDepCheck {
             } finally {
                 // Main may be called multiple times; therefore we clear all caches
                 Intern.ResetAll();
+            }
+        }
+
+        private static void InteractiveLog(Program program, string commands) {
+            if (!string.IsNullOrWhiteSpace(program._interactiveLogFile)) {
+                using (var sw = File.AppendText(program._interactiveLogFile)) {
+                    sw.WriteLine(value: $"// {DateTime.Now:G}");
+                    sw.WriteLine(commands);
+                }
             }
         }
 
@@ -192,14 +216,14 @@ namespace NDepCheck {
                         Log.WriteWarning("For help, use -? or -help");
                     } else if (HelpAllOption.Matches(arg)) {
                         // -? [filter]
-                        string filter = Option.ExtractOptionValue(args, ref i);
-                        return UsageAndExit(message: null, withIntro: _interactiveLogFile == null, 
-                                            detailed: filter != null, filter: filter.TrimStart('-', '/'));
+                        string filter = Option.ExtractOptionValue(args, ref i, allowOptionValue: true);
+                        return UsageAndExit(message: null, withIntro: _interactiveLogFile == null,
+                                            detailed: filter != null, filter: (filter ?? "").TrimStart('-', '/'));
                     } else if (HelpDetailedHelpOption.Matches(arg)) {
                         // -! [filter]
-                        string filter = Option.ExtractOptionValue(args, ref i);
+                        string filter = Option.ExtractOptionValue(args, ref i, allowOptionValue: true);
                         return UsageAndExit(message: null, withIntro: true,
-                                            detailed: true, filter: filter.TrimStart('-', '/'));
+                                            detailed: true, filter: (filter ?? "").TrimStart('-', '/'));
                     } else if (arg == "-debug" || arg == "/debug") {
                         // -debug
                         Debugger.Launch();
@@ -234,23 +258,25 @@ namespace NDepCheck {
                         string assembly = Option.ExtractOptionValue(args, ref i);
                         string reader = Option.ExtractNextValue(args, ref i);
                         string filter = Option.ExtractNextValue(args, ref i);
-                        globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, reader, filter);
+                        globalContext.ShowDetailedHelp<IReaderFactory>(assembly, reader, filter);
                     } else if (ReadDetailedHelpOption.Matches(arg)) {
                         // -rf!    reader
                         string reader = Option.ExtractOptionValue(args, ref i);
                         string filter = Option.ExtractNextValue(args, ref i);
-                        globalContext.ShowDetailedHelp<IDependencyRenderer>("", reader, filter);
+                        globalContext.ShowDetailedHelp<IReaderFactory>("", reader, filter);
                     } else if (ConfigurePluginOption.Matches(arg)) {
                         // -cp    assembly transformer { options }
                         string assembly = Option.ExtractOptionValue(args, ref i);
                         string transformer = Option.ExtractNextValue(args, ref i);
                         string transformerOptions = Option.ExtractNextValue(args, ref i);
-                        globalContext.ConfigureTransformer(assembly, transformer, transformerOptions);
+                        globalContext.ConfigureTransformer(assembly, transformer, transformerOptions, 
+                                                           forceReloadConfiguration: _interactiveLogFile != null);
                     } else if (ConfigureOption.Matches(arg)) {
                         // -cf    transformer  { options }
                         string transformer = Option.ExtractOptionValue(args, ref i);
                         string transformerOptions = Option.ExtractNextValue(args, ref i);
-                        globalContext.ConfigureTransformer("", transformer, transformerOptions);
+                        globalContext.ConfigureTransformer("", transformer, transformerOptions,
+                                                           forceReloadConfiguration: _interactiveLogFile != null);
                     } else if (TransformPluginOption.Matches(arg)) {
                         // -tp    assembly transformer [{ options }]
                         string assembly = Option.ExtractOptionValue(args, ref i);
@@ -262,6 +288,9 @@ namespace NDepCheck {
                         string transformer = Option.ExtractOptionValue(args, ref i);
                         string transformerOptions = Option.ExtractNextValue(args, ref i);
                         result = globalContext.Transform("", transformer, transformerOptions);
+                    } else if (TransformUndo.Matches(arg)) {
+                        // -tu
+                        globalContext.UndoTransform();
                     } else if (TransformTestDataOption.Matches(arg)) {
                         // -tt    assembly transformer [{ options }]
                         string assembly = Option.ExtractOptionValue(args, ref i);
@@ -336,6 +365,39 @@ namespace NDepCheck {
                         string writer = Option.ExtractOptionValue(args, ref i);
                         string filter = Option.ExtractNextValue(args, ref i);
                         globalContext.ShowDetailedHelp<IDependencyRenderer>("", writer, filter);
+                    } else if (CalculatePluginOption.Matches(arg)) {
+                        // -xp    varname assembly calculator [varname ...]
+                        string varname = Option.ExtractOptionValue(args, ref i);
+                        string assembly = Option.ExtractNextValue(args, ref i);
+                        string calculator = Option.ExtractNextValue(args, ref i);
+                        List<string> input = ExtractInputVars(args, ref i);
+                        globalContext.Calculate(varname, assembly, calculator, input);
+                    } else if (CalculateOption.Matches(arg)) {
+                        // -xf    varname calculator [varname ...]
+                        string varname = Option.ExtractOptionValue(args, ref i);
+                        string calculator = Option.ExtractNextValue(args, ref i);
+                        List<string> input = ExtractInputVars(args, ref i);
+                        globalContext.Calculate(varname, "", calculator, input);
+                    } else if (CalculatePluginHelpOption.Matches(arg)) {
+                        // -xa?    assembly [filter]
+                        string assembly = Option.ExtractOptionValue(args, ref i);
+                        string filter = Option.ExtractNextValue(args, ref i);
+                        globalContext.ShowAllPluginsAndTheirHelp<ICalculator>(assembly, filter);
+                    } else if (CalculateHelpOption.Matches(arg)) {
+                        // -xf? [filter]
+                        string filter = Option.ExtractOptionValue(args, ref i);
+                        globalContext.ShowAllPluginsAndTheirHelp<ICalculator>("", filter);
+                    } else if (CalculatePluginDetailedHelpOption.Matches(arg)) {
+                        // -xa!    assembly calculator
+                        string assembly = Option.ExtractOptionValue(args, ref i);
+                        string calculator = Option.ExtractNextValue(args, ref i);
+                        string filter = Option.ExtractNextValue(args, ref i);
+                        globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, calculator, filter);
+                    } else if (CalculateDetailedHelpOption.Matches(arg)) {
+                        // -xf!    calculator
+                        string calculator = Option.ExtractOptionValue(args, ref i);
+                        string filter = Option.ExtractNextValue(args, ref i);
+                        globalContext.ShowDetailedHelp<ICalculator>("", calculator, filter);
                     } else if (DoBreakOption.Matches(arg)) {
                         // -db
                         Log.WriteInfo(msg: "---- Stop reading options (-b)");
@@ -344,9 +406,11 @@ namespace NDepCheck {
                         // -dc    command
                         string cmd = Option.ExtractOptionValue(args, ref i);
                         try {
-                            if (new Process { StartInfo = new ProcessStartInfo(cmd) }.Start())
+                            if (new Process { StartInfo = new ProcessStartInfo(cmd) }.Start()) {
                                 Log.WriteInfo(msg: $"Started process '{cmd}'");
-                            else Log.WriteError(msg: $"Could not start process '{cmd}'");
+                            } else {
+                                Log.WriteError(msg: $"Could not start process '{cmd}'");
+                            }
                         } catch (Exception ex) {
                             Log.WriteError(msg: $"Could not start process '{cmd}'; reason: {ex.Message}");
                             result = EXCEPTION_RESULT;
@@ -360,10 +424,14 @@ namespace NDepCheck {
                     } else if (DoDefineOption.Matches(arg)) {
                         // -dd    name value
                         string varname = Option.ExtractOptionValue(args, ref i);
-                        string varvalue = Option.ExtractNextValue(args, ref i);
-                        globalContext.SetDefine(varname, varvalue, location: "after -dd option");
+                        if (varname == null) {
+                            globalContext.ShowAllVars();
+                        } else {
+                            string varvalue = Option.ExtractNextValue(args, ref i);
+                            globalContext.SetDefine(varname, varvalue, location: "after -dd option");
 
-                        globalContext.GlobalVars[varname] = varvalue;
+                            globalContext.GlobalVars[varname] = varvalue;
+                        }
                     } else if (DoResetOption.Matches(arg)) {
                         // -dr    [filename]
                         Log.WriteInfo(msg: "---- Reset of input options (-dr)");
@@ -410,10 +478,45 @@ namespace NDepCheck {
                         globalContext.IgnoreCase = true;
                     } else if (InteractiveOption.Matches(arg)) {
                         // -ia    [filename]
-                        _interactiveLogFile = Option.ExtractOptionValue(args, ref i) ?? "";
+                        string filename = Option.ExtractOptionValue(args, ref i);
+                        _interactiveLogFile = filename == null ? "" : Path.GetFullPath(filename);
+                        if (_interactiveLogFile != "") {
+                            Log.WriteInfo("Logging interactive input to " + _interactiveLogFile);
+                        }
+                        InteractiveLog(this, "// Opened interactive log " + _interactiveLogFile);
                     } else if (InteractiveStopOption.Matches(arg)) {
                         // -is
                         _interactiveLogFile = null;
+                    } else if (InteractiveWriteOption.Matches(arg)) {
+                        // -iw # [pattern]
+                        int maxCount = Option.ExtractIntOptionValue(args, ref i, "Not a valid number");
+                        string pattern = Option.ExtractNextValue(args, ref i);
+                        globalContext.LogAboutNDependencies(maxCount, pattern);
+                    } else if (InteractiveDependencyMatchOption.Matches(arg)) {
+                        // -id [pattern]
+                        string pattern = Option.ExtractOptionValue(args, ref i);
+                        globalContext.LogDependencyCount(pattern);
+                    } else if (InteractiveItemMatchOption.Matches(arg)) {
+                        // -ii [pattern]
+                        string pattern = Option.ExtractOptionValue(args, ref i);
+                        globalContext.LogItemCount(pattern);
+                    } else if (CurrentDirectoryOption.Matches(arg)) {
+                        // -cd    [directory]
+                        string directory = Option.ExtractOptionValue(args, ref i);
+                        if (directory == null) {
+                            Log.WriteInfo(Environment.CurrentDirectory);
+                        } else {
+                            if (!Directory.Exists(directory)) {
+                                Log.WriteError($"'{directory}' does not exist");
+                            } else {
+                                Environment.CurrentDirectory = directory;
+                                Log.WriteInfo(Path.GetFullPath(Environment.CurrentDirectory));
+                            }
+                        }
+                    } else if (GarbageCollectionOption.Matches(arg)) {
+                        GC.Collect(2);
+                        Log.WriteInfo($"Process has {Environment.WorkingSet/1024/1024} MB allocated, " +
+                                      $"{GC.GetTotalMemory(true)/1024/1024} MB managed memory.");
                     } else if (LogVerboseOption.Matches(arg)) {
                         // -lv
                         Log.SetLevel(Log.Level.Verbose);
@@ -461,9 +564,19 @@ namespace NDepCheck {
 
             DONE:
 
-            if (Log.IsVerboseEnabled) Log.WriteInfo(msg: "Completed with exitcode " + result);
+            if (Log.IsVerboseEnabled) {
+                Log.WriteInfo(msg: "Completed with exitcode " + result);
+            }
 
             return result;
+        }
+
+        private static List<string> ExtractInputVars(string[] args, ref int i) {
+            var input = new List<string>();
+            for (var s = Option.ExtractNextValue(args, ref i); s != null; s = Option.ExtractNextValue(args, ref i)) {
+                input.Add(s);
+            }
+            return input;
         }
 
         private static string Write(string s, string[] args, ref int i, Func<string, string, string> action) {
@@ -488,22 +601,25 @@ namespace NDepCheck {
         }
 
         internal int RunFrom([NotNull] string fileName, [NotNull] GlobalContext state, [CanBeNull] List<string> writtenMasterFiles, bool logCommands) {
-            var lineNo = 0;
+            int lineNo = 0;
             try {
                 var args = new List<string>();
-                var inBraces = false;
+                bool inBraces = false;
                 using (var sr = new StreamReader(fileName)) {
                     for (;;) {
                         lineNo++;
-                        var line = sr.ReadLine();
-                        if (line == null) break;
-                        var trimmedLine = Regex.Replace(line, pattern: "//.*$", replacement: "").Trim();
-                        var splitLine = trimmedLine.Split(' ', '\t').Select(s => s.Trim()).Where(s => s != "");
+                        string line = sr.ReadLine();
+                        if (line == null) {
+                            break;
+                        }
+                        string trimmedLine = Regex.Replace(line, pattern: "//.*$", replacement: "").Trim();
+                        string[] splitLine = trimmedLine.Split(' ', '\t').Select(s => s.Trim()).Where(s => s != "").ToArray();
 
-                        if (splitLine.Any() && splitLine.Last() == "{") {
+                        if (splitLine.Any(s => s == "{")) {
                             args.AddRange(splitLine);
-                            inBraces = true;
-                        } else if (splitLine.Any() && splitLine.First() == "}") {
+                            // If there is a } after the {, we are NOT in inBraces mode.
+                            inBraces = !(trimmedLine.IndexOf("}", StringComparison.InvariantCulture) > trimmedLine.IndexOf("{", StringComparison.InvariantCulture));
+                        } else if (splitLine.Any(s => s == "}")) {
                             inBraces = false;
                             args.AddRange(collection: splitLine.Select(state.ExpandDefines));
                         } else if (!inBraces) {
@@ -515,7 +631,7 @@ namespace NDepCheck {
                 }
 
                 var locallyWrittenFiles = new List<string>();
-                var previousCurrentDirectory = Environment.CurrentDirectory;
+                string previousCurrentDirectory = Environment.CurrentDirectory;
                 try {
                     Environment.CurrentDirectory = Path.GetDirectoryName(path: Path.GetFullPath(fileName)) ?? "";
                     return Run(args: args.ToArray(), globalContext: state, writtenMasterFiles: locallyWrittenFiles, logCommands: logCommands);
@@ -524,7 +640,7 @@ namespace NDepCheck {
                     Environment.CurrentDirectory = previousCurrentDirectory;
                 }
             } catch (Exception ex) {
-                Log.WriteError(msg: "Cannot run commands in " + fileName + " (" + ex.Message + ")",
+                Log.WriteError(msg: $"Cannot run commands in {fileName}; reason: {ex.GetType().Name}: {ex.Message}",
                     nestedFilenames: fileName, lineNo: lineNo);
                 return EXCEPTION_RESULT;
             }
@@ -577,257 +693,257 @@ Option overview:
                     Log.WriteError(message);
                 }
 
-//            if (detailed) {
-//                Console.Out.WriteLine(value: @"
+                //            if (detailed) {
+                //                Console.Out.WriteLine(value: @"
 
-//############# NOT YET UPDATED ##################
+                //############# NOT YET UPDATED ##################
 
-//   /_=<directory>    For each assembly file A.dll, look for corresponding 
-//         rule file A.dll.dep in this directory (multiple /d options are 
-//         supported). This is especially useful with + lines.
+                //   /_=<directory>    For each assembly file A.dll, look for corresponding 
+                //         rule file A.dll.dep in this directory (multiple /d options are 
+                //         supported). This is especially useful with + lines.
 
-//   /d=<directory>    Like /_, but also look in all subdirectories. Mixing
-//         /_ and /_ options is supported.
+                //   /d=<directory>    Like /_, but also look in all subdirectories. Mixing
+                //         /_ and /_ options is supported.
 
-//   /f=<rule file>    Use this rule file if no matching rule file is found
-//         via /_ and /d.  This is espeically useful if no /s and /d options
-//         are specified. __________________-
+                //   /f=<rule file>    Use this rule file if no matching rule file is found
+                //         via /_ and /d.  This is espeically useful if no /s and /d options
+                //         are specified. __________________-
 
-//   /i[=<N>]        For each illegal edge (i.e., edge not allowed by 
-//         the dependency file), show an example of a concrete illegal 
-//         dependency in the DOT graph. N is the maximum width of strings 
-//         used; the default is 80. Graphs can become quite cluttered 
-//         with this option.
+                //   /i[=<N>]        For each illegal edge (i.e., edge not allowed by 
+                //         the dependency file), show an example of a concrete illegal 
+                //         dependency in the DOT graph. N is the maximum width of strings 
+                //         used; the default is 80. Graphs can become quite cluttered 
+                //         with this option.
 
-//   /m[=N]   Specifies the maximum number of concurrent threads to use. 
-//         If you don't include this switch, the default value is 1. If
-//         you include this switch without specifying a value, NDepCheck
-//         will use up to the number of processors in the computer.
+                //   /m[=N]   Specifies the maximum number of concurrent threads to use. 
+                //         If you don't include this switch, the default value is 1. If
+                //         you include this switch without specifying a value, NDepCheck
+                //         will use up to the number of processors in the computer.
 
-//############# UPDATED ##################
+                //############# UPDATED ##################
 
-//    /v    Verbose. Shows regular expressions used for checking and 
-//         all checked dependencies. Attention: Place /v BEFORE any
-//         /d, /s, or /x option to see the regular expressions.
-//         Produces lots of output.
+                //    /v    Verbose. Shows regular expressions used for checking and 
+                //         all checked dependencies. Attention: Place /v BEFORE any
+                //         /d, /s, or /x option to see the regular expressions.
+                //         Produces lots of output.
 
-//   /y    Even more debugging output.
+                //   /y    Even more debugging output.
 
-//   /debug   Start with debugger.
+                //   /debug   Start with debugger.
 
-//Assemblyspecs - one of the following:
+                //Assemblyspecs - one of the following:
 
-//    simplefileName      the assembly is checked.
-//                        e.g. ProjectDir\bin\MyProject.Main.dll
+                //    simplefileName      the assembly is checked.
+                //                        e.g. ProjectDir\bin\MyProject.Main.dll
 
-//    filepattern         all matching assemblies are checked.
-//                        e.g. bin\MyProject.*.dll 
+                //    filepattern         all matching assemblies are checked.
+                //                        e.g. bin\MyProject.*.dll 
 
-//    directory           all .DLL and .EXE files in the directory are checked.
-//                        e.g. MyProject\bin\Debug
+                //    directory           all .DLL and .EXE files in the directory are checked.
+                //                        e.g. MyProject\bin\Debug
 
-//    @fileName           lines are read as assembly fileNames and checked.
-//                        The file may contain empty lines, which are ignored.
-//                        e.g. @MyListOfFiles.txt
+                //    @fileName           lines are read as assembly fileNames and checked.
+                //                        The file may contain empty lines, which are ignored.
+                //                        e.g. @MyListOfFiles.txt
 
-//    <one of the above> /e <one of the above>            
-//                        The files after the /e are excluded from checking.
-//                        e.g. MyProject.*.dll /e *.vshost.*
+                //    <one of the above> /e <one of the above>            
+                //                        The files after the /e are excluded from checking.
+                //                        e.g. MyProject.*.dll /e *.vshost.*
 
-//Dependecies:_
+                //Dependecies:_
 
-//A dependency describes that some 'using item' uses another 'used item'.
+                //A dependency describes that some 'using item' uses another 'used item'.
 
-//Standard .Net dependencies:
+                //Standard .Net dependencies:
 
-//    A standard dependency as read from a .Net assembly has the following
-//    format:
+                //    A standard dependency as read from a .Net assembly has the following
+                //    format:
 
-//namespace:class:assembly_name;assembly_version;assembly_culture:member_name;member_sort
+                //namespace:class:assembly_name;assembly_version;assembly_culture:member_name;member_sort
 
-//    where member_sort is usually empty; but for properties, it is either
-//    'get' or 'set' on the using side.
+                //    where member_sort is usually empty; but for properties, it is either
+                //    'get' or 'set' on the using side.
 
-//Rules files:
-//    Rule files contain rule definition commands. Here is a simple example
+                //Rules files:
+                //    Rule files contain rule definition commands. Here is a simple example
 
-//        $ DOTNETCALL   ---> DOTNETCALL 
+                //        $ DOTNETCALL   ---> DOTNETCALL 
 
-//        // Each assembly can use .Net
-//        ::**           --->  ::mscorlib
-//        ::**           --->  ::(System|Microsoft).**
+                //        // Each assembly can use .Net
+                //        ::**           --->  ::mscorlib
+                //        ::**           --->  ::(System|Microsoft).**
 
-//        // Each assembly can use everything in itself (a coarse architecture)
-//        ::(Module*)**  --->  ::\1
+                //        // Each assembly can use everything in itself (a coarse architecture)
+                //        ::(Module*)**  --->  ::\1
 
-//        // Module2 can use Module1
-//        ::Module2**    --->  ::Module1**
+                //        // Module2 can use Module1
+                //        ::Module2**    --->  ::Module1**
 
-//        // Test assemblies can use anything
-//        ::*Test*.dll   --->  ::**
+                //        // Test assemblies can use anything
+                //        ::*Test*.dll   --->  ::**
 
 
-//    The following commands are supported in rule files:
+                //    The following commands are supported in rule files:
 
-//           empty line            ... ignored
-//           // comment            ... ignored
-//           # comment             ... ignored
+                //           empty line            ... ignored
+                //           // comment            ... ignored
+                //           # comment             ... ignored
 
-//           + filepath            ... include rules from that file. The path
-//                                     is interpreted relative to the current
-//                                     rule file.
+                //           + filepath            ... include rules from that file. The path
+                //                                     is interpreted relative to the current
+                //                                     rule file.
 
-//           NAME := pattern       ... define abbreviation which is replaced
-//                                     in patterns before processing. NAME
-//                                     must be uppercase only (but it can
-//                                     contain digits, underscores etc.).
-//                                     Longer names are preferred to shorter
-//                                     ones during replacement. The pattern
-//                                     on the right side can in turn use 
-//                                     abbreviations. Abbreviation processing
-//                                     is done before all reg.exp. replacements
-//                                     described below.
-//                                     If an abbreviation definition for the 
-//                                     same name is encountered twice, it must
-//                                     define exactly the same value.
+                //           NAME := pattern       ... define abbreviation which is replaced
+                //                                     in patterns before processing. NAME
+                //                                     must be uppercase only (but it can
+                //                                     contain digits, underscores etc.).
+                //                                     Longer names are preferred to shorter
+                //                                     ones during replacement. The pattern
+                //                                     on the right side can in turn use 
+                //                                     abbreviations. Abbreviation processing
+                //                                     is done before all reg.exp. replacements
+                //                                     described below.
+                //                                     If an abbreviation definition for the 
+                //                                     same name is encountered twice, it must
+                //                                     define exactly the same value.
 
-//           pattern ---> pattern  ... allowed dependency. The second
-//                                     pattern may contain back-references
-//                                     of the form \1, \2 etc. that are
-//                                     matched against corresponding (...)
-//                                     groups in the first pattern.
+                //           pattern ---> pattern  ... allowed dependency. The second
+                //                                     pattern may contain back-references
+                //                                     of the form \1, \2 etc. that are
+                //                                     matched against corresponding (...)
+                //                                     groups in the first pattern.
 
-//           pattern ---! pattern  ... forbidden dependency. This can be used
-//                                     to exclude certain possibilities for
-//                                     specific cases instead of writing many
-//                                     ""allowed"" rules.
+                //           pattern ---! pattern  ... forbidden dependency. This can be used
+                //                                     to exclude certain possibilities for
+                //                                     specific cases instead of writing many
+                //                                     ""allowed"" rules.
 
-//           pattern ---? pattern  ... questionable dependency. If a dependency
-//                                     matches such a rule, a warning will be
-//                                     emitted. This is useful for rules that
-//                                     should be removed, but have to remain
-//                                     in place for pragmatic reasons (only
-//                                     for some time, it is hoped).
+                //           pattern ---? pattern  ... questionable dependency. If a dependency
+                //                                     matches such a rule, a warning will be
+                //                                     emitted. This is useful for rules that
+                //                                     should be removed, but have to remain
+                //                                     in place for pragmatic reasons (only
+                //                                     for some time, it is hoped).
 
-//           pattern {             ... aspect rule set. All dependencies whose
-//               --->,                 left side matches the pattern must
-//               ---?, and             additionally match one of the rules.
-//               ---! rules            This is very useful for defining
-//           }                         partial rule sets that are orthogonal to
-//                                     the global rules (which must describe
-//                                     all dependencies in the checked
-//                                     assemblies).
+                //           pattern {             ... aspect rule set. All dependencies whose
+                //               --->,                 left side matches the pattern must
+                //               ---?, and             additionally match one of the rules.
+                //               ---! rules            This is very useful for defining
+                //           }                         partial rule sets that are orthogonal to
+                //                                     the global rules (which must describe
+                //                                     all dependencies in the checked
+                //                                     assemblies).
 
-//           NAME :=
-//               <arbitrary lines except =:>
-//           =:                    ... definition of a rule macro. The
-//                                     arbitrary lines can contain the strings
-//                                     \L and \R, which are replaced with the
-//                                     corresponding patterns from the macro 
-//                                     use. NAME need not consist of letters
-//                                     only; also names like ===>, :::>, +++>
-//                                     etc. are allowed and quite useful.
-//                                     However, names must not be ""too
-//                                     similar"": If repeated characters are
-//                                     are replaced with a single one, they must
-//                                     still be different; hence, ===> and ====>
-//                                     are ""too similar"" and lead to an error.
-//                                     As with abbreviations, if a macro 
-//                                     definition for the same name is 
-//                                     encountered twice, it must define 
-//                                     exactly the same value.
+                //           NAME :=
+                //               <arbitrary lines except =:>
+                //           =:                    ... definition of a rule macro. The
+                //                                     arbitrary lines can contain the strings
+                //                                     \L and \R, which are replaced with the
+                //                                     corresponding patterns from the macro 
+                //                                     use. NAME need not consist of letters
+                //                                     only; also names like ===>, :::>, +++>
+                //                                     etc. are allowed and quite useful.
+                //                                     However, names must not be ""too
+                //                                     similar"": If repeated characters are
+                //                                     are replaced with a single one, they must
+                //                                     still be different; hence, ===> and ====>
+                //                                     are ""too similar"" and lead to an error.
+                //                                     As with abbreviations, if a macro 
+                //                                     definition for the same name is 
+                //                                     encountered twice, it must define 
+                //                                     exactly the same value.
 
-//           pattern NAME pattern  ... Use of a defined macro.
+                //           pattern NAME pattern  ... Use of a defined macro.
 
-//           % pattern (with at least one group) 
-//                                 ... Define output in DAG graph (substring
-//                                     matching first group is used as label).
-//                                     If the group is empty, the dependency
-//                                     is not shown in the graph.
-//                                     Useful only with /d option.
+                //           % pattern (with at least one group) 
+                //                                 ... Define output in DAG graph (substring
+                //                                     matching first group is used as label).
+                //                                     If the group is empty, the dependency
+                //                                     is not shown in the graph.
+                //                                     Useful only with /d option.
 
-//         For an example of a dependency file, see near end of this help text.
+                //         For an example of a dependency file, see near end of this help text.
 
-//         A pattern is a list of subpatterns separated by colons
-//           subpattern:subpattern:...
-//         where a subpattern can be a list of basepatterns separated by semicolons:
-//           basepattern;subpattern;...
-//         A basepattern, finally, can be one of the following:
-//           ^regexp$
-//           ^regexp
-//           regexp$
-//           fixedstring
-//           wildcardpath, which contains . (or /), * and ** with the following
-//                         meanings:
-//               .       is replaced with the reg.exp. [.] (matches single period)
-//               *       is replaced with the reg.exp. for an <ident> (a ""name"")
-//               **      is usually replaced with <ident>(?:.<ident>)* (a 
-//                       ""path"").
+                //         A pattern is a list of subpatterns separated by colons
+                //           subpattern:subpattern:...
+                //         where a subpattern can be a list of basepatterns separated by semicolons:
+                //           basepattern;subpattern;...
+                //         A basepattern, finally, can be one of the following:
+                //           ^regexp$
+                //           ^regexp
+                //           regexp$
+                //           fixedstring
+                //           wildcardpath, which contains . (or /), * and ** with the following
+                //                         meanings:
+                //               .       is replaced with the reg.exp. [.] (matches single period)
+                //               *       is replaced with the reg.exp. for an <ident> (a ""name"")
+                //               **      is usually replaced with <ident>(?:.<ident>)* (a 
+                //                       ""path"").
 
-//Exit codes:
-//   0    All dependencies ok (including questionable rules).
-//   1    Usage error.
-//   2    Cannot load dependency file (syntax error or file not found).
-//   3    Dependencies not ok.
-//   4    Assembly file specified as argument not found.
-//   5    Other exception.
-//   6    No dependency file found for an assembly in /d and /s 
-//        directories, and /x not specified.
+                //Exit codes:
+                //   0    All dependencies ok (including questionable rules).
+                //   1    Usage error.
+                //   2    Cannot load dependency file (syntax error or file not found).
+                //   3    Dependencies not ok.
+                //   4    Assembly file specified as argument not found.
+                //   5    Other exception.
+                //   6    No dependency file found for an assembly in /d and /s 
+                //        directories, and /x not specified.
 
-//############# REST NOT YET UPDATED ##################
+                //############# REST NOT YET UPDATED ##################
 
-//Example of a dependency file with some important dependencies (all
-//using the wildcardpath syntax):
+                //Example of a dependency file with some important dependencies (all
+                //using the wildcardpath syntax):
 
-//   // Every class may use all classes from its own namespace.
-//        (**).* ---> \1.*
+                //   // Every class may use all classes from its own namespace.
+                //        (**).* ---> \1.*
 
-//   // Special dependency for class names without namespace
-//   // (the pattern above will not work, because it contains a
-//   // period): A class from the global namespace may use
-//   // all classes from that namespace.
-//        * ---> *
+                //   // Special dependency for class names without namespace
+                //   // (the pattern above will not work, because it contains a
+                //   // period): A class from the global namespace may use
+                //   // all classes from that namespace.
+                //        * ---> *
 
-//   // Every class may use all classes from child namespaces
-//   // of its own namespace.
-//        (**).* ---> \1.**.*
+                //   // Every class may use all classes from child namespaces
+                //   // of its own namespace.
+                //        (**).* ---> \1.**.*
 
-//   // Every class may use all of System.
-//        ** ---> System.**
+                //   // Every class may use all of System.
+                //        ** ---> System.**
 
-//   // Use ALL as abbreviation for MyProgram.**
-//        ALL := MyProgram.**
+                //   // Use ALL as abbreviation for MyProgram.**
+                //        ALL := MyProgram.**
 
-//   // All MyProgram classes must not use Windows Forms
-//   // (even though in principle, all classes may use all of 
-//   // System according to the previous ---> rule).
-//        ALL ---! System.Windows.Forms.**
+                //   // All MyProgram classes must not use Windows Forms
+                //   // (even though in principle, all classes may use all of 
+                //   // System according to the previous ---> rule).
+                //        ALL ---! System.Windows.Forms.**
 
-//   // All MyProgram classes may use classes from antlr.
-//        ALL ---> antlr.**
+                //   // All MyProgram classes may use classes from antlr.
+                //        ALL ---> antlr.**
 
-//   // Special methods must only call special methods
-//   // and getters and setters.
-//   **::*SpecialMethod* {
-//      ** ---> **::*SpecialMethod*
-//      ** ---> **::get_*
-//      ** ---> **::set_
-//   }
+                //   // Special methods must only call special methods
+                //   // and getters and setters.
+                //   **::*SpecialMethod* {
+                //      ** ---> **::*SpecialMethod*
+                //      ** ---> **::get_*
+                //      ** ---> **::set_
+                //   }
 
-//   // In DAG output, identify each object by its path (i.e.
-//   // namespace).
-//        ! (**).*
+                //   // In DAG output, identify each object by its path (i.e.
+                //   // namespace).
+                //        ! (**).*
 
-//   // Classes without namespace are identified by their class name:
-//        ! (*)
+                //   // Classes without namespace are identified by their class name:
+                //        ! (*)
 
-//   // Classes in System.* are identified by the empty group, i.e.,
-//   // they (and arrows reaching them) are not shown at all.
-//        ! ()System.**
+                //   // Classes in System.* are identified by the empty group, i.e.,
+                //   // they (and arrows reaching them) are not shown at all.
+                //        ! ()System.**
 
-//   // Using % instead of ! puts the node in the 'outer layer', where
-//   // only edges to the inner layer are drawn.");
-//            }
+                //   // Using % instead of ! puts the node in the 'outer layer', where
+                //   // only edges to the inner layer are drawn.");
+                //            }
                 return exitValue;
             }
         }
