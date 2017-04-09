@@ -26,11 +26,56 @@ namespace NDepCheck.Transforming.Projecting {
         private Dictionary<FromTo, Dependency> _dependenciesForBackProjection;
 
         public override string GetHelp(bool detailedHelp, string filter) {
-            return $@"  Project ('reduce') items and dependencies with ! and % rules
+            string result = $@"  Project ('reduce') items and dependencies
 
 Configuration options: {Option.CreateHelp(_configOptions, detailedHelp, filter)}
 
 Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)}";
+
+            if (detailedHelp) {
+                result += @"
+
+Configuration format:
+
+Configuration files support the standard options + for include,
+// for comments, macro definitions (see -help files).
+
+Mandatory type transformation line:
+$ type ---% type
+
+Projections:
+< pattern [---% result]
+| pattern [---% result]
+> pattern [---% result]
+
+where
+
+type     is an NDepCheck type or type definition (see -help types)
+pattern  is an NDepCheck item pattern (see -help itempattern)
+result   is element[:element...], where each element is a string or \1, \2, ...
+         \1 etc. refers to a matched group in the itempattern.
+If no result is provided, result is assumed to be \1:\2:..., with the number
+of groups in the pattern.
+result can also be a single -, in which case a matching item is not projected.
+Also, if all matched groups are empty, the matching item is not projected.
+
+< matches only using items
+| matches both using and used items
+> matches only used items
+
+After projecting the items, all dependencies are removed where the using or
+used item is not projected.
+
+Examples:
+::(**)::(**)                project to 3rd and 5th field; e.g., the result of
+                            projecting a.1:b.2:c.3:d.4:e.5:f.6 is c.3:e.5
+::(**)::(**) ---% \1:\2     same as above
+::a.(**)::   ---% MOD_A:\1  Projection with fixed string
+::()                        do not project item (single group is always empty)
+::           ---% -         same as above
+";
+            }
+            return result;
         }
 
         #region Configure
@@ -38,7 +83,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         public override void Configure(GlobalContext globalContext, string configureOptions) {
             Option.Parse(configureOptions,
                 ProjectionFileOption.Action((args, j) => {
-                    string fullSourceName = Path.GetFullPath(Option.ExtractOptionValue(args, ref j));
+                    string fullSourceName = Path.GetFullPath(Option.ExtractOptionValue(args, ref j) ?? "missing_path");
                     _orderedProjections = GetOrReadChildConfiguration(globalContext,
                         () => new StreamReader(fullSourceName), fullSourceName, globalContext.IgnoreCase, "????");
                     return j;
@@ -145,7 +190,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 string fullDipName = null;
                 bool keepOnlyProjected = false;
                 Option.Parse(transformOptions, BackProjectionDipFileOption.Action((args, j) => {
-                    fullDipName = Path.GetFullPath(Option.ExtractOptionValue(args, ref j));
+                    fullDipName = Path.GetFullPath(Option.ExtractOptionValue(args, ref j) ?? "missing_path");
                     return j;
                 }), BackProjectionTrimOption.Action((args, j) => {
                     keepOnlyProjected = true;

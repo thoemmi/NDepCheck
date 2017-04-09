@@ -61,16 +61,31 @@ namespace NDepCheck {
         [NotNull]
         public static string CreateHelp(IEnumerable<Option> options, bool detailed, string filter) {
             var sb = new StringBuilder();
+            int lineLength = 0;
             foreach (var o in options.Where(o => (o.Name + "/" + o.ShortName + "/" + o.Description)
                                                  .IndexOf(filter ?? "", StringComparison.InvariantCultureIgnoreCase) >= 0)) {
-                sb.AppendLine("-" + o.Name + " or -" + o.ShortName + "   " + o.Usage);
-                sb.AppendLine("    " + o.Description);
-                if (o.Default == null) {
-                    sb.AppendLine(o.Multiple ? "    Required; can be specified more than once" : "    Required");
+                if (detailed) {
+                    sb.AppendLine("-" + o.Name + " or -" + o.ShortName + "   " + o.Usage);
+                    sb.AppendLine("    " + o.Description);
+                    if (o.Required) {
+                        sb.AppendLine(o.Multiple ? "    Required; can be specified more than once" : "    Required");
+                    } else if (o.Default == "") {
+                        if (o.Multiple) {
+                            sb.AppendLine("    Can be specified more than once");
+                        }
+                    } else {
+                        sb.AppendLine(o.Multiple
+                            ? $"    Default: {o.Default}; can be specified more than once"
+                            : $"    Default: {o.Default}");
+                    }
                 } else {
-                    sb.AppendLine(o.Multiple
-                        ? $"    Default: {o.Default}; can be specified more than once"
-                        : $"    Default: {o.Default}");
+                    var optString = "-" + o.ShortName + " " + o.Usage;
+                    lineLength += optString.Length;
+                    if (lineLength > 60) {
+                        sb.AppendLine();
+                        lineLength = 0;
+                    }
+                    sb.Append(o.Required ? "  " + optString : "  [" + optString + "]");
                 }
             }
             return sb.ToString();
@@ -84,11 +99,11 @@ namespace NDepCheck {
         public static bool ArgMatches(string arg, params string[] option) {
             return option.Any(o => {
                 string lower = arg.ToLowerInvariant();
-                if (!lower.StartsWith("/" + o) && !lower.StartsWith("-" + o)) {
-                    return false;
-                } else {
+                if (lower.StartsWith("/" + o) || lower.StartsWith("-" + o)) {
                     string rest = arg.Substring(1 + o.Length);
                     return rest == "" || rest.StartsWith("=");
+                } else {
+                    return false;
                 }
             });
         }
@@ -116,7 +131,7 @@ namespace NDepCheck {
             if (optionValue == null) {
                 i = nextI;
                 return null;
-            } else if ((optionValue.StartsWith("/") || optionValue.StartsWith("-")) && optionValue.Length > 1) {
+            } else if (LooksLikeAnOption(optionValue)) {
                 // This is the following option - i is not changed
                 return null;
             } else if (optionValue.StartsWith("{")) {
@@ -126,6 +141,13 @@ namespace NDepCheck {
                 i = nextI;
                 return optionValue;
             }
+        }
+
+        private static bool LooksLikeAnOption(string s) {
+            return s.Length > 1 
+                   && (s.StartsWith("-")
+                       || s.StartsWith("/") && !s.Substring(1).Contains("/") // this allows some paths with / as option value
+                   );
         }
 
         public static int ExtractIntOptionValue(string[] args, ref int j, string msg) {
@@ -158,7 +180,7 @@ namespace NDepCheck {
                 string value = args[++i];
                 if (value.StartsWith("{")) {
                     return CollectMultipleArgs(args, ref i, value);
-                } else if (value.StartsWith("/") || value.StartsWith("-")) {
+                } else if (LooksLikeAnOption(value)) {
                     --i;
                     return null;
                 } else {

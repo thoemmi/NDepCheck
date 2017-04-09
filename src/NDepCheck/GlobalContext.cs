@@ -145,7 +145,7 @@ namespace NDepCheck {
                     t => string.Compare(t.Name, pluginClassName, StringComparison.InvariantCultureIgnoreCase) == 0);
             if (pluginType == null) {
                 throw new ApplicationException(
-                    $"No plugin type found in assembly {assemblyName} matching {pluginClassName}");
+                    $"No plugin type found in assembly '{ShowAssemblyName(assemblyName)}' matching '{pluginClassName}'");
             }
             try {
                 // plugins can have state, therefore we must manage them
@@ -156,9 +156,13 @@ namespace NDepCheck {
                 return result;
             } catch (Exception ex) {
                 throw new ApplicationException(
-                    $"Cannot create {pluginClassName} from assembly {assemblyName} running in working directory {Environment.CurrentDirectory}; problem: " +
-                    ex.Message, ex);
+                    $"Cannot create '{pluginClassName}' from assembly '{ShowAssemblyName(assemblyName)}' running in working " +
+                    $"directory {Environment.CurrentDirectory}; problem: {ex.Message}", ex);
             }
+        }
+
+        private static string ShowAssemblyName(string assemblyName) {
+            return string.IsNullOrWhiteSpace(assemblyName) ? typeof(GlobalContext).Assembly.GetName().Name : assemblyName;
         }
 
         private static IOrderedEnumerable<Type> GetPluginTypes<T>([CanBeNull] string assemblyName) {
@@ -172,7 +176,7 @@ namespace NDepCheck {
                         .Where(t => typeof(T).IsAssignableFrom(t) && !t.IsAbstract && t.IsClass)
                         .OrderBy(t => t.FullName);
             } catch (Exception ex) {
-                throw new ApplicationException($"Cannot load types from assembly {assemblyName}; reason: {ex.Message}");
+                throw new ApplicationException($"Cannot load types from assembly '{ShowAssemblyName(assemblyName)}'; reason: {ex.Message}");
             }
         }
 
@@ -194,7 +198,7 @@ namespace NDepCheck {
         public void CreateInputOption(string[] args, ref int i, string filePattern, string assembly, string readerClass) {
             if (readerClass == null) {
                 throw new ApplicationException(
-                    $"No reader class found for file pattern {filePattern} - please specify explicitly with -h or -i option");
+                    $"No reader class found for file pattern '{filePattern}' - please specify explicitly with -h or -i option");
             }
             CreateInputOption(filePattern,
                 negativeFilePattern: i + 2 < args.Length && args[i + 1] == "-" ? args[i += 2] : null, assembly: assembly,
@@ -205,11 +209,13 @@ namespace NDepCheck {
         public void ShowAllPluginsAndTheirHelp<T>(string assemblyName, string filter) where T : IPlugin {
             foreach (var t in GetPluginTypes<T>(assemblyName)) {
                 try {
-                    T renderer = (T) Activator.CreateInstance(t);
-                    Log.WriteInfo("=============================================\r\n" + t.FullName + ":\r\n" +
-                                  renderer.GetHelp(detailedHelp: false, filter: filter) + "\r\n");
+                    T renderer = (T)Activator.CreateInstance(t);
+                    string help = t.FullName + ":\r\n" + renderer.GetHelp(detailedHelp: false, filter: "");
+                    if (help.IndexOf(filter ?? "", StringComparison.InvariantCultureIgnoreCase) >= 0) {
+                        Log.WriteInfo("=============================================\r\n" + help + "\r\n");
+                    }
                 } catch (Exception ex) {
-                    Log.WriteError("Cannot print help for Renderer " + t.FullName + "; reason: " + ex.Message);
+                    Log.WriteError($"Cannot print help for renderer '{t.FullName}'; reason: {ex.Message}");
                 }
             }
             Log.WriteInfo("=============================================\r\n");
@@ -295,25 +301,26 @@ namespace NDepCheck {
             return result;
         }
 
-        public void ShowDetailedHelp<T>(string assembly, string pluginClassName, string filter) where T : IPlugin {
+        public void ShowDetailedHelp<T>([CanBeNull] string assemblyName, [NotNull] string pluginClassName, [CanBeNull] string filter) 
+                where T : IPlugin {
             try {
-                T plugin = GetOrCreatePlugin<T>(assembly, pluginClassName);
+                T plugin = GetOrCreatePlugin<T>(assemblyName, pluginClassName);
                 Log.WriteInfo("=============================================\r\n" + plugin.GetType().FullName + ":\r\n" +
-                              plugin.GetHelp(detailedHelp: false, filter: filter) + "\r\n");
+                              plugin.GetHelp(detailedHelp: true, filter: filter) + "\r\n");
             } catch (Exception ex) {
                 Log.WriteError(
-                    $"Cannot print help for plugin {pluginClassName} in assembly {assembly}; reason: {ex.Message}");
+                    $"Cannot print help for plugin '{pluginClassName}' in assembly '{ShowAssemblyName(assemblyName)}'; reason: {ex.Message}");
             }
             HelpShown = true;
         }
 
-        public void ConfigureTransformer(string assembly, string transformerClass, string transformerOptions) {
+        public void ConfigureTransformer([CanBeNull] string assemblyName, [NotNull] string transformerClass, [CanBeNull] string transformerOptions) {
             try {
-                ITransformer plugin = GetOrCreatePlugin<ITransformer>(assembly, transformerClass);
-                plugin.Configure(this, transformerOptions);
+                ITransformer plugin = GetOrCreatePlugin<ITransformer>(assemblyName, transformerClass);
+                plugin.Configure(this, transformerOptions ?? "");
             } catch (Exception ex) {
                 Log.WriteError(
-                    $"Cannot configure plugin {transformerClass} in assembly {assembly}; reason: {ex.Message}");
+                    $"Cannot configure plugin '{transformerClass}' in assembly '{ShowAssemblyName(assemblyName)}'; reason: {ex.Message}");
             }
         }
 
@@ -343,9 +350,6 @@ namespace NDepCheck {
             string name = parts.First();
 
             return ItemType.New(name, parts.Skip(1).ToArray());
-
-            ////return ALL_READER_FACTORIES.SelectMany(f => f.GetDescriptors()).FirstOrDefault(d => d.Name == name)
-            ////    ?? ALL_READER_FACTORIES.OfType<DotNetAssemblyDependencyReaderFactory>().First().GetOrCreateDotNetType(name, parts.Skip(1));
         }
 
     }

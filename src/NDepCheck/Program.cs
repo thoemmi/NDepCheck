@@ -44,10 +44,10 @@ namespace NDepCheck {
         public static readonly Option ReadPluginOption = new ProgramOption(shortname: "rp", name: "read-plugin", usage: "assembly reader filepattern [- filepattern]", description: "Use <assembly.reader> to read files matching filepattern, but not second filepattern");
         public static readonly Option ReadFileOption = new ProgramOption(shortname: "rf", name: "read-file", usage: "reader filepattern [- filepattern]", description: "Use predefined reader to read files matching filepattern, but not second filepattern");
         public static readonly Option ReadOption = new ProgramOption(shortname: "rd", name: "read", usage: "filepattern [- filepattern]", description: "Use reader derived from file extension to read files matching filepattern, but not second filepattern");
-        public static readonly Option ReadPluginHelpOption = new ProgramOption(shortname: "ra?", name: "read-plugin-help", usage: "assembly", description: "Show help for all readers in assembly");
-        public static readonly Option ReadHelpOption = new ProgramOption(shortname: "rf?", name: "read-help", usage: "", description: "Show help for all predefined readers");
-        public static readonly Option ReadPluginDetailedHelpOption = new ProgramOption(shortname: "ra!", name: "read-plugin-detail", usage: "assembly reader", description: "Show detailed help for reader in assembly");
-        public static readonly Option ReadDetailedHelpOption = new ProgramOption(shortname: "rf!", name: "read-detail", usage: "reader", description: "Show detailed help for predefined reader");
+        public static readonly Option ReadPluginHelpOption = new ProgramOption(shortname: "ra?", name: "read-plugin-help", usage: "assembly [filter]", description: "Show help for all readers in assembly");
+        public static readonly Option ReadHelpOption = new ProgramOption(shortname: "rf?", name: "read-help", usage: "[filter]", description: "Show help for all predefined readers");
+        public static readonly Option ReadPluginDetailedHelpOption = new ProgramOption(shortname: "ra!", name: "read-plugin-detail", usage: "assembly reader [filter]", description: "Show detailed help for reader in assembly");
+        public static readonly Option ReadDetailedHelpOption = new ProgramOption(shortname: "rf!", name: "read-detail", usage: "reader [filter]", description: "Show detailed help for predefined reader");
 
         public static readonly Option ConfigurePluginOption = new ProgramOption(shortname: "cp", name: "configure-plugin", usage: "assembly transformer { options }", description: "Configure <assembly.transformer> with options");
         public static readonly Option ConfigureOption = new ProgramOption(shortname: "cf", name: "configure", usage: "reader  { options }", description: "Configure predefined transformer with options");
@@ -55,19 +55,19 @@ namespace NDepCheck {
         public static readonly Option TransformPluginOption = new ProgramOption(shortname: "tp", name: "transform-plugin", usage: "assembly transformer [{ options }]", description: "Transform with <assembly.transformer> with options");
         public static readonly Option TransformOption = new ProgramOption(shortname: "tf", name: "transform", usage: "transformer  [{ options }]", description: "Transform with predefined transformer with options");
         public static readonly Option TransformTestDataOption = new ProgramOption(shortname: "tt", name: "transform-testdata", usage: "assembly transformer [{ options }]", description: "Transform internal testdata with <assembly.transformer> with options");
-        public static readonly Option TransformPluginHelpOption = new ProgramOption(shortname: "tp?", name: "transform-plugin-help", usage: "assembly", description: "Show help for all transformers in assembly");
-        public static readonly Option TransformHelpOption = new ProgramOption(shortname: "tf?", name: "transform-help", usage: "", description: "Show help for all predefined transformers");
-        public static readonly Option TransformPluginDetailedHelpOption = new ProgramOption(shortname: "tp!", name: "transform-plugin-detail", usage: "assembly transformer", description: "Show detailed help for transformer in assembly");
-        public static readonly Option TransformDetailedHelpOption = new ProgramOption(shortname: "tf!", name: "transform-detail", usage: "transformer", description: "Show detailed help for predefined transformer");
+        public static readonly Option TransformPluginHelpOption = new ProgramOption(shortname: "tp?", name: "transform-plugin-help", usage: "assembly [filter]", description: "Show help for all transformers in assembly");
+        public static readonly Option TransformHelpOption = new ProgramOption(shortname: "tf?", name: "transform-help", usage: "[filter]", description: "Show help for all predefined transformers");
+        public static readonly Option TransformPluginDetailedHelpOption = new ProgramOption(shortname: "tp!", name: "transform-plugin-detail", usage: "assembly transformer [filter]", description: "Show detailed help for transformer in assembly");
+        public static readonly Option TransformDetailedHelpOption = new ProgramOption(shortname: "tf!", name: "transform-detail", usage: "transformer [filter]", description: "Show detailed help for predefined transformer");
 
         public static readonly Option WritePluginOption = new ProgramOption(shortname: "wp", name: "write-plugin", usage: "assembly writer [{ options }] filename", description: "write to filename with <assembly.writer> with options");
         public static readonly Option WriteFileOption = new ProgramOption(shortname: "wr", name: "write", usage: "writer  [{ options }] filename", description: "write to filename with predefined writer with options");
         public static readonly Option WriteDipOption = new ProgramOption(shortname: "wd", name: "write-dip", usage: "filename", description: "write to filename with predefined writer with options");
         public static readonly Option WriteTestDataOption = new ProgramOption(shortname: "wt", name: "write-testdata", usage: "assembly writer [{ options }] filename", description: "write internal testdata to filename with <assembly.writer> with options");
-        public static readonly Option WritePluginHelpOption = new ProgramOption(shortname: "wp?", name: "write-plugin-help", usage: "assembly", description: "Show help for all writers in assembly");
-        public static readonly Option WriteHelpOption = new ProgramOption(shortname: "wr?", name: "write-help", usage: "", description: "Show help for all predefined writers");
-        public static readonly Option WritePluginDetailedHelpOption = new ProgramOption(shortname: "wp!", name: "write-plugin-detail", usage: "assembly writer", description: "Show detailed help for writer in assembly");
-        public static readonly Option WriteDetailedHelpOption = new ProgramOption(shortname: "wr!", name: "write-detail", usage: "writer", description: "Show detailed help for predefined writer");
+        public static readonly Option WritePluginHelpOption = new ProgramOption(shortname: "wp?", name: "write-plugin-help", usage: "assembly [filter]", description: "Show help for all writers in assembly");
+        public static readonly Option WriteHelpOption = new ProgramOption(shortname: "wr?", name: "write-help", usage: "[filter]", description: "Show help for all predefined writers");
+        public static readonly Option WritePluginDetailedHelpOption = new ProgramOption(shortname: "wp!", name: "write-plugin-detail", usage: "assembly writer [filter]", description: "Show detailed help for writer in assembly");
+        public static readonly Option WriteDetailedHelpOption = new ProgramOption(shortname: "wr!", name: "write-detail", usage: "writer [filter]", description: "Show detailed help for predefined writer");
 
         public static readonly Option DoBreakOption = new ProgramOption(shortname: "db", name: "do-break", usage: "", description: "stop execution; useful for debugging of -df");
         public static readonly Option DoCommandOption = new ProgramOption(shortname: "dc", name: "do-command", usage: "command", description: "execute shell command; useful for opening result file");
@@ -76,7 +76,7 @@ namespace NDepCheck {
         public static readonly Option DoDefineOption = new ProgramOption(shortname: "dd", name: "do-define", usage: "name value", description: "define name as value");
         public static readonly Option DoResetOption = new ProgramOption(shortname: "dr", name: "do-reset", usage: "[filename]", description: "reset state; and read file as dip file");
 
-        public static readonly Option WatchFilesOption = new ProgramOption(shortname: "aw", name: "watch-files", usage: "filepattern [- filepattern] script", description: "Watch files");
+        public static readonly Option WatchFilesOption = new ProgramOption(shortname: "aw", name: "watch-files", usage: "[filepattern [- filepattern]] script", description: "Watch files");
         public static readonly Option UnwatchFilesOption = new ProgramOption(shortname: "au", name: "unwatch-files", usage: "filepattern", description: "Unwatch files specified by filepattern");
         public static readonly Option UnwatchTriggersOption = new ProgramOption(shortname: "an", name: "unwatch-triggers", usage: "script", description: "No longer watch all files triggering script");
 
@@ -123,8 +123,10 @@ namespace NDepCheck {
                 int lastResult = program.Run(args, globalContext, writtenMasterFiles: null, logCommands: false);
                 while (program._webServer != null || program._interactiveLogFile != null || program._fileWatchers.Any()) {
                     Console.WriteLine();
+                    Console.ForegroundColor = ConsoleColor.DarkGray;
                     Console.WriteLine(value: "Type /?<enter> for help; or q<enter> for stopping NDepCheck.");
                     Console.Write(value: globalContext.Name + " NDepCheck> ");
+                    Console.ResetColor();
                     string commands = Console.ReadLine();
                     if (commands == null || commands.Trim().ToLowerInvariant().StartsWith(value: "q")) {
                         break;
@@ -186,14 +188,18 @@ namespace NDepCheck {
                         Log.WriteInfo($">>>> Starting {arg}");
                     }
 
-                    if (HelpAllOption.Matches(arg)) {
+                    if (arg == "help") {
+                        Log.WriteWarning("For help, use -? or -help");
+                    } else if (HelpAllOption.Matches(arg)) {
                         // -? [filter]
                         string filter = Option.ExtractOptionValue(args, ref i);
-                        return UsageAndExit(message: null, detailed: false, filter: filter);
+                        return UsageAndExit(message: null, withIntro: _interactiveLogFile == null, 
+                                            detailed: filter != null, filter: filter.TrimStart('-', '/'));
                     } else if (HelpDetailedHelpOption.Matches(arg)) {
                         // -! [filter]
                         string filter = Option.ExtractOptionValue(args, ref i);
-                        return UsageAndExit(message: null, detailed: true, filter: filter);
+                        return UsageAndExit(message: null, withIntro: true,
+                                            detailed: true, filter: filter.TrimStart('-', '/'));
                     } else if (arg == "-debug" || arg == "/debug") {
                         // -debug
                         Debugger.Launch();
@@ -524,10 +530,24 @@ namespace NDepCheck {
             }
         }
 
-        private int UsageAndExit([NotNull] string message, int exitValue = OPTIONS_PROBLEM,
-                                 bool detailed = false, [NotNull] string filter = "") {
-            WriteVersion();
-            Console.Out.WriteLine(value: @"
+        private int UsageAndExit([CanBeNull] string message, int exitValue = OPTIONS_PROBLEM,
+            bool withIntro = true, bool detailed = false, [NotNull] string filter = "") {
+            if (filter.StartsWith("file")) {
+                Console.Out.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck input files (+, //, defines)");
+                return exitValue;
+            } else if (filter.StartsWith("item")) {
+                Console.Out.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck item patterns");
+                return exitValue;
+            } else if (filter.StartsWith("dep")) {
+                Console.Out.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck dependency patterns");
+                return exitValue;
+            } else if (filter.StartsWith("type")) {
+                Console.Out.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck item types");
+                return exitValue;
+            } else {
+                if (withIntro) {
+                    WriteVersion();
+                    Console.Out.WriteLine(value: @"
 Usage:
    NDepCheck <option>...
 
@@ -549,263 +569,267 @@ All messages of NDepCheck are written to Console.Out.
 Option overview:
     Option can be written with leading - or /
 
-" + Option.CreateHelp(_allOptions, detailed: detailed, filter: filter));
+");
+                }
+                Console.Out.WriteLine(Option.CreateHelp(_allOptions, detailed: detailed, filter: filter));
 
-            Log.WriteError(message);
-            Log.WriteInfo(msg: "");
+                if (message != null) {
+                    Log.WriteError(message);
+                }
 
-            if (detailed) {
-                Console.Out.WriteLine(value: @"
+//            if (detailed) {
+//                Console.Out.WriteLine(value: @"
 
-############# NOT YET UPDATED ##################
+//############# NOT YET UPDATED ##################
 
-   /_=<directory>    For each assembly file A.dll, look for corresponding 
-         rule file A.dll.dep in this directory (multiple /d options are 
-         supported). This is especially useful with + lines.
+//   /_=<directory>    For each assembly file A.dll, look for corresponding 
+//         rule file A.dll.dep in this directory (multiple /d options are 
+//         supported). This is especially useful with + lines.
 
-   /d=<directory>    Like /_, but also look in all subdirectories. Mixing
-         /_ and /_ options is supported.
+//   /d=<directory>    Like /_, but also look in all subdirectories. Mixing
+//         /_ and /_ options is supported.
 
-   /f=<rule file>    Use this rule file if no matching rule file is found
-         via /_ and /d.  This is espeically useful if no /s and /d options
-         are specified. __________________-
+//   /f=<rule file>    Use this rule file if no matching rule file is found
+//         via /_ and /d.  This is espeically useful if no /s and /d options
+//         are specified. __________________-
 
-   /i[=<N>]        For each illegal edge (i.e., edge not allowed by 
-         the dependency file), show an example of a concrete illegal 
-         dependency in the DOT graph. N is the maximum width of strings 
-         used; the default is 80. Graphs can become quite cluttered 
-         with this option.
+//   /i[=<N>]        For each illegal edge (i.e., edge not allowed by 
+//         the dependency file), show an example of a concrete illegal 
+//         dependency in the DOT graph. N is the maximum width of strings 
+//         used; the default is 80. Graphs can become quite cluttered 
+//         with this option.
 
-   /m[=N]   Specifies the maximum number of concurrent threads to use. 
-         If you don't include this switch, the default value is 1. If
-         you include this switch without specifying a value, NDepCheck
-         will use up to the number of processors in the computer.
+//   /m[=N]   Specifies the maximum number of concurrent threads to use. 
+//         If you don't include this switch, the default value is 1. If
+//         you include this switch without specifying a value, NDepCheck
+//         will use up to the number of processors in the computer.
 
-############# UPDATED ##################
+//############# UPDATED ##################
 
-/v    Verbose. Shows regular expressions used for checking and 
-         all checked dependencies. Attention: Place /v BEFORE any
-         /d, /s, or /x option to see the regular expressions.
-         Produces lots of output.
+//    /v    Verbose. Shows regular expressions used for checking and 
+//         all checked dependencies. Attention: Place /v BEFORE any
+//         /d, /s, or /x option to see the regular expressions.
+//         Produces lots of output.
 
-   /y    Even more debugging output.
+//   /y    Even more debugging output.
 
-   /debug   Start with debugger.
+//   /debug   Start with debugger.
 
-Assemblyspecs - one of the following:
-    
-    simplefileName      the assembly is checked.
-                        e.g. ProjectDir\bin\MyProject.Main.dll
+//Assemblyspecs - one of the following:
 
-    filepattern         all matching assemblies are checked.
-                        e.g. bin\MyProject.*.dll 
+//    simplefileName      the assembly is checked.
+//                        e.g. ProjectDir\bin\MyProject.Main.dll
 
-    directory           all .DLL and .EXE files in the directory are checked.
-                        e.g. MyProject\bin\Debug
+//    filepattern         all matching assemblies are checked.
+//                        e.g. bin\MyProject.*.dll 
 
-    @fileName           lines are read as assembly fileNames and checked.
-                        The file may contain empty lines, which are ignored.
-                        e.g. @MyListOfFiles.txt
+//    directory           all .DLL and .EXE files in the directory are checked.
+//                        e.g. MyProject\bin\Debug
 
-    <one of the above> /e <one of the above>            
-                        The files after the /e are excluded from checking.
-                        e.g. MyProject.*.dll /e *.vshost.*
+//    @fileName           lines are read as assembly fileNames and checked.
+//                        The file may contain empty lines, which are ignored.
+//                        e.g. @MyListOfFiles.txt
 
-Dependecies:_
+//    <one of the above> /e <one of the above>            
+//                        The files after the /e are excluded from checking.
+//                        e.g. MyProject.*.dll /e *.vshost.*
 
-A dependency describes that some 'using item' uses another 'used item'.
+//Dependecies:_
 
-Standard .Net dependencies:
+//A dependency describes that some 'using item' uses another 'used item'.
 
-    A standard dependency as read from a .Net assembly has the following
-    format:
+//Standard .Net dependencies:
 
-namespace:class:assembly_name;assembly_version;assembly_culture:member_name;member_sort
+//    A standard dependency as read from a .Net assembly has the following
+//    format:
 
-    where member_sort is usually empty; but for properties, it is either
-    'get' or 'set' on the using side.
+//namespace:class:assembly_name;assembly_version;assembly_culture:member_name;member_sort
 
-Rules files:
-    Rule files contain rule definition commands. Here is a simple example
+//    where member_sort is usually empty; but for properties, it is either
+//    'get' or 'set' on the using side.
 
-        $ DOTNETCALL   ---> DOTNETCALL 
+//Rules files:
+//    Rule files contain rule definition commands. Here is a simple example
 
-        // Each assembly can use .Net
-        ::**           --->  ::mscorlib
-        ::**           --->  ::(System|Microsoft).**
+//        $ DOTNETCALL   ---> DOTNETCALL 
 
-        // Each assembly can use everything in itself (a coarse architecture)
-        ::(Module*)**  --->  ::\1
+//        // Each assembly can use .Net
+//        ::**           --->  ::mscorlib
+//        ::**           --->  ::(System|Microsoft).**
 
-        // Module2 can use Module1
-        ::Module2**    --->  ::Module1**
+//        // Each assembly can use everything in itself (a coarse architecture)
+//        ::(Module*)**  --->  ::\1
 
-        // Test assemblies can use anything
-        ::*Test*.dll   --->  ::**
+//        // Module2 can use Module1
+//        ::Module2**    --->  ::Module1**
+
+//        // Test assemblies can use anything
+//        ::*Test*.dll   --->  ::**
 
 
-    The following commands are supported in rule files:
+//    The following commands are supported in rule files:
 
-           empty line            ... ignored
-           // comment            ... ignored
-           # comment             ... ignored
+//           empty line            ... ignored
+//           // comment            ... ignored
+//           # comment             ... ignored
 
-           + filepath            ... include rules from that file. The path
-                                     is interpreted relative to the current
-                                     rule file.
+//           + filepath            ... include rules from that file. The path
+//                                     is interpreted relative to the current
+//                                     rule file.
 
-           NAME := pattern       ... define abbreviation which is replaced
-                                     in patterns before processing. NAME
-                                     must be uppercase only (but it can
-                                     contain digits, underscores etc.).
-                                     Longer names are preferred to shorter
-                                     ones during replacement. The pattern
-                                     on the right side can in turn use 
-                                     abbreviations. Abbreviation processing
-                                     is done before all reg.exp. replacements
-                                     described below.
-                                     If an abbreviation definition for the 
-                                     same name is encountered twice, it must
-                                     define exactly the same value.
+//           NAME := pattern       ... define abbreviation which is replaced
+//                                     in patterns before processing. NAME
+//                                     must be uppercase only (but it can
+//                                     contain digits, underscores etc.).
+//                                     Longer names are preferred to shorter
+//                                     ones during replacement. The pattern
+//                                     on the right side can in turn use 
+//                                     abbreviations. Abbreviation processing
+//                                     is done before all reg.exp. replacements
+//                                     described below.
+//                                     If an abbreviation definition for the 
+//                                     same name is encountered twice, it must
+//                                     define exactly the same value.
 
-           pattern ---> pattern  ... allowed dependency. The second
-                                     pattern may contain back-references
-                                     of the form \1, \2 etc. that are
-                                     matched against corresponding (...)
-                                     groups in the first pattern.
+//           pattern ---> pattern  ... allowed dependency. The second
+//                                     pattern may contain back-references
+//                                     of the form \1, \2 etc. that are
+//                                     matched against corresponding (...)
+//                                     groups in the first pattern.
 
-           pattern ---! pattern  ... forbidden dependency. This can be used
-                                     to exclude certain possibilities for
-                                     specific cases instead of writing many
-                                     ""allowed"" rules.
+//           pattern ---! pattern  ... forbidden dependency. This can be used
+//                                     to exclude certain possibilities for
+//                                     specific cases instead of writing many
+//                                     ""allowed"" rules.
 
-           pattern ---? pattern  ... questionable dependency. If a dependency
-                                     matches such a rule, a warning will be
-                                     emitted. This is useful for rules that
-                                     should be removed, but have to remain
-                                     in place for pragmatic reasons (only
-                                     for some time, it is hoped).
+//           pattern ---? pattern  ... questionable dependency. If a dependency
+//                                     matches such a rule, a warning will be
+//                                     emitted. This is useful for rules that
+//                                     should be removed, but have to remain
+//                                     in place for pragmatic reasons (only
+//                                     for some time, it is hoped).
 
-           pattern {             ... aspect rule set. All dependencies whose
-               --->,                 left side matches the pattern must
-               ---?, and             additionally match one of the rules.
-               ---! rules            This is very useful for defining
-           }                         partial rule sets that are orthogonal to
-                                     the global rules (which must describe
-                                     all dependencies in the checked
-                                     assemblies).
+//           pattern {             ... aspect rule set. All dependencies whose
+//               --->,                 left side matches the pattern must
+//               ---?, and             additionally match one of the rules.
+//               ---! rules            This is very useful for defining
+//           }                         partial rule sets that are orthogonal to
+//                                     the global rules (which must describe
+//                                     all dependencies in the checked
+//                                     assemblies).
 
-           NAME :=
-               <arbitrary lines except =:>
-           =:                    ... definition of a rule macro. The
-                                     arbitrary lines can contain the strings
-                                     \L and \R, which are replaced with the
-                                     corresponding patterns from the macro 
-                                     use. NAME need not consist of letters
-                                     only; also names like ===>, :::>, +++>
-                                     etc. are allowed and quite useful.
-                                     However, names must not be ""too
-                                     similar"": If repeated characters are
-                                     are replaced with a single one, they must
-                                     still be different; hence, ===> and ====>
-                                     are ""too similar"" and lead to an error.
-                                     As with abbreviations, if a macro 
-                                     definition for the same name is 
-                                     encountered twice, it must define 
-                                     exactly the same value.
+//           NAME :=
+//               <arbitrary lines except =:>
+//           =:                    ... definition of a rule macro. The
+//                                     arbitrary lines can contain the strings
+//                                     \L and \R, which are replaced with the
+//                                     corresponding patterns from the macro 
+//                                     use. NAME need not consist of letters
+//                                     only; also names like ===>, :::>, +++>
+//                                     etc. are allowed and quite useful.
+//                                     However, names must not be ""too
+//                                     similar"": If repeated characters are
+//                                     are replaced with a single one, they must
+//                                     still be different; hence, ===> and ====>
+//                                     are ""too similar"" and lead to an error.
+//                                     As with abbreviations, if a macro 
+//                                     definition for the same name is 
+//                                     encountered twice, it must define 
+//                                     exactly the same value.
 
-           pattern NAME pattern  ... Use of a defined macro.
+//           pattern NAME pattern  ... Use of a defined macro.
 
-           % pattern (with at least one group) 
-                                 ... Define output in DAG graph (substring
-                                     matching first group is used as label).
-                                     If the group is empty, the dependency
-                                     is not shown in the graph.
-                                     Useful only with /d option.
+//           % pattern (with at least one group) 
+//                                 ... Define output in DAG graph (substring
+//                                     matching first group is used as label).
+//                                     If the group is empty, the dependency
+//                                     is not shown in the graph.
+//                                     Useful only with /d option.
 
-         For an example of a dependency file, see near end of this help text.
+//         For an example of a dependency file, see near end of this help text.
 
-         A pattern is a list of subpatterns separated by colons
-           subpattern:subpattern:...
-         where a subpattern can be a list of basepatterns separated by semicolons:
-           basepattern;subpattern;...
-         A basepattern, finally, can be one of the following:
-           ^regexp$
-           ^regexp
-           regexp$
-           fixedstring
-           wildcardpath, which contains . (or /), * and ** with the following
-                         meanings:
-               .       is replaced with the reg.exp. [.] (matches single period)
-               *       is replaced with the reg.exp. for an <ident> (a ""name"")
-               **      is usually replaced with <ident>(?:.<ident>)* (a 
-                       ""path"").
+//         A pattern is a list of subpatterns separated by colons
+//           subpattern:subpattern:...
+//         where a subpattern can be a list of basepatterns separated by semicolons:
+//           basepattern;subpattern;...
+//         A basepattern, finally, can be one of the following:
+//           ^regexp$
+//           ^regexp
+//           regexp$
+//           fixedstring
+//           wildcardpath, which contains . (or /), * and ** with the following
+//                         meanings:
+//               .       is replaced with the reg.exp. [.] (matches single period)
+//               *       is replaced with the reg.exp. for an <ident> (a ""name"")
+//               **      is usually replaced with <ident>(?:.<ident>)* (a 
+//                       ""path"").
 
-Exit codes:
-   0    All dependencies ok (including questionable rules).
-   1    Usage error.
-   2    Cannot load dependency file (syntax error or file not found).
-   3    Dependencies not ok.
-   4    Assembly file specified as argument not found.
-   5    Other exception.
-   6    No dependency file found for an assembly in /d and /s 
-        directories, and /x not specified.
+//Exit codes:
+//   0    All dependencies ok (including questionable rules).
+//   1    Usage error.
+//   2    Cannot load dependency file (syntax error or file not found).
+//   3    Dependencies not ok.
+//   4    Assembly file specified as argument not found.
+//   5    Other exception.
+//   6    No dependency file found for an assembly in /d and /s 
+//        directories, and /x not specified.
 
-############# REST NOT YET UPDATED ##################
+//############# REST NOT YET UPDATED ##################
 
-Example of a dependency file with some important dependencies (all
-using the wildcardpath syntax):
+//Example of a dependency file with some important dependencies (all
+//using the wildcardpath syntax):
 
-   // Every class may use all classes from its own namespace.
-        (**).* ---> \1.*
+//   // Every class may use all classes from its own namespace.
+//        (**).* ---> \1.*
 
-   // Special dependency for class names without namespace
-   // (the pattern above will not work, because it contains a
-   // period): A class from the global namespace may use
-   // all classes from that namespace.
-        * ---> *
+//   // Special dependency for class names without namespace
+//   // (the pattern above will not work, because it contains a
+//   // period): A class from the global namespace may use
+//   // all classes from that namespace.
+//        * ---> *
 
-   // Every class may use all classes from child namespaces
-   // of its own namespace.
-        (**).* ---> \1.**.*
+//   // Every class may use all classes from child namespaces
+//   // of its own namespace.
+//        (**).* ---> \1.**.*
 
-   // Every class may use all of System.
-        ** ---> System.**
+//   // Every class may use all of System.
+//        ** ---> System.**
 
-   // Use ALL as abbreviation for MyProgram.**
-        ALL := MyProgram.**
+//   // Use ALL as abbreviation for MyProgram.**
+//        ALL := MyProgram.**
 
-   // All MyProgram classes must not use Windows Forms
-   // (even though in principle, all classes may use all of 
-   // System according to the previous ---> rule).
-        ALL ---! System.Windows.Forms.**
+//   // All MyProgram classes must not use Windows Forms
+//   // (even though in principle, all classes may use all of 
+//   // System according to the previous ---> rule).
+//        ALL ---! System.Windows.Forms.**
 
-   // All MyProgram classes may use classes from antlr.
-        ALL ---> antlr.**
+//   // All MyProgram classes may use classes from antlr.
+//        ALL ---> antlr.**
 
-   // Special methods must only call special methods
-   // and getters and setters.
-   **::*SpecialMethod* {
-      ** ---> **::*SpecialMethod*
-      ** ---> **::get_*
-      ** ---> **::set_
-   }
+//   // Special methods must only call special methods
+//   // and getters and setters.
+//   **::*SpecialMethod* {
+//      ** ---> **::*SpecialMethod*
+//      ** ---> **::get_*
+//      ** ---> **::set_
+//   }
 
-   // In DAG output, identify each object by its path (i.e.
-   // namespace).
-        ! (**).*
+//   // In DAG output, identify each object by its path (i.e.
+//   // namespace).
+//        ! (**).*
 
-   // Classes without namespace are identified by their class name:
-        ! (*)
+//   // Classes without namespace are identified by their class name:
+//        ! (*)
 
-   // Classes in System.* are identified by the empty group, i.e.,
-   // they (and arrows reaching them) are not shown at all.
-        ! ()System.**
+//   // Classes in System.* are identified by the empty group, i.e.,
+//   // they (and arrows reaching them) are not shown at all.
+//        ! ()System.**
 
-   // Using % instead of ! puts the node in the 'outer layer', where
-   // only edges to the inner layer are drawn.");
+//   // Using % instead of ! puts the node in the 'outer layer', where
+//   // only edges to the inner layer are drawn.");
+//            }
+                return exitValue;
             }
-            return exitValue;
         }
 
         private static void WriteVersion() {
