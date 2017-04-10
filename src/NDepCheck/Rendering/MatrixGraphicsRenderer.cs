@@ -85,7 +85,7 @@ namespace NDepCheck.Rendering {
             Sort(xItems, relevantDependencies, (i, d) => d.UsedItem.Equals(i));
             Sort(yItems, relevantDependencies, (i, d) => d.UsingItem.Equals(i));
 
-            double x = 50;
+            double x = 100;
             var xBoxes = new Dictionary<Item, IBox>();
 
             foreach (var ix in xItems) {
@@ -109,20 +109,21 @@ namespace NDepCheck.Rendering {
                     htmlRef: GetYHtmlRef(iy) ?? GetXHtmlRef(iy));
                 yPos.SetX(0).SetY(y);
 
-                double minBoxHeight = 30;
+                double minBoxHeight = 45;
                 foreach (var d in relevantDependencies.Where(d => iy.Equals(d.UsingItem))) {
                     IBox usedBox = xBoxes[d.UsedItem];
                     yPos += F(0, 3);
                     Arrow(yPos, new VariableVector(name + "->...", usedBox.LowerLeft.X, yPos.Y), width: 2,
                         color: d.NotOkCt > 0 ? Color.Red : d.QuestionableCt > 0 ? Color.Blue : Color.Black,
-                        text: "#=" + d.Ct, placement: LineTextPlacement.Left, textLocation: -40,
+                        text: "#=" + d.Ct, placement: LineTextPlacement.Left, textLocation: -85,
                         edgeInfo: d.ExampleInfo, drawingOrder: 1);
                     usedBox.UpperRight.MinY(yPos.Y + 5);
                     yPos += F(0, DELTA_Y_MAIN);
                     minBoxHeight += DELTA_Y_MAIN;
+                    box.UpperRight.MinY(yPos.Y);
                 }
                 box.Diagonal.MinY(minBoxHeight);
-                //Console.WriteLine(name + ".H>=" + minBoxHeight);
+                //Console.WriteLine(name + ".LR.Y=" + y + " .H>=" + minBoxHeight + "  H.ShortName=" + box.Diagonal.Y.ShortName);
                 y += minBoxHeight + 10;
             }
 

@@ -640,10 +640,12 @@ namespace NDepCheck.Rendering {
                 PointF headPoint = headF.AsMirroredPointF();
                 if (tailPoint != headPoint) {
                     float absoluteArrowSize = Math.Min(10 * fWidth, (headF - tailF).Length() / 4);
+                    float relativeArrowSize = absoluteArrowSize / fWidth;
+                    //Console.WriteLine(_name + ">S=" + relativeArrowSize);
                     var pen = new Pen(_color, fWidth) {
                         StartCap = LineCap.RoundAnchor,
                         // arrowsize is relative to line width, therefore we divide by fWidth
-                        CustomEndCap = new AdjustableArrowCap(absoluteArrowSize / fWidth / 2, absoluteArrowSize / fWidth, isFilled: false)
+                        CustomEndCap = new AdjustableArrowCap(relativeArrowSize / 2, relativeArrowSize, isFilled: false)
                     };
                     graphics.DrawLine(pen, tailPoint, headPoint);
                 } else {
@@ -685,8 +687,8 @@ namespace NDepCheck.Rendering {
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
-                // Move text away form line; needs improvement for steeply inclined lines
-                textTransform.Translate(0, -textBoxF.GetY() / 2);
+                // Move text away from line; needs improvement for steeply inclined lines
+                textTransform.Translate(0, -textBoxF.GetY() / 3);
                 DrawText(graphics, _text, _textFont, _textColor, textCenterF, textTransform);
 
                 if (!string.IsNullOrWhiteSpace(_edgeInfo)) {

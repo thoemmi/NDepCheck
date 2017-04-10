@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
@@ -11,6 +12,8 @@ namespace NDepCheck.ConstraintSolving {
 
         public float Interpolate { get; }
 
+        public string ShortName { get; }
+
         [NotNull]
         private readonly SimpleConstraintSolver _solver;
 
@@ -18,18 +21,27 @@ namespace NDepCheck.ConstraintSolving {
         private readonly List<AbstractConstraint> _dependentConstraints = new List<AbstractConstraint>();
 
         private int _lastChangedAt = 1;
+
         public bool Fixed { get; private set; }
 
-        internal NumericVariable(string shortName, string definition, [NotNull] SimpleConstraintSolver solver, double? lo, double? hi, float interpolate) {
+        public string Name { get; private set; }
+
+        internal NumericVariable([NotNull] string shortName, [NotNull] string definition, [NotNull] SimpleConstraintSolver solver, double? lo, double? hi, float interpolate) {
+            if (shortName.Length > 1000) {
+                throw new ArgumentException("string too long", nameof(shortName));
+            }
+            if (definition.Length > 1000) {
+                throw new ArgumentException("string too long", nameof(definition));
+            }
             Definition = definition;
-            ShortName = shortName;
+            Name = ShortName = shortName;
             _solver = solver;
             Interpolate = interpolate;
             Value = new Range(lo ?? double.NegativeInfinity, hi ?? double.PositiveInfinity, solver.Eps);
         }
 
-        public NumericVariable AddShortName(string name) {
-            ShortName += ";" + name;
+        public NumericVariable AlsoNamed(string name) {
+            Name += ";" + name;
             return this;
         }
 
@@ -64,8 +76,6 @@ namespace NDepCheck.ConstraintSolving {
         public IEnumerable<AbstractConstraint> ActiveConstraints => _dependentConstraints.Where(c => !c.IsSubsumed);
 
         public int VarIndex => _varIndex;
-
-        public string ShortName { get; set; }
 
         public override string ToString() {
             return $".{_varIndex} '{ShortName}'={Value} {(Fixed?'F':' ')} Definition={Definition} lastChange@{_lastChangedAt}";

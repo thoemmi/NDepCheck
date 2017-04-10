@@ -4,7 +4,7 @@ namespace NDepCheck.ConstraintSolving {
     public class VariableVector {
         private readonly NumericVariable _x, _y;
 
-        public VariableVector(string name, NumericVariable x, NumericVariable y) {
+        public VariableVector(string name, [NotNull] NumericVariable x, [NotNull] NumericVariable y) {
             Name = name;
             _x = x;
             _y = y;
@@ -15,6 +15,8 @@ namespace NDepCheck.ConstraintSolving {
         }
 
         public string Name { get; private set; }
+
+        private string ShortName => "(" + _x.ShortName + "|" + _y.ShortName + ")";
 
         public NumericVariable X => _x;
 
@@ -37,15 +39,15 @@ namespace NDepCheck.ConstraintSolving {
         }
 
         public static VariableVector operator +(VariableVector v1, VariableVector v2) {
-            return new VariableVector(v1.Name + "+" + v2.Name, v1._x + v2._x, v1._y + v2._y);
+            return new VariableVector(v1.ShortName + "+" + v2.ShortName, v1._x + v2._x, v1._y + v2._y);
         }
 
         public static VariableVector operator -(VariableVector v1, VariableVector v2) {
-            return new VariableVector(v1.Name + "-" + v2.Name, v1._x - v2._x, v1._y - v2._y);
+            return new VariableVector(v1.ShortName + "-" + v2.ShortName, v1._x - v2._x, v1._y - v2._y);
         }
 
         public static VariableVector operator *(VariableVector v, double d) {
-            return new VariableVector(v.Name + "*" + d, v._x * d, v._y * d);
+            return new VariableVector(v.ShortName + "*" + d, v._x * d, v._y * d);
         }
 
         public static VariableVector operator *(double d, VariableVector v) {
@@ -53,27 +55,27 @@ namespace NDepCheck.ConstraintSolving {
         }
 
         public static VariableVector operator /(VariableVector v, double d) {
-            return new VariableVector(v.Name + "*" + d, v._x / d, v._y / d);
+            return new VariableVector(v.ShortName + "*" + d, v._x / d, v._y / d);
         }
 
         public static VariableVector operator -(VariableVector v) {
-            return new VariableVector("-" + v.Name, -v._x, -v._y);
+            return new VariableVector("-" + v.ShortName, -v._x, -v._y);
         }
 
         public static VariableVector operator !(VariableVector v) {
-            return new VariableVector("~" + v.Name, v._x, -v._y);
+            return new VariableVector("~" + v.ShortName, v._x, -v._y);
         }
 
         public static VariableVector operator ~(VariableVector v) {
-            return new VariableVector("~" + v.Name, -v._x, v._y);
+            return new VariableVector("~" + v.ShortName, -v._x, v._y);
         }
 
         public VariableVector Horizontal() {
-            return new VariableVector("_" + Name, _x, _x.Solver.ZERO);
+            return new VariableVector("_" + ShortName, _x, _x.Solver.ZERO);
         }
 
         public VariableVector Vertical() {
-            return new VariableVector("_" + Name, _y.Solver.ZERO, _y);
+            return new VariableVector("_" + ShortName, _y.Solver.ZERO, _y);
         }
 
         public void Set(double x, double y) {
@@ -82,17 +84,17 @@ namespace NDepCheck.ConstraintSolving {
         }
 
         public VariableVector WithYOf([NotNull]VariableVector other) {
-            return new VariableVector("X<" + Name + "&Y<" + other.Name, X, other.Y);
+            return new VariableVector("X<" + ShortName + "&Y<" + other.ShortName, X, other.Y);
         }
 
         public VariableVector WithXOf([NotNull]VariableVector other) {
-            return new VariableVector("X<" + other.Name + "&Y<" + Name, other.X, Y);
+            return new VariableVector("X<" + other.ShortName + "&Y<" + ShortName, other.X, Y);
         }
 
         public VariableVector AlsoNamed(string name) {
             Name += ";" + name;
-            _x.AddShortName(name + ".X");
-            _y.AddShortName(name + ".Y");
+            _x.AlsoNamed(name + ".X");
+            _y.AlsoNamed(name + ".Y");
             return this;
         }
 
