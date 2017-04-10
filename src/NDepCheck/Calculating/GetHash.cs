@@ -9,7 +9,7 @@
             foreach (var v in values) {
                 hash ^= v?.GetHashCode() ?? 0;
             }
-            return "" + hash;
+            return "" + (hash & int.MaxValue); // always positive so that they can be used as markers (-am -123 would be an error!).
         }
     }
 }

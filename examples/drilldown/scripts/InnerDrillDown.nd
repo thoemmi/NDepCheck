@@ -3,15 +3,19 @@
 // * Create a second projection to a NDepCheck command usingthe same file, but "one ply deeper"
 
 // Initial call: -dd LEFT (top) -dd INFILE inputfile
-// e.g. src\NDepCheck\bin\Debug\NDepCheck.exe -dd LEFT a.b -dd RIGHT a.b.k.l -dd INFILE WSTestDep.dip -dd OUTFILE files\WSTestDep.html -ds c:\temp\InnerDrilldown.nd
+// e.g. src\NDepCheck\bin\Debug\NDepCheck.exe -dd LEFT a.b -dd RIGHT a.b.k.l -dd INFILE WSTestDep.dip -dd OUTFILE files\WSTestDep.html -ds c:\temp\InnerDrillDown.nd
 
 -configure ProjectItems { -projection-list
     $ N(Name)      ---% NU(Name:Url)
-    
-    < (LEFT.*)     ---% \1:run?p00=-lz&p01=-dd%3dLEF%54&p02=\1&p03=-dd%3dRIGH%54&p04=RIGHT&p05=-dd%3dINFIL%45&p06=INFILE&p07=-dd%3dOUTFIL%45&p08=OUTFILE~\1~RIGHT.base&p09=-ds%3d..\scripts\InnerDrilldown.nd
-		< (LEFT.*).**  ---% \1:run?p00=-lz&p01=-dd%3dLEF%54&p02=\1&p03=-dd%3dRIGH%54&p04=RIGHT&p05=-dd%3dINFIL%45&p06=INFILE&p07=-dd%3dOUTFIL%45&p08=OUTFILE~\1~RIGHT.base&p09=-ds%3d..\scripts\InnerDrilldown.nd
-    > (RIGHT.*)    ---% \1:run?p00=-lz&p01=-dd%3dLEF%54&p02=LEFT&p03=-dd%3dRIGH%54&p04=\1&p05=-dd%3dINFIL%45&p06=INFILE&p07=-dd%3dOUTFIL%45&p08=OUTFILE~LEFT~\1.base&p09=-ds%3d..\scripts\InnerDrilldown.nd
-		> (RIGHT.*).** ---% \1:run?p00=-lz&p01=-dd%3dLEF%54&p02=LEFT&p03=-dd%3dRIGH%54&p04=\1&p05=-dd%3dINFIL%45&p06=INFILE&p07=-dd%3dOUTFIL%45&p08=OUTFILE~LEFT~\1.base&p09=-ds%3d..\scripts\InnerDrilldown.nd
+
+                        // run -lz -dd=LEFT \1 -dd=RIGHT RIGHT -dd=INFILE INFILE -dd=OUTFILE OUTFILE~\1~RIGHT.base -ds=..\scripts\InnerDrillDown.nd
+    < (LEFT.*)     ---% \1:run?p00=-lz&p01=-dd%3dLEF%54&p02=\1&p03=-dd%3dRIGH%54&p04=RIGHT&p05=-dd%3dINFIL%45&p06=INFILE&p07=-dd%3dOUTFIL%45&p08=OUTFILE~\1~RIGHT.base&p09=-ds%3d..\scripts\InnerDrillDown.nd
+		< (LEFT.*).**  ---% \1:run?p00=-lz&p01=-dd%3dLEF%54&p02=\1&p03=-dd%3dRIGH%54&p04=RIGHT&p05=-dd%3dINFIL%45&p06=INFILE&p07=-dd%3dOUTFIL%45&p08=OUTFILE~\1~RIGHT.base&p09=-ds%3d..\scripts\InnerDrillDown.nd
+
+                        // run -lz -dd=LEFT LEFT -dd=RIGHT \1 -dd=INFILE INFILE -dd=OUTFILE OUTFILE~LEFT~\1.base -ds=..\scripts\InnerDrillDown.nd
+    > (RIGHT.*)    ---% \1:run?p00=-lz&p01=-dd%3dLEF%54&p02=LEFT&p03=-dd%3dRIGH%54&p04=\1&p05=-dd%3dINFIL%45&p06=INFILE&p07=-dd%3dOUTFIL%45&p08=OUTFILE~LEFT~\1.base&p09=-ds%3d..\scripts\InnerDrillDown.nd
+		> (RIGHT.*).** ---% \1:run?p00=-lz&p01=-dd%3dLEF%54&p02=LEFT&p03=-dd%3dRIGH%54&p04=\1&p05=-dd%3dINFIL%45&p06=INFILE&p07=-dd%3dOUTFIL%45&p08=OUTFILE~LEFT~\1.base&p09=-ds%3d..\scripts\InnerDrillDown.nd
+
 		! **         ---% :
 }
 INFILE

@@ -6,8 +6,8 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.Modifying {
     public class ItemAction {
-        // Group indexes                             1           2           3           4
-        private const string PATTERN_PATTERN = @"^\s*(.*)\s*->\s*(.*)\s*--\s*(.*)\s*=>\s*(.*)\s*$";
+        // Group indexes                             1               2               3               4
+        private const string PATTERN_PATTERN = @"^\s*([^\s]*)\s*->\s*([^\s]*)\s*--\s*([^\s]*)\s*=>\s*(.*)\s*$";
 
         private readonly DependencyMatch _atLeastOneIncomingDependencyMatch;
         private readonly ItemMatch _itemMatch;
@@ -18,7 +18,7 @@ namespace NDepCheck.Transforming.Modifying {
             Match match = Regex.Match(line ?? "", PATTERN_PATTERN);
             if (!match.Success) {
                 throw new ArgumentException(
-                    $"Unexpected dependency pattern '{line}' at {fullConfigFileName}/{startLineNo}");
+                    $"Invalid item-action '{line}' at {fullConfigFileName}/{startLineNo}");
             } else {
                 GroupCollection groups = match.Groups;
                 if (groups[1].Value != "") {

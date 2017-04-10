@@ -1,0 +1,18 @@
+// lib\NDepCheck\NDepCheck.exe -dd TOP Pharmatechnik -dd INFILE IXOSAllNAM.dip -ds dependencies\IXOSDrillDown.nd
+
+-dd LEFTHASH TOP
+-dd RIGHTHASH TOP
+-dd MARKFILE ..\files\top.dip
+
+INFILE
+
+-cf ModifyItems { 
+    -> TOP -- => +LEFTHASH +RIGHTHASH
+}
+-tf ModifyItems
+-wd MARKFILE
+
+-ds InnerDrillGraph.nd
+
+// Start Webserver
+////-http-run 1234 ..\files

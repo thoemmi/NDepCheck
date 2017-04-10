@@ -61,8 +61,8 @@ namespace NDepCheck {
         [NotNull]
         public Dictionary<string, string> GlobalVars { get; } = new Dictionary<string, string>();
 
-        [NotNull, ItemNotNull]
-        private readonly List<InputContext> _inputContexts = new List<InputContext>();
+        [NotNull]
+        private readonly Dictionary<string, InputContext> _inputContexts = new Dictionary<string, InputContext>();
 
         private readonly Stack<IEnumerable<Dependency>> _dependenciesWithoutInputContextStack =
             new Stack<IEnumerable<Dependency>>();
@@ -80,7 +80,7 @@ namespace NDepCheck {
         }
 
         [NotNull]
-        public IEnumerable<InputContext> InputContexts => _inputContexts;
+        public IEnumerable<InputContext> InputContexts => _inputContexts.Values;
 
         [NotNull]
         public List<InputOption> InputSpecs => _inputSpecs;
@@ -119,7 +119,7 @@ namespace NDepCheck {
             Dictionary<string, string> vars = GlobalVars;
             s = s ?? "";
             foreach (string key in vars.Keys.OrderByDescending(k => k.Length)) {
-                s = Regex.Replace(s, @"\b" + key + @"\b", vars[key]);
+                s = Regex.Replace(s, @"\b" + key + @"\b", vars[key] ?? "");
             }
             return s;
         }
@@ -129,10 +129,9 @@ namespace NDepCheck {
                 InputSpecs.SelectMany(i => i.CreateOrGetReaders(this, false)).OrderBy(r => r.FileName);
 
             foreach (var r in allReaders) {
-                InputContext inputContext = r.ReadOrGetDependencies(0);
-                if (inputContext != null) {
-                    // Newly read input
-                    _inputContexts.Add(inputContext);
+                InputContext inputContext;
+                if (!_inputContexts.TryGetValue(r.FileName, out inputContext)) {
+                    _inputContexts.Add(r.FileName, r.ReadDependencies(0));
                 }
             }
         }
@@ -155,12 +154,13 @@ namespace NDepCheck {
         }
 
         private IEnumerable<Dependency> GetAllDependencies() {
-            return _inputContexts.SelectMany(ic => ic.Dependencies).Concat(DependenciesWithoutInputContext);
+            return _inputContexts.Values.SelectMany(ic => ic.Dependencies).Concat(DependenciesWithoutInputContext);
         }
 
         [CanBeNull]
         public Dependency GetExampleDependency() {
-            return _inputContexts.SelectMany(ic => ic.Dependencies).Concat(DependenciesWithoutInputContext).FirstOrDefault();
+            ReadAllNotYetReadIn();
+            return _inputContexts.Values.SelectMany(ic => ic.Dependencies).Concat(DependenciesWithoutInputContext).FirstOrDefault();
         }
 
         private T GetOrCreatePlugin<T>([CanBeNull] string assemblyName, [CanBeNull] string pluginClassName)
@@ -291,12 +291,12 @@ namespace NDepCheck {
             int result = Program.OK_RESULT;
             int sum;
             if (transformer.RunsPerInputContext) {
-                foreach (var ic in _inputContexts) {
+                foreach (var ic in _inputContexts.Values) {
                     result = Transform(transformerOptions, transformer, ic.Filename, ic.Dependencies, "dependencies in file " + ic.Filename, newDependenciesCollector, result);
                 }
                 result = Transform(transformerOptions, transformer, "", DependenciesWithoutInputContext, "generated dependencies", newDependenciesCollector, result);
                 sum = 0;
-                foreach (var ic in _inputContexts) {
+                foreach (var ic in _inputContexts.Values) {
                     sum += ic.PushDependencies(newDependenciesCollector.Where(d => d.InputContext == ic));
                 }
                 sum +=
@@ -308,7 +308,7 @@ namespace NDepCheck {
                 sum = 0;
                 sum += PushDependenciesWithoutInputContext(newDependenciesCollector.ToArray());
                 // Also push on input contexts to keep all dependecy stacks synchronous
-                foreach (var ic in _inputContexts) {
+                foreach (var ic in _inputContexts.Values) {
                     sum += ic.PushDependencies(ic.Dependencies);
                 }
             }
@@ -339,7 +339,7 @@ namespace NDepCheck {
             if (_dependenciesWithoutInputContextStack.Count > 1) {
                 _dependenciesWithoutInputContextStack.Pop();
                 int sum = _dependenciesWithoutInputContextStack.Peek().Count();
-                foreach (var ic in _inputContexts) {
+                foreach (var ic in _inputContexts.Values) {
                     sum += ic.PopDependencies();
                 }
                 Log.WriteInfo($"{sum} dependencies");
@@ -434,7 +434,7 @@ namespace NDepCheck {
 
         public void LogAboutNDependencies(int maxCount, [CanBeNull] string pattern) {
             DependencyMatch m = pattern == null ? null : new DependencyMatch(pattern, IgnoreCase);
-            InputContext[] nonEmptyInputContexts = _inputContexts.Where(ic => ic.Dependencies.Any()).ToArray();
+            InputContext[] nonEmptyInputContexts = _inputContexts.Values.Where(ic => ic.Dependencies.Any()).ToArray();
             maxCount = Math.Max(3 * nonEmptyInputContexts.Length, maxCount);
             int depsPerContext = maxCount / (nonEmptyInputContexts.Length + 1);
             foreach (var ic in nonEmptyInputContexts) {
@@ -452,7 +452,7 @@ namespace NDepCheck {
         public void LogDependencyCount(string pattern) {
             DependencyMatch m = pattern == null ? null : new DependencyMatch(pattern, IgnoreCase);
             int sum = DependenciesWithoutInputContext.Count(d => m == null || m.Matches(d));
-            foreach (var ic in _inputContexts) {
+            foreach (var ic in _inputContexts.Values) {
                 sum += ic.Dependencies.Count(d => m == null || m.Matches(d));
             }
             Log.WriteInfo(sum + " dependencies" + (m == null ? "" : " matching " + pattern));

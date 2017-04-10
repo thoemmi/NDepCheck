@@ -200,7 +200,7 @@ Examples:
                 if (fullDipName != null) {
                     // Back projection
                     if (_dependenciesForBackProjection == null) {
-                        InputContext localContext = new DipReader(fullDipName).ReadOrGetDependencies(0);
+                        InputContext localContext = new DipReader(fullDipName).ReadDependencies(0);
                         if (localContext == null) {
                             throw new Exception("Internal Error: new DipReader() will always create new InputContext - cannot be null");
                         }

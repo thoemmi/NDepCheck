@@ -3,7 +3,7 @@
 -dd LEFT TOP
 -dd RIGHT TOP
 -dd OUTFILE ..\files\TOP
--ds InnerDrilldown.nd
+-ds InnerDrillDown.nd
 
 // Start Webserver
 -http-run 1234 ..\files

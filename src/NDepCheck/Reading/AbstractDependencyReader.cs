@@ -17,8 +17,6 @@ namespace NDepCheck.Reading {
     }
 
     public abstract class AbstractDependencyReader {
-        private InputContext _inputContext;
-
         [NotNull]
         protected readonly string _fileName;
 
@@ -41,17 +39,13 @@ namespace NDepCheck.Reading {
         /// <param name="depth"></param>
         /// <returns><c>null</c> if already read in</returns>
         [CanBeNull]
-        public InputContext ReadOrGetDependencies(int depth) {
-            if (_inputContext == null) {
-                _inputContext = new InputContext(FileName);
-                Dependency[] dependencies = ReadDependencies(_inputContext, depth).ToArray();
-                if (!dependencies.Any()) {
-                    Log.WriteWarning("No dependencies found in " + FileName);
-                }
-                return _inputContext;
-            } else {
-                return null;
+        public InputContext ReadDependencies(int depth) {
+            var inputContext = new InputContext(FileName);
+            Dependency[] dependencies = ReadDependencies(inputContext, depth).ToArray();
+            if (!dependencies.Any()) {
+                Log.WriteWarning("No dependencies found in " + FileName);
             }
+            return inputContext;
         }
     }
 }

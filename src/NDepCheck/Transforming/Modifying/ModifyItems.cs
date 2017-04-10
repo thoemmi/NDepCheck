@@ -109,7 +109,7 @@ Examples:
                 Dictionary<Item, IEnumerable<Dependency>> items2incoming =
                     Item.CollectIncomingDependenciesMap(dependencies);
                 Dictionary<Item, IEnumerable<Dependency>> items2outgoing =
-                    Item.CollectIncomingDependenciesMap(dependencies);
+                    Item.CollectOutgoingDependenciesMap(dependencies);
 
                 var allItems = new HashSet<Item>(items2incoming.Keys.Concat(items2outgoing.Keys));
 

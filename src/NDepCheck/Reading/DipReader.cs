@@ -52,7 +52,7 @@ namespace NDepCheck.Reading {
 
                             string[] properties = parts[1].Split(new[] { ';' }, 6);
                             int ct, questionableCt, badCt;
-                            var usage = Get(properties, 0);
+                            string dependencyMarkers = Get(properties, 0);
                             if (!int.TryParse(Get(properties, 1, "1"), out ct)) {
                                 throw new DipReaderException($"Cannot parse count '{Get(properties, 1)}'");
                             }
@@ -77,7 +77,7 @@ namespace NDepCheck.Reading {
                                 string.IsNullOrWhiteSpace(source[0])
                                     ? new TextFileSource(_fileName, lineNo)
                                     : new TextFileSource(source[0], sourceLine < 0 ? null : (int?)sourceLine),
-                                usage, ct, questionableCt, badCt, exampleInfo, inputContext);
+                                dependencyMarkers, ct, questionableCt, badCt, exampleInfo, inputContext);
 
                             result.Add(dependency);
                         } catch (DipReaderException ex) {
@@ -95,8 +95,8 @@ namespace NDepCheck.Reading {
         }
 
         [NotNull]
-        private Item GetOrCreateItem([NotNull] string part, [NotNull] Dictionary<Item, Item> items) {
-            Item item = CreateItem(part);
+        private Item GetOrCreateItem([NotNull] string s, [NotNull] Dictionary<Item, Item> items) {
+            Item item = CreateItem(s);
             Item foundItem;
             if (!items.TryGetValue(item, out foundItem)) {
                 items.Add(item, foundItem = item);

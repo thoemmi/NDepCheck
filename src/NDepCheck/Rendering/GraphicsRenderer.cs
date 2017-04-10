@@ -70,19 +70,24 @@ namespace NDepCheck.Rendering {
     }
 
     public abstract class GraphicsRenderer {
+        protected const string DEFAULT_HTML_FORMAT = "<!DOCTYPE html><html><body>{0}</body></html>";
+
         public static readonly Option WidthOption = new Option("gw", "gif-width", "#", "width of graphics in pixels", @default: "computed from height, or via minimal text size");
         public static readonly Option HeightOption = new Option("gh", "gif-height", "#", "height of graphics in pixels", @default: "computed from width, or via minimal text size");
         public static readonly Option MinTextHeightOption = new Option("mh", "minimal-text-height", "#", "minimal textheight in points (if -gif-width and -gif-height are not provided)", @default: "15");
         public static readonly Option TitleOption = new Option("st", "set-title", "&", "Title text shown in diagram", @default: "'ModulesAndInterfacesRenderer'");
+        public static readonly Option FormatOption = new Option("sf", "set-format", "&", ".Net format used to place HTML", @default: DEFAULT_HTML_FORMAT);
+        public static readonly Option FormatFileOption = new Option("ff", "format-file", "&", ".Net format used to place HTML", @default: "");
 
-        protected static readonly Option[] _allGraphicsRendererOptions = { WidthOption, HeightOption, MinTextHeightOption, TitleOption };
+        protected static readonly Option[] _allGraphicsRendererOptions = {
+            WidthOption, HeightOption, MinTextHeightOption,
+            TitleOption, FormatOption, FormatFileOption
+        };
 
         protected string GetHelpExplanations() =>
 @"  The fileName is used as a base name for writing a .gif file as well as an .html file, which contains
     the link and popup information.
 ";
-
-
     }
 
     public abstract class GraphicsRenderer<TItem, TDependency> : GraphicsRenderer, IRenderer<TDependency>
@@ -885,6 +890,7 @@ namespace NDepCheck.Rendering {
             int width = -1;
             int height = -1;
             int minTextHeight = 15;
+            string htmlFormat = DEFAULT_HTML_FORMAT;
             if (baseFileName == null || GlobalContext.IsConsoleOutFileName(baseFileName)) {
                 Option.Throw("Cannot write graphics file to Console.Out", argsAsString);
             }
@@ -901,7 +907,13 @@ namespace NDepCheck.Rendering {
                         minTextHeight = Option.ExtractIntOptionValue(args, ref j, "No valid text height");
                         return j;
                     }), TitleOption.Action((args, j) => {
-                        _title = Option.ExtractOptionValue(args, ref j);
+                        _title = Option.ExtractRequiredOptionValue(args, ref j, "Missing title");
+                        return j;
+                    }), FormatOption.Action((args, j) => {
+                        htmlFormat = Option.ExtractRequiredOptionValue(args, ref j, "Missing HTML format");
+                        return j;
+                    }), FormatFileOption.Action((args, j) => {
+                        htmlFormat = File.ReadAllText(Option.ExtractRequiredOptionValue(args, ref j, "Missing format file name"));
                         return j;
                     })}.Concat(additionalOptions).ToArray());
 
@@ -921,16 +933,12 @@ namespace NDepCheck.Rendering {
             string htmlFileName = GetHtmlFileName(baseFileName);
             using (var tw = new StreamWriter(htmlFileName)) {
                 Log.WriteInfo("Writing " + htmlFileName);
-                tw.WriteLine($@"<!DOCTYPE html>
-<html>
-<body>
-<img src=""{ Path.GetFileName(gifFileName)}"" width=""{width}"" height=""{height}"" usemap=""#map""/>
+                string html = string.Format(htmlFormat,
+                    $@"<img src=""{ Path.GetFileName(gifFileName)}"" width=""{width}"" height=""{height}"" usemap=""#map""/>
 <map name=""map"">
 {htmlForClicks}
-</map>
-</body>
-</html>
-");
+</map>");
+                tw.WriteLine(html);
             }
             return htmlFileName;
         }
