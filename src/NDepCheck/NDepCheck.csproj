@@ -117,6 +117,7 @@
     <Compile Include="Reading\FullDotNetAssemblyDependencyReader.cs" />
     <Compile Include="Gibraltar\StringReference.cs" />
     <Compile Include="Transforming\CycleChecking\FindCycleDeps.cs" />
+    <Compile Include="Transforming\DependencyCreating\AddAssociativeDeps.cs" />
     <Compile Include="Transforming\DependencyMatch.cs" />
     <Compile Include="Transforming\EffectOptions.cs" />
     <Compile Include="Transforming\ExtendedDependencyEffectOptions.cs" />
@@ -126,7 +127,7 @@
     <Compile Include="Transforming\SpecialNodeMarking\MarkSpecialItems .cs" />
     <Compile Include="Transforming\Modifying\ItemAction.cs" />
     <Compile Include="Transforming\Modifying\ModifyItems.cs" />
-    <Compile Include="Transforming\Reversing\AddReverseDeps.cs" />
+    <Compile Include="Transforming\DependencyCreating\AddReverseDeps.cs" />
     <Compile Include="Transforming\GraphTransformations\HideOuterGraph.cs" />
     <Compile Include="Transforming\GraphTransformations\AssociativeHull.cs" />
     <Compile Include="Reading\AbstractDotNetAssemblyDependencyReader.cs" />

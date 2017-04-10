@@ -86,13 +86,14 @@ Examples:
             );
         }
 
-        protected override IEnumerable<ItemAction> CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName, int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration) {
+        protected override IEnumerable<ItemAction> CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
+            int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration) {
 
             var actions = new List<ItemAction>();
             ProcessTextInner(globalContext, fullConfigFileName, startLineNo, tr, ignoreCase, fileIncludeStack, forceReloadConfiguration,
                 onIncludedConfiguration: (e, n) => actions.AddRange(e),
                 onLineWithLineNo: (line, lineNo) => {
-                    actions.Add(new ItemAction(line.Trim(), ignoreCase, fullConfigFileName, startLineNo));
+                    actions.Add(new ItemAction(globalContext.GetExampleDependency(), line.Trim(), ignoreCase, fullConfigFileName, startLineNo));
                     return true;
                 });
             return actions;

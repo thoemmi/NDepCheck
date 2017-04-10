@@ -2,7 +2,7 @@
 using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.Transforming.Modifying;
-using NDepCheck.Transforming.Reversing;
+using NDepCheck.Transforming.DependencyCreating;
 
 namespace NDepCheck.Tests {
     [TestClass]
@@ -14,7 +14,7 @@ namespace NDepCheck.Tests {
             Assert.AreEqual(0, Program.Main(new[] {
                 Program.TransformTestDataOption.Opt, ".", typeof(AddReverseDeps).Name, "{",
                     // Do not remove original: AddReverseDeps.RemoveOriginalOption.Opt,
-                    AddReverseDeps.MatchOption.Opt, "'inherit",
+                    AddReverseDeps.DependencyMatchOption.Opt, "'inherit",
                     AddReverseDeps.MarkerToAddOption.Opt, "derived",
                 "}",
                 Program.ConfigureOption.Opt, typeof(ModifyDeps).Name, "{",
@@ -39,7 +39,7 @@ namespace NDepCheck.Tests {
             Assert.AreEqual(0, Program.Main(new[] {
                 Program.TransformTestDataOption.Opt, ".", typeof(AddReverseDeps).Name, "{",
                     AddReverseDeps.RemoveOriginalOption.Opt, 
-                    AddReverseDeps.MatchOption.Opt, "'inherit",
+                    AddReverseDeps.DependencyMatchOption.Opt, "'inherit",
                     AddReverseDeps.MarkerToAddOption.Opt, "derived",
                 "}",
                 Program.ConfigureOption.Opt, typeof(ModifyDeps).Name, "{",

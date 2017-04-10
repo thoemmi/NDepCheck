@@ -13,6 +13,10 @@ namespace NDepCheck.Transforming {
             _markerPattern = new MarkerPattern(patternParts.Length > 1 ? patternParts[1] : "", ignoreCase);
         }
 
+        public ItemMatch([CanBeNull] Dependency typeHintOrNull, [NotNull] string pattern, bool ignoreCase)
+            : this(typeHintOrNull?.UsingItem.Type, pattern, ignoreCase) {
+        }
+
         public string[] Matches(Item item) {
             return _markerPattern.Match(item) ? _itempattern.Matches(item) : null;
         }

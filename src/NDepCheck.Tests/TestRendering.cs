@@ -239,18 +239,19 @@ namespace NDepCheck.Tests {
                     : /*circle*/ i => 100;
 
                 int n = 0;
+                var boxes = new Dictionary<Item, IBox>();
                 foreach (var i in items) {
                     int k = n++;
                     double phi = k * deltaAngle;
                     // Define position in polar coordinates with origin, radius (r) and angle (ohi).
                     var pos = new VariableVector("pos_" + k, Solver, r(k) * Math.Sin(phi), r(k) * Math.Cos(phi));
 
-                    i.DynamicData.Box = Box(pos, i.Name, B(i.Name).Restrict(F(null, _boxHeight), F(null, _boxHeight)), borderWidth: 2);
+                    boxes[i] = Box(pos, i.Name, B(i.Name).Restrict(F(null, _boxHeight), F(null, _boxHeight)), borderWidth: 2);
                 }
 
                 foreach (var d in dependencies) {
-                    IBox from = d.UsingItem.DynamicData.Box;
-                    IBox to = d.UsedItem.DynamicData.Box;
+                    IBox from = boxes[d.UsingItem];
+                    IBox to = boxes[d.UsedItem];
 
                     if (d.Ct > 0 && !Equals(d.UsingItem, d.UsedItem)) {
                         Arrow(from.GetBestConnector(to.Center), to.GetBestConnector(from.Center), 1, text: "#=" + d.Ct, textLocation: 0.2);
@@ -340,12 +341,11 @@ namespace NDepCheck.Tests {
                 IBox mainBox = r.Box(pos, text: name, boxAnchoring: BoxAnchoring.LowerLeft,
                     borderWidth: 5, boxColor: Color.Coral, name: name);
                 VariableVector interfacePos = mainBox.UpperLeft;
-                i.DynamicData.InterfaceBox = r.Box(interfacePos, text: name + ".I", minDiagonal: r.F(10, 200),
+                r.Box(interfacePos, text: name + ".I", minDiagonal: r.F(10, 200),
                     boxAnchoring: BoxAnchoring.LowerLeft, borderWidth: 1, boxColor: Color.Coral, name: name + ".I");
             });
         }
 
         #endregion Somewhat complex tests
-
     }
 }

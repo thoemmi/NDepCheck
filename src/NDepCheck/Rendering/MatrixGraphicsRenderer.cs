@@ -86,13 +86,15 @@ namespace NDepCheck.Rendering {
             Sort(yItems, relevantDependencies, (i, d) => d.UsingItem.Equals(i));
 
             double x = 50;
+            var xBoxes = new Dictionary<Item, IBox>();
+
             foreach (var ix in xItems) {
                 string name = GetName(ix);
                 var xPos = new VariableVector(name + ".POS", Solver);
                 IBox box = Box(xPos, boxAnchoring: BoxAnchoring.LowerLeft, text: name, borderWidth: 3, boxColor: Color.LemonChiffon, boxTextPlacement: BoxTextPlacement.LeftUp,
                                    textFont: _boxFont, drawingOrder: 1, fixingOrder: 4, htmlRef: GetXHtmlRef(ix));
                 xPos.SetX(x).SetY(-box.TextBox.Y);
-                ix.DynamicData.XBox = box;
+                xBoxes[ix] = box;
 
                 x += 40;
             }
@@ -109,7 +111,7 @@ namespace NDepCheck.Rendering {
 
                 double minBoxHeight = 30;
                 foreach (var d in relevantDependencies.Where(d => iy.Equals(d.UsingItem))) {
-                    IBox usedBox = d.UsedItem.DynamicData.XBox;
+                    IBox usedBox = xBoxes[d.UsedItem];
                     yPos += F(0, 3);
                     Arrow(yPos, new VariableVector(name + "->...", usedBox.LowerLeft.X, yPos.Y), width: 2,
                         color: d.NotOkCt > 0 ? Color.Red : d.QuestionableCt > 0 ? Color.Blue : Color.Black,

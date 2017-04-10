@@ -80,7 +80,7 @@ namespace NDepCheck {
     /// A token representing a complex name. 
     /// </remarks>
     public sealed class Item : ItemSegment, INode {
-        private AdditionalDynamicData _additionalDynamicData;
+        //private AdditionalDynamicData _additionalDynamicData;
 
         private string _asString;
         private string _asStringWithType;
@@ -106,7 +106,7 @@ namespace NDepCheck {
         /// during rendering in a <see cref="GraphicsDependencyRenderer"/> for associating various
         /// <see cref="IBox"/>es with an <see cref="Item"/>.
         /// </summary>
-        public dynamic DynamicData => _additionalDynamicData ?? (_additionalDynamicData = new AdditionalDynamicData(this));
+        //public dynamic DynamicData => _additionalDynamicData ?? (_additionalDynamicData = new AdditionalDynamicData(this));
 
         public string Order => _order;
 

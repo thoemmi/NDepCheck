@@ -46,7 +46,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
             Option.Parse(globalContext, transformOptions,
                 MatchOption.Action((args, j) => {
-                    matches.Add(new ItemMatch(null, Option.ExtractRequiredOptionValue(args, ref j, "missing match definition"), _ignoreCase));
+                    matches.Add(new ItemMatch(dependencies.FirstOrDefault(), Option.ExtractRequiredOptionValue(args, ref j, "missing match definition"), _ignoreCase));
                     return j;
                 }), MarkSingleCyclesOption.Action((args, j) => {
                     markSingleCycleNodes = true;

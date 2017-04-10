@@ -13,20 +13,20 @@ namespace NDepCheck.Transforming.Modifying {
         private readonly ItemMatch _usedMatch;
         private readonly IEnumerable<Action<Dependency>> _effects;
 
-        public DependencyAction(string line, bool ignoreCase, string fullConfigFileName, int startLineNo) {
+        public DependencyAction(Dependency dependencyForItemTypeGuessOrNull, string line, bool ignoreCase, string fullConfigFileName, int startLineNo) {
             Match match = Regex.Match(line ?? "", PATTERN_PATTERN);
             if (!match.Success) {
                 throw new ArgumentException($"Unexpected dependency pattern '{line}' at {fullConfigFileName}/{startLineNo}");
             } else {
                 GroupCollection groups = match.Groups;
                 if (groups[1].Value != "") {
-                    _usingMatch = new ItemMatch(null, groups[1].Value, ignoreCase);
+                    _usingMatch = new ItemMatch(dependencyForItemTypeGuessOrNull, groups[1].Value, ignoreCase);
                 }
                 if (groups[2].Value != "") {
                     _dependencyMatch = new DependencyMatch(groups[2].Value, ignoreCase);
                 }
                 if (groups[3].Value != "") {
-                    _usedMatch = new ItemMatch(null, groups[3].Value, ignoreCase);
+                    _usedMatch = new ItemMatch(dependencyForItemTypeGuessOrNull, groups[3].Value, ignoreCase);
                 }
                 if (groups[4].Value != "-" && groups[4].Value != "delete") {
                     var effects = new List<Action<Dependency>>();

@@ -114,6 +114,12 @@ namespace NDepCheck.Rendering {
             IEnumerable<Item> parents = items.Where(i => !IsMI(i));
             IEnumerable<Item> misWithoutParent = items.Where(i => IsMI(i) && parents.All(p => GetModule(p) != GetModule(i)));
 
+            var mainBoxes = new Dictionary<Item, IBox>();
+            var interfaceBoxes = new Dictionary<Item, IBox>();
+            var mainBoxesNextFreePos = new Dictionary<Item, VariableVector>();
+            var interfaceBoxesNextFreePos = new Dictionary<Item, VariableVector>();
+            var mainItems = new Dictionary<Item, Item>();
+
             // Main modules along diagonal, separated by itemDistance
             foreach (var i in parents.Concat(misWithoutParent).OrderBy(GetOrder)) {
                 string name = GetName(i);
@@ -130,8 +136,8 @@ namespace NDepCheck.Rendering {
                 //mainBox.Diagonal.Y.Min(40);
                 mainBox.Diagonal.Y.Max(60 + dependencies.Count(d => Equals(d.UsingItem, i)) * DELTA_Y_MAIN); // Help for solving
                 mainBox.Diagonal.Y.Min(10 + dependencies.Count(d => Equals(d.UsingItem, i)) * DELTA_Y_MAIN); // Help for solving
-                i.DynamicData.MainBox = mainBox;
-                i.DynamicData.MainBoxNextFreePos = mainBox.LowerLeft;
+                mainBoxes[i] = mainBox;
+                mainBoxesNextFreePos[i] = mainBox.LowerLeft;
                 {
                     IBox interfaceBox = Box(new VariableVector(name + ".I", Solver).SetX(mainBox.LowerLeft.X),
                                             text: "", boxAnchoring: BoxAnchoring.LowerLeft, borderWidth: 1,
@@ -141,9 +147,8 @@ namespace NDepCheck.Rendering {
                     interfaceBox.UpperLeft.MinY(mainBox.UpperLeft.Y + 7);
                     interfaceBox.LowerLeft.MaxY(mainBox.LowerLeft.Y - 7);
 
-                    i.DynamicData.InterfaceBox = interfaceBox;
-
-                    i.DynamicData.InterfaceBoxNextFreePos = mainBox.LowerLeft - F(0, 10);
+                    interfaceBoxes[i] = interfaceBox;
+                    interfaceBoxesNextFreePos[i] = mainBox.LowerLeft - F(0, 10);
                 }
 
                 NumericVariable interfacePos = Solver.CreateConstant("", 18);
@@ -154,8 +159,8 @@ namespace NDepCheck.Rendering {
                     var miBox = Box(miPos, text: GetName(mi), boxAnchoring: BoxAnchoring.UpperLeft,
                         boxTextPlacement: BoxTextPlacement.LeftUp, borderWidth: 1, boxColor: Color.LemonChiffon,
                         textFont: _interfaceFont, fixingOrder: 3);
-                    mi.DynamicData.MainItem = i;
-                    mi.DynamicData.InterfaceBox = miBox;
+                    mainItems[mi] = i;
+                    interfaceBoxes[mi] = miBox;
 
                     miBox.UpperLeft.MinY(mainBox.UpperLeft.Y + 7);
                     miBox.LowerLeft.MaxY(mainBox.LowerLeft.Y - miBox.TextBox.Y);
@@ -174,21 +179,21 @@ namespace NDepCheck.Rendering {
                 Item from = d.UsingItem;
                 Item to = d.UsedItem;
                 if (IsMI(from)) {
-                    IBox fromBox = from.DynamicData.InterfaceBox;
-                    Item mainItem = from.DynamicData.MainItem;
-                    VariableVector nextFreePos = mainItem.DynamicData.InterfaceBoxNextFreePos;
+                    IBox fromBox = interfaceBoxes[from];
+                    Item mainItem = mainItems[from];
+                    VariableVector nextFreePos = interfaceBoxesNextFreePos[mainItem];
 
                     VariableVector fromPos = new VariableVector(from + "->" + to, fromBox.LowerLeft.X, nextFreePos.Y);
-                    ArrowToInterfaceBox(fromBox, fromPos, to, d, "(I)");
+                    ArrowToInterfaceBox(fromBox, interfaceBoxes[to], fromPos, to, d, "(I)");
 
-                    mainItem.DynamicData.InterfaceBoxNextFreePos -= F(0, 15);
+                    interfaceBoxesNextFreePos[mainItem] -= F(0, 15);
                 } else {
-                    IBox mainBox = from.DynamicData.MainBox;
-                    VariableVector fromPos = from.DynamicData.MainBoxNextFreePos;
+                    IBox mainBox = mainBoxes[from];
+                    VariableVector fromPos = mainBoxesNextFreePos[from];
 
-                    ArrowToInterfaceBox(mainBox, fromPos, to, d, "");
+                    ArrowToInterfaceBox(mainBox, interfaceBoxes[to], fromPos, to, d, "");
 
-                    from.DynamicData.MainBoxNextFreePos += F(0, DELTA_Y_MAIN);
+                    mainBoxesNextFreePos[from] += F(0, DELTA_Y_MAIN);
 
                     itemDistance.MinY(fromPos.Y - mainBox.LowerLeft.Y);
 
@@ -202,8 +207,7 @@ namespace NDepCheck.Rendering {
             return ct >= 1000000 ? ct / 1000 + "M" : ct >= 1000 ? ct / 1000 + "K" : "" + ct;
         }
 
-        private void ArrowToInterfaceBox(IBox fromBox, VariableVector fromPos, Item to, Dependency d, string prefix) {
-            IBox toBox = to.DynamicData.InterfaceBox;
+        private void ArrowToInterfaceBox(IBox fromBox, IBox toBox, VariableVector fromPos, Item to, Dependency d, string prefix) {
             VariableVector toPos = toBox.GetBestConnector(fromPos).WithYOf(fromPos);
             fromPos = fromBox.GetBestConnector(toPos).WithYOf(fromPos);
             Arrow(fromPos, toPos, 1, color: d.NotOkCt > 0 ? Color.Red :

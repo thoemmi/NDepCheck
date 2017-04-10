@@ -98,7 +98,7 @@ Examples:
                 forceReloadConfiguration,
                 onIncludedConfiguration: (e, n) => actions.AddRange(e),
                 onLineWithLineNo: (line, lineNo) => {
-                    actions.Add(new DependencyAction(line.Trim(), ignoreCase, fullConfigFileName, startLineNo));
+                    actions.Add(new DependencyAction(globalContext.GetExampleDependency(), line.Trim(), ignoreCase, fullConfigFileName, startLineNo));
                     return true;
                 });
             return actions;

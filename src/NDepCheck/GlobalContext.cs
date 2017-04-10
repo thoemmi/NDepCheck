@@ -120,7 +120,7 @@ namespace NDepCheck {
 
             ReadAllNotYetReadIn();
 
-            IEnumerable<Dependency> allDependencies = GetAllDependencies();
+            Dependency[] allDependencies = GetAllDependencies().ToArray();
             string masterFileName = renderer.GetMasterFileName(this, rendererOptions, fileName);
             if (WorkLazily && File.Exists(masterFileName)) {
                 // we dont do anything - TODO check change dates of input files vs. the master file's last update date
@@ -133,7 +133,12 @@ namespace NDepCheck {
         }
 
         private IEnumerable<Dependency> GetAllDependencies() {
-            return _inputContexts.SelectMany(ic => ic.Dependencies).Concat(DependenciesWithoutInputContext).ToArray();
+            return _inputContexts.SelectMany(ic => ic.Dependencies).Concat(DependenciesWithoutInputContext);
+        }
+
+        [CanBeNull]
+        public Dependency GetExampleDependency() {
+            return _inputContexts.SelectMany(ic => ic.Dependencies).Concat(DependenciesWithoutInputContext).FirstOrDefault();
         }
 
         private T GetOrCreatePlugin<T>([CanBeNull] string assemblyName, [CanBeNull] string pluginClassName)
@@ -283,7 +288,7 @@ namespace NDepCheck {
                     PushDependenciesWithoutInputContext(
                         newDependenciesCollector.Where(d => d.InputContext == null).ToArray());
             } else {
-                result = transformer.Transform(this, "", GetAllDependencies(), transformerOptions, "all dependencies",
+                result = transformer.Transform(this, "", GetAllDependencies().ToArray(), transformerOptions, "all dependencies",
                     newDependenciesCollector);
                 sum = 0;
                 sum += PushDependenciesWithoutInputContext(newDependenciesCollector.ToArray());
@@ -429,7 +434,7 @@ namespace NDepCheck {
         }
 
         public void LogItemCount(string pattern) {
-            ItemMatch m = pattern == null ? null : new ItemMatch(null, pattern, IgnoreCase);
+            ItemMatch m = pattern == null ? null : new ItemMatch(GetExampleDependency(), pattern, IgnoreCase);
             IEnumerable<Item> allItems = new HashSet<Item>(GetAllDependencies().SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
             IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.Matches(m, i));
             Log.WriteInfo(matchingItems.Count() + " items" + (m == null ? "" : " matching " + pattern));

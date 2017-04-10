@@ -14,7 +14,7 @@ namespace NDepCheck.Transforming.Modifying {
         private readonly DependencyMatch _atLeastOneOutgoingDependencyMatch;
         private readonly IEnumerable<Action<Item>> _effects;
 
-        public ItemAction(string line, bool ignoreCase, string fullConfigFileName, int startLineNo) {
+        public ItemAction(Dependency dependencyForItemTypeGuessOrNull, string line, bool ignoreCase, string fullConfigFileName, int startLineNo) {
             Match match = Regex.Match(line ?? "", PATTERN_PATTERN);
             if (!match.Success) {
                 throw new ArgumentException(
@@ -25,7 +25,7 @@ namespace NDepCheck.Transforming.Modifying {
                     _atLeastOneIncomingDependencyMatch = new DependencyMatch(groups[1].Value, ignoreCase);
                 }
                 if (groups[2].Value != "") {
-                    _itemMatch = new ItemMatch(null, groups[2].Value, ignoreCase);
+                    _itemMatch = new ItemMatch(dependencyForItemTypeGuessOrNull, groups[2].Value, ignoreCase);
                 }
                 if (groups[3].Value != "") {
                     _atLeastOneOutgoingDependencyMatch = new DependencyMatch(groups[3].Value, ignoreCase);
