@@ -18,7 +18,7 @@ namespace NDepCheck.Transforming {
 
         public abstract void Configure(GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload);
 
-        public TConfigurationPerInputfile GetOrReadChildConfiguration(GlobalContext globalContext, 
+        public TConfigurationPerInputfile GetOrReadChildConfiguration(GlobalContext globalContext,
             Func<TextReader> createReader, string fullSourceName, bool ignoreCase, string fileIncludeStack, bool forceReload) {
             TConfigurationPerInputfile childConfiguration;
             if (forceReload || !_fileName2config.TryGetValue(fullSourceName, out childConfiguration)) {
@@ -41,12 +41,12 @@ namespace NDepCheck.Transforming {
             return new Uri(path).LocalPath;
         }
 
-        protected abstract TConfigurationPerInputfile CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName, 
+        protected abstract TConfigurationPerInputfile CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
             int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration);
 
         protected void ProcessTextInner(GlobalContext globalContext, string fullConfigFileName, int startLineNo, TextReader tr,
             bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
-            [NotNull] Action<TConfigurationPerInputfile,string> onIncludedConfiguration,
+            [NotNull] Action<TConfigurationPerInputfile, string> onIncludedConfiguration,
             [NotNull] Func<string, int, bool> onLineWithLineNo) {
 
             int lineNo = startLineNo;
@@ -65,13 +65,15 @@ namespace NDepCheck.Transforming {
                     } else if (line.StartsWith("+")) {
                         string includeFilename = line.Substring(1).Trim();
                         string fullIncludeFileName = Path.Combine(Path.GetDirectoryName(fullConfigFileName) ?? @"\", includeFilename);
-                        TConfigurationPerInputfile childConfiguration = GetOrReadChildConfiguration(globalContext,                             
+                        TConfigurationPerInputfile childConfiguration = GetOrReadChildConfiguration(globalContext,
                             () => new StreamReader(fullIncludeFileName), fullIncludeFileName,
                             ignoreCase, fileIncludeStack, forceReloadConfiguration);
                         onIncludedConfiguration(childConfiguration, fullConfigFileName);
                     } else if (line.Contains(ASSIGN)) {
-                        KeyValuePair<string, string> kvp = ParseVariableDefinition(fullConfigFileName, lineNo, line);
-                        globalContext.SetDefine(kvp.Key, kvp.Value, $"at {fullConfigFileName}:{lineNo}");
+                        KeyValuePair<string, string>? kvp = ParseVariableDefinition(fullConfigFileName, lineNo, line);
+                        if (kvp != null) {
+                            globalContext.SetDefine(kvp.Value.Key, kvp.Value.Value, $"at {fullConfigFileName}:{lineNo}");
+                        }
                     } else if (onLineWithLineNo(line, lineNo)) {
                         // line's content has been added to result as side-effect
                     } else {
@@ -83,24 +85,32 @@ namespace NDepCheck.Transforming {
             }
         }
 
-        private KeyValuePair<string, string> ParseVariableDefinition([NotNull] string ruleFileName, int lineNo, [NotNull] string line) {
+        private KeyValuePair<string, string>? ParseVariableDefinition([NotNull] string ruleFileName, int lineNo, [NotNull] string line) {
             int i = line.IndexOf(ASSIGN, StringComparison.Ordinal);
             string key = line.Substring(0, i).Trim();
-            if (key != key.ToUpper()) {
-                throw new ApplicationException("'" + key + "' at " + ruleFileName + ":" + lineNo + " is not uppercase-only");
-            }
             string value = line.Substring(i + ASSIGN.Length).Trim();
 
-            return new KeyValuePair<string, string>(key, value);
+            if (key == value) {
+                // This happens if the variable has been defined by multiply reading an input file; it is ok :-)
+                return null;
+            } else {
+                if (key != key.ToUpper()) {
+                    throw new ApplicationException("'" + key + "' at " + ruleFileName + ":" + lineNo + " is not uppercase-only");
+                }
+
+                return new KeyValuePair<string, string>(key, value);
+            }
         }
 
         #endregion Configure
 
         #region Transform
 
-        public abstract bool RunsPerInputContext { get; }
+        public abstract bool RunsPerInputContext {
+            get;
+        }
 
-        public abstract int Transform(GlobalContext globalContext, string dependenciesFileName, IEnumerable<Dependency> dependencies, 
+        public abstract int Transform(GlobalContext globalContext, string dependenciesFileName, IEnumerable<Dependency> dependencies,
             [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies);
 
         public abstract IEnumerable<Dependency> GetTestDependencies();

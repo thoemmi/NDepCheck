@@ -132,7 +132,7 @@
     <Compile Include="Transforming\GraphTransformations\AssociativeHull.cs" />
     <Compile Include="Reading\AbstractDotNetAssemblyDependencyReader.cs" />
     <Compile Include="InputContext.cs" />
-    <Compile Include="InputFileOption.cs" />
+    <Compile Include="InputOption.cs" />
     <Compile Include="GlobalContext.cs" />
     <Compile Include="DependencyHelper..cs" />
     <Compile Include="Reading\AbstractDependencyReader.cs" />

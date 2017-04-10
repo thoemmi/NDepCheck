@@ -18,8 +18,12 @@ namespace NDepCheck {
             FileName = fileName;
         }
 
-        public TextWriter Writer { get; }
-        public string FileName { get; }
+        public TextWriter Writer {
+            get;
+        }
+        public string FileName {
+            get;
+        }
 
         public void Dispose() {
             Writer?.Dispose();
@@ -28,17 +32,31 @@ namespace NDepCheck {
 
     public class GlobalContext {
         private const string HELP_SEPARATOR = "=============================================\r\n";
-        internal bool RenderingDone { get; set; }
-        internal bool TransformingDone { get; set; }
-        internal bool InputFilesOrTestDataSpecified { get; set; }
-        internal bool HelpShown { get; private set; }
+        internal bool RenderingDone {
+            get; set;
+        }
+        internal bool TransformingDone {
+            get; set;
+        }
+        internal bool InputFilesOrTestDataSpecified {
+            get; set;
+        }
+        internal bool HelpShown {
+            get; private set;
+        }
 
-        public bool ShowUnusedQuestionableRules { get; set; }
-        public bool ShowUnusedRules { get; set; }
-        public bool IgnoreCase { get; set; }
+        public bool ShowUnusedQuestionableRules {
+            get; set;
+        }
+        public bool ShowUnusedRules {
+            get; set;
+        }
+        public bool IgnoreCase {
+            get; set;
+        }
 
         [NotNull]
-        private readonly List<InputFileOption> _inputFileSpecs = new List<InputFileOption>();
+        private readonly List<InputOption> _inputSpecs = new List<InputOption>();
 
         [NotNull]
         public Dictionary<string, string> GlobalVars { get; } = new Dictionary<string, string>();
@@ -65,11 +83,15 @@ namespace NDepCheck {
         public IEnumerable<InputContext> InputContexts => _inputContexts;
 
         [NotNull]
-        public List<InputFileOption> InputFileSpecs => _inputFileSpecs;
+        public List<InputOption> InputSpecs => _inputSpecs;
 
-        public bool WorkLazily { get; set; }
+        public bool WorkLazily {
+            get; set;
+        }
 
-        public string Name { get; }
+        public string Name {
+            get;
+        }
 
         private static int _cxtId = 0;
 
@@ -80,8 +102,7 @@ namespace NDepCheck {
 
         public void CreateInputOption(string filePattern, string negativeFilePattern, string assembly,
             string readerClass) {
-            _inputFileSpecs.Add(new InputFileOption(filePattern, negativeFilePattern,
-                GetOrCreatePlugin<IReaderFactory>(assembly, readerClass)));
+            _inputSpecs.Add(new InputFileOption(filePattern, negativeFilePattern, GetOrCreatePlugin<IReaderFactory>(assembly, readerClass)));
         }
 
         public void SetDefine(string key, string value, string location) {
@@ -105,7 +126,8 @@ namespace NDepCheck {
 
         public void ReadAllNotYetReadIn() {
             IEnumerable<AbstractDependencyReader> allReaders =
-                InputFileSpecs.SelectMany(i => i.CreateOrGetReaders(this, false)).OrderBy(r => r.FileName);
+                InputSpecs.SelectMany(i => i.CreateOrGetReaders(this, false)).OrderBy(r => r.FileName);
+
             foreach (var r in allReaders) {
                 InputContext inputContext = r.ReadOrGetDependencies(0);
                 if (inputContext != null) {
@@ -159,9 +181,9 @@ namespace NDepCheck {
             }
             try {
                 // plugins can have state, therefore we must manage them
-                T result = (T)_plugins.FirstOrDefault(t => t.GetType() == pluginType);
+                T result = (T) _plugins.FirstOrDefault(t => t.GetType() == pluginType);
                 if (result == null) {
-                    _plugins.Add(result = (T)Activator.CreateInstance(pluginType));
+                    _plugins.Add(result = (T) Activator.CreateInstance(pluginType));
                 }
                 return result;
             } catch (Exception ex) {
@@ -223,7 +245,7 @@ namespace NDepCheck {
             var matched = new List<Type>();
             foreach (var t in pluginTypes) {
                 try {
-                    T renderer = (T)Activator.CreateInstance(t);
+                    T renderer = (T) Activator.CreateInstance(t);
                     string help = t.FullName + ":\r\n" + renderer.GetHelp(detailedHelp: false, filter: "");
                     if (help.IndexOf(filter ?? "", StringComparison.InvariantCultureIgnoreCase) >= 0) {
                         Log.WriteInfo(HELP_SEPARATOR + help + "\r\n");
@@ -270,16 +292,9 @@ namespace NDepCheck {
             int sum;
             if (transformer.RunsPerInputContext) {
                 foreach (var ic in _inputContexts) {
-                    string dependencySourceForLogging = "dependencies in file " + ic.Filename;
-                    int r = transformer.Transform(this, ic.Filename, ic.Dependencies, transformerOptions,
-                        dependencySourceForLogging, newDependenciesCollector);
-                    result = Math.Max(result, r);
+                    result = Transform(transformerOptions, transformer, ic.Filename, ic.Dependencies, "dependencies in file " + ic.Filename, newDependenciesCollector, result);
                 }
-                {
-                    int r = transformer.Transform(this, "", DependenciesWithoutInputContext, transformerOptions,
-                        "generated dependencies", newDependenciesCollector);
-                    result = Math.Max(result, r);
-                }
+                result = Transform(transformerOptions, transformer, "", DependenciesWithoutInputContext, "generated dependencies", newDependenciesCollector, result);
                 sum = 0;
                 foreach (var ic in _inputContexts) {
                     sum += ic.PushDependencies(newDependenciesCollector.Where(d => d.InputContext == ic));
@@ -299,6 +314,19 @@ namespace NDepCheck {
             }
             Log.WriteInfo($"{sum} dependencies");
 
+            return result;
+        }
+
+        private int Transform(string transformerOptions, ITransformer transformer, string dependenciesFilename, IEnumerable<Dependency> dependencies,
+            string dependencySourceForLogging, List<Dependency> newDependenciesCollector, int result) {
+            try {
+                int r = transformer.Transform(this, dependenciesFilename, dependencies, transformerOptions,
+                    dependencySourceForLogging, newDependenciesCollector);
+                result = Math.Max(result, r);
+            } catch (Exception ex) {
+                Log.WriteError($"Error while transforming '{dependencySourceForLogging}': {ex.GetType().Name} - {ex.Message}");
+                result = Program.EXCEPTION_RESULT;
+            }
             return result;
         }
 
@@ -327,7 +355,7 @@ namespace NDepCheck {
             _dependenciesWithoutInputContextStack.Clear();
             _dependenciesWithoutInputContextStack.Push(Enumerable.Empty<Dependency>());
 
-            _inputFileSpecs.Clear();
+            _inputSpecs.Clear();
 
             RenderingDone = false;
             TransformingDone = false;
@@ -340,11 +368,11 @@ namespace NDepCheck {
         }
 
         public AbstractDotNetAssemblyDependencyReader GetDotNetAssemblyReaderFor(string usedAssembly) {
-            return FirstMatchingReader(usedAssembly, _inputFileSpecs, needsOnlyItemTails: false);
+            return FirstMatchingReader(usedAssembly, _inputSpecs, needsOnlyItemTails: false);
         }
 
         private AbstractDotNetAssemblyDependencyReader FirstMatchingReader(string usedAssembly,
-            List<InputFileOption> fileOptions, bool needsOnlyItemTails) {
+            List<InputOption> fileOptions, bool needsOnlyItemTails) {
             AbstractDotNetAssemblyDependencyReader result =
                 fileOptions.SelectMany(i => i.CreateOrGetReaders(this, needsOnlyItemTails))
                     .OfType<AbstractDotNetAssemblyDependencyReader>()

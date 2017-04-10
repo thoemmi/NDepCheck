@@ -195,6 +195,9 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                         Log.WriteWarning($"Cannot access files in {root} ({ex.Message})");
                     }
                 }
+
+                fullRuleFileNames = fullRuleFileNames.Distinct().ToList();
+
                 if (!fullRuleFileNames.Any()) {
                     fullRuleFileNames = new List<string> { Path.GetFullPath(dependenciesFileName) + _ruleFileExtension };
                 }

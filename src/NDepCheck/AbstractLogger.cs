@@ -44,7 +44,7 @@ namespace NDepCheck {
             if (dependency.BadCt > 0) {
                 WriteError(FormatMessage(dependency, dependency.BadDependencyMessage()));
             } else if (dependency.QuestionableCt > 0) {
-                WriteWarning(FormatMessage(dependency, dependency.BadDependencyMessage()));
+                WriteWarning(FormatMessage(dependency, dependency.QuestionableDependencyMessage()));
             }
         }
 
