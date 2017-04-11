@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Gibraltar;
 using JetBrains.Annotations;
 using NDepCheck.Calculating;
 using NDepCheck.Reading;
@@ -363,6 +362,8 @@ namespace NDepCheck {
             ItemType.Reset();
             Item.Reset();
             AbstractDotNetAssemblyDependencyReader.Reset();
+
+            GlobalVars.Clear();
         }
 
         public AbstractDotNetAssemblyDependencyReader GetDotNetAssemblyReaderFor(string usedAssembly) {

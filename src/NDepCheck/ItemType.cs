@@ -11,7 +11,7 @@ namespace NDepCheck {
         private static readonly Dictionary<string, ItemType> _allTypes = new Dictionary<string, ItemType>();
 
         [NotNull]
-        public static readonly ItemType SIMPLE = New("SIMPLE", new[] { "Name" }, new[] { "" });
+        public static readonly ItemType SIMPLE = New("SIMPLE", new[] { "Name" }, new[] { "" }, matchesOnFieldNr: true);
 
         [NotNull]
         public static ItemType Generic(int fieldNr) {
@@ -21,11 +21,17 @@ namespace NDepCheck {
             return fieldNr == 1 ? SIMPLE : 
                 New("GENERIC_" + fieldNr, 
                         Enumerable.Range(1, fieldNr).Select(i => "Field_" + i).ToArray(),
-                        Enumerable.Range(1, fieldNr).Select(i => "").ToArray());
+                        Enumerable.Range(1, fieldNr).Select(i => "").ToArray(), matchesOnFieldNr: true);
         }
 
         [NotNull]
         public readonly string Name;
+
+        /// <summary>
+        /// Only for types created with <see cref="Generic"/>, the comparison is done on the number of fields.
+        /// Reason: These types are used for item creation if no type is known.
+        /// </summary>
+        private readonly bool _matchesOnFieldNr;
 
         [NotNull]
         public readonly string[] Keys;
@@ -33,7 +39,7 @@ namespace NDepCheck {
         [NotNull]
         public readonly string[] SubKeys;
 
-        private ItemType([NotNull]string name, [NotNull]string[] keys, [NotNull]string[] subKeys) {
+        private ItemType([NotNull] string name, [NotNull] string[] keys, [NotNull] string[] subKeys, bool matchesOnFieldNr) {
             if (keys.Length == 0) {
                 throw new ArgumentException("keys.Length must be > 0", nameof(keys));
             }
@@ -47,6 +53,11 @@ namespace NDepCheck {
             Keys = keys.Select(s => s?.Trim()).ToArray();
             SubKeys = subKeys.Select(s => s?.Trim()).ToArray();
             Name = name;
+            _matchesOnFieldNr = matchesOnFieldNr;
+        }
+
+        public bool Matches(ItemType other) {
+            return _matchesOnFieldNr || other._matchesOnFieldNr ? Keys.Length == other.Keys.Length : Equals(this, other);
         }
 
         public static ItemType Find([NotNull] string name) {
@@ -55,10 +66,10 @@ namespace NDepCheck {
             return result;
         }
 
-        public static ItemType New([NotNull] string name, [NotNull, ItemNotNull] string[] keys, [NotNull, ItemNotNull] string[] subKeys) {
+        public static ItemType New([NotNull] string name, [NotNull, ItemNotNull] string[] keys, [NotNull, ItemNotNull] string[] subKeys, bool matchesOnFieldNr = false) {
             ItemType result;
             if (!_allTypes.TryGetValue(name, out result)) {
-                _allTypes.Add(name, result = new ItemType(name, keys, subKeys));
+                _allTypes.Add(name, result = new ItemType(name, keys, subKeys, matchesOnFieldNr));
             }
             return result;
         }
