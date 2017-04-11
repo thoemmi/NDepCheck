@@ -657,6 +657,9 @@ namespace NDepCheck {
             } else if (filter.StartsWith("dep")) {
                 Console.Out.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck dependency patterns");
                 return exitValue;
+            } else if (filter.StartsWith("marker")) {
+                Console.Out.WriteLine(ObjectWithMarkers.HELP);
+                return exitValue;
             } else if (filter.StartsWith("type")) {
                 Console.Out.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck item types");
                 return exitValue;

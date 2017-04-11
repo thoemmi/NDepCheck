@@ -1,6 +1,6 @@
 // DrillGraph.nd
 
-// This is harder than DrillDown.nd, as we cannot remember the item sets with simple patterns (LEFT and RIGHT).
+// This is harder than DrillName.nd, as we cannot remember the item sets with simple patterns (LEFT and RIGHT).
 // So, we remember them in a dip file with markers. The markers must also somehow be "built top-down" - hashes help with that.
 //
 // MARKFILE

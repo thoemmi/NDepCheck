@@ -92,7 +92,6 @@
       <Link>CommonAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="AbstractLogger.cs" />
-    <Compile Include="AdditionalDynamicData.cs" />
     <Compile Include="Annotations.cs" />
     <Compile Include="Calculating\GetHash.cs" />
     <Compile Include="Calculating\ICalculator.cs" />

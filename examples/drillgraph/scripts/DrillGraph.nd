@@ -1,4 +1,4 @@
-// lib\NDepCheck\NDepCheck.exe -dd TOP Pharmatechnik -dd INFILE IXOSAllNAM.dip -ds dependencies\IXOSDrillDown.nd
+// lib\NDepCheck\NDepCheck.exe -dd TOP Pharmatechnik -dd INFILE IXOSAllNAM.dip -ds dependencies\IXOSDrillGraph.nd
 
 -dd LEFTHASH TOP
 -dd RIGHTHASH TOP

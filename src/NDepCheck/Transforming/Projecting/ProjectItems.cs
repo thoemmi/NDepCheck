@@ -221,7 +221,7 @@ Examples:
                             if (_dependenciesForBackProjection.TryGetValue(projectedEdgeFromTo, out replaceDataEdge)) {
                                 d.ResetBad();
                                 d.ResetQuestionable();
-                                d.AggregateCounts(replaceDataEdge);
+                                d.AggregateMarkersAndCounts(replaceDataEdge);
                                 backProjected.Add(d);
                             }
                             // else not back projected -> Warning?

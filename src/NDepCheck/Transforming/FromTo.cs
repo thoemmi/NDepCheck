@@ -26,7 +26,7 @@ namespace NDepCheck.Transforming {
                 result = new Dependency(From, To, d.Source, d.Markers, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo);
                 edgeCollector.Add(this, result);
             } else {
-                result.AggregateCounts(d);
+                result.AggregateMarkersAndCounts(d);
             }
             return this;
         }

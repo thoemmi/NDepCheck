@@ -10,8 +10,9 @@ namespace NDepCheck.Transforming.DependencyCreating {
         public static readonly Option IdempotentOption = new Option("ip", "idempotent", "", "Do not add if dependency with provided marker already exists", @default: false);
         public static readonly Option FromItemsOption = new Option("fi", "from-items-match", "&", "If present, original dependency of a newly created reverse dependency is removed", @default: "all items are matched", multiple: true);
         public static readonly Option ToItemsOption = new Option("ti", "to-items-match", "&", "If present, original dependency of a newly created reverse dependency is removed", @default: "all items are matched", multiple: true);
+        //public static readonly Option MaxSpanLengthOption = new Option("ml", "max-length", "#", "maximum number of edges collapsed", @default: "arbitrary length");
 
-        private static readonly Option[] _transformOptions = 
+        private static readonly Option[] _transformOptions =
             { DependencyMatchOption, /*RemoveOriginalOption,*/ MarkerToAddOption, IdempotentOption, FromItemsOption, ToItemsOption };
 
         private bool _ignoreCase;
@@ -36,7 +37,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             var dependencyMatches = new List<DependencyMatch>();
             var fromItemMatches = new List<ItemMatch>();
             var toItemMatches = new List<ItemMatch>();
-            string markerToAdd = null;
+            var markersToAdd = new List<string>();
             //bool removeOriginal = false;
             bool idempotent = false;
 
@@ -62,18 +63,19 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 //    return j;
                 //}),
                 MarkerToAddOption.Action((args, j) => {
-                    markerToAdd = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim();
+                    markersToAdd.Add(Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim());
                     return j;
                 }));
 
-            DependencyMatch idempotentMatch = markerToAdd == null ? null : new DependencyMatch("'" + markerToAdd, _ignoreCase);
+            DependencyMatch idempotentMatch = new DependencyMatch("'" + string.Join("+", markersToAdd), _ignoreCase);
             Dictionary<FromTo, Dependency> checkPresence = idempotent ? FromTo.AggregateAllEdges(dependencies) : new Dictionary<FromTo, Dependency>();
             Dictionary<Item, IEnumerable<Dependency>> outgoing = Item.CollectOutgoingDependenciesMap(dependencies);
             var matchingFroms = outgoing.Keys.Where(i => Matches(fromItemMatches, i));
 
             var result = new List<Dependency>();
             foreach (var from in matchingFroms) {
-                RecursivelyFlood(from, from, new HashSet<Item> {from}, checkPresence, idempotentMatch, outgoing, toItemMatches, dependencyMatches, markerToAdd, result);
+                RecursivelyFlood(from, from, new HashSet<Item> { from }, checkPresence, idempotentMatch, outgoing,
+                                 toItemMatches, dependencyMatches, markersToAdd, result, null);
             }
 
             transformedDependencies.AddRange(dependencies);
@@ -90,30 +92,35 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             return !dependencyMatches.Any() || dependencyMatches.Any(m => m.Matches(d));
         }
 
-        private void RecursivelyFlood(Item root, Item from, HashSet<Item> visited, Dictionary<FromTo, Dependency> checkPresence, 
+        private void RecursivelyFlood(Item root, Item from, HashSet<Item> visited, Dictionary<FromTo, Dependency> checkPresence,
             DependencyMatch idempotentMatch, Dictionary<Item, IEnumerable<Dependency>> outgoing, IEnumerable<ItemMatch> toItemMatches,
-            List<DependencyMatch> dependencyMatches, string markerToAddOrNull, List<Dependency> result) {
+            List<DependencyMatch> dependencyMatches, IEnumerable<string> markersToAddOrNull, List<Dependency> result, Dependency collectedEdge) {
             if (outgoing.ContainsKey(from)) {
                 foreach (var d in outgoing[from].Where(d => Matches(dependencyMatches, d))) {
                     Item target = d.UsedItem;
                     if (visited.Add(target)) {
                         if (Matches(toItemMatches, target)) {
                             Dependency alreadyThere;
-                            var fromTo = new FromTo(@from, target);
-                            if (checkPresence.TryGetValue(fromTo, out alreadyThere) &&
-                                idempotentMatch.Matches(alreadyThere)) {
+                            var fromTo = new FromTo(from, target);
+                            if (checkPresence.TryGetValue(fromTo, out alreadyThere) && idempotentMatch.Matches(alreadyThere)) {
                                 // we do not add a dependency
                             } else {
-                                var newDependency = new Dependency(root, target, d.Source, markerToAddOrNull, d.Ct,
-                                                        d.QuestionableCt, d.BadCt, d.ExampleInfo, d.InputContext);
-                                checkPresence[fromTo] = newDependency;
-                                result.Add(newDependency);
+                                //var newDependency = new Dependency(root, target, d.Source, markersToAddOrNull, d.Ct,
+                                //                        d.QuestionableCt, d.BadCt, d.ExampleInfo, d.InputContext);
+                                checkPresence[fromTo] = collectedEdge;
+                                result.Add(collectedEdge);
                             }
                         }
-                        
+
                         // Continue search
-                        RecursivelyFlood(root, from, visited, checkPresence, idempotentMatch, outgoing, 
-                                         toItemMatches, dependencyMatches, markerToAddOrNull, result);
+                        RecursivelyFlood(root, from, visited, checkPresence, idempotentMatch, outgoing,
+                                            toItemMatches, dependencyMatches, markersToAddOrNull, result,
+                                            collectedEdge == null 
+                                                ? d 
+                                                : new Dependency(root, target, d.Source,
+                                                        markersToAddOrNull ?? ObjectWithMarkers.ConcatOrUnionWithMarkers(collectedEdge.Markers, d.Markers, _ignoreCase),
+                                                        collectedEdge.Ct + d.Ct, collectedEdge.QuestionableCt + d.QuestionableCt, 
+                                                        collectedEdge.BadCt + d.BadCt, d.ExampleInfo, d.InputContext));
                     }
                 }
             }

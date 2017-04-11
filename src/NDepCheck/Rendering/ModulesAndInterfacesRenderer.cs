@@ -184,14 +184,14 @@ namespace NDepCheck.Rendering {
                     VariableVector nextFreePos = interfaceBoxesNextFreePos[mainItem];
 
                     VariableVector fromPos = new VariableVector(from + "->" + to, fromBox.LowerLeft.X, nextFreePos.Y);
-                    ArrowToInterfaceBox(fromBox, interfaceBoxes[to], fromPos, to, d, "(I)");
+                    ArrowToInterfaceBox(fromBox, interfaceBoxes[to], fromPos, d, "(I)");
 
                     interfaceBoxesNextFreePos[mainItem] -= F(0, 15);
                 } else {
                     IBox mainBox = mainBoxes[from];
                     VariableVector fromPos = mainBoxesNextFreePos[from];
 
-                    ArrowToInterfaceBox(mainBox, interfaceBoxes[to], fromPos, to, d, "");
+                    ArrowToInterfaceBox(mainBox, interfaceBoxes[to], fromPos, d, "");
 
                     mainBoxesNextFreePos[from] += F(0, DELTA_Y_MAIN);
 
@@ -207,7 +207,7 @@ namespace NDepCheck.Rendering {
             return ct >= 1000000 ? ct / 1000 + "M" : ct >= 1000 ? ct / 1000 + "K" : "" + ct;
         }
 
-        private void ArrowToInterfaceBox(IBox fromBox, IBox toBox, VariableVector fromPos, Item to, Dependency d, string prefix) {
+        private void ArrowToInterfaceBox(IBox fromBox, IBox toBox, VariableVector fromPos, Dependency d, string prefix) {
             VariableVector toPos = toBox.GetBestConnector(fromPos).WithYOf(fromPos);
             fromPos = fromBox.GetBestConnector(toPos).WithYOf(fromPos);
             Arrow(fromPos, toPos, 1, color: d.NotOkCt > 0 ? Color.Red :

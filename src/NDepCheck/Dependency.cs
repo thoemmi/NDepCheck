@@ -212,8 +212,8 @@ namespace NDepCheck {
                  + $"{EdgeConstants.DIP_ARROW} {_usedItem.AsStringWithOrderAndType()}";
         }
 
-        public void AggregateCounts(Dependency d) {
-            AddMarkers(d.Markers);
+        public void AggregateMarkersAndCounts(Dependency d) {
+            UnionWithMarkers(d.Markers);
             _ct += d.Ct;
             _questionableCt += d.QuestionableCt;
             _badCt += d.BadCt;

@@ -1,9 +1,0 @@
-// lib\NDepCheck\NDepCheck.exe -dd TOP Pharmatechnik -dd INFILE IXOSAllNAM.dip -ds dependencies\IXOSDrillDown.nd
-
--dd LEFT TOP
--dd RIGHT TOP
--dd OUTFILE ..\files\TOP
--ds InnerDrillDown.nd
-
-// Start Webserver
--http-run 1234 ..\files

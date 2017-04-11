@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace NDepCheck {
@@ -7,8 +6,8 @@ namespace NDepCheck {
         public HashSet<string> Absent { get; }
 
         public MarkerPattern(string s, bool ignoreCase) {
-            Present = new HashSet<string>(GetComparer(ignoreCase));
-            Absent = new HashSet<string>(GetComparer(ignoreCase));
+            Present = new HashSet<string>(ObjectWithMarkers.GetComparer(ignoreCase));
+            Absent = new HashSet<string>(ObjectWithMarkers.GetComparer(ignoreCase));
             string[] elements = s.Split('&');
             foreach (var e in elements) {
                 string element = e.Trim();
@@ -23,12 +22,8 @@ namespace NDepCheck {
         }
 
         public MarkerPattern(IEnumerable<string> present, IEnumerable<string> absent, bool ignoreCase) {
-            Present = new HashSet<string>(present, GetComparer(ignoreCase));
-            Absent = new HashSet<string>(absent, GetComparer(ignoreCase));
-        }
-
-        private static StringComparer GetComparer(bool ignoreCase) {
-            return ignoreCase ? StringComparer.InvariantCultureIgnoreCase : StringComparer.InvariantCulture;
+            Present = new HashSet<string>(present, ObjectWithMarkers.GetComparer(ignoreCase));
+            Absent = new HashSet<string>(absent, ObjectWithMarkers.GetComparer(ignoreCase));
         }
 
         public bool Match(ObjectWithMarkers obj) {
