@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
 using Mono.Cecil;
@@ -30,13 +31,17 @@ namespace NDepCheck.Reading {
         }
 
         protected IEnumerable<RawDependency> ReadRawDependencies(int depth) {            
-            Log.WriteInfo(new string(' ', 2 * depth) + "Reading " + _fileName);
-            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(_fileName);
+            Log.WriteInfo(new string(' ', 2 * depth) + "Reading " + _fullFileName);
+            var resolver = new DefaultAssemblyResolver();
+            resolver.AddSearchDirectory(Path.GetDirectoryName(_fullFileName));
+            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(_fullFileName, new ReaderParameters {
+                AssemblyResolver = resolver
+            });
 
             try {
                 assembly.MainModule.ReadSymbols();
             } catch (Exception ex) {
-                Log.WriteWarning($"Loading symbols for assembly {_fileName} failed - maybe .PDB file is missing. ({ex.Message})", _fileName, 0);
+                Log.WriteWarning($"Loading symbols for assembly {_fullFileName} failed - maybe .PDB file is missing. ({ex.Message})", _fullFileName, 0);
             }
 
             ItemTail customSections = GetCustomSections(assembly.CustomAttributes, null);
