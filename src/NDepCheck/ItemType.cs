@@ -107,7 +107,7 @@ namespace NDepCheck {
         }
 
         public static ItemType New(string format) {
-            string[] parts = format.Split(':', ' ', '(', ')');
+            string[] parts = format.Split(':', ';', ' ', '(', ')');
             return New(parts[0], parts.Skip(1).Where(p => p != "").ToArray());
         }
 

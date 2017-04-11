@@ -18,6 +18,9 @@ namespace NDepCheck {
 
         protected ItemSegment([NotNull] ItemType type, [NotNull] string[] values) : base(markers: null) {
             _type = type;
+            if (values.Length < type.Length) {
+                values = values.Concat(Enumerable.Range(0, type.Length - values.Length).Select(i => "")).ToArray();
+            }
             Values = values.Select(v => v == null ? null : string.Intern(v)).ToArray();
         }
 
@@ -88,8 +91,8 @@ namespace NDepCheck {
 
         private Item([NotNull] ItemType type, string[] values)
             : base(type, values) {
-            if (type.Length != values.Length) {
-                throw new ArgumentException("keys.Length != values.Length", nameof(values));
+            if (type.Length < values.Length) {
+                throw new ArgumentException($"ItemType '{type.Name}' is defined as '{type}' with {type.Length} fields, but item is created with {values.Length} fields '{string.Join(":", values)}'", nameof(values));
             }
         }
 
@@ -160,20 +163,20 @@ namespace NDepCheck {
 
         [NotNull]
         public Item Append([CanBeNull] ItemTail additionalValues) {
-            return additionalValues == null ? this : new Item(additionalValues.Type, Values.Concat(additionalValues.Values).ToArray()).SetOrder(Order);
+            return additionalValues == null ? this : new Item(additionalValues.Type, Values.Concat(additionalValues.Values.Skip(Type.Length)).ToArray()).SetOrder(Order);
         }
 
         public static Dictionary<Item, IEnumerable<Dependency>> CollectIncomingDependenciesMap(IEnumerable<Dependency> dependencies) {
             return CollectMap(dependencies, d => d.UsedItem, d => d)
-                    .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<Dependency>)kvp.Value);
+                    .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<Dependency>) kvp.Value);
         }
 
         public static Dictionary<Item, IEnumerable<Dependency>> CollectOutgoingDependenciesMap(IEnumerable<Dependency> dependencies) {
             return CollectMap(dependencies, d => d.UsingItem, d => d)
-                    .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<Dependency>)kvp.Value);
+                    .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<Dependency>) kvp.Value);
         }
 
-        public static Dictionary<Item, List<T>> CollectMap<T>(IEnumerable<Dependency> dependencies, 
+        public static Dictionary<Item, List<T>> CollectMap<T>(IEnumerable<Dependency> dependencies,
                                             Func<Dependency, Item> getItem, Func<Dependency, T> createT) {
             var result = new Dictionary<Item, List<T>>();
             foreach (var d in dependencies) {
