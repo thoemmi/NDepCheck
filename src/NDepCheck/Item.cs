@@ -189,5 +189,10 @@ namespace NDepCheck {
             }
             return result;
         }
+
+        public static void Reset() {
+            Intern<ItemTail>.Reset();
+            Intern<Item>.Reset();
+        }
     }
 }

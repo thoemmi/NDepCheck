@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using Gibraltar;
 using JetBrains.Annotations;
 
 namespace NDepCheck {
@@ -115,6 +116,11 @@ namespace NDepCheck {
             string[] keys = keysAndSubKeys.Select(k => k.Split('.')[0]).ToArray();
             string[] subkeys = keysAndSubKeys.Select(k => k.Split('.').Length > 1 ? "." + k.Split('.')[1] : "").ToArray();
             return New(name, keys, subkeys);
+        }
+
+        public static void Reset() {
+            _allTypes.Clear();
+            Intern<ItemType>.Reset();
         }
     }
 }

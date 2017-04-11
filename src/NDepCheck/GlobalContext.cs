@@ -360,11 +360,9 @@ namespace NDepCheck {
             RenderingDone = false;
             TransformingDone = false;
 
-            Intern<ItemType>.Reset();
-            Intern<ItemTail>.Reset();
-            Intern<Item>.Reset();
+            ItemType.Reset();
+            Item.Reset();
             AbstractDotNetAssemblyDependencyReader.Reset();
-
         }
 
         public AbstractDotNetAssemblyDependencyReader GetDotNetAssemblyReaderFor(string usedAssembly) {

@@ -434,7 +434,6 @@ namespace NDepCheck {
                         }
                     } else if (DoResetOption.Matches(arg)) {
                         // -dr    [filename]
-                        Log.WriteInfo(msg: "---- Reset of input options (-dr)");
 
                         globalContext.ResetAll();
 
