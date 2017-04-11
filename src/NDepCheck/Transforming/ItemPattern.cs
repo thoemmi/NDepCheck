@@ -35,7 +35,7 @@ namespace NDepCheck.Transforming {
 
         public IMatcher[] Matchers => _matchers;
 
-        public ItemPattern([CanBeNull] ItemType itemTypeOrNull, [NotNull] string itemPattern, int estimatedGroupCount, bool ignoreCase) {
+        public ItemPattern([CanBeNull] ItemType itemTypeHintOrNull, [NotNull] string itemPattern, int estimatedGroupCount, bool ignoreCase) {
             const string UNCOLLECTED_GROUP = "(?:";
             const string UNCOLLECTED_GROUP_MASK = "(?#@#";
             IEnumerable<string> parts = itemPattern.Replace(UNCOLLECTED_GROUP, UNCOLLECTED_GROUP_MASK)
@@ -43,21 +43,19 @@ namespace NDepCheck.Transforming {
                 .Select(p => p.Replace(UNCOLLECTED_GROUP_MASK, UNCOLLECTED_GROUP))
                 .ToArray();
 
-            if (itemTypeOrNull == null) {
+            ItemType type = ItemType.Find(parts.First());
+            if (type != null) {
+                parts = parts.Skip(1);
+                _itemType = type;
+            } else if (itemTypeHintOrNull != null) {
                 // Rules may optionally start with the correct type name (when they are copied from e.g. from a violation textfile).
-                ItemType type = ItemType.Find(parts.First());
-                if (type != null) {
+                if (parts.First() == itemTypeHintOrNull.Name) {
                     parts = parts.Skip(1);
-                    _itemType = type;
-                } else {
-                    _itemType = ItemType.Generic(parts.Count());
                 }
+                _itemType = itemTypeHintOrNull;
             } else {
-                if (parts.First() == itemTypeOrNull.Name) {
-                    // Rules may optionally start with the correct type name (when they are copied from e.g. from a violation textfile).
-                    parts = parts.Skip(1);
-                }
-                _itemType = itemTypeOrNull;
+                // No type found form pattern, no itemTypeHint - we guess a generic type.
+                _itemType = ItemType.Generic(parts.Count());
             }
 
             var result = new List<IMatcher>();
@@ -169,7 +167,7 @@ namespace NDepCheck.Transforming {
         }
 
         public string[] Matches([NotNull] Item item) {
-            if (!item.Type.Equals(_itemType)) {
+            if (!item.Type.Matches(_itemType)) {
                 return null;
             }
 

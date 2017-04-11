@@ -19,7 +19,7 @@ namespace NDepCheck {
     ///     All static methods may run in parallel.
     /// </remarks>
     public class Program {
-        private const string VERSION = "V.3.52";
+        private const string VERSION = "V.3.54";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 1;
@@ -44,7 +44,7 @@ namespace NDepCheck {
 
         public static readonly Option ReadPluginOption = new ProgramOption(shortname: "rp", name: "read-plugin", usage: "assembly reader filepattern [- filepattern]", description: "Use <assembly.reader> to read files matching filepattern, but not second filepattern");
         public static readonly Option ReadFileOption = new ProgramOption(shortname: "rf", name: "read-file", usage: "reader filepattern [- filepattern]", description: "Use predefined reader to read files matching filepattern, but not second filepattern");
-        public static readonly Option ReadOption = new ProgramOption(shortname: "rd", name: "read", usage: "filepattern [- filepattern]", description: "Use reader derived from file extension to read files matching filepattern, but not second filepattern");
+        public static readonly Option ReadOption = new ProgramOption(shortname: "rd", name: "read", usage: "[filepattern] [- filepattern]", description: "Use reader derived from file extension to read files matching filepattern, but not second filepattern");
         public static readonly Option ReadPluginHelpOption = new ProgramOption(shortname: "ra?", name: "read-plugin-help", usage: "assembly [filter]", description: "Show help for all readers in assembly");
         public static readonly Option ReadHelpOption = new ProgramOption(shortname: "rf?", name: "read-help", usage: "[filter]", description: "Show help for all predefined readers");
         public static readonly Option ReadPluginDetailedHelpOption = new ProgramOption(shortname: "ra!", name: "read-plugin-detail", usage: "assembly reader [filter]", description: "Show detailed help for reader in assembly");
@@ -240,10 +240,18 @@ namespace NDepCheck {
                         globalContext.CreateInputOption(args, ref i, filePattern, "", reader);
                     } else if (ReadOption.Matches(arg)) {
                         // -rd    filepattern [- filepattern]
-                        string filePattern = Option.ExtractOptionValue(args, ref i);
-                        globalContext.CreateInputOption(args, ref i, filePattern, "",
-                            IsDllOrExeFile(filePattern) ? typeof(DotNetAssemblyDependencyReaderFactory).FullName :
-                            IsDipFile(filePattern) ? typeof(DipReaderFactory).FullName : null);
+                        // -rd    - filepattern
+                        string s = Option.ExtractOptionValue(args, ref i);
+                        if (s == "-") {
+                            string filePattern = Option.ExtractRequiredOptionValue(args, ref i, "File pattern missing after -");
+                            globalContext.AddNegativeInputOption(filePattern);
+                        } else {
+                            string filePattern = s;
+                            globalContext.CreateInputOption(args, ref i, filePattern, "",
+                                IsDllOrExeFile(filePattern) ? typeof(DotNetAssemblyDependencyReaderFactory).FullName :
+                                IsDipFile(filePattern) ? typeof(DipReaderFactory).FullName : null);
+                        }
+
                     } else if (ReadPluginHelpOption.Matches(arg)) {
                         // -ra?    assembly [filter]
                         string assembly = Option.ExtractOptionValue(args, ref i);
@@ -434,14 +442,13 @@ namespace NDepCheck {
                         }
                     } else if (DoResetOption.Matches(arg)) {
                         // -dr    [filename]
-                        Log.WriteInfo(msg: "---- Reset of input options (-dr)");
 
                         globalContext.ResetAll();
 
                         string fileName = Option.ExtractNextValue(args, ref i);
                         if (fileName != null && IsDipFile(fileName)) {
                             globalContext.CreateInputOption(args, ref i, arg, assembly: "",
-                                readerClass: typeof(DipReaderFactory).FullName);
+                                readerFactoryClass: typeof(DipReaderFactory).FullName);
                         }
                     } else if (WatchFilesOption.Matches(arg)) {
                         // -aw    [filepattern [- filepattern]] script
@@ -531,10 +538,10 @@ namespace NDepCheck {
                         globalContext.WorkLazily = true;
                     } else if (IsDllOrExeFile(arg)) {
                         globalContext.CreateInputOption(args, ref i, arg, assembly: "",
-                            readerClass: typeof(DotNetAssemblyDependencyReaderFactory).FullName);
+                            readerFactoryClass: typeof(DotNetAssemblyDependencyReaderFactory).FullName);
                     } else if (IsDipFile(arg)) {
                         globalContext.CreateInputOption(args, ref i, arg, assembly: "",
-                            readerClass: typeof(DipReaderFactory).FullName);
+                            readerFactoryClass: typeof(DipReaderFactory).FullName);
                     } else {
                         return UsageAndExit(message: "Unsupported option '" + arg + "'");
                     }

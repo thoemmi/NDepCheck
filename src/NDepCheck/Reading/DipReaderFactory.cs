@@ -1,10 +1,5 @@
-using System.Collections.Generic;
-using JetBrains.Annotations;
-
 namespace NDepCheck.Reading {
     public class DipReaderFactory : AbstractReaderFactory {
-        private readonly Dictionary<string, ItemType> _registeredItemTypes = new Dictionary<string, ItemType>();
-
         public override AbstractDependencyReader CreateReader(string fileName, GlobalContext options, bool needsOnlyItemTails) {
             return new DipReader(fileName);
         }

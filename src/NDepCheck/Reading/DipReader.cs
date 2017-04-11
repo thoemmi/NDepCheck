@@ -21,7 +21,7 @@ namespace NDepCheck.Reading {
             Regex dipArrow = new Regex($@"\s*{EdgeConstants.DIP_ARROW}\s*");
 
             var result = new List<Dependency>(10000);
-            using (var sr = new StreamReader(_fileName)) {
+            using (var sr = new StreamReader(_fullFileName)) {
                 var itemsDictionary = new Dictionary<Item, Item>();
 
                 for (int lineNo = 1; ; lineNo++) {
@@ -43,7 +43,7 @@ namespace NDepCheck.Reading {
                         string[] parts = dipArrow.Split(line);
 
                         if (parts.Length != 3) {
-                            WriteError(_fileName, lineNo, $"Line is not ... {EdgeConstants.DIP_ARROW} #;#;... {EdgeConstants.DIP_ARROW} ..., but " + parts.Length, line);
+                            WriteError(_fullFileName, lineNo, $"Line is not ... {EdgeConstants.DIP_ARROW} #;#;... {EdgeConstants.DIP_ARROW} ..., but " + parts.Length, line);
                         }
 
                         try {
@@ -75,13 +75,13 @@ namespace NDepCheck.Reading {
 
                             var dependency = new Dependency(foundUsingItem, foundUsedItem,
                                 string.IsNullOrWhiteSpace(source[0])
-                                    ? new TextFileSource(_fileName, lineNo)
+                                    ? new TextFileSource(_fullFileName, lineNo)
                                     : new TextFileSource(source[0], sourceLine < 0 ? null : (int?)sourceLine),
                                 dependencyMarkers, ct, questionableCt, badCt, exampleInfo, inputContext);
 
                             result.Add(dependency);
                         } catch (DipReaderException ex) {
-                            WriteError(FileName, lineNo, ex.Message + " - ignoring input line", line);
+                            WriteError(FullFileName, lineNo, ex.Message + " - ignoring input line", line);
                         }
                     }
                 }

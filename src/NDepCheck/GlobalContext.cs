@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Gibraltar;
 using JetBrains.Annotations;
 using NDepCheck.Calculating;
 using NDepCheck.Reading;
@@ -100,11 +99,6 @@ namespace NDepCheck {
             _dependenciesWithoutInputContextStack.Push(Enumerable.Empty<Dependency>());
         }
 
-        public void CreateInputOption(string filePattern, string negativeFilePattern, string assembly,
-            string readerClass) {
-            _inputSpecs.Add(new InputFileOption(filePattern, negativeFilePattern, GetOrCreatePlugin<IReaderFactory>(assembly, readerClass)));
-        }
-
         public void SetDefine(string key, string value, string location) {
             if (GlobalVars.ContainsKey(key)) {
                 if (GlobalVars[key] != value) {
@@ -125,13 +119,13 @@ namespace NDepCheck {
         }
 
         public void ReadAllNotYetReadIn() {
-            IEnumerable<AbstractDependencyReader> allReaders =
-                InputSpecs.SelectMany(i => i.CreateOrGetReaders(this, false)).OrderBy(r => r.FileName);
+            IEnumerable<AbstractDependencyReader> allReaders = 
+                _inputSpecs.SelectMany(i => i.CreateOrGetReaders(this, false)).OrderBy(r => r.FullFileName).ToArray();
 
             foreach (var r in allReaders) {
                 InputContext inputContext;
-                if (!_inputContexts.TryGetValue(r.FileName, out inputContext)) {
-                    _inputContexts.Add(r.FileName, r.ReadDependencies(0));
+                if (!_inputContexts.TryGetValue(r.FullFileName, out inputContext)) {
+                    _inputContexts.Add(r.FullFileName, r.ReadDependencies(0));
                 }
             }
         }
@@ -229,14 +223,19 @@ namespace NDepCheck {
             return renderer.GetMasterFileName(this, rendererOptions, baseFileName);
         }
 
-        public void CreateInputOption(string[] args, ref int i, string filePattern, string assembly, string readerClass) {
-            if (readerClass == null) {
-                throw new ApplicationException(
-                    $"No reader class found for file pattern '{filePattern}' - please specify explicitly with -h or -i option");
+
+        public void AddNegativeInputOption(string filePattern) {
+            foreach (var spec in _inputSpecs) {
+                spec.AddNegative(filePattern);
             }
-            CreateInputOption(filePattern,
-                negativeFilePattern: i + 2 < args.Length && args[i + 1] == "-" ? args[i += 2] : null, assembly: assembly,
-                readerClass: readerClass);
+        }
+
+        public void CreateInputOption(string[] args, ref int i, string filePattern, string assembly, string readerFactoryClass) {
+            if (readerFactoryClass == null) {
+                throw new ApplicationException($"No reader class found for file pattern '{filePattern}'");
+            }
+            IReaderFactory readerFactory = GetOrCreatePlugin<IReaderFactory>(assembly, readerFactoryClass);
+            _inputSpecs.Add(new InputFileOption(filePattern, readerFactory).AddNegative(i + 2 < args.Length && args[i + 1] == "-" ? args[i += 2] : null));
             InputFilesOrTestDataSpecified = true;
         }
 
@@ -360,11 +359,11 @@ namespace NDepCheck {
             RenderingDone = false;
             TransformingDone = false;
 
-            Intern<ItemType>.Reset();
-            Intern<ItemTail>.Reset();
-            Intern<Item>.Reset();
+            ItemType.Reset();
+            Item.Reset();
             AbstractDotNetAssemblyDependencyReader.Reset();
 
+            GlobalVars.Clear();
         }
 
         public AbstractDotNetAssemblyDependencyReader GetDotNetAssemblyReaderFor(string usedAssembly) {
