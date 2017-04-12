@@ -104,16 +104,10 @@ namespace NDepCheck {
             return New(type, reducedName.Split(':'));
         }
 
-        /// <summary>
-        /// Container for any additional data useful for other algorithms. This is e.g. helpful
-        /// during rendering in a <see cref="GraphicsDependencyRenderer"/> for associating various
-        /// <see cref="IBox"/>es with an <see cref="Item"/>.
-        /// </summary>
-        //public dynamic DynamicData => _additionalDynamicData ?? (_additionalDynamicData = new AdditionalDynamicData(this));
-
+        [CanBeNull]
         public string Order => _order;
 
-        public Item SetOrder(string order) {
+        public Item SetOrder([CanBeNull] string order) {
             _order = order;
             _asStringWithType = null;
             return this;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using Gibraltar;
 using JetBrains.Annotations;
@@ -199,7 +200,7 @@ namespace NDepCheck {
             Log.SetLevel(Log.Level.Standard);
 
             if (args.Length == 0) {
-                return UsageAndExit(message: "No options or files specified");
+                return UsageAndExit(message: "No options or files specified", globalContext: globalContext);
             }
 
             bool ranAsWebServer = false;
@@ -217,12 +218,12 @@ namespace NDepCheck {
                     } else if (HelpAllOption.Matches(arg)) {
                         // -? [filter]
                         string filter = Option.ExtractOptionValue(args, ref i, allowOptionValue: true);
-                        return UsageAndExit(message: null, withIntro: _interactiveLogFile == null,
+                        return UsageAndExit(message: null, globalContext: globalContext, withIntro: _interactiveLogFile == null,
                                             detailed: filter != null, filter: (filter ?? "").TrimStart('-', '/'));
                     } else if (HelpDetailedHelpOption.Matches(arg)) {
                         // -! [filter]
                         string filter = Option.ExtractOptionValue(args, ref i, allowOptionValue: true);
-                        return UsageAndExit(message: null, withIntro: true,
+                        return UsageAndExit(message: null, globalContext: globalContext, withIntro: true,
                                             detailed: true, filter: (filter ?? "").TrimStart('-', '/'));
                     } else if (arg == "-debug" || arg == "/debug") {
                         // -debug
@@ -543,7 +544,7 @@ namespace NDepCheck {
                         globalContext.CreateInputOption(args, ref i, arg, assembly: "",
                             readerFactoryClass: typeof(DipReaderFactory).FullName);
                     } else {
-                        return UsageAndExit(message: "Unsupported option '" + arg + "'");
+                        return UsageAndExit(message: "Unsupported option '" + arg + "'", globalContext: globalContext);
                     }
 
                     if (logCommands) {
@@ -551,12 +552,12 @@ namespace NDepCheck {
                     }
                 }
             } catch (ArgumentException ex) {
-                return UsageAndExit(ex.Message);
+                return UsageAndExit(ex.Message, globalContext);
             }
 
             if (!_fileWatchers.Any() && _interactiveLogFile == null) {
                 if (!globalContext.InputFilesOrTestDataSpecified && !ranAsWebServer && !globalContext.HelpShown) {
-                    return UsageAndExit(message: "No input files specified");
+                    return UsageAndExit(message: "No input files specified", globalContext: globalContext);
                 }
 
                 if (result == OK_RESULT && !globalContext.TransformingDone && !globalContext.RenderingDone) {
@@ -653,51 +654,54 @@ namespace NDepCheck {
             }
         }
 
-        private int UsageAndExit([CanBeNull] string message, int exitValue = OPTIONS_PROBLEM,
-            bool withIntro = true, bool detailed = false, [NotNull] string filter = "") {
+        private int UsageAndExit([CanBeNull] string message, GlobalContext globalContext, 
+                                 int exitValue = OPTIONS_PROBLEM, bool withIntro = true, 
+                                 bool detailed = false, [NotNull] string filter = "") {
+
             if (filter.StartsWith("file")) {
-                Console.Out.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck input files (+, //, defines)");
+                Console.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck input files (+, //, defines)");
                 return exitValue;
             } else if (filter.StartsWith("item")) {
-                Console.Out.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck item patterns");
+                Console.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck item patterns");
                 return exitValue;
             } else if (filter.StartsWith("dep")) {
-                Console.Out.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck dependency patterns");
+                Console.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck dependency patterns");
                 return exitValue;
             } else if (filter.StartsWith("marker")) {
-                Console.Out.WriteLine(ObjectWithMarkers.HELP);
+                Console.WriteLine(ObjectWithMarkers.HELP);
                 return exitValue;
             } else if (filter.StartsWith("type")) {
-                Console.Out.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck item types");
+                Console.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck item types");
                 return exitValue;
             } else {
+                var sb = new StringBuilder();
                 if (withIntro) {
                     WriteVersion();
-                    Console.Out.WriteLine(value: @"
+
+                    sb.AppendLine(value: @"
 Usage:
    NDepCheck <option>...
 
 Typical uses:
-
-* Check dependencies in My.DLL; My.dll.dep is somewhere below SourceDir:
-      NDepCheck /d=SourceDir My.dll
-
-* Produce graph of dependencies in My.DLL via built-in renderer:
-      NDepCheck /d=SourceDir My.DLL _______ (UNDER WORK)
-
-
-* Produce graph of dependencies in My.DLL via dot (graphviz):
-      NDepCheck /d=SourceDir My.DLL _______ (UNDER WORK)
-      dot -Tgif -oMy.gif My.dot
+   ___TBD___
 
 All messages of NDepCheck are written to Console.Out.
 
 Option overview:
     Option can be written with leading - or /
-
 ");
                 }
-                Console.Out.WriteLine(Option.CreateHelp(_allOptions, detailed: detailed, filter: filter));
+                sb.AppendLine(Option.CreateHelp(_allOptions, detailed: detailed, filter: filter));
+
+                string help = sb.ToString();
+                if (string.IsNullOrWhiteSpace(help)) {
+                    globalContext.ShowAllPluginsAndTheirHelp<IReaderFactory>("", filter);
+                    globalContext.ShowAllPluginsAndTheirHelp<ITransformer>("", filter);
+                    globalContext.ShowAllPluginsAndTheirHelp<ICalculator>("", filter);
+                    globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>("", filter);
+                } else {
+                    Console.WriteLine(help);
+                }
 
                 if (message != null) {
                     Log.WriteError(message);

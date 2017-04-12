@@ -52,7 +52,8 @@ where
 type     is an NDepCheck type or type definition (see -help types)
 pattern  is an NDepCheck item pattern (see -help itempattern)
 result   is element[:element...], where each element is a string or \1, \2, ...
-         \1 etc. refers to a matched group in the itempattern.
+         \1 etc. refers to a matched group in the itempattern. \> refers to
+         the item's Order property (which can be set by AddItemOrder).
 If no result is provided, result is assumed to be \1:\2:..., with the number
 of groups in the pattern.
 result can also be a single -, in which case a matching item is not projected.

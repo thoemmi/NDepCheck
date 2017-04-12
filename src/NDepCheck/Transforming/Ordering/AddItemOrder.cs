@@ -1,11 +1,23 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.Ordering {
     public class AddItemOrder : ITransformer {
+        public static readonly Option OrderByQuestionableCount = new Option("oq", "order-by-questionable", "", "Order by sum of questionable counts", @default: "Order by count");
+        public static readonly Option OrderByBadCount = new Option("ob", "order-by-bad", "", "Order by sum of bad counts", @default: "Order by count");
+        public static readonly Option OrderByIncomingValues = new Option("oi", "order-by-incoming", "", "Order by incoming values", @default: "Order by ratio incoming/(incoming+outgoing)");
+        public static readonly Option OrderByOutgoingValues = new Option("oo", "order-by-outgoing", "", "Order by outgoing values", @default: "Order by ratio incoming/(incoming+outgoing)");
+
+        private static readonly Option[] _allOptions = { OrderByBadCount, OrderByQuestionableCount, OrderByIncomingValues, OrderByOutgoingValues };
+
         public string GetHelp(bool detailedHelp, string filter) {
-            return @"Adds a field to each item for a bottom to top order. The field is a 4-digit integer number, starting at 0001";
+            return $@"Set the order property in each item for a bottom to top order. Order is set to a 4-digit integer number, starting at 0001
+
+Configure options: None
+
+Transform options: {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
         public bool RunsPerInputContext => false;
@@ -17,6 +29,27 @@ namespace NDepCheck.Transforming.Ordering {
         public int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
             [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
+            Func<int, int, decimal> getSortValue = (incoming, outgoing) => incoming / (incoming + outgoing + 0.0001m);
+            Func<Dependency, int> orderBy = d => d.Ct;
+
+            Option.Parse(globalContext, transformOptions,
+                OrderByBadCount.Action((args, j) => {
+                    orderBy = d => d.BadCt;
+                    return j;
+                }),
+                OrderByQuestionableCount.Action((args, j) => {
+                    orderBy = d => d.QuestionableCt;
+                    return j;
+                }),
+                OrderByIncomingValues.Action((args, j) => {
+                    getSortValue = (incoming, outgoing) => incoming;
+                    return j;
+                }),
+                OrderByOutgoingValues.Action((args, j) => {
+                    getSortValue = (incoming, outgoing) => outgoing;
+                    return j;
+                }));
+
             // Only items are changed (Order is added)
             transformedDependencies.AddRange(dependencies);
 
@@ -26,18 +59,18 @@ namespace NDepCheck.Transforming.Ordering {
             //    Put it into result list; and move edges to it from consideration
             // UNTIL list of items is empty
 
-            MatrixDictionary<Item, int> aggregatedCounts = MatrixDictionary.CreateCounts(dependencies.Where(d => !Equals(d.UsingItem, d.UsedItem)), d => d.Ct);
+            MatrixDictionary<Item, int> aggregatedCounts =
+                MatrixDictionary.CreateCounts(dependencies.Where(d => !Equals(d.UsingItem, d.UsedItem)), orderBy);
 
             for (int i = 0; aggregatedCounts.ColumnKeys.Any(); i++) {
-                var itemsToRatios =
+                var itemsToSortValues =
                     aggregatedCounts.ColumnKeys.Select(
                         k => new {
                             Item = k,
-                            Ratio = aggregatedCounts.GetRowSum(k) / 
-                                   (aggregatedCounts.GetColumnSum(k) + aggregatedCounts.GetRowSum(k) + 0.001m)
+                            Value = getSortValue(aggregatedCounts.GetRowSum(k), aggregatedCounts.GetColumnSum(k))
                         });
-                decimal minToRatio = itemsToRatios.Min(ir => ir.Ratio);
-                Item minItem = itemsToRatios.First(ir => ir.Ratio == minToRatio).Item;
+                decimal minToRatio = itemsToSortValues.Min(ir => ir.Value);
+                Item minItem = itemsToSortValues.First(ir => ir.Value == minToRatio).Item;
 
                 aggregatedCounts.RemoveColumn(minItem);
 

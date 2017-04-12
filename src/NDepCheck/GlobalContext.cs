@@ -30,7 +30,7 @@ namespace NDepCheck {
     }
 
     public class GlobalContext {
-        private const string HELP_SEPARATOR = "=============================================\r\n";
+        private const string HELP_SEPARATOR = "=============================================";
         internal bool RenderingDone {
             get; set;
         }
@@ -119,7 +119,7 @@ namespace NDepCheck {
         }
 
         public void ReadAllNotYetReadIn() {
-            IEnumerable<AbstractDependencyReader> allReaders = 
+            IEnumerable<AbstractDependencyReader> allReaders =
                 _inputSpecs.SelectMany(i => i.CreateOrGetReaders(this, false)).OrderBy(r => r.FullFileName).ToArray();
 
             foreach (var r in allReaders) {
@@ -175,9 +175,9 @@ namespace NDepCheck {
             }
             try {
                 // plugins can have state, therefore we must manage them
-                T result = (T) _plugins.FirstOrDefault(t => t.GetType() == pluginType);
+                T result = (T)_plugins.FirstOrDefault(t => t.GetType() == pluginType);
                 if (result == null) {
-                    _plugins.Add(result = (T) Activator.CreateInstance(pluginType));
+                    _plugins.Add(result = (T)Activator.CreateInstance(pluginType));
                 }
                 return result;
             } catch (Exception ex) {
@@ -241,31 +241,32 @@ namespace NDepCheck {
 
         public void ShowAllPluginsAndTheirHelp<T>(string assemblyName, string filter) where T : IPlugin {
             IEnumerable<Type> pluginTypes = GetPluginTypes<T>(assemblyName);
-            var matched = new List<Type>();
+            var matched = new Dictionary<Type, string>();
             foreach (var t in pluginTypes) {
                 try {
-                    T renderer = (T) Activator.CreateInstance(t);
+                    T renderer = (T)Activator.CreateInstance(t);
                     string help = t.FullName + ":\r\n" + renderer.GetHelp(detailedHelp: false, filter: "");
                     if (help.IndexOf(filter ?? "", StringComparison.InvariantCultureIgnoreCase) >= 0) {
-                        Log.WriteInfo(HELP_SEPARATOR + help + "\r\n");
-                        matched.Add(t);
+                        matched.Add(t, HELP_SEPARATOR + "\r\n" + help + "\r\n");
                     }
                 } catch (Exception ex) {
-                    Log.WriteError($"Cannot print help for renderer '{t.FullName}'; reason: {ex.Message}");
+                    Log.WriteError($"Cannot get help for renderer '{t.FullName}'; reason: {ex.Message}");
                 }
             }
             switch (matched.Count) {
                 case 0:
-                    Log.WriteWarning($"Found no plugin types in '{ShowAssemblyName(assemblyName)}' match '{filter}'");
+                    Log.WriteWarning($"Found no {typeof(T).Name} types in '{ShowAssemblyName(assemblyName)}' matching '{filter}'");
                     break;
                 case 1:
-                    Log.WriteInfo(HELP_SEPARATOR);
-                    ShowDetailedHelp<T>(assemblyName, matched[0].FullName, "");
+                    ShowDetailedHelp<T>(assemblyName, matched.Single().Key.FullName, "");
                     break;
                 default:
-                    Log.WriteInfo(HELP_SEPARATOR);
+                    foreach (var kvp in matched.OrderBy(kvp => kvp.Key.FullName)) {
+                        Log.WriteInfo(kvp.Value);
+                    }
                     break;
             }
+            Log.WriteInfo(HELP_SEPARATOR);
         }
 
         public void TransformTestData(string assembly, string transformerClass, string transformerOptions) {
@@ -383,7 +384,7 @@ namespace NDepCheck {
             [CanBeNull] string filter) where T : IPlugin {
             try {
                 T plugin = GetOrCreatePlugin<T>(assemblyName, pluginClassName);
-                Log.WriteInfo(HELP_SEPARATOR + plugin.GetType().FullName + ":\r\n" +
+                Log.WriteInfo(plugin.GetType().FullName + ":\r\n" +
                               plugin.GetHelp(detailedHelp: true, filter: filter) + "\r\n");
             } catch (Exception ex) {
                 Log.WriteError(
