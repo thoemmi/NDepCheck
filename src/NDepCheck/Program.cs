@@ -132,6 +132,8 @@ namespace NDepCheck {
         ///     The static Main method.
         /// </summary>
         public static int Main(string[] args) {
+            ItemType.New("DUMMY(DUMMY)");
+
             Log.Logger = new ConsoleLogger();
 
             var program = new Program();

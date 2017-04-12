@@ -286,6 +286,7 @@ namespace NDepCheck {
             ReadAllNotYetReadIn();
 
             ITransformer transformer = GetOrCreatePlugin<ITransformer>(assembly, transformerClass);
+            Log.WriteInfo($"Transforming with {assembly}.{transformerClass}");
 
             var newDependenciesCollector = new List<Dependency>();
             int result = Program.OK_RESULT;

@@ -5,13 +5,20 @@ using System.Linq;
 using System.Text;
 using Gibraltar;
 using JetBrains.Annotations;
+using NDepCheck.Reading;
 
 namespace NDepCheck {
     public class ItemType : IEquatable<ItemType> {
-        private static readonly Dictionary<string, ItemType> _allTypes = new Dictionary<string, ItemType>();
+        private readonly static Dictionary<string, ItemType> _allTypes = new Dictionary<string, ItemType>();
 
         [NotNull]
         public static readonly ItemType SIMPLE = New("SIMPLE", new[] { "Name" }, new[] { "" }, matchesOnFieldNr: true);
+
+        private static void ForceLoadingPredefinedTypes() {
+            _allTypes[SIMPLE.Name] = SIMPLE;
+            _allTypes[DotNetAssemblyDependencyReaderFactory.DOTNETCALL.Name] = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
+            _allTypes[DotNetAssemblyDependencyReaderFactory.DOTNETREF.Name] = DotNetAssemblyDependencyReaderFactory.DOTNETREF;
+        }
 
         [NotNull]
         public static ItemType Generic(int fieldNr) {
@@ -131,6 +138,7 @@ namespace NDepCheck {
 
         public static void Reset() {
             _allTypes.Clear();
+            ForceLoadingPredefinedTypes();
             Intern<ItemType>.Reset();
         }
     }

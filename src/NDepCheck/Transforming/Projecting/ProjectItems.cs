@@ -248,10 +248,10 @@ Examples:
 
         private static bool OnMissingPattern(ref int missingPatternCount) {
             missingPatternCount++;
-            if (missingPatternCount == 1000) {
-                Log.WriteError("After 1000 missing patterns, no more missing patterns are logged");
+            if (missingPatternCount == 250) {
+                Log.WriteError("After 250 missing patterns, no more missing patterns are logged");
             }
-            return missingPatternCount < 1000;
+            return missingPatternCount < 250;
         }
 
         private FromTo ReduceEdge(IEnumerable<Projection> orderedProjections, Dependency d,
