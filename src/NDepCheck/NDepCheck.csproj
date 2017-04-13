@@ -181,6 +181,7 @@
     <None Include="EverythingAllowed.dep" />
     <None Include="NDepCheck.cd" />
     <None Include="packages.config" />
+    <Compile Include="Transforming\Projecting\ProjectItems.Projectors.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">

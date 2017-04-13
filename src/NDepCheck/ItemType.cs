@@ -9,7 +9,7 @@ using NDepCheck.Reading;
 
 namespace NDepCheck {
     public class ItemType : IEquatable<ItemType> {
-        private readonly static Dictionary<string, ItemType> _allTypes = new Dictionary<string, ItemType>();
+        private static readonly Dictionary<string, ItemType> _allTypes = new Dictionary<string, ItemType>();
 
         [NotNull]
         public static readonly ItemType SIMPLE = New("SIMPLE", new[] { "Name" }, new[] { "" }, matchesOnFieldNr: true);
@@ -25,8 +25,8 @@ namespace NDepCheck {
             if (fieldNr < 1 || fieldNr > 40) {
                 throw new ArgumentException("fieldNr must be 1...40", nameof(fieldNr));
             }
-            return fieldNr == 1 ? SIMPLE : 
-                New("GENERIC_" + fieldNr, 
+            return fieldNr == 1 ? SIMPLE :
+                New("GENERIC_" + fieldNr,
                         Enumerable.Range(1, fieldNr).Select(i => "Field_" + i).ToArray(),
                         Enumerable.Range(1, fieldNr).Select(i => "").ToArray(), matchesOnFieldNr: true);
         }
@@ -63,8 +63,16 @@ namespace NDepCheck {
             _matchesOnFieldNr = matchesOnFieldNr;
         }
 
-        public bool Matches(ItemType other) {
-            return _matchesOnFieldNr || other._matchesOnFieldNr ? Keys.Length == other.Keys.Length : Equals(this, other);
+        public ItemType CommonType(ItemType other) {
+            if (_matchesOnFieldNr) {
+                return Keys.Length == other.Keys.Length ? other : null;
+            } else if (other._matchesOnFieldNr) {
+                return Keys.Length == other.Keys.Length ? this : null;
+            } else if (Equals(this, other)) {
+                return this;
+            } else {
+                return null;
+            }
         }
 
         public static ItemType Find([NotNull] string name) {

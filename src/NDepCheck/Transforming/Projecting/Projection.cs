@@ -28,11 +28,12 @@ namespace NDepCheck.Transforming.Projecting {
         public bool ForRightSide { get; }
 
         [NotNull]
-        private readonly ItemMatch _itemMatch;
+        internal readonly ItemMatch ItemMatch;
 
         private int _matchCount;
+        private int _hitCt;
 
-        public Projection([CanBeNull] ItemType sourceItemTypeOrNull, [NotNull]ItemType targetItemType, [NotNull]string pattern, 
+        public Projection([CanBeNull] ItemType sourceItemTypeOrNull, [NotNull]ItemType targetItemType, [NotNull]string pattern,
             [CanBeNull]string[] targetSegments, bool ignoreCase, bool forLeftSide, bool forRightSide) {
             if (targetSegments != null) {
                 if (targetItemType.Length != targetSegments.Length) {
@@ -49,23 +50,23 @@ namespace NDepCheck.Transforming.Projecting {
             _targetSegments = targetSegments;
             ForLeftSide = forLeftSide;
             ForRightSide = forRightSide;
-            _itemMatch = new ItemMatch(sourceItemTypeOrNull, pattern, ignoreCase);
+            ItemMatch = new ItemMatch(sourceItemTypeOrNull, pattern, ignoreCase);
         }
 
         public int MatchCount => _matchCount;
 
         /// <summary>
-        /// Return abstracted string for some item.
+        /// Return projected string for some item.
         /// </summary>
-        /// <param name="item">Name of item to be abstracted.</param>
+        /// <param name="item">Iitem to be projected.</param>
         /// <param name="left">Item is on left side of dependency</param>
-        /// <returns>Abstracted name; or <c>null</c> if name does not 
-        /// match abstraction</returns>
+        /// <returns>Projected item; or <c>null</c> if item does not 
+        /// match projection</returns>
         public Item Match([NotNull] Item item, bool left) {
             if (left && !ForLeftSide || !left && !ForRightSide) {
                 return null;
             } else {
-                string[] matchResultGroups = _itemMatch.Matches(item);
+                string[] matchResultGroups = ItemMatch.Matches(item);
 
                 if (matchResultGroups == null) {
                     return null;
@@ -86,9 +87,12 @@ namespace NDepCheck.Transforming.Projecting {
             return Regex.Replace(s, "%[0-9a-fA-F][0-9a-fA-F]", m => "" + (char)int.Parse(m.Value.Substring(1), NumberStyles.HexNumber));
         }
 
-        public IEnumerable<Projection> AllProjections {
-            get { yield return this; }
+        public Projection[] AllProjections => new[] { this };
+
+        public int HitCt {
+            get { return _hitCt; }
         }
+
         /////// <summary>
         /////// Show <c>GraphAbstraction_</c> as regular 
         /////// expression in verbose mode (the user needs
@@ -99,5 +103,8 @@ namespace NDepCheck.Transforming.Projecting {
         ////public override string ToString() {
         ////    return _rex.ToString();
         ////}
+        public void IncreaseHitCount() {
+            _hitCt++;
+        }
     }
 }

@@ -78,6 +78,11 @@ namespace NDepCheck.Transforming {
             _matchers = result.Take(_itemType.Keys.Length).ToArray();
         }
 
+        internal ItemPattern(ItemType itemType, IMatcher[] matchers) {
+            _itemType = itemType;
+            _matchers = matchers;
+        }
+
         private static string EscapePattern(string pattern) {
             return pattern.Replace("*", ASTERISK_ESCAPE).Replace(".", DOT_ESCAPE).Replace(@"\", BACKSLASH_ESCAPE);
         }
@@ -128,9 +133,9 @@ namespace NDepCheck.Transforming {
                 return new AlwaysMatcher(alsoMatchDot: string.IsNullOrWhiteSpace(segment) || segment.Count(c => c == '*') > 1, groupCount: segment.Count(c => c == '('));
             } else if (segment.StartsWith("^")) {
                 string pattern = segment.TrimStart('^');
-                return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(estimatedGroupCount) + pattern, ignoreCase, estimatedGroupCount);
+                return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(estimatedGroupCount) + pattern, ignoreCase, estimatedGroupCount, null, null);
             } else if (segment.EndsWith("$")) {
-                return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(estimatedGroupCount) + ".*" + segment, ignoreCase, estimatedGroupCount);
+                return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(estimatedGroupCount) + ".*" + segment, ignoreCase, estimatedGroupCount, null, null);
             } else if (estimatedGroupCount == 0 && HasNoRegexCharsExceptPeriod(segment)) {
                 // TODO: Also allow surrounding ()
                 return new EqualsMatcher(segment, ignoreCase);
@@ -144,11 +149,14 @@ namespace NDepCheck.Transforming {
                 // TODO: Also allow surrounding ()
                 return new EndsWithMatcher(segment, ignoreCase);
             } else {
+                string fixedPrefix = Regex.Match(segment, @"^[^*+\\]*").Value;
+                string fixedSuffix = Regex.Match(segment, @"[^*+\\]*$").Value;
+
                 string pattern = ExpandAsterisks(segment, ignoreCase);
-                return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(estimatedGroupCount) + pattern + "$", ignoreCase, estimatedGroupCount);
+                return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(estimatedGroupCount) + pattern + "$", 
+                                        ignoreCase, estimatedGroupCount, fixedPrefix, fixedSuffix);
             }
         }
-
 
         private static bool IsPrefixAndSuffixAsterisksPattern([NotNull] string segment) {
             return segment.StartsWith("**") && segment.EndsWith("**") && HasNoRegexCharsExceptPeriod(segment.Trim('*'));
@@ -167,7 +175,7 @@ namespace NDepCheck.Transforming {
         }
 
         public string[] Matches([NotNull] Item item) {
-            if (!item.Type.Matches(_itemType)) {
+            if (item.Type.CommonType(_itemType) == null) {
                 return null;
             }
 
@@ -195,6 +203,8 @@ namespace NDepCheck.Transforming {
         private readonly bool _alsoMatchDot;
         private readonly int _groupCount;
 
+        public static readonly AlwaysMatcher ALL  = new AlwaysMatcher(alsoMatchDot: true, groupCount: 0);
+
         public AlwaysMatcher(bool alsoMatchDot, int groupCount) {
             _alsoMatchDot = alsoMatchDot;
             _groupCount = groupCount;
@@ -214,6 +224,14 @@ namespace NDepCheck.Transforming {
 
         public override string ToString() {
             return "[**]";
+        }
+
+        public string GetKnownFixedPrefix() {
+            return "";
+        }
+
+        public string GetKnownFixedSufffix() {
+            return "";
         }
     }
 
@@ -239,32 +257,51 @@ namespace NDepCheck.Transforming {
         public override string ToString() {
             return "[-]";
         }
+
+        public string GetKnownFixedPrefix() {
+            return "";
+        }
+
+        public string GetKnownFixedSufffix() {
+            return "";
+        }
     }
 
     internal abstract class AbstractRememberingMatcher {
-        private readonly Dictionary<string, string[]> _seenStrings = new Dictionary<string, string[]>();
+        private readonly int _maxSize;
+        private Dictionary<string, string[]> _seenStrings = new Dictionary<string, string[]>();
+
+        protected AbstractRememberingMatcher(int maxSize) {
+            _maxSize = maxSize;
+        }
 
         protected bool Check(string s, out string[] entry) {
             return _seenStrings.TryGetValue(s, out entry);
         }
 
         protected string[] Remember(string s, string[] groupsOrNullForNonMatch) {
+            if (_seenStrings.Count > _maxSize) {
+                // Throw out 25% of the entries
+                _seenStrings = _seenStrings.Skip(_maxSize / 4).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            }
             _seenStrings.Add(s, groupsOrNullForNonMatch);
-            // TODO: Limit size
             return groupsOrNullForNonMatch;
         }
     }
 
-    internal abstract class AbstractDelegateMatcher : AbstractRememberingMatcher, IMatcher {
+    internal abstract class AbstractRememberingDelegateMatcher : AbstractRememberingMatcher, IMatcher {
         protected readonly string _segment;
         private readonly Func<string, string, bool> _isMatch;
         private readonly bool _ignoreCase;
+
+        public bool IgnoreCase => _ignoreCase;
 
         protected static StringComparison GetComparisonType(bool ignoreCase) {
             return ignoreCase ? StringComparison.InvariantCulture : StringComparison.InvariantCultureIgnoreCase;
         }
 
-        protected AbstractDelegateMatcher(string segment, Func<string, string, bool> isMatch, bool ignoreCase) {
+        protected AbstractRememberingDelegateMatcher(string segment, Func<string, string, bool> isMatch, bool ignoreCase, int maxSize) 
+            : base(maxSize) {
             _segment = segment;
             _isMatch = isMatch;
             _ignoreCase = ignoreCase;
@@ -284,47 +321,84 @@ namespace NDepCheck.Transforming {
         }
 
         public virtual bool MatchesAlike(IMatcher other) {
-            return other.GetType() == GetType() && string.Compare((other as AbstractDelegateMatcher)?._segment, _segment, _ignoreCase) == 0;
+            return other.GetType() == GetType() && string.Compare((other as AbstractRememberingDelegateMatcher)?._segment, _segment, _ignoreCase) == 0;
         }
+
+        [NotNull]
+        public abstract string GetKnownFixedPrefix();
+        [NotNull]
+        public abstract string GetKnownFixedSufffix();
     }
 
-    internal sealed class ContainsMatcher : AbstractDelegateMatcher {
-        public ContainsMatcher(string segment, bool ignoreCase)
-            : base(segment.Trim('*').Trim('.'), (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) >= 0, ignoreCase) {
+    internal sealed class ContainsMatcher : AbstractRememberingDelegateMatcher {
+        public ContainsMatcher(string segment, bool ignoreCase, int maxSize = 1000)
+            : base(segment.Trim('*').Trim('.'), (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) >= 0, ignoreCase, maxSize) {
         }
 
         public override string ToString() {
             return "[*" + _segment + "*]";
         }
+
+        public override string GetKnownFixedPrefix() {
+            return "";
+        }
+
+        public override string GetKnownFixedSufffix() {
+            return "";
+        }
     }
 
-    internal sealed class EqualsMatcher : AbstractDelegateMatcher {
-        public EqualsMatcher(string segment, bool ignoreCase)
-            : base(segment, (value, seg) => string.Compare(value, seg, ignoreCase) == 0, ignoreCase) {
+    internal sealed class EqualsMatcher : AbstractRememberingDelegateMatcher {
+        public EqualsMatcher(string segment, bool ignoreCase, int maxSize = 1000)
+            : base(segment, (value, seg) => string.Compare(value, seg, ignoreCase) == 0, ignoreCase, maxSize) {
         }
 
         public override string ToString() {
             return "[" + _segment + "]";
         }
+
+        public override string GetKnownFixedPrefix() {
+            return _segment;
+        }
+
+        public override string GetKnownFixedSufffix() {
+            return _segment;
+        }
     }
 
-    internal sealed class StartsWithMatcher : AbstractDelegateMatcher {
-        public StartsWithMatcher(string segment, bool ignoreCase)
-            : base(segment.TrimEnd('*').TrimEnd('.'), (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) == 0, ignoreCase) {
+    internal sealed class StartsWithMatcher : AbstractRememberingDelegateMatcher {
+        public StartsWithMatcher(string segment, bool ignoreCase, int maxSize = 1000)
+            : base(segment.TrimEnd('*').TrimEnd('.'), (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) == 0, ignoreCase, maxSize) {
         }
 
         public override string ToString() {
             return "[" + _segment + "*]";
         }
+
+        public override string GetKnownFixedPrefix() {
+            return _segment;
+        }
+
+        public override string GetKnownFixedSufffix() {
+            return "";
+        }
     }
 
-    internal sealed class EndsWithMatcher : AbstractDelegateMatcher {
-        public EndsWithMatcher(string segment, bool ignoreCase)
-            : base(segment.TrimStart('*').TrimStart('.'), (value, seg) => value.LastIndexOf(seg, GetComparisonType(ignoreCase)) >= value.Length - segment.Length, ignoreCase) {
+    internal sealed class EndsWithMatcher : AbstractRememberingDelegateMatcher {
+        public EndsWithMatcher(string segment, bool ignoreCase, int maxSize = 1000)
+            : base(segment.TrimStart('*').TrimStart('.'), (value, seg) => value.LastIndexOf(seg, GetComparisonType(ignoreCase)) >= value.Length - segment.Length, ignoreCase, maxSize) {
         }
 
         public override string ToString() {
             return "[*" + _segment + "]";
+        }
+
+        public override string GetKnownFixedPrefix() {
+            return "";
+        }
+
+        public override string GetKnownFixedSufffix() {
+            return _segment;
         }
     }
 
@@ -333,14 +407,19 @@ namespace NDepCheck.Transforming {
 
         private readonly int _estimatedGroupCount;
         private readonly Regex _regex;
+        private readonly string _fixedPrefix;
+        private readonly string _fixedSuffix;
 
         internal static string CreateGroupPrefix(int estimatedGroupCount) {
             return string.Join("", Enumerable.Repeat("([^" + GROUPSEP + "]*)" + GROUPSEP, estimatedGroupCount));
         }
 
-        public RegexMatcher([NotNull]string pattern, bool ignoreCase, int estimatedGroupCount) {
+        public RegexMatcher([NotNull]string pattern, bool ignoreCase, int estimatedGroupCount, 
+                            [CanBeNull] string fixedPrefix, [CanBeNull] string fixedSuffix, int maxSize = 1000) : base(maxSize) {
             _estimatedGroupCount = estimatedGroupCount;
             _regex = new Regex(pattern, ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
+            _fixedPrefix = (fixedPrefix ?? "").Replace("(", "");
+            _fixedSuffix = (fixedSuffix ?? "").Replace(")", "");
         }
 
         public bool IsMatch(string value, string[] groups) {
@@ -380,6 +459,13 @@ namespace NDepCheck.Transforming {
             return "[/" + _regex + "/]";
         }
 
+        public string GetKnownFixedPrefix() {
+            return _fixedPrefix;
+        }
+
+        public string GetKnownFixedSufffix() {
+            return _fixedSuffix;
+        }
     }
 
     // TODO: NOCH NICHT IN BETRIEB ...
@@ -422,6 +508,14 @@ namespace NDepCheck.Transforming {
         }
 
         public bool MatchesAlike(IMatcher other) {
+            throw new NotImplementedException();
+        }
+
+        public string GetKnownFixedPrefix() {
+            throw new NotImplementedException();
+        }
+
+        public string GetKnownFixedSufffix() {
             throw new NotImplementedException();
         }
     }

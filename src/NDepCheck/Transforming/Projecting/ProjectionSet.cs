@@ -10,7 +10,7 @@ namespace NDepCheck.Transforming.Projecting {
             _orderedAbstractions = orderedAbstractions;
         }
 
-        public IEnumerable<Projection> AllProjections {
+        public Projection[] AllProjections {
             get {
                 // ReSharper disable once ConvertIfStatementToNullCoalescingExpression - caching pattern
                 if (_allOrderedAbstractionsCached == null) {
