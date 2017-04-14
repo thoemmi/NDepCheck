@@ -29,7 +29,7 @@ namespace NDepCheck.Transforming.Projecting {
 
         private Func<Projection[], bool, IProjector> _createProjector;
 
-        public ProjectItems() : this((p, i) => new SimpleProjector(p)) {
+        public ProjectItems() : this((p, i) => new SimpleProjector(p, "default")) {
         }
 
         public ProjectItems(Func<Projection[], bool, IProjector> createProjector) {
@@ -100,13 +100,13 @@ Examples:
                     string strategy = Option.ExtractRequiredOptionValue(args, ref j, "missing strategy");
                     switch (strategy) {
                         case "S":
-                            _createProjector = (p, i) => new SimpleProjector(p);
+                            _createProjector = (p, i) => new SimpleProjector(p, "default projector");
                             break;
                         case "PT":
-                            _createProjector = (p, i) => new SelfOptimizingPrefixTrieProjector(p, i, 1000);
+                            _createProjector = (p, i) => new SelfOptimizingPrefixTrieProjector(p, i, 1000, "PT projector");
                             break;
                         case "FL":
-                            _createProjector = (p, i) => new SelfOptimizingFirstLetterProjector(p, i, 1000);
+                            _createProjector = (p, i) => new SelfOptimizingFirstLetterProjector(p, i, 1000, "FL projector");
                             break;
                         default:
                             Log.WriteWarning($"Unrecognized matcher optimization strategy {strategy} - using default");
@@ -129,7 +129,7 @@ Examples:
 
             if (orderedProjections == null || !orderedProjections.AllProjections.Any()) {
                 Log.WriteWarning("No projections defined");
-                _projector = new SimpleProjector(new Projection[0]);
+                _projector = new SimpleProjector(new Projection[0], "empty");
             } else {
                 _projector = _createProjector(orderedProjections.AllProjections, globalContext.IgnoreCase);
             }

@@ -30,8 +30,6 @@ namespace NDepCheck.Transforming.Projecting {
         [NotNull]
         internal readonly ItemMatch ItemMatch;
 
-        private int _matchCount;
-
         public Projection([CanBeNull] ItemType sourceItemTypeOrNull, [NotNull]ItemType targetItemType, [NotNull]string pattern,
             [CanBeNull]string[] targetSegments, bool ignoreCase, bool forLeftSide, bool forRightSide) {
             if (targetSegments != null) {
@@ -52,8 +50,6 @@ namespace NDepCheck.Transforming.Projecting {
             ItemMatch = new ItemMatch(sourceItemTypeOrNull, pattern, ignoreCase);
         }
 
-        public int MatchCount => _matchCount;
-
         /// <summary>
         /// Return projected string for some item.
         /// </summary>
@@ -70,7 +66,6 @@ namespace NDepCheck.Transforming.Projecting {
                 if (matchResultGroups == null) {
                     return null;
                 } else {
-                    _matchCount++;
                     IEnumerable<string> targets = _targetSegments;
                     for (int i = 0; i < matchResultGroups.Length; i++) {
                         int matchResultIndex = i;
@@ -87,9 +82,5 @@ namespace NDepCheck.Transforming.Projecting {
         }
 
         public Projection[] AllProjections => new[] { this };
-
-        public void ForgetMatchCount(double factor) {
-            _matchCount = (int)(_matchCount * factor);
-        }
     }
 }

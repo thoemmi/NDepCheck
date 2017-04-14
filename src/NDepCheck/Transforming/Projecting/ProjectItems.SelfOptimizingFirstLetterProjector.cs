@@ -5,23 +5,27 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.Projecting {
     public partial class ProjectItems {
-        public class FirstLetterMatchProjector : AbstractResortableProjectorWithCost {
+        public class FirstLetterMatchProjector : AbstractProjectorWithProjectionList, IResortableProjectorWithCost {
             public readonly Func<Item, bool, bool> Match;
 
             public FirstLetterMatchProjector([NotNull] Func<Item, bool, bool> match, [NotNull] Projection[] orderedProjections, [CanBeNull] string name) : base(orderedProjections, name) {
                 Match = match;
             }
 
-            protected override int Cost => CostOfOrderProjectionList(_orderedProjections);
+            public double CostPerProjection => (MatchCount + 1e-3) / (ProjectCount + 1e-9);
 
             public override Item Project(Item item, bool left) {
                 return ProjectBySequentialSearch(item, left);
             }
+
+            public int CompareTo(IResortableProjectorWithCost other) {
+                return CostPerProjection.CompareTo(other.CostPerProjection);
+            }
         }
 
         public class SelfOptimizingFirstLetterProjector : AbstractSelfOptimizingProjector<FirstLetterMatchProjector> {
-            public SelfOptimizingFirstLetterProjector(Projection[] orderedProjections, bool ignoreCase, int reorganizeInterval) :
-                base(orderedProjections, ignoreCase, reorganizeInterval) {
+            public SelfOptimizingFirstLetterProjector(Projection[] orderedProjections, bool ignoreCase, int reorganizeInterval, string name) :
+                base(orderedProjections, ignoreCase, reorganizeInterval, name) {
             }
 
             protected override List<FirstLetterMatchProjector> CreateResortableProjectors(Projection[] orderedProjections) {
@@ -100,7 +104,8 @@ namespace NDepCheck.Transforming.Projecting {
                 return result;
             }
 
-            protected override FirstLetterMatchProjector SelectProjector(IEnumerable<FirstLetterMatchProjector> projectors, Item item, bool left) {
+            protected override FirstLetterMatchProjector SelectProjector(IReadOnlyList<FirstLetterMatchProjector> projectors,
+                                                                 Item item, bool left, int stepsToNextReorganize) {
                 return projectors.FirstOrDefault(p => p.Match(item, left));
             }
         }

@@ -37,14 +37,20 @@ namespace NDepCheck.Transforming.Projecting {
                 }
             }
 
-            public void SetProjector(string triePath, ProjectionAndFixedPrefix[] pfps) {
+            public int SetProjector(string triePath, ProjectionAndFixedPrefix[] pfps) {
                 IEnumerable<ProjectionAndFixedPrefix> matchingProjections =
                     pfps.Where(pfp => pfp.FixedPrefix.StartsWith(triePath) || pfp.FixedPrefix == "");
                 IEnumerable<ProjectionAndFixedPrefix> mightLandHere =
-                    matchingProjections.Where(pfp => pfp.FixedPrefix == "" || 
+                    matchingProjections.Where(pfp => pfp.FixedPrefix == "" ||
                         !_children.Keys.Any(c => pfp.FixedPrefix.StartsWith(triePath + c)));
                 _projections = mightLandHere.Select(pfp => pfp.Projection).ToArray();
-                _projectorToUseIfNoCharMatches = new SimpleProjector(_projections);
+                _projectorToUseIfNoCharMatches = new SimpleProjector(_projections, $"trie[{triePath}]");
+
+                int nodeCount = 1;
+                foreach (var kvp in _children) {
+                    nodeCount += kvp.Value.SetProjector(triePath + kvp.Key,  pfps);
+                }
+                return nodeCount;
             }
 
             [NotNull]
@@ -60,18 +66,29 @@ namespace NDepCheck.Transforming.Projecting {
                 }
             }
 
-            public int GetCost() {
-                // TODO: The following is wrong - we must somehow integrate over all children
-                return AbstractResortableProjectorWithCost.CostOfOrderProjectionList(_projections);
+            public double GetMatchCount() {
+                return _children.Values.Sum(c => c.GetMatchCount()) + _projectorToUseIfNoCharMatches.MatchCount;
+            }
+
+            public double GetProjectCount() {
+                return _children.Values.Sum(c => c.GetProjectCount()) + _projectorToUseIfNoCharMatches.ProjectCount;
+            }
+
+            public void ReduceCostCountsInReorganizeToForgetHistory() {
+                _projectorToUseIfNoCharMatches.ReduceCostCountsInReorganizeToForgetHistory();
+                foreach (var child in _children.Values) {
+                    child.ReduceCostCountsInReorganizeToForgetHistory();
+                }
             }
         }
 
-        public class TrieNodeProjector : AbstractResortableProjectorWithCost {
+        public class TrieNodeProjector : AbstractProjector, IResortableProjectorWithCost {
             private readonly TrieNode _root;
             private readonly int _fieldPos;
+            private readonly int _nodeCount;
 
             public TrieNodeProjector(Projection[] orderedProjections, int fieldPos, IEqualityComparer<char> equalityComparer, string name)
-                : base(orderedProjections, name) {
+                : base(name) {
                 ProjectionAndFixedPrefix[] pms = orderedProjections
                         .Select(p => new ProjectionAndFixedPrefix(p, p.ItemMatch.ItemPattern.Matchers.ElementAtOrDefault(fieldPos)?.GetKnownFixedPrefix() ?? ""))
                         .ToArray();
@@ -80,8 +97,9 @@ namespace NDepCheck.Transforming.Projecting {
                 foreach (var p in allPrefixes) {
                     _root.Insert(p, equalityComparer);
                 }
+                _nodeCount = 0;
                 foreach (var p in allPrefixes) {
-                    _root.SetProjector(p, pms);
+                    _nodeCount  += _root.SetProjector(p, pms);
                 }
                 _fieldPos = fieldPos;
             }
@@ -90,12 +108,22 @@ namespace NDepCheck.Transforming.Projecting {
                 return _root.SelectProjector(item.Values.ElementAtOrDefault(_fieldPos)).Project(item, left);
             }
 
-            protected override int Cost => _root.GetCost();
+            public double CostPerProjection => (_root.GetMatchCount() + 1e-3) / (_root.GetProjectCount() + 1e-9);
+
+            public int NodeCount => _nodeCount;
+
+            public int CompareTo(IResortableProjectorWithCost other) {
+                return CostPerProjection.CompareTo(other.CostPerProjection);
+            }
+
+            public void ReduceCostCountsInReorganizeToForgetHistory() {
+                _root.ReduceCostCountsInReorganizeToForgetHistory();
+            }
         }
 
         public class SelfOptimizingPrefixTrieProjector : AbstractSelfOptimizingProjector<TrieNodeProjector> {
-            public SelfOptimizingPrefixTrieProjector(Projection[] orderedProjections, bool ignoreCase, int reorganizeInterval) :
-                base(orderedProjections, ignoreCase, reorganizeInterval) {
+            public SelfOptimizingPrefixTrieProjector(Projection[] orderedProjections, bool ignoreCase, int reorganizeInterval, string name) :
+                base(orderedProjections, ignoreCase, reorganizeInterval, name) {
             }
 
             protected override List<TrieNodeProjector> CreateResortableProjectors(Projection[] orderedProjections) {
@@ -146,31 +174,25 @@ namespace NDepCheck.Transforming.Projecting {
                         break;
                     }
 
-                    result.Add(new TrieNodeProjector(orderedProjections, fieldPos, _equalityComparer, "TrieNodeProject:" + fieldPos0));
+                    result.Add(new TrieNodeProjector(orderedProjections, fieldPos, _equalityComparer, "PrefixTrieNodeProjector$" + fieldPos0));
                 }
+
+                // More precise projectors could be given a head start. 
+                // For this, we could sort the projectors by falling NodeCount - the rough assumption is
+                // that a higher node count means that the projector is more selective.
+                // However, I'd like to see the better projectors "win on their own merits", therefore
+                // this code line is commented out.
+                // result.Sort((p1,p2) => p2.NodeCount - p1.NodeCount);
 
                 return result;
             }
 
-            protected override TrieNodeProjector SelectProjector(IEnumerable<TrieNodeProjector> projectors, Item item, bool left) {
-                return projectors.FirstOrDefault();
+            protected override TrieNodeProjector SelectProjector(IReadOnlyList<TrieNodeProjector> projectors, 
+                                                                 Item item, bool left, int stepsToNextReorganize) {
+                return stepsToNextReorganize >= 0 && stepsToNextReorganize < projectors.Count 
+                    ? projectors[stepsToNextReorganize] // Give other projectors a small chance to show off
+                    : projectors[0];
             }
         }
-        //    private class SelfOptimizingPrefixProjector : SelfOptimizingProjector {
-        //        public SelfOptimizingPrefixProjector(Projection[] orderedProjections, int reorganizeInterval = 1000) :
-        //            base(orderedProjections, reorganizeInterval) {
-        //        }
-
-        //        protected override List<SelectingProjector> CreateSelectingProjectors(Projection[] orderedProjections) {
-        //            //       abc def xyz ab[^c] [^ab|^def|^xyz]
-        //            // abc   +
-        //            // def       +
-        //            // ab    +           +
-        //            // xyz           +
-        //            // **    +   +   +   +      +
-
-        //throw new NotImplementedException();
-        //        }
-        //    }
     }
 }
