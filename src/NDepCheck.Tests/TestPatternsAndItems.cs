@@ -72,6 +72,18 @@ namespace NDepCheck.Tests {
         }
 
         [TestMethod]
+        public void TestBackReferenceDependencyRuleMatchesWithOuterParentheses() {
+            DependencyRuleRepresentation rep = new DependencyRuleRepresentation("FILE", 0, "...", false);
+            ItemType itemtype = ItemType.New("SO", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" });
+            var rn3 = new DependencyRule(itemtype, "(s**):(t**)", itemtype, @"\1*:\2*", rep, IGNORECASE);
+            var rn5 = new DependencyRule(itemtype, "(**s**):(**t**)", itemtype, @"\1:\2", rep, IGNORECASE);
+
+            Dependency dep = new Dependency(Item.New(itemtype, "sx", "tx"), Item.New(itemtype, "sx", "tx"), null, "Test", ct: 1);
+            Assert.IsTrue(rn3.IsMatch(dep));
+            Assert.IsTrue(rn5.IsMatch(dep));
+        }
+
+        [TestMethod]
         public void TestMoreBackReferenceDependencyRuleMatches() {
             DependencyRuleRepresentation rep = new DependencyRuleRepresentation("FILE", 0, "...", false);
             ItemType itemType = ItemType.New("SO", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" });

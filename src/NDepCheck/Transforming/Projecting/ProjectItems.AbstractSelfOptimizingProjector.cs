@@ -17,12 +17,13 @@ namespace NDepCheck.Transforming.Projecting {
             private readonly List<TResortableProjectorWithCost> _projectors;
             private readonly IProjector _fallBackProjector;
 
-            protected readonly int _reorganizeInterval;
+            protected readonly int _reorganizeIntervalIncrement;
+            protected int _reorganizeInterval;
             private int _stepsToNextReorganize;
 
-            protected AbstractSelfOptimizingProjector(Projection[] orderedProjections, bool ignoreCase, int reorganizeInterval, string name) 
+            protected AbstractSelfOptimizingProjector(Projection[] orderedProjections, bool ignoreCase, int reorganizeIntervalIncrement, string name) 
                 : base(name) {
-                _stepsToNextReorganize = _reorganizeInterval = reorganizeInterval;
+                _stepsToNextReorganize = _reorganizeInterval = _reorganizeIntervalIncrement = reorganizeIntervalIncrement;
 
                 _equalityComparer = ignoreCase
                     ? (IEqualityComparer<char>) new CharIgnoreCaseEqualityComparer()
@@ -50,6 +51,7 @@ namespace NDepCheck.Transforming.Projecting {
             public override Item Project(Item item, bool left) {
                 if (_stepsToNextReorganize-- < 0) {
                     Reorganize();
+                    _reorganizeInterval += _reorganizeIntervalIncrement;
                     _stepsToNextReorganize = _reorganizeInterval;
                 }
                 return ((IProjector) SelectProjector(_projectors, item, left, _stepsToNextReorganize) ?? _fallBackProjector).Project(item, left);

@@ -78,7 +78,10 @@ namespace NDepCheck.Transforming.Projecting {
         }
 
         public static string ExpandHexChars(string s) {
-            return Regex.Replace(s, "%[0-9a-fA-F][0-9a-fA-F]", m => "" + (char)int.Parse(m.Value.Substring(1), NumberStyles.HexNumber));
+            return s.Contains('%')
+                ? Regex.Replace(s, "%[0-9a-fA-F][0-9a-fA-F]",
+                    m => "" + (char) int.Parse(m.Value.Substring(1), NumberStyles.HexNumber))
+                : s;
         }
 
         public Projection[] AllProjections => new[] { this };

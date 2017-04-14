@@ -94,5 +94,75 @@ namespace NDepCheck.Tests {
             Assert.AreEqual("PrefixTrieNodeProjector$1", projectors[0].Name);
             Assert.AreEqual("PrefixTrieNodeProjector$0", projectors[1].Name);
         }
+
+
+        [TestMethod]
+        public void TestSmallSelfOptimizingPrefixTrieProjector2() {
+            // This test found a problem in TrieNode.SetProjectors.
+            ProjectItems.IProjector usedProjector = null;
+            var pi = new ProjectItems((p, i) => usedProjector = new ProjectItems.SelfOptimizingPrefixTrieProjector(p, i, 2, "prefixTrie"));
+            var gc = new GlobalContext();
+            pi.Configure(gc, @"{ -pl
+    $ IgnoreName(Ignore:Name) ---% SIMPLE
+
+    ! :abc ---% ADetail
+    ! :a*  ---% A
+    ! :t   ---% T
+    ! :**  ---% 
+}", forceReload: false);
+
+            Item a = Item.New(ItemType.Generic(2), "x:a");
+            Item ab = Item.New(ItemType.Generic(2), "x:ab");
+            Item abc = Item.New(ItemType.Generic(2), "x:abc");
+            Item abcd = Item.New(ItemType.Generic(2), "x:abcd");
+            Item t = Item.New(ItemType.Generic(2), "m:t");
+
+            var result = new List<Dependency>();
+            pi.Transform(gc, "test", new[] {
+                new Dependency(a, t, null, "a->t", 1), // A->T
+                new Dependency(ab, t, null, "ab->t", 1), // A-> T
+                new Dependency(abc, t, null, "abc->t", 1), // ADetail ->T
+                new Dependency(abcd, t, null, "abcd->t", 1), // A -> T
+            }, "", "test", result);
+
+            Assert.AreEqual(2, result.Count);
+            Assert.AreEqual("A", result[0].UsingItem.Values[0]);
+            Assert.AreEqual(3, result[0].Ct);
+            Assert.AreEqual("ADetail", result[1].UsingItem.Values[0]);
+            Assert.AreEqual(1, result[1].Ct);
+        }
+
+        //[TestMethod]
+        //public void TestDamned() {
+        //    var gc = new GlobalContext();
+
+        //    ProjectItems.SimpleProjector simpleProjector = null;
+        //    var piSimple = new ProjectItems((p, i) => simpleProjector = new ProjectItems.SimpleProjector(p, "simple"));
+        //    piSimple.Configure(gc, @"{ -pf C:\PT\github\NDepCheck\examples\puf\PUF.dep }".Replace(" ", "\r\n"), true);
+
+        //    ProjectItems.SelfOptimizingPrefixTrieProjector trieProjector = null;
+        //    var piTrie = new ProjectItems((p, i) => trieProjector = new ProjectItems.SelfOptimizingPrefixTrieProjector(p, i, 1000, "prefixTrie"));
+        //    piTrie.Configure(gc, @"{ -pf C:\PT\github\NDepCheck\examples\puf\PUF.dep }".Replace(" ", "\r\n"), true);
+
+        //    AbstractDependencyReader rd = new DipReaderFactory().CreateReader(@"C:\PT\github\NDepCheck\examples\puf\PUF.dip", gc, false);
+        //    var deps = rd.ReadDependencies(0).Dependencies;
+
+        //    int n = 0;
+        //    foreach (var d in deps) {
+        //        {
+        //            var s = simpleProjector.Project(d.UsingItem, true);
+        //            var t = trieProjector.Project(d.UsingItem, true);
+
+        //            Assert.AreEqual(s, t);
+        //        }
+        //        {
+        //            var s = simpleProjector.Project(d.UsedItem, false);
+        //            var t = trieProjector.Project(d.UsedItem, false);
+
+        //            Assert.AreEqual(s, t);
+        //        }
+        //        n++;
+        //    }
+        //}
     }
 }

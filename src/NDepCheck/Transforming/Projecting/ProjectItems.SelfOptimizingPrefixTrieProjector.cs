@@ -37,18 +37,22 @@ namespace NDepCheck.Transforming.Projecting {
                 }
             }
 
-            public int SetProjector(string triePath, ProjectionAndFixedPrefix[] pfps) {
+            public int SetProjectors(string triePath, ProjectionAndFixedPrefix[] pfps) {
+                //IEnumerable<ProjectionAndFixedPrefix> matchingProjections =
+                //    pfps.Where(pfp => pfp.FixedPrefix.StartsWith(triePath) || pfp.FixedPrefix == "");
                 IEnumerable<ProjectionAndFixedPrefix> matchingProjections =
-                    pfps.Where(pfp => pfp.FixedPrefix.StartsWith(triePath) || pfp.FixedPrefix == "");
+                    pfps.Where(pfp => triePath.StartsWith(pfp.FixedPrefix) || pfp.FixedPrefix == "");
+
                 IEnumerable<ProjectionAndFixedPrefix> mightLandHere =
                     matchingProjections.Where(pfp => pfp.FixedPrefix == "" ||
                         !_children.Keys.Any(c => pfp.FixedPrefix.StartsWith(triePath + c)));
+
                 _projections = mightLandHere.Select(pfp => pfp.Projection).ToArray();
                 _projectorToUseIfNoCharMatches = new SimpleProjector(_projections, $"trie[{triePath}]");
 
                 int nodeCount = 1;
                 foreach (var kvp in _children) {
-                    nodeCount += kvp.Value.SetProjector(triePath + kvp.Key,  pfps);
+                    nodeCount += kvp.Value.SetProjectors(triePath + kvp.Key,  pfps);
                 }
                 return nodeCount;
             }
@@ -97,10 +101,7 @@ namespace NDepCheck.Transforming.Projecting {
                 foreach (var p in allPrefixes) {
                     _root.Insert(p, equalityComparer);
                 }
-                _nodeCount = 0;
-                foreach (var p in allPrefixes) {
-                    _nodeCount  += _root.SetProjector(p, pms);
-                }
+                _nodeCount = _root.SetProjectors("", pms);
                 _fieldPos = fieldPos;
             }
 
@@ -122,8 +123,8 @@ namespace NDepCheck.Transforming.Projecting {
         }
 
         public class SelfOptimizingPrefixTrieProjector : AbstractSelfOptimizingProjector<TrieNodeProjector> {
-            public SelfOptimizingPrefixTrieProjector(Projection[] orderedProjections, bool ignoreCase, int reorganizeInterval, string name) :
-                base(orderedProjections, ignoreCase, reorganizeInterval, name) {
+            public SelfOptimizingPrefixTrieProjector(Projection[] orderedProjections, bool ignoreCase, int reorganizeIntervalIncrement, string name) :
+                base(orderedProjections, ignoreCase, reorganizeIntervalIncrement, name) {
             }
 
             protected override List<TrieNodeProjector> CreateResortableProjectors(Projection[] orderedProjections) {

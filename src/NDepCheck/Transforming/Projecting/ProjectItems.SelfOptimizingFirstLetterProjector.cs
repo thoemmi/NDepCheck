@@ -24,8 +24,8 @@ namespace NDepCheck.Transforming.Projecting {
         }
 
         public class SelfOptimizingFirstLetterProjector : AbstractSelfOptimizingProjector<FirstLetterMatchProjector> {
-            public SelfOptimizingFirstLetterProjector(Projection[] orderedProjections, bool ignoreCase, int reorganizeInterval, string name) :
-                base(orderedProjections, ignoreCase, reorganizeInterval, name) {
+            public SelfOptimizingFirstLetterProjector(Projection[] orderedProjections, bool ignoreCase, int reorganizeIntervalIncrement, string name) :
+                base(orderedProjections, ignoreCase, reorganizeIntervalIncrement, name) {
             }
 
             protected override List<FirstLetterMatchProjector> CreateResortableProjectors(Projection[] orderedProjections) {

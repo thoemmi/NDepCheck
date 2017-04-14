@@ -136,24 +136,20 @@ namespace NDepCheck.Transforming {
                 return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(estimatedGroupCount) + pattern, ignoreCase, estimatedGroupCount, null, null);
             } else if (segment.EndsWith("$")) {
                 return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(estimatedGroupCount) + ".*" + segment, ignoreCase, estimatedGroupCount, null, null);
-            } else if (estimatedGroupCount == 0 && HasNoRegexCharsExceptPeriod(segment)) {
-                // TODO: Also allow surrounding ()
+            } else if (estimatedGroupCount == 0 && HasNoRegexCharsExceptPeriod(segment.TrimStart('(').TrimEnd(')'))) {
                 return new EqualsMatcher(segment, ignoreCase);
-            } else if (IsPrefixAndSuffixAsterisksPattern(segment)) {
-                // TODO: Also allow surrounding ()
+            } else if (IsPrefixAndSuffixAsterisksPattern(segment.TrimStart('(').TrimEnd(')'))) {
                 return new ContainsMatcher(segment, ignoreCase);
-            } else if (IsSuffixAsterisksPattern(segment)) {
-                // TODO: Also allow surrounding ()
+            } else if (IsSuffixAsterisksPattern(segment.TrimStart('(').TrimEnd(')'))) {
                 return new StartsWithMatcher(segment, ignoreCase);
-            } else if (IsPrefixAsterisksPattern(segment)) {
-                // TODO: Also allow surrounding ()
+            } else if (IsPrefixAsterisksPattern(segment.TrimStart('(').TrimEnd(')'))) {
                 return new EndsWithMatcher(segment, ignoreCase);
             } else {
-                string fixedPrefix = Regex.Match(segment, @"^[^*+\\]*").Value;
-                string fixedSuffix = Regex.Match(segment, @"[^*+\\]*$").Value;
+                string fixedPrefix = Regex.Match(segment, @"^[^*+\\]*").Value.TrimEnd('.');
+                string fixedSuffix = Regex.Match(segment, @"[^*+\\]*$").Value.TrimStart('.');
 
                 string pattern = ExpandAsterisks(segment, ignoreCase);
-                return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(estimatedGroupCount) + pattern + "$", 
+                return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(estimatedGroupCount) + pattern + "$",
                                         ignoreCase, estimatedGroupCount, fixedPrefix, fixedSuffix);
             }
         }
@@ -203,7 +199,7 @@ namespace NDepCheck.Transforming {
         private readonly bool _alsoMatchDot;
         private readonly int _groupCount;
 
-        public static readonly AlwaysMatcher ALL  = new AlwaysMatcher(alsoMatchDot: true, groupCount: 0);
+        public static readonly AlwaysMatcher ALL = new AlwaysMatcher(alsoMatchDot: true, groupCount: 0);
 
         public AlwaysMatcher(bool alsoMatchDot, int groupCount) {
             _alsoMatchDot = alsoMatchDot;
@@ -293,6 +289,7 @@ namespace NDepCheck.Transforming {
         protected readonly string _segment;
         private readonly Func<string, string, bool> _isMatch;
         private readonly bool _ignoreCase;
+        private readonly int _resultGroupCt;
 
         public bool IgnoreCase => _ignoreCase;
 
@@ -300,9 +297,10 @@ namespace NDepCheck.Transforming {
             return ignoreCase ? StringComparison.InvariantCulture : StringComparison.InvariantCultureIgnoreCase;
         }
 
-        protected AbstractRememberingDelegateMatcher(string segment, Func<string, string, bool> isMatch, bool ignoreCase, int maxSize) 
+        protected AbstractRememberingDelegateMatcher(int resultGroupCt, string segment, Func<string, string, bool> isMatch, bool ignoreCase, int maxSize)
             : base(maxSize) {
             _segment = segment;
+            _resultGroupCt = resultGroupCt;
             _isMatch = isMatch;
             _ignoreCase = ignoreCase;
         }
@@ -316,7 +314,9 @@ namespace NDepCheck.Transforming {
             if (Check(value, out result)) {
                 return result;
             } else {
-                return Remember(value, _isMatch(value, _segment) ? ItemPattern.NO_GROUPS : null);
+                return Remember(value, _isMatch(value, _segment)
+                    ? (_resultGroupCt == 0 ? ItemPattern.NO_GROUPS : Enumerable.Repeat(value, _resultGroupCt).ToArray())
+                    : null);
             }
         }
 
@@ -332,7 +332,10 @@ namespace NDepCheck.Transforming {
 
     internal sealed class ContainsMatcher : AbstractRememberingDelegateMatcher {
         public ContainsMatcher(string segment, bool ignoreCase, int maxSize = 1000)
-            : base(segment.Trim('*').Trim('.'), (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) >= 0, ignoreCase, maxSize) {
+            : base(segment.TakeWhile(c => c == '(').Count(),
+                  segment.TrimStart('(').TrimEnd(')').Trim('*').Trim('.'), 
+                  (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) >= 0, 
+                  ignoreCase, maxSize) {
         }
 
         public override string ToString() {
@@ -350,7 +353,10 @@ namespace NDepCheck.Transforming {
 
     internal sealed class EqualsMatcher : AbstractRememberingDelegateMatcher {
         public EqualsMatcher(string segment, bool ignoreCase, int maxSize = 1000)
-            : base(segment, (value, seg) => string.Compare(value, seg, ignoreCase) == 0, ignoreCase, maxSize) {
+            : base(segment.TakeWhile(c => c == '(').Count(),
+                  segment.TrimStart('(').TrimEnd(')'),
+                  (value, seg) => string.Compare(value, seg, ignoreCase) == 0, 
+                  ignoreCase, maxSize) {
         }
 
         public override string ToString() {
@@ -368,7 +374,10 @@ namespace NDepCheck.Transforming {
 
     internal sealed class StartsWithMatcher : AbstractRememberingDelegateMatcher {
         public StartsWithMatcher(string segment, bool ignoreCase, int maxSize = 1000)
-            : base(segment.TrimEnd('*').TrimEnd('.'), (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) == 0, ignoreCase, maxSize) {
+            : base(segment.TakeWhile(c => c == '(').Count(),
+                  segment.TrimStart('(').TrimEnd(')').TrimEnd('*').TrimEnd('.'), 
+                  (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) == 0, 
+                  ignoreCase, maxSize) {
         }
 
         public override string ToString() {
@@ -386,7 +395,10 @@ namespace NDepCheck.Transforming {
 
     internal sealed class EndsWithMatcher : AbstractRememberingDelegateMatcher {
         public EndsWithMatcher(string segment, bool ignoreCase, int maxSize = 1000)
-            : base(segment.TrimStart('*').TrimStart('.'), (value, seg) => value.LastIndexOf(seg, GetComparisonType(ignoreCase)) >= value.Length - segment.Length, ignoreCase, maxSize) {
+            : base(segment.TakeWhile(c => c == '(').Count(),
+                  segment.TrimStart('(').TrimEnd(')').TrimStart('*').TrimStart('.'), 
+                  (value, seg) => value.LastIndexOf(seg, GetComparisonType(ignoreCase)) >= value.Length - segment.Length, 
+                  ignoreCase, maxSize) {
         }
 
         public override string ToString() {
@@ -414,12 +426,12 @@ namespace NDepCheck.Transforming {
             return string.Join("", Enumerable.Repeat("([^" + GROUPSEP + "]*)" + GROUPSEP, estimatedGroupCount));
         }
 
-        public RegexMatcher([NotNull]string pattern, bool ignoreCase, int estimatedGroupCount, 
+        public RegexMatcher([NotNull]string pattern, bool ignoreCase, int estimatedGroupCount,
                             [CanBeNull] string fixedPrefix, [CanBeNull] string fixedSuffix, int maxSize = 1000) : base(maxSize) {
             _estimatedGroupCount = estimatedGroupCount;
             _regex = new Regex(pattern, ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
-            _fixedPrefix = (fixedPrefix ?? "").Replace("(", "");
-            _fixedSuffix = (fixedSuffix ?? "").Replace(")", "");
+            _fixedPrefix = (fixedPrefix ?? "").Replace("(", "").Replace(")", "");
+            _fixedSuffix = (fixedSuffix ?? "").Replace("(", "").Replace(")", "");
         }
 
         public bool IsMatch(string value, string[] groups) {
