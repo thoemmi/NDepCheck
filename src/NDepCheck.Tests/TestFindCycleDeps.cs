@@ -83,7 +83,7 @@ namespace NDepCheck.Tests {
             var result = new List<Dependency>();
 
             new FindCycleDeps().Transform(new GlobalContext(), "test", deps,
-                $"{{ {FindCycleDeps.KeepOnlyCyclesOption} {FindCycleDeps.IgnoreSelfCyclesOption} }}", "test", result);
+                $"{{ {FindCycleDeps.KeepOnlyCyclesOption} {FindCycleDeps.IgnoreSelfCyclesOption} }}".Replace(" ", "\r\n"), "test", result);
 
             result.Sort((x, y) => String.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
 
@@ -123,9 +123,9 @@ namespace NDepCheck.Tests {
 
             const string marker = "Cycle";
             new FindCycleDeps().Transform(new GlobalContext(), "test", deps, 
-                $"{{ {FindCycleDeps.KeepOnlyCyclesOption} " +
-                $"{FindCycleDeps.MaxCycleLengthOption} 3 " +
-                $"{FindCycleDeps.EffectOptions.AddMarkerOption} {marker} }}",
+                ($"{{ {FindCycleDeps.KeepOnlyCyclesOption} " +
+                 $"{FindCycleDeps.MaxCycleLengthOption} 3 " +
+                 $"{FindCycleDeps.EffectOptions.AddMarkerOption} {marker} }}").Replace(" ", "\r\n"),
                 "test", result);
 
             result.Sort((x, y) => String.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));

@@ -19,6 +19,8 @@ namespace NDepCheck.Transforming.Projecting {
             [NotNull]
             private SimpleProjector _projectorToUseIfNoCharMatches;
 
+            private Projection[] _projections;
+
             // ReSharper disable once NotNullMemberIsNotInitialized - reliably set in SetProjector
             public TrieNode(IEqualityComparer<char> equalityComparer) {
                 _children = new Dictionary<char, TrieNode>(equalityComparer);
@@ -41,8 +43,8 @@ namespace NDepCheck.Transforming.Projecting {
                 IEnumerable<ProjectionAndFixedPrefix> mightLandHere =
                     matchingProjections.Where(pfp => pfp.FixedPrefix == "" || 
                         !_children.Keys.Any(c => pfp.FixedPrefix.StartsWith(triePath + c)));
-                _projectorToUseIfNoCharMatches =
-                    new SimpleProjector(mightLandHere.Select(pfp => pfp.Projection).ToArray());
+                _projections = mightLandHere.Select(pfp => pfp.Projection).ToArray();
+                _projectorToUseIfNoCharMatches = new SimpleProjector(_projections);
             }
 
             [NotNull]
@@ -56,6 +58,11 @@ namespace NDepCheck.Transforming.Projecting {
                         ? childNode.SelectProjector(triePath.Substring(1))
                         : _projectorToUseIfNoCharMatches;
                 }
+            }
+
+            public int GetCost() {
+                // TODO: The following is wrong - we must somehow integrate over all children
+                return AbstractResortableProjectorWithCost.CostOfOrderProjectionList(_projections);
             }
         }
 
@@ -80,8 +87,10 @@ namespace NDepCheck.Transforming.Projecting {
             }
 
             public override Item Project(Item item, bool left) {
-                return _root.SelectProjector(item.Values.ElementAtOrDefault(_fieldPos)).Project(item ,left);
+                return _root.SelectProjector(item.Values.ElementAtOrDefault(_fieldPos)).Project(item, left);
             }
+
+            protected override int Cost => _root.GetCost();
         }
 
         public class SelfOptimizingPrefixTrieProjector : AbstractSelfOptimizingProjector<TrieNodeProjector> {

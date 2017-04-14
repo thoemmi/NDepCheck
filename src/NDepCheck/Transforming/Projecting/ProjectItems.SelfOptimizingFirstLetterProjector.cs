@@ -12,6 +12,8 @@ namespace NDepCheck.Transforming.Projecting {
                 Match = match;
             }
 
+            protected override int Cost => CostOfOrderProjectionList(_orderedProjections);
+
             public override Item Project(Item item, bool left) {
                 return ProjectBySequentialSearch(item, left);
             }

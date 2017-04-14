@@ -173,12 +173,17 @@ namespace NDepCheck {
         [NotNull]
         private static string CollectMultipleArgs(string[] args, ref int i, string value) {
             // Collect everything up to }
-            var sb = new StringBuilder(value);
+            var sb = new StringBuilder();
+            var valueArgs = value.Split(' ', '\t', '\r', '\n').Where(s => !string.IsNullOrWhiteSpace(s));
+            foreach (var v in valueArgs) {
+                sb.AppendLine(v);
+            }
+
             while (!value.EndsWith("}")) {
                 if (i >= args.Length - 1) {
                     throw new ArgumentException("Missing } at end of options");
                 }
-                value = args[++i];
+                value = args[++i]; // TODO: Also do split???
                 sb.AppendLine(value);
             }
             return sb.ToString();
@@ -213,9 +218,9 @@ namespace NDepCheck {
             string[] args;
             if (string.IsNullOrWhiteSpace(argsAsString)) {
                 args = new string[0];
-            } else if (argsAsString.StartsWith("{")) {
+            } else if (argsAsString.Trim().StartsWith("{")) {
                 var list = new List<string>();
-                using (var sr = new StringReader(argsAsString)) {
+                using (var sr = new StringReader(argsAsString.TrimStart('{', ' ', '\t', '\r', '\n').TrimEnd('}', ' ', '\t', '\r', '\n'))) {
                     for (;;) {
                         string line = globalContext.NormalizeLine(sr.ReadLine());
                         if (line == null) {
@@ -224,10 +229,11 @@ namespace NDepCheck {
                         if (line == "") {
                             // ignore;
                         } else {
-                            list.AddRange(
-                                line.Split(' ', '\r', '\n')
-                                    .Select(a => a.TrimStart('{').TrimEnd('}').Trim())
-                                    .Where(a => a != ""));
+                            list.Add(line);
+                            //list.AddRange(
+                            //    line.Split(' ', '\r', '\n')
+                            //        .Select(a => a.TrimStart('{').TrimEnd('}').Trim())
+                            //        .Where(a => a != ""));
                         }
                     }
                 }

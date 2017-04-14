@@ -11,7 +11,7 @@ namespace NDepCheck.Tests {
             try {
                 var msi = new MarkSpecialItems();
                 var result = new List<Dependency>();
-                msi.Transform(globalContext, "test", msi.GetTestDependencies(), options, "test", result);
+                msi.Transform(globalContext, "test", msi.GetTestDependencies(), options.Replace(" ", "\r\n"), "test", result);
                 return
                     result.SelectMany(d => new[] {d.UsingItem, d.UsedItem})
                         .Distinct()

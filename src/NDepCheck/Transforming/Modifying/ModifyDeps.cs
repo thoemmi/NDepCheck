@@ -76,12 +76,8 @@ Examples:
                     return j;
                 }),
                 ModificationsOption.Action((args, j) => {
-                    // A trick is used: The first line, which contains all options, should be ignored; and
-                    // also the last } (which is from the surrounding options braces). Thus,
-                    // * we add // to the beginning - this comments out the first line;
-                    // * and trim } at the end.
                     _orderedActions = GetOrReadChildConfiguration(globalContext,
-                        () => new StringReader("//" + (configureOptions ?? "").Trim().TrimEnd('}')), 
+                        () => new StringReader(string.Join("\r\n", args.Skip(j + 1))), 
                         ModificationsOption.ShortName, globalContext.IgnoreCase, "????", forceReload);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;

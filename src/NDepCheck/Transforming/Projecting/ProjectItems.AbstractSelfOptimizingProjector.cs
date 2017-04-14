@@ -17,30 +17,31 @@ namespace NDepCheck.Transforming.Projecting {
                 return ":" + _name;
             }
 
-            private int Cost {
-                get {
-                    // Average steps for each hit:
-                    //     1/hitCt[0] + 2/hitCt[1] + 3/hitCt[2] usw.
-                    // This means that (a) rarely hit and (b) "lately hit" 
-                    // (i.e. where the hit is towards the end of the projections
-                    // list) matchers are punished.
-                    // To keep to integer numbers, I multiply the values above with 100000;
-                    // and I add 1 to the hit counts to avoid division by zero. Last, I
-                    // wrap the sum in unchecked just for the case of more than about 20000
-                    // projections (10^5 * 2 * 10^4 = 2 * 10^9 =about int.MaxValue).
-
-                    int sum = 0;
-                    unchecked {
-                        for (int i = 0; i < _orderedProjections.Length; i++) {
-                            sum += 100000 * (i + 1) / (_orderedProjections[i].MatchCount+ 1);
-                        }
-                    }
-                    return sum;
-                }
-            }
+            protected abstract int Cost { get; }            
 
             public int CompareTo([NotNull] AbstractResortableProjectorWithCost other) {
                 return Cost - other.Cost;
+            }
+
+            public static int CostOfOrderProjectionList(Projection[] orderedProjections) {
+                // Average steps for each hit:
+
+                //     1/hitCt[0] + 2/hitCt[1] + 3/hitCt[2] usw.
+                // This means that (a) rarely hit and (b) "lately hit" 
+                // (i.e. where the hit is towards the end of the projections
+                // list) matchers are punished.
+                // To keep to integer numbers, I multiply the values above with 100000;
+                // and I add 1 to the hit counts to avoid division by zero. Last, I
+                // wrap the sum in unchecked just for the case of more than about 20000
+                // projections (10^5 * 2 * 10^4 = 2 * 10^9 =about int.MaxValue).
+
+                int sum = 0;
+                unchecked {
+                    for (int i = 0; i < orderedProjections.Length; i++) {
+                        sum += 100000 * (i + 1) / (orderedProjections[i].MatchCount + 1);
+                    }
+                }
+                return sum;
             }
         }
 
