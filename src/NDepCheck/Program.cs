@@ -411,11 +411,11 @@ namespace NDepCheck {
                         globalContext.ShowDetailedHelp<ICalculator>("", calculator, filter);
                     } else if (DoBreakOption.Matches(arg)) {
                         // -db
-                        Log.WriteInfo(msg: "---- Stop reading options (-b)");
+                        Log.WriteInfo(msg: "---- Stop reading options (-db)");
                         goto DONE;
                     } else if (DoCommandOption.Matches(arg)) {
                         // -dc    command
-                        string cmd = Option.ExtractOptionValue(args, ref i);
+                        string cmd = Option.ExtractRequiredOptionValue(args, ref i, "Missing command after -dc").TrimStart('{', ' ').TrimEnd('}', ' '); 
                         try {
                             if (new Process { StartInfo = new ProcessStartInfo(cmd) }.Start()) {
                                 Log.WriteInfo(msg: $"Started process '{cmd}'");
