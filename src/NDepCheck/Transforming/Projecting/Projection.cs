@@ -31,7 +31,6 @@ namespace NDepCheck.Transforming.Projecting {
         internal readonly ItemMatch ItemMatch;
 
         private int _matchCount;
-        private int _hitCt;
 
         public Projection([CanBeNull] ItemType sourceItemTypeOrNull, [NotNull]ItemType targetItemType, [NotNull]string pattern,
             [CanBeNull]string[] targetSegments, bool ignoreCase, bool forLeftSide, bool forRightSide) {
@@ -89,22 +88,8 @@ namespace NDepCheck.Transforming.Projecting {
 
         public Projection[] AllProjections => new[] { this };
 
-        public int HitCt {
-            get { return _hitCt; }
-        }
-
-        /////// <summary>
-        /////// Show <c>GraphAbstraction_</c> as regular 
-        /////// expression in verbose mode (the user needs
-        /////// this to find problems when the graph output
-        /////// is not as expected).
-        /////// </summary>
-        /////// <returns></returns>
-        ////public override string ToString() {
-        ////    return _rex.ToString();
-        ////}
-        public void IncreaseHitCount() {
-            _hitCt++;
+        public void ForgetMatchCount(double factor) {
+            _matchCount = (int)(_matchCount * factor);
         }
     }
 }

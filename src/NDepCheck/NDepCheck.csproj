@@ -121,6 +121,9 @@
     <Compile Include="Transforming\EffectOptions.cs" />
     <Compile Include="Transforming\ExtendedDependencyEffectOptions.cs" />
     <Compile Include="Transforming\ItemMatch.cs" />
+    <Compile Include="Transforming\Projecting\ProjectItems.AbstractProjector.cs" />
+    <Compile Include="Transforming\Projecting\ProjectItems.SelfOptimizingFirstLetterProjector.cs" />
+    <Compile Include="Transforming\Projecting\ProjectItems.AbstractSelfOptimizingProjector.cs" />
     <Compile Include="Transforming\SpecialDependencyMarking\MarkMinimalCut.cs" />
     <Compile Include="Transforming\SpecialDependencyMarking\MarkSpecialDeps.cs" />
     <Compile Include="Transforming\SpecialNodeMarking\MarkSpecialItems .cs" />
@@ -181,7 +184,7 @@
     <None Include="EverythingAllowed.dep" />
     <None Include="NDepCheck.cd" />
     <None Include="packages.config" />
-    <Compile Include="Transforming\Projecting\ProjectItems.Projectors.cs" />
+    <Compile Include="Transforming\Projecting\ProjectItems.SelfOptimizingPrefixTrieProjector.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">

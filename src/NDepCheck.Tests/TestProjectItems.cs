@@ -1,15 +1,13 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System;
+using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.Transforming.Modifying;
 using NDepCheck.Transforming.Projecting;
 
 namespace NDepCheck.Tests {
     [TestClass]
     public class TestProjectItems {
-        [TestMethod]
-        public void TestSmallSelfOptimizingFirstLetterProjector() {
-            var pi = new ProjectItems(reorganizeInterval: 2);
+        private static void SmallTestForPrefixOptimizedProjector(Func<Projection[], bool, ProjectItems.IProjector> createProjector) {
+            var pi = new ProjectItems(createProjector);
             var gc = new GlobalContext();
             pi.Configure(gc, @"{ -pl
     $ IgnoreName(Ignore:Name) ---% SIMPLE
@@ -29,15 +27,14 @@ namespace NDepCheck.Tests {
             Item t = Item.New(ItemType.Generic(2), "m:t");
 
             var result = new List<Dependency>();
-            pi.Transform(gc, "test", new [] {
+            pi.Transform(gc, "test", new[] {
                 new Dependency(a, a, null, "a->a", 1), // the only surviving dependency
                 new Dependency(a, s, null, "a->s", 1), // vanishes, because s is not mapped
                 new Dependency(ab, s, null, "ab->s", 1), // same
                 new Dependency(ca, s, null, "ca->s", 1), // etc.
-                new Dependency(cb, s, null, "cb->s", 1),
-                new Dependency(cb, t, null, "cb->t", 1), // vanishes, because s is not mapped
-                new Dependency(a, t, null, "a->t", 1),
-                new Dependency(a, t, null, "a->t", 1),
+                new Dependency(cb, s, null, "cb->s", 1), new Dependency(cb, t, null, "cb->t", 1),
+                // vanishes, because s is not mapped
+                new Dependency(a, t, null, "a->t", 1), new Dependency(a, t, null, "a->t", 1),
                 new Dependency(a, s, null, "a->s", 1),
             }, "", "test", result);
 
@@ -46,5 +43,16 @@ namespace NDepCheck.Tests {
             Assert.AreEqual("A", result[0].UsedItem.Values[0]);
             // Assert internal operations ...!!!
         }
+
+        [TestMethod]
+        public void TestSmallSelfOptimizingFirstLetterProjector() {
+            SmallTestForPrefixOptimizedProjector((p, i) => new ProjectItems.SelfOptimizingFirstLetterProjector(p, i, 2));
+        }
+
+        [TestMethod]
+        public void TestSmallSelfOptimizingPrefixTrieProjector() {
+            SmallTestForPrefixOptimizedProjector((p, i) => new ProjectItems.SelfOptimizingPrefixTrieProjector(p, i, 2));
+        }
+
     }
 }

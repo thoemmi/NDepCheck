@@ -238,7 +238,7 @@ namespace Gibraltar {
                         currentReferenceNode = currentReferenceNode.Next;
                         list.Remove(victim);
                     } else {
-                        currentReferenceNode = currentReferenceNode.Next; // so we can contiue our iteration
+                        currentReferenceNode = currentReferenceNode.Next; // so we can continue our iteration
                     }
                 }
             }
