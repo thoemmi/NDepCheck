@@ -72,7 +72,7 @@ namespace NDepCheck.Transforming {
                     } else if (line.Contains(ASSIGN)) {
                         KeyValuePair<string, string>? kvp = ParseVariableDefinition(fullConfigFileName, lineNo, line);
                         if (kvp != null) {
-                            globalContext.SetDefine(kvp.Value.Key, kvp.Value.Value, $"at {fullConfigFileName}:{lineNo}");
+                            globalContext.SetDefine(kvp.Value.Key, kvp.Value.Value, $"at {fullConfigFileName}:{lineNo}", nowSetAsDefault: false);
                         }
                     } else {
                         string errorOrNull = onLineWithLineNo(line, lineNo);

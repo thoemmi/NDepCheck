@@ -39,11 +39,14 @@ namespace NDepCheck.Rendering {
                         );
                 var settings = new XmlWriterSettings { Encoding = Encoding.UTF8, Indent = true };
                 string fileName = GetXmlFileName(baseFileName);
+                Log.WriteInfo("Writing violations to " + fileName);
                 using (var xmlWriter = XmlWriter.Create(fileName, settings)) {
                     document.Save(xmlWriter);
                 }
             } else {
-                using (var sw = new StreamWriter(GetTextFileName(baseFileName))) {
+                string fileName = GetTextFileName(baseFileName);
+                Log.WriteInfo("Writing violations to " + fileName);
+                using (var sw = new StreamWriter(fileName)) {
                     RenderToStreamWriter(dependencies, sw);
                 }
             }

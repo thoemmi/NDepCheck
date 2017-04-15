@@ -28,6 +28,7 @@ namespace NDepCheck.Transforming.Projecting {
         private Dictionary<FromTo, Dependency> _dependenciesForBackProjection;
 
         private Func<Projection[], bool, IProjector> _createProjector;
+        private ProjectionSet _orderedProjections;
 
         public ProjectItems() : this((p, i) => new SimpleProjector(p, "default")) {
         }
@@ -93,7 +94,7 @@ Examples:
         #region Configure
 
         public override void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
-            ProjectionSet orderedProjections = null;
+            _orderedProjections = null;
 
             Option.Parse(globalContext, configureOptions,
                 MatcherStrategyOption.Action((args, j) => {
@@ -116,22 +117,22 @@ Examples:
                 }), ProjectionFileOption.Action((args, j) => {
                     string fullSourceName =
                         Path.GetFullPath(Option.ExtractRequiredOptionValue(args, ref j, "missing projections filename"));
-                    orderedProjections = GetOrReadChildConfiguration(globalContext, () => new StreamReader(fullSourceName),
+                    _orderedProjections = GetOrReadChildConfiguration(globalContext, () => new StreamReader(fullSourceName),
                         fullSourceName, globalContext.IgnoreCase, "????", forceReload);
                     return j;
                 }), ProjectionsOption.Action((args, j) => {
-                orderedProjections = GetOrReadChildConfiguration(globalContext,
-                        () => new StringReader(string.Join("\r\n", args.Skip(j + 1))),
-                        ProjectionsOption.ShortName, globalContext.IgnoreCase, "????", forceReload);
-                // ... and all args are read in, so the next arg index is past every argument.
-                return int.MaxValue;
+                    _orderedProjections = GetOrReadChildConfiguration(globalContext,
+                            () => new StringReader(string.Join("\r\n", args.Skip(j + 1))),
+                            ProjectionsOption.ShortName, globalContext.IgnoreCase, "????", forceReload);
+                    // ... and all args are read in, so the next arg index is past every argument.
+                    return int.MaxValue;
                 }));
 
-            if (orderedProjections == null || !orderedProjections.AllProjections.Any()) {
+            if (_orderedProjections == null || !_orderedProjections.AllProjections.Any()) {
                 Log.WriteWarning("No projections defined");
                 _projector = new SimpleProjector(new Projection[0], "empty");
             } else {
-                _projector = _createProjector(orderedProjections.AllProjections, globalContext.IgnoreCase);
+                _projector = _createProjector(_orderedProjections.AllProjections, globalContext.IgnoreCase);
             }
         }
 
@@ -203,11 +204,11 @@ Examples:
                 }
 
                 var p = new Projection(sourceItemType, targetItemType, pattern, targetSegments, ignoreCase, forLeftSide,
-                    forRightSide);
+                    forRightSide, ruleFileName + "/" + lineNo);
 
                 if (Log.IsChattyEnabled) {
                     Log.WriteInfo("Reg.exps used for projecting " + pattern +
-                                  (targetSegments == null ? "" : " to " + String.Join(":", targetSegments)) + " (" +
+                                  (targetSegments == null ? "" : " to " + string.Join(":", targetSegments)) + " (" +
                                   ruleFileName + ":" + lineNo + ")");
                     Log.WriteInfo(p.ToString());
                 }
@@ -276,6 +277,17 @@ Examples:
                 }
                 transformedDependencies.AddRange(localCollector.Values);
             }
+
+            if (Log.IsVerboseEnabled) {
+                List<Projection> asList = _orderedProjections.AllProjections.ToList();
+                asList.Sort((p, q) => p.MatchCount - q.MatchCount);
+
+                Log.WriteInfo("Match counts - projection definitions:");
+                foreach (var p in asList) {
+                    Log.WriteInfo($"{p.MatchCount,5} - {p.Source}");
+                }
+            }
+
             return Program.OK_RESULT;
         }
 

@@ -113,14 +113,16 @@ namespace NDepCheck {
         /// </summary>
         /// <returns></returns>
         public string QuestionableDependencyMessage() {
-            return "Questionable dependency " + UsingItem + " ---> " + UsedItem;
+            return "Questionable dependency " + UsingItem + " ---> " + UsedItem +
+                    (Source != null ? (Ct > 1 ? " (e.g. at " : " (at") + Source + ")" : "");
         }
         /// <summary>
         /// A message presented to the user of this Dependency is not allowed.
         /// </summary>
         /// <returns></returns>
         public string BadDependencyMessage() {
-            return "Bad dependency " + UsingItem + " ---> " + UsedItem;
+            return "Bad dependency " + UsingItem + " ---> " + UsedItem +
+                    (Source != null ? (Ct > 1 ? " (e.g. at " : " (at") + Source + ")" : "");
         }
 
         public INode UsingNode => _usingItem;

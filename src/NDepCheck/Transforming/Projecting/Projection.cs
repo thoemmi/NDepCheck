@@ -27,11 +27,15 @@ namespace NDepCheck.Transforming.Projecting {
         public bool ForLeftSide { get; }
         public bool ForRightSide { get; }
 
+        public string Source { get; }
+
         [NotNull]
         internal readonly ItemMatch ItemMatch;
 
+        private int _matchCount;
+
         public Projection([CanBeNull] ItemType sourceItemTypeOrNull, [NotNull]ItemType targetItemType, [NotNull]string pattern,
-            [CanBeNull]string[] targetSegments, bool ignoreCase, bool forLeftSide, bool forRightSide) {
+            [CanBeNull]string[] targetSegments, bool ignoreCase, bool forLeftSide, bool forRightSide, string source = null) {
             if (targetSegments != null) {
                 if (targetItemType.Length != targetSegments.Length) {
                     Log.WriteError($"Targettype {targetItemType.Name} has {targetItemType.Length} segments, but {targetSegments.Length} are defined in projection: {string.Join(",", targetSegments)}");
@@ -45,6 +49,7 @@ namespace NDepCheck.Transforming.Projecting {
             }
             _targetItemType = targetItemType;
             _targetSegments = targetSegments;
+            Source = source;
             ForLeftSide = forLeftSide;
             ForRightSide = forRightSide;
             ItemMatch = new ItemMatch(sourceItemTypeOrNull, pattern, ignoreCase);
@@ -72,6 +77,7 @@ namespace NDepCheck.Transforming.Projecting {
                         targets = targets.Select(s => s.Replace("\\" + (matchResultIndex + 1), matchResultGroups[matchResultIndex]));
                     }
                     targets = targets.Select(s => s.Replace("\\>", item.Order ?? ""));
+                    _matchCount++;
                     return Item.New(_targetItemType, targets.Select(t => ExpandHexChars(t)).ToArray()).SetOrder(item.Order);
                 }
             }
@@ -85,5 +91,8 @@ namespace NDepCheck.Transforming.Projecting {
         }
 
         public Projection[] AllProjections => new[] { this };
+
+        public int MatchCount => _matchCount;
+
     }
 }

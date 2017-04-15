@@ -20,7 +20,7 @@ namespace NDepCheck {
     ///     All static methods may run in parallel.
     /// </remarks>
     public class Program {
-        public const string VERSION = "V.3.56";
+        public const string VERSION = "V.3.57";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 1;
@@ -84,6 +84,7 @@ namespace NDepCheck {
         public static readonly Option DoScriptOption = new ProgramOption(shortname: "ds", name: "do-script", usage: "filename", description: "execute NDepCheck script");
         public static readonly Option DoScriptLoggedOption = new ProgramOption(shortname: "dl", name: "do-script-logged", usage: "filename", description: "execute NDepCheck script with log output");
         public static readonly Option DoDefineOption = new ProgramOption(shortname: "dd", name: "do-define", usage: "name value", description: "define name as value");
+        public static readonly Option DoDefineDefaultOption = new ProgramOption(shortname: "df", name: "do-define-default", usage: "name value", description: "define name as value");
         public static readonly Option DoResetOption = new ProgramOption(shortname: "dr", name: "do-reset", usage: "[filename]", description: "reset state; and read file as dip file");
         public static readonly Option DoTimeOption = new ProgramOption(shortname: "dt", name: "do-time", usage: "secs", description: "log execution time for commands running longer than secs seconds; default: 60");
 
@@ -136,7 +137,8 @@ namespace NDepCheck {
         ///     The static Main method.
         /// </summary>
         public static int Main(string[] args) {
-            ItemType.New("DUMMY(DUMMY)");
+            ItemType.New("DUMMY(DUMMY)"); // For init - TODO - REALLY still necessary??
+            Log.SetLevel(Log.Level.Standard);
 
             Log.Logger = new ConsoleLogger();
 
@@ -204,8 +206,6 @@ namespace NDepCheck {
         }
 
         public int Run(string[] args, GlobalContext globalContext, [CanBeNull] List<string> writtenMasterFiles, bool logCommands) {
-            Log.SetLevel(Log.Level.Standard);
-
             if (args.Length == 0) {
                 return UsageAndExit(message: "No options or files specified", globalContext: globalContext);
             }
@@ -447,16 +447,14 @@ namespace NDepCheck {
                         result = RunFrom(fileName, globalContext, writtenMasterFiles, logCommands: DoScriptLoggedOption.Matches(arg));
                         // file is also an input file - and if there are no input files in -o, the error will come up there.
                         globalContext.InputFilesOrTestDataSpecified = true;
-                    } else if (DoDefineOption.Matches(arg)) {
+                    } else if (DoDefineOption.Matches(arg) || DoDefineDefaultOption.Matches(arg)) {
                         // -dd    name value
                         string varname = Option.ExtractOptionValue(args, ref i);
                         if (varname == null) {
                             globalContext.ShowAllVars();
                         } else {
                             string varvalue = Option.ExtractNextValue(args, ref i);
-                            globalContext.SetDefine(varname, varvalue, location: "after -dd option");
-
-                            globalContext.GlobalVars[varname] = varvalue;
+                            globalContext.SetDefine(varname, varvalue, location: "after -dd option", nowSetAsDefault: DoDefineDefaultOption.Matches(arg));
                         }
                     } else if (DoResetOption.Matches(arg)) {
                         // -dr    [filename]

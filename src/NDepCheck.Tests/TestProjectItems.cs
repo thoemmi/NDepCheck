@@ -95,12 +95,10 @@ namespace NDepCheck.Tests {
             Assert.AreEqual("PrefixTrieNodeProjector$0", projectors[1].Name);
         }
 
-
         [TestMethod]
         public void TestSmallSelfOptimizingPrefixTrieProjector2() {
             // This test found a problem in TrieNode.SetProjectors.
-            ProjectItems.IProjector usedProjector = null;
-            var pi = new ProjectItems((p, i) => usedProjector = new ProjectItems.SelfOptimizingPrefixTrieProjector(p, i, 2, "prefixTrie"));
+            var pi = new ProjectItems((p, i) => new ProjectItems.SelfOptimizingPrefixTrieProjector(p, i, 2, "prefixTrie"));
             var gc = new GlobalContext();
             pi.Configure(gc, @"{ -pl
     $ IgnoreName(Ignore:Name) ---% SIMPLE

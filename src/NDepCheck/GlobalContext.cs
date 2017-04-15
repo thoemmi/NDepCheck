@@ -60,6 +60,8 @@ namespace NDepCheck {
 
         [NotNull]
         public Dictionary<string, string> GlobalVars { get; } = new Dictionary<string, string>();
+        [NotNull]
+        public HashSet<string> SetAsDefault { get; } = new HashSet<string>();
 
         [NotNull]
         private readonly Dictionary<string, InputContext> _inputContexts = new Dictionary<string, InputContext>();
@@ -102,13 +104,26 @@ namespace NDepCheck {
             _dependenciesWithoutInputContextStack.Push(Enumerable.Empty<Dependency>());
         }
 
-        public void SetDefine(string key, string value, string location) {
-            if (GlobalVars.ContainsKey(key)) {
-                if (GlobalVars[key] != value) {
-                    throw new ApplicationException($"'{key}' cannot be redefined as '{value}' {location}");
+        public void SetDefine(string key, string value, string location, bool nowSetAsDefault) {
+            // -dd X a+b often ends up as -dd a+b a+b after reading expanded files; we never add such things to the dictionary.
+            // TODO: Alternative - add only if key != value ...
+            if (Regex.IsMatch(key, "^[A-Z0-9_]+$")) {
+                if (GlobalVars.ContainsKey(key)) {
+                    if (SetAsDefault.Contains(key) && !nowSetAsDefault) {
+                        // override is ok - we go from default to non-default
+                        GlobalVars[key] = value;
+                    } else if (GlobalVars[key] != value) {
+                        throw new ApplicationException($"'{key}' cannot be redefined as '{value}' {location}");
+                    }
+                } else {
+                    GlobalVars.Add(key, value);
                 }
-            } else {
-                GlobalVars.Add(key, value);
+
+                if (nowSetAsDefault) {
+                    SetAsDefault.Add(key);
+                } else {
+                    SetAsDefault.Remove(key);
+                }
             }
         }
 
@@ -284,6 +299,8 @@ namespace NDepCheck {
             transformer.Transform(this, "TestData", DependenciesWithoutInputContext, transformerOptions, "TestData",
                 newDependenciesCollector);
 
+            TransformingDone = true;
+
             _dependenciesWithoutInputContextStack.Pop();
             _dependenciesWithoutInputContextStack.Push(newDependenciesCollector);
         }
@@ -297,29 +314,23 @@ namespace NDepCheck {
 
             var newDependenciesCollector = new List<Dependency>();
             int result = Program.OK_RESULT;
-            int sum;
             if (transformer.RunsPerInputContext) {
                 foreach (var ic in _inputContexts.Values) {
                     result = Transform(transformerOptions, transformer, ic.Filename, ic.Dependencies, "dependencies in file " + ic.Filename, newDependenciesCollector, result);
                 }
                 result = Transform(transformerOptions, transformer, "", DependenciesWithoutInputContext, "generated dependencies", newDependenciesCollector, result);
-                sum = 0;
-                foreach (var ic in _inputContexts.Values) {
-                    sum += ic.PushDependencies(newDependenciesCollector.Where(d => d.InputContext == ic));
-                }
-                sum +=
-                    PushDependenciesWithoutInputContext(
-                        newDependenciesCollector.Where(d => d.InputContext == null).ToArray());
             } else {
                 result = transformer.Transform(this, "", GetAllDependencies().ToArray(), transformerOptions, "all dependencies",
                     newDependenciesCollector);
-                sum = 0;
-                sum += PushDependenciesWithoutInputContext(newDependenciesCollector.ToArray());
-                // Also push on input contexts to keep all dependecy stacks synchronous
-                foreach (var ic in _inputContexts.Values) {
-                    sum += ic.PushDependencies(ic.Dependencies);
-                }
             }
+            int sum = 0;
+            foreach (var ic in _inputContexts.Values) {
+                sum += ic.PushDependencies(newDependenciesCollector.Where(d => d.InputContext == ic));
+            }
+            sum += PushDependenciesWithoutInputContext(
+                    newDependenciesCollector.Where(d => d.InputContext == null).ToArray());
+            TransformingDone = true;
+
             Log.WriteInfo($" ... now {sum} dependencies");
 
             return result;
