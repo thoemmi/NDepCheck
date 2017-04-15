@@ -320,9 +320,9 @@ NDepCheck:Tests ---> **
         ////}
 
         [TestMethod]
-        public void ExitExceptionOnMissingDefaultSet() {
-            Assert.AreEqual(Program.EXCEPTION_RESULT, Program.Main(
-                new[] { Program.ConfigureOption.Opt, typeof(CheckDeps).FullName, "{", "-fnonexistingfile.dep", "}", TestAssemblyPath
+        public void Exit4OnMissingDefaultSet() {
+            Assert.AreEqual(Program.FILE_NOT_FOUND_RESULT, Program.Main(
+                new[] { Program.ConfigureOption.Opt, typeof(CheckDeps).FullName, "{", "-rf=nonexistingfile.dep", "}", TestAssemblyPath
                 }
             ));
         }

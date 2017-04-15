@@ -7,7 +7,9 @@ using JetBrains.Annotations;
 
 namespace NDepCheck {
     public class OptionAction {
-        public Option Option { get; }
+        public Option Option {
+            get;
+        }
         public readonly Func<string[], int, int> Action;
 
         public OptionAction(Option option, Func<string[], int, int> action) {
@@ -26,16 +28,16 @@ namespace NDepCheck {
         public readonly string[] MoreNames;
         public readonly Option OrElse;
 
-        public Option(string shortname, string name, string usage, string description, Option orElse, bool multiple = false, string[] moreNames = null) 
+        public Option(string shortname, string name, string usage, string description, Option orElse, bool multiple = false, string[] moreNames = null)
             : this(shortname, name, usage, description, @default: "", multiple: multiple, moreNames: moreNames) {
             OrElse = orElse; // not yet used ...
         }
 
-        public Option(string shortname, string name, string usage, string description, bool @default, bool multiple = false, string[] moreNames = null) 
+        public Option(string shortname, string name, string usage, string description, bool @default, bool multiple = false, string[] moreNames = null)
             : this(shortname, name, usage, description, @default: @default ? "true" : "false", multiple: multiple, moreNames: moreNames) {
         }
 
-        public Option(string shortname, string name, string usage, string description, string @default, 
+        public Option(string shortname, string name, string usage, string description, string @default,
                       bool multiple = false, string[] moreNames = null) {
             ShortName = shortname;
             Name = name;
@@ -156,7 +158,7 @@ namespace NDepCheck {
         }
 
         private static bool LooksLikeAnOption(string s) {
-            return s.Length > 1 
+            return s.Length > 1
                    && (s.StartsWith("-")
                        || s.StartsWith("/") && !s.Substring(1).Contains("/") // this allows some paths with / as option value
                    );
@@ -211,7 +213,7 @@ namespace NDepCheck {
         }
 
         internal static void Throw(string message, string argsAsString) {
-            throw new ArgumentException(message + " (provided options: " + argsAsString + ")");
+            throw new ArgumentException(message + " (provided options: " + (argsAsString.Length > 305 ? argsAsString.Substring(0, 300) + "..." : argsAsString) + ")");
         }
 
         internal static void Parse([NotNull] GlobalContext globalContext, [CanBeNull] string argsAsString, params OptionAction[] optionActions) {
@@ -257,10 +259,12 @@ namespace NDepCheck {
                 } else {
                     string message;
                     if (arg.Count(c => c == '/' || c == '-') > 1) {
-                        message = "Invalid option " + arg + ", maybe {...} missing";                    
+                        message = "Invalid option " + arg + ", maybe {...} missing";
                     } else {
                         message = "Invalid option " + arg;
                     }
+                    message += "\r\nAllowed options: " +
+                               CreateHelp(optionActions.Select(oa => oa.Option), detailed: false, filter: "");
                     Throw(message, argsAsString);
                 }
             }

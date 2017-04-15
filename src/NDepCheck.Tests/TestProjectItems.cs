@@ -66,7 +66,7 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestSmallSelfOptimizingFirstLetterProjector() {
             ProjectItems.SelfOptimizingFirstLetterProjector usedProjector = null;
-            SmallTestForPrefixOptimizedProjector((p, i) => usedProjector = new ProjectItems.SelfOptimizingFirstLetterProjector(p, i, 3, "1stLetter"));
+            SmallTestForPrefixOptimizedProjector((p, i) => usedProjector = new ProjectItems.SelfOptimizingFirstLetterProjector(p, i, 4, "1stLetter"));
             // Summed match counts: 
             // !a+>ab+!ac   6 -> 2nd
             // !b           0 -> 4th
