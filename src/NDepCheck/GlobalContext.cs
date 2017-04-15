@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -92,6 +93,8 @@ namespace NDepCheck {
             get;
         }
 
+        public TimeSpan TimeLongerThan { get; set; } = TimeSpan.FromSeconds(60);
+
         private static int _cxtId = 0;
 
         public GlobalContext() {
@@ -119,6 +122,8 @@ namespace NDepCheck {
         }
 
         public void ReadAllNotYetReadIn() {
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
             IEnumerable<AbstractDependencyReader> allReaders =
                 _inputSpecs.SelectMany(i => i.CreateOrGetReaders(this, false)).OrderBy(r => r.FullFileName).ToArray();
 
@@ -128,6 +133,8 @@ namespace NDepCheck {
                     _inputContexts.Add(r.FullFileName, r.ReadDependencies(0));
                 }
             }
+            stopwatch.Stop();
+            Program.LogElapsed(this, stopwatch, "Reading");
         }
 
         public string RenderToFile([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName, [CanBeNull] string rendererOptions, [CanBeNull] string fileName) {
@@ -140,7 +147,7 @@ namespace NDepCheck {
             if (WorkLazily && File.Exists(masterFileName)) {
                 // we dont do anything - TODO check change dates of input files vs. the master file's last update date
             } else {
-                renderer.Render(this, allDependencies, rendererOptions ?? "", fileName, IgnoreCase);
+                renderer.Render(this, allDependencies, allDependencies.Length, rendererOptions ?? "", fileName, IgnoreCase);
             }
             RenderingDone = true;
 
@@ -216,7 +223,7 @@ namespace NDepCheck {
             IEnumerable<Dependency> dependencies;
 
             renderer.CreateSomeTestItems(out items, out dependencies);
-            renderer.Render(this, dependencies, rendererOptions, baseFileName, IgnoreCase);
+            renderer.Render(this, dependencies, dependencies.Count(), rendererOptions, baseFileName, IgnoreCase);
 
             RenderingDone = true;
 
@@ -313,7 +320,7 @@ namespace NDepCheck {
                     sum += ic.PushDependencies(ic.Dependencies);
                 }
             }
-            Log.WriteInfo($"{sum} dependencies");
+            Log.WriteInfo($" ... now {sum} dependencies");
 
             return result;
         }
@@ -402,6 +409,7 @@ namespace NDepCheck {
             } catch (Exception ex) {
                 Log.WriteError(
                     $"Cannot configure plugin '{transformerClass}' in assembly '{ShowAssemblyName(assemblyName)}'; reason: {ex.Message}");
+                throw;
             }
         }
 

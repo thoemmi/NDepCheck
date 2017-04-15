@@ -18,6 +18,7 @@ namespace NDepCheck.Reading {
         }
 
         protected override IEnumerable<Dependency> ReadDependencies([CanBeNull] InputContext inputContext, int depth) {
+            Log.WriteInfo("Reading " + _fullFileName);
             Regex dipArrow = new Regex($@"\s*{EdgeConstants.DIP_ARROW}\s*");
 
             var result = new List<Dependency>(10000);
@@ -85,6 +86,7 @@ namespace NDepCheck.Reading {
                         }
                     }
                 }
+                Log.WriteInfo($"... read {result.Count} dependencies from {_fullFileName}");
                 return result;
             }
         }

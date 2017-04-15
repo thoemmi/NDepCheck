@@ -182,7 +182,7 @@ namespace NDepCheck.Rendering {
         protected static readonly Option[] _allOptions = _allGraphicsRendererOptions
                         .Concat(new[] { BottomRegexOption, OrderFieldOption, NoEmptiesOnBottomOption, NoEmptiesOnLeftOption }).ToArray();
 
-        public override void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
+        public override void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
             DoRender(globalContext, dependencies, argsAsString, baseFileName,
                 BottomRegexOption.Action((args, j) => {
                     _bottomRegex = new Regex(Option.ExtractRequiredOptionValue(args, ref j, "Regex for selection of bottom items missing"));

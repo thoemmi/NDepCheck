@@ -14,7 +14,6 @@ namespace NDepCheck.Reading {
         }
 
         protected override IEnumerable<RawUsingItem> ReadUsingItems(int depth) {
-
             Log.WriteInfo("Reading " + _fullFileName);
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(_fullFileName);
 

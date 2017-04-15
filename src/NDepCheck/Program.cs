@@ -20,7 +20,7 @@ namespace NDepCheck {
     ///     All static methods may run in parallel.
     /// </remarks>
     public class Program {
-        private const string VERSION = "V.3.54";
+        private const string VERSION = "V.3.55";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 1;
@@ -85,6 +85,7 @@ namespace NDepCheck {
         public static readonly Option DoScriptLoggedOption = new ProgramOption(shortname: "dl", name: "do-script-logged", usage: "filename", description: "execute NDepCheck script with log output");
         public static readonly Option DoDefineOption = new ProgramOption(shortname: "dd", name: "do-define", usage: "name value", description: "define name as value");
         public static readonly Option DoResetOption = new ProgramOption(shortname: "dr", name: "do-reset", usage: "[filename]", description: "reset state; and read file as dip file");
+        public static readonly Option DoTimeOption = new ProgramOption(shortname: "dt", name: "do-time", usage: "secs", description: "log execution time for commands running longer than secs seconds; default: 60");
 
         public static readonly Option WatchFilesOption = new ProgramOption(shortname: "aw", name: "watch-files", usage: "[filepattern [- filepattern]] script", description: "Watch files");
         public static readonly Option UnwatchFilesOption = new ProgramOption(shortname: "au", name: "unwatch-files", usage: "filepattern", description: "Unwatch files specified by filepattern");
@@ -214,7 +215,8 @@ namespace NDepCheck {
                     if (logCommands) {
                         Log.WriteInfo($">>>> Starting {arg}");
                     }
-
+                    var stopWatch = new Stopwatch();
+                    stopWatch.Start();
                     if (arg == "help") {
                         Log.WriteWarning("For help, use -? or -help");
                     } else if (HelpAllOption.Matches(arg)) {
@@ -415,9 +417,18 @@ namespace NDepCheck {
                         goto DONE;
                     } else if (DoCommandOption.Matches(arg)) {
                         // -dc    command
-                        string cmd = Option.ExtractRequiredOptionValue(args, ref i, "Missing command after -dc").TrimStart('{', ' ').TrimEnd('}', ' '); 
+                        string cmd = Option.ExtractRequiredOptionValue(args, ref i, "Missing command after -dc");
+                        string cmdArgs = Option.ExtractNextValue(args, ref i).TrimStart('{', ' ', '\r', '\n').TrimEnd('}', ' ', '\r', '\n').Replace("\r\n", " ");
                         try {
-                            if (new Process { StartInfo = new ProcessStartInfo(cmd) }.Start()) {
+                            if (new Process {
+                                StartInfo = new ProcessStartInfo(cmd) {
+                                    UseShellExecute = false,
+                                    Arguments = cmdArgs,
+                                    WorkingDirectory = Environment.CurrentDirectory,
+                                    RedirectStandardError = true,
+                                    RedirectStandardOutput = true
+                                }                                
+                            }.Start()) {
                                 Log.WriteInfo(msg: $"Started process '{cmd}'");
                             } else {
                                 Log.WriteError(msg: $"Could not start process '{cmd}'");
@@ -453,6 +464,8 @@ namespace NDepCheck {
                             globalContext.CreateInputOption(args, ref i, arg, assembly: "",
                                 readerFactoryClass: typeof(DipReaderFactory).FullName);
                         }
+                    } else if (DoTimeOption.Matches(arg)) {
+                        globalContext.TimeLongerThan = TimeSpan.FromSeconds(Option.ExtractIntOptionValue(args, ref i, "Missing seconds"));
                     } else if (WatchFilesOption.Matches(arg)) {
                         // -aw    [filepattern [- filepattern]] script
                         string positive = Option.ExtractOptionValue(args, ref i);
@@ -552,9 +565,14 @@ namespace NDepCheck {
                     if (logCommands) {
                         Log.WriteInfo($">>>> Finished {arg}");
                     }
+                    stopWatch.Stop();
+                    LogElapsed(globalContext, stopWatch, arg);
                 }
             } catch (ArgumentException ex) {
                 return UsageAndExit(ex.Message, globalContext);
+            } catch (Exception ex) {
+                Log.WriteError($"Could not run previous command; reason: {ex.GetType().Name} {ex.Message}");
+                return EXCEPTION_RESULT;
             }
 
             if (!_fileWatchers.Any() && _interactiveLogFile == null) {
@@ -579,6 +597,21 @@ namespace NDepCheck {
             }
 
             return result;
+        }
+
+        public static void LogElapsed(GlobalContext globalContext, Stopwatch stopWatch, string arg) {
+            TimeSpan elapsed = stopWatch.Elapsed;
+            if (elapsed >= globalContext.TimeLongerThan) {
+                if (elapsed < TimeSpan.FromMinutes(1)) {
+                    Log.WriteInfo($"{arg} took {elapsed.TotalSeconds:F3} s");
+                } else if (elapsed < TimeSpan.FromHours(1)) {
+                    Log.WriteInfo($@"{arg} took {elapsed:mm\:ss} minutes");
+                } else if (elapsed < TimeSpan.FromDays(1)) {
+                    Log.WriteInfo($@"{arg} took {elapsed:hh\:mm} hours");
+                } else {
+                    Log.WriteInfo($@"{arg} took {elapsed:d\:hh\:mm} days, hours and minutes");
+                }
+            }
         }
 
         private static List<string> ExtractInputVars(string[] args, ref int i) {
@@ -626,7 +659,7 @@ namespace NDepCheck {
                         string[] splitLine = trimmedLine.Split(' ', '\t').Select(s => s.Trim()).Where(s => s != "").ToArray();
 
                         if (splitLine.Any(s => s == "{")) {
-                            args.AddRange(splitLine);
+                            args.AddRange(splitLine.Select(state.ExpandDefines));
                             // If there is a } after the {, we are NOT in inBraces mode.
                             inBraces = !(trimmedLine.IndexOf("}", StringComparison.InvariantCulture) > trimmedLine.IndexOf("{", StringComparison.InvariantCulture));
                         } else if (splitLine.Any(s => s == "}")) {
