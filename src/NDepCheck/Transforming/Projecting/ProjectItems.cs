@@ -244,6 +244,7 @@ Examples:
                     _dependenciesForBackProjection = localContext.Dependencies.ToDictionary(
                         d => new FromTo(d.UsingItem, d.UsedItem), d => d);
                 }
+                Log.WriteInfo("Backprojecting " + dependencySourceForLogging);
 
                 var localCollector = new Dictionary<FromTo, Dependency>();
                 var backProjected = new List<Dependency>();
@@ -266,6 +267,7 @@ Examples:
                 }
                 transformedDependencies.AddRange(keepOnlyProjected ? backProjected : dependencies);
             } else {
+                Log.WriteInfo("Projecting " + dependencySourceForLogging);
                 // Forward projection
                 var localCollector = new Dictionary<FromTo, Dependency>();
                 int missingPatternCount = 0;

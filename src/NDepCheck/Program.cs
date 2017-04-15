@@ -58,10 +58,10 @@ namespace NDepCheck {
         public static readonly Option TransformOption = new ProgramOption(shortname: "tf", name: "transform", usage: "transformer  [{ options }]", description: "Transform with predefined transformer with options");
         public static readonly Option TransformUndo = new ProgramOption(shortname: "tu", name: "transform-undo", usage: "", description: "Undo transformation");
         public static readonly Option TransformTestDataOption = new ProgramOption(shortname: "tt", name: "transform-testdata", usage: "assembly transformer [{ options }]", description: "Transform internal testdata with <assembly.transformer> with options");
-        public static readonly Option TransformPluginHelpOption = new ProgramOption(shortname: "tp?", name: "transform-plugin-help", usage: "assembly [filter]", description: "Show help for all transformers in assembly");
-        public static readonly Option TransformHelpOption = new ProgramOption(shortname: "tf?", name: "transform-help", usage: "[filter]", description: "Show help for all predefined transformers");
-        public static readonly Option TransformPluginDetailedHelpOption = new ProgramOption(shortname: "tp!", name: "transform-plugin-detail", usage: "assembly transformer [filter]", description: "Show detailed help for transformer in assembly");
-        public static readonly Option TransformDetailedHelpOption = new ProgramOption(shortname: "tf!", name: "transform-detail", usage: "transformer [filter]", description: "Show detailed help for predefined transformer");
+        public static readonly Option TransformPluginHelpOption = new ProgramOption(shortname: "tp?", name: "transform-plugin-help", usage: "assembly [filter]", description: "Show help for all transformers in assembly", moreNames: new[] { "cp?" });
+        public static readonly Option TransformHelpOption = new ProgramOption(shortname: "tf?", name: "transform-help", usage: "[filter]", description: "Show help for all predefined transformers", moreNames: new[] { "cf?" });
+        public static readonly Option TransformPluginDetailedHelpOption = new ProgramOption(shortname: "tp!", name: "transform-plugin-detail", usage: "assembly transformer [filter]", description: "Show detailed help for transformer in assembly", moreNames: new[] { "cp!" });
+        public static readonly Option TransformDetailedHelpOption = new ProgramOption(shortname: "tf!", name: "transform-detail", usage: "transformer [filter]", description: "Show detailed help for predefined transformer", moreNames: new[] { "cf!" });
 
         public static readonly Option WritePluginOption = new ProgramOption(shortname: "wp", name: "write-plugin", usage: "assembly writer [{ options }] filename", description: "write to filename with <assembly.writer> with options");
         public static readonly Option WriteFileOption = new ProgramOption(shortname: "wr", name: "write", usage: "writer  [{ options }] filename", description: "write to filename with predefined writer with options");
@@ -103,6 +103,7 @@ namespace NDepCheck {
         public static readonly Option InteractiveItemMatchOption = new ProgramOption(shortname: "ii", name: "interactive-match", usage: "[pattern]", description: "Show number of items matching pattern from all sources");
 
         public static readonly Option CurrentDirectoryOption = new ProgramOption(shortname: "cd", name: "current-directory", usage: "[directory]", description: "show or change current directory");
+        public static readonly Option ListFilesOption = new ProgramOption(shortname: "ls", name: "list", usage: "[-r] [filespec]", description: "list matching files");
         public static readonly Option GarbageCollectionOption = new ProgramOption(shortname: "gc", name: "garbage-collect", usage: "", description: "run garbage collection");
         public static readonly Option LogVerboseOption = new ProgramOption(shortname: "lv", name: "log-verbose", usage: "", description: "verbose logging");
         public static readonly Option LogChattyOption = new ProgramOption(shortname: "lc", name: "log-chatty", usage: "", description: "chatty logging");
@@ -127,7 +128,9 @@ namespace NDepCheck {
 
         private WebServer _webServer;
 
-        private string _interactiveLogFile { get; set; }
+        private string _interactiveLogFile {
+            get; set;
+        }
 
         /// <summary>
         ///     The static Main method.
@@ -172,7 +175,8 @@ namespace NDepCheck {
                 return FILE_NOT_FOUND_RESULT;
             } catch (Exception ex) {
                 Log.WriteError(msg: "Exception occurred: " + ex.Message + " (" + ex.GetType().FullName + ")");
-                if (Log.IsChattyEnabled) Console.WriteLine(ex);
+                if (Log.IsChattyEnabled)
+                    Console.WriteLine(ex);
                 return EXCEPTION_RESULT;
             } finally {
                 // Main may be called multiple times; therefore we clear all caches
@@ -282,7 +286,7 @@ namespace NDepCheck {
                         string assembly = Option.ExtractOptionValue(args, ref i);
                         string transformer = Option.ExtractNextValue(args, ref i);
                         string transformerOptions = Option.ExtractNextValue(args, ref i);
-                        globalContext.ConfigureTransformer(assembly, transformer, transformerOptions, 
+                        globalContext.ConfigureTransformer(assembly, transformer, transformerOptions,
                                                            forceReloadConfiguration: _interactiveLogFile != null);
                     } else if (ConfigureOption.Matches(arg)) {
                         // -cf    transformer  { options }
@@ -427,7 +431,7 @@ namespace NDepCheck {
                                     WorkingDirectory = Environment.CurrentDirectory,
                                     RedirectStandardError = true,
                                     RedirectStandardOutput = true
-                                }                                
+                                }
                             }.Start()) {
                                 Log.WriteInfo(msg: $"Started process '{cmd}'");
                             } else {
@@ -536,10 +540,22 @@ namespace NDepCheck {
                                 Log.WriteInfo(Path.GetFullPath(Environment.CurrentDirectory));
                             }
                         }
+                    } else if (ListFilesOption.Matches(arg)) {
+                        string filename;
+                        bool recursive;
+                        string s = Option.ExtractNextValue(args, ref i, allowOptionValue: true);
+                        if (s != null && Option.ArgMatches(s, "r", "recursive")) {
+                            recursive = true;
+                            filename = Option.ExtractNextValue(args, ref i);
+                        } else {
+                            recursive = false;
+                            filename = s;
+                        }
+                        ListFilesAndDirectories(recursive, filename);
                     } else if (GarbageCollectionOption.Matches(arg)) {
                         GC.Collect(2);
-                        Log.WriteInfo($"Process has {Environment.WorkingSet/1024/1024} MB allocated, " +
-                                      $"{GC.GetTotalMemory(true)/1024/1024} MB managed memory.");
+                        Log.WriteInfo($"Process has {Environment.WorkingSet / 1024 / 1024} MB allocated, " +
+                                      $"{GC.GetTotalMemory(true) / 1024 / 1024} MB managed memory.");
                     } else if (LogVerboseOption.Matches(arg)) {
                         // -lv
                         Log.SetLevel(Log.Level.Verbose);
@@ -597,6 +613,27 @@ namespace NDepCheck {
             }
 
             return result;
+        }
+
+        private void ListFilesAndDirectories(bool recursive, [CanBeNull] string filename) {
+            const int MAX = 100;
+            SearchOption searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+            string directoryName = Path.GetDirectoryName(filename);
+            string directory = string.IsNullOrWhiteSpace(directoryName) ? Environment.CurrentDirectory : directoryName;
+            string pattern = Path.GetFileName(filename) ?? "*";
+            IEnumerable<string> names = Directory.GetFiles(directory, pattern, searchOption)
+                .Select(s => "  " + s)
+                .Concat(Directory.GetDirectories(directory, recursive ? "*" : pattern, searchOption)
+                                 .Select(s => "D " + s))
+                .OrderBy(s => s.Substring(2))
+                .Take(MAX + 1)
+                .ToArray();
+            foreach (var f in names.Take(MAX)) {
+                Log.WriteInfo(f);
+            }
+            if (names.Skip(MAX).Any()) {
+                Log.WriteInfo("....");
+            }
         }
 
         public static void LogElapsed(GlobalContext globalContext, Stopwatch stopWatch, string arg) {
@@ -689,8 +726,8 @@ namespace NDepCheck {
             }
         }
 
-        private int UsageAndExit([CanBeNull] string message, GlobalContext globalContext, 
-                                 int exitValue = OPTIONS_PROBLEM, bool withIntro = true, 
+        private int UsageAndExit([CanBeNull] string message, GlobalContext globalContext,
+                                 int exitValue = OPTIONS_PROBLEM, bool withIntro = true,
                                  bool detailed = false, [NotNull] string filter = "") {
 
             if (filter.StartsWith("file")) {
