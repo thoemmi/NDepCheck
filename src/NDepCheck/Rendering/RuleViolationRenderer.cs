@@ -12,8 +12,7 @@ namespace NDepCheck.Rendering {
 
         private static readonly Option[] _allOptions = { XmlOutputOption };
 
-        public void Render([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, 
-                           string argsAsString, string baseFileName, bool ignoreCase) {
+        public void Render([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
             bool xmlOutput = ParseArgs(globalContext, argsAsString);
 
             if (baseFileName == null || GlobalContext.IsConsoleOutFileName(baseFileName)) {

@@ -882,7 +882,7 @@ namespace NDepCheck.Rendering {
             return bitmap;
         }
 
-        public virtual void Render(GlobalContext globalContext, IEnumerable<TDependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
+        public virtual void Render(GlobalContext globalContext, IEnumerable<TDependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
             DoRender(globalContext, dependencies, argsAsString, baseFileName);
         }
 

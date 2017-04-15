@@ -11,8 +11,8 @@ namespace NDepCheck.Rendering {
     public class DotRenderer : IDependencyRenderer {
         private readonly GenericDotRenderer _delegate = new GenericDotRenderer();
 
-        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
-            _delegate.Render(globalContext, dependencies, argsAsString, baseFileName, ignoreCase);
+        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
+            _delegate.Render(globalContext, dependencies, dependenciesCount, argsAsString, baseFileName, ignoreCase);
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
@@ -59,7 +59,7 @@ namespace NDepCheck.Rendering {
             output.WriteLine("}");
         }
 
-        public void Render(GlobalContext globalContext, IEnumerable<IEdge> dependencies, string argsAsString, [CanBeNull] string baseFileName, bool ignoreCase) {
+        public void Render(GlobalContext globalContext, IEnumerable<IEdge> dependencies, int? dependenciesCount, string argsAsString, [CanBeNull] string baseFileName, bool ignoreCase) {
             int? maxExampleLength = null;
             ItemMatch innerMatch = null;
             Option.Parse(globalContext, argsAsString,

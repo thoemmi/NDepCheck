@@ -7,8 +7,8 @@ namespace NDepCheck.Rendering {
     public class MatrixRenderer1 : AbstractMatrixRenderer, IDependencyRenderer {
         private readonly GenericMatrixRenderer1 _delegate = new GenericMatrixRenderer1();
 
-        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
-            _delegate.Render(globalContext, dependencies, argsAsString, baseFileName, ignoreCase);
+        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
+            _delegate.Render(globalContext, dependencies, dependenciesCount, argsAsString, baseFileName, ignoreCase);
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
@@ -61,7 +61,7 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public override void Render(GlobalContext globalContext, IEnumerable<IEdge> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
+        public override void Render(GlobalContext globalContext, IEnumerable<IEdge> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
             int? labelWidthOrNull;
             bool withNotOkCt;
             ItemMatch itemMatchOrNull;

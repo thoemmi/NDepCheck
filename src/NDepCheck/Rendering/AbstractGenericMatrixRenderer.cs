@@ -160,7 +160,7 @@ $@"  Write a textual matrix representation of dependencies.
             string nodeFormat, Dictionary<INode, int> node2Index, bool withNotOkCt, IEnumerable<INode> sortedNodes,
             string ctFormat, IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges);
 
-        public abstract void Render(GlobalContext globalContext, IEnumerable<IEdge> dependencies, string argsAsString, string baseFileName, bool ignoreCase);
+        public abstract void Render(GlobalContext globalContext, IEnumerable<IEdge> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase);
 
         public abstract void RenderToStreamForUnitTests(IEnumerable<IEdge> dependencies, Stream stream);
 

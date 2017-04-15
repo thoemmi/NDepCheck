@@ -147,7 +147,7 @@ namespace NDepCheck {
             if (WorkLazily && File.Exists(masterFileName)) {
                 // we dont do anything - TODO check change dates of input files vs. the master file's last update date
             } else {
-                renderer.Render(this, allDependencies, rendererOptions ?? "", fileName, IgnoreCase);
+                renderer.Render(this, allDependencies, allDependencies.Length, rendererOptions ?? "", fileName, IgnoreCase);
             }
             RenderingDone = true;
 
@@ -223,7 +223,7 @@ namespace NDepCheck {
             IEnumerable<Dependency> dependencies;
 
             renderer.CreateSomeTestItems(out items, out dependencies);
-            renderer.Render(this, dependencies, rendererOptions, baseFileName, IgnoreCase);
+            renderer.Render(this, dependencies, dependencies.Count(), rendererOptions, baseFileName, IgnoreCase);
 
             RenderingDone = true;
 
@@ -320,7 +320,7 @@ namespace NDepCheck {
                     sum += ic.PushDependencies(ic.Dependencies);
                 }
             }
-            Log.WriteInfo($"{sum} dependencies");
+            Log.WriteInfo($" ... now {sum} dependencies");
 
             return result;
         }

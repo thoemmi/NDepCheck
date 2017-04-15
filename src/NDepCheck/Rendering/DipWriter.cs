@@ -32,7 +32,8 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, bool ignoreCase) {
+        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount,
+                           string argsAsString, string baseFileName, bool ignoreCase) {
             bool noExampleInfo = false;
             Option.Parse(globalContext, argsAsString,
                 NoExampleInfoOption.Action((args, j) => {
@@ -41,6 +42,9 @@ namespace NDepCheck.Rendering {
                 }));
             using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(globalContext, argsAsString, baseFileName))) { 
                 Write(dependencies, sw.Writer, !noExampleInfo);
+                if (dependenciesCount.HasValue) {
+                    Log.WriteInfo($"... written {dependenciesCount} dependencies");
+                }
             }
         }
 

@@ -570,6 +570,9 @@ namespace NDepCheck {
                 }
             } catch (ArgumentException ex) {
                 return UsageAndExit(ex.Message, globalContext);
+            } catch (Exception ex) {
+                Log.WriteError($"Could not run previous command; reason: {ex.GetType().Name} {ex.Message}");
+                return EXCEPTION_RESULT;
             }
 
             if (!_fileWatchers.Any() && _interactiveLogFile == null) {
