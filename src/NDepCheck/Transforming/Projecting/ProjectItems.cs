@@ -153,14 +153,14 @@ Examples:
                         string typeLine = line.Substring(1).Trim();
                         int i = typeLine.IndexOf(MAP, StringComparison.Ordinal);
                         if (i < 0) {
-                            Log.WriteError($"{line}: $-line must contain " + MAP, ruleSourceName, lineNo);
+                            return $"{line}: $-line must contain " + MAP;
                         }
                         sourceItemType =
                             GlobalContext.GetItemType(globalContext.ExpandDefines(typeLine.Substring(0, i).Trim()));
                         targetItemType =
                             GlobalContext.GetItemType(
                                 globalContext.ExpandDefines(typeLine.Substring(i + MAP.Length).Trim()));
-                        return true;
+                        return null;
                     } else {
                         bool left = line.StartsWith(ABSTRACT_IT_LEFT);
                         bool right = line.StartsWith(ABSTRACT_IT_RIGHT);
@@ -170,9 +170,9 @@ Examples:
                                 ruleFileName: ruleSourceName, lineNo: lineNo, rule: line.Substring(1).Trim(),
                                 ignoreCase: ignoreCase, forLeftSide: left || both, forRightSide: both || right);
                             elements.Add(p);
-                            return true;
+                            return null;
                         } else {
-                            return false;
+                            return $"{line}: line must start with $, {ABSTRACT_IT_LEFT}, {ABSTRACT_IT_BOTH}, or {ABSTRACT_IT_RIGHT}";
                         }
                     }
                 });

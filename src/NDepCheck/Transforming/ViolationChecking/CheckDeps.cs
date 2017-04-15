@@ -64,13 +64,9 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     return j;
                 }),
                 DefaultRulesOption.Action((args, j) => {
-                    // A trick is used: The first line, which contains all options, should be ignored; and
-                    // also the last } (which is from the surrounding options braces). Thus, 
-                    // * we add // to the beginning - this comments out the first line;
-                    // * and trim } at the end.
                     _defaultRuleSet = GetOrReadChildConfiguration(globalContext,
-                        () => new StringReader("//" + (configureOptions ?? "").Trim().TrimEnd('}')), "-r", 
-                        globalContext.IgnoreCase, "????", forceReload);
+                        () => new StringReader(string.Join("\r\n", args.Skip(j + 1))),
+                        DefaultRulesOption.ShortName, globalContext.IgnoreCase, "????", forceReload);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;
                 })
@@ -97,8 +93,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 onLineWithLineNo: (line, lineNo) => {
                     if (line.StartsWith("$")) {
                         if (currentGroup != null && currentGroup.Group != "") {
-                            Log.WriteError("$ inside '{{ ... }}' not allowed", ruleSourceName, lineNo);
-                            return false;
+                            return "$ inside '{{ ... }}' not allowed";
                         } else {
                             string typeLine = line.Substring(1).Trim();
                             int i = typeLine.IndexOf(MAY_USE, StringComparison.Ordinal);
@@ -116,47 +111,42 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                                 ruleGroups.Add(currentGroup);
                                 // TODO: Also for multiple $ lines?????????????????????????
                             }
-                            return true;
+                            return null;
                         }
                     } else if (line.EndsWith("{")) {
                         if (currentGroup == null || usingItemType == null) {
-                            Log.WriteError($"Itemtypes not defined - $ line is missing in {ruleSourceName}, dependency rules are ignored", ruleSourceName, lineNo);
-                            return false;
+                            return $"Itemtypes not defined - $ line is missing in {ruleSourceName}, dependency rules are ignored";
                         } else if (currentGroup.Group != "") {
-                            Log.WriteError("Nested '{{ ... {{' not possible", ruleSourceName, lineNo);
-                            return false;
+                            return "Nested '{{ ... {{' not possible";
                         } else {
                             currentGroup = new DependencyRuleGroup(usingItemType, line.TrimEnd('{').TrimEnd(), ignoreCase);
                             ruleGroups.Add(currentGroup);
-                            return true;
+                            return null;
                         }
                     } else if (line == "}") {
                         if (currentGroup?.Group != "") {
                             currentGroup = mainRuleGroup;
-                            return true;
+                            return null;
                         } else {
-                            Log.WriteError("'}}' without corresponding '... {{'", ruleSourceName,
-                                lineNo);
-                            return false;
+                            return "'}}' without corresponding '... {{'";
                         }
                     } else if (line.Contains(MAY_USE) || line.Contains(MUST_NOT_USE) || line.Contains(MAY_USE_WITH_WARNING) ||
                                line.Contains(MAY_USE_RECURSIVE)) {
                         if (currentGroup == null || usingItemType == null || usedItemType == null) {
-                            Log.WriteError($"Itemtypes not defined - $ line is missing in {ruleSourceName}, dependency rules are ignored", ruleSourceName, lineNo);
-                            return false;
+                            return $"Itemtypes not defined - $ line is missing in {ruleSourceName}, dependency rules are ignored";
                         } else {
                             string currentRawUsingPattern;
-                            bool xok = currentGroup.AddDependencyRules(usingItemType, usedItemType, ruleSourceName,
+                            bool ok = currentGroup.AddDependencyRules(usingItemType, usedItemType, ruleSourceName,
                                 lineNo, line, ignoreCase, previousRawUsingPattern, out currentRawUsingPattern);
-                            if (!xok) {
-                                return false;
+                            if (!ok) {
+                                return "Could not add dependency rule";
                             } else {
                                 previousRawUsingPattern = currentRawUsingPattern;
-                                return true;
+                                return null;
                             }
                         }
                     } else {
-                        return false;
+                        return "Could not parse dependency rule";
                     }
                 });
             return new DependencyRuleSet(ruleGroups, children);

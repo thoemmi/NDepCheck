@@ -167,7 +167,8 @@ namespace NDepCheck.Transforming {
         }
 
         private static bool HasNoRegexCharsExceptPeriod(string segment) {
-            return !Regex.IsMatch(segment, @"[\\*()+?]");
+            // See e.g. http://stackoverflow.com/questions/399078/what-special-characters-must-be-escaped-in-regular-expressions
+            return !Regex.IsMatch(segment, @"[$*+?()[{\\|^]");
         }
 
         public string[] Matches([NotNull] Item item) {

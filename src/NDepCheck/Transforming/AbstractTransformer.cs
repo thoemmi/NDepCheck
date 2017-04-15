@@ -47,7 +47,7 @@ namespace NDepCheck.Transforming {
         protected void ProcessTextInner(GlobalContext globalContext, string fullConfigFileName, int startLineNo, TextReader tr,
             bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
             [NotNull] Action<TConfigurationPerInputfile, string> onIncludedConfiguration,
-            [NotNull] Func<string, int, bool> onLineWithLineNo) {
+            [NotNull] Func<string, int, string> onLineWithLineNo) {
 
             int lineNo = startLineNo;
 
@@ -74,10 +74,12 @@ namespace NDepCheck.Transforming {
                         if (kvp != null) {
                             globalContext.SetDefine(kvp.Value.Key, kvp.Value.Value, $"at {fullConfigFileName}:{lineNo}");
                         }
-                    } else if (onLineWithLineNo(line, lineNo)) {
-                        // line's content has been added to result as side-effect
                     } else {
-                        throw new ApplicationException($"Cannot parse line '{line}' at {fullConfigFileName}:{lineNo}");
+                        string errorOrNull = onLineWithLineNo(line, lineNo);
+                        // line's content has been added to result as side-effect
+                        if (errorOrNull != null) {
+                            throw new ApplicationException($"Cannot parse line '{line}' at {fullConfigFileName}:{lineNo}; reason: {errorOrNull}");
+                        }
                     }
                 } catch (Exception ex) {
                     throw new ApplicationException($"Problem '{ex.Message}' at {fullConfigFileName}:{lineNo}");

@@ -14,7 +14,7 @@ namespace NDepCheck.Rendering {
         public static void Write(IEnumerable<IEdge> edges, TextWriter sw, bool withExampleInfo) {
             var writtenTypes = new HashSet<ItemType>();
 
-            sw.WriteLine("// Written " + DateTime.Now);
+            sw.WriteLine($"// Written {DateTime.Now} by {typeof(DipWriter).Name} in NDepCheck {Program.VERSION}");
             foreach (var e in edges) {
                 WriteItemType(writtenTypes, e.UsingNode.Type, sw);
                 WriteItemType(writtenTypes, e.UsedNode.Type, sw);

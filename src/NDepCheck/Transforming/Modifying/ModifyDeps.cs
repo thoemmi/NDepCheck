@@ -95,7 +95,7 @@ Examples:
                 onIncludedConfiguration: (e, n) => actions.AddRange(e),
                 onLineWithLineNo: (line, lineNo) => {
                     actions.Add(new DependencyAction(globalContext.GetExampleDependency(), line.Trim(), ignoreCase, fullConfigFileName, startLineNo));
-                    return true;
+                    return null;
                 });
             return actions;
         }

@@ -75,6 +75,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="MainTests.cs" />
     <Compile Include="StringTests.cs" />
+    <Compile Include="TestCheckDeps.cs" />
     <Compile Include="TestFindCycleDeps.cs" />
     <Compile Include="TestConstraints.cs" />
     <Compile Include="TestEdge.cs" />

@@ -20,7 +20,7 @@ namespace NDepCheck {
     ///     All static methods may run in parallel.
     /// </remarks>
     public class Program {
-        private const string VERSION = "V.3.55";
+        public const string VERSION = "V.3.56";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 1;
