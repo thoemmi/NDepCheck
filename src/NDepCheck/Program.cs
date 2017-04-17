@@ -80,13 +80,13 @@ namespace NDepCheck {
         public static readonly Option CalculateDetailedHelpOption = new ProgramOption(shortname: "xf!", name: "calculate-detail", usage: "calculator [filter]", description: "Show detailed help for predefined calculator");
 
         public static readonly Option DoBreakOption = new ProgramOption(shortname: "db", name: "do-break", usage: "", description: "stop execution; useful for debugging of -df");
-        public static readonly Option DoCommandOption = new ProgramOption(shortname: "dc", name: "do-command", usage: "command", description: "execute shell command; useful for opening result file");
-        public static readonly Option DoScriptOption = new ProgramOption(shortname: "ds", name: "do-script", usage: "filename", description: "execute NDepCheck script");
-        public static readonly Option DoScriptLoggedOption = new ProgramOption(shortname: "dl", name: "do-script-logged", usage: "filename", description: "execute NDepCheck script with log output");
-        public static readonly Option DoScriptHelpOption = new ProgramOption(shortname: "ds?", name: "do-script-help", usage: "filename", description: "show help for NDepCheck script");
-        public static readonly Option FormalParametersOption = new ProgramOption(shortname: "fp", name: "formal-parameters", usage: "name1 [default]", description: "define formal parameters for -dp call");
-        public static readonly Option DoDefineOption = new ProgramOption(shortname: "dd", name: "do-define", usage: "name value", description: "define name as value");
-        public static readonly Option DoResetOption = new ProgramOption(shortname: "dr", name: "do-reset", usage: "[filename]", description: "reset state; and read file as dip file");
+        public static readonly Option DoCommandOption = new ProgramOption(shortname: "dc", name: "do-command", usage: "command maxsecs [{ parameters... }]", description: "execute shell command; useful for opening result file");
+        public static readonly Option DoScriptOption = new ProgramOption(shortname: "ds", name: "do-script", usage: "filename [parameters...]", description: "execute NDepCheck script");
+        public static readonly Option DoScriptLoggedOption = new ProgramOption(shortname: "dl", name: "do-script-logged", usage: "scriptname", description: "execute NDepCheck script with log output");
+        public static readonly Option DoScriptHelpOption = new ProgramOption(shortname: "ds?", name: "do-script-help", usage: "scriptname", description: "show help for NDepCheck script");
+        public static readonly Option FormalParametersOption = new ProgramOption(shortname: "fp", name: "formal-parameters", usage: "name [default]", description: "define formal parameters for -ds call");
+        public static readonly Option DoDefineOption = new ProgramOption(shortname: "dd", name: "do-define", usage: "name value", description: "define name gobally as value");
+        public static readonly Option DoResetOption = new ProgramOption(shortname: "dr", name: "do-reset", usage: "[filename]", description: "reset state; and read file as dip file if provided");
         public static readonly Option DoTimeOption = new ProgramOption(shortname: "dt", name: "do-time", usage: "secs", description: "log execution time for commands running longer than secs seconds; default: 60");
 
         public static readonly Option WatchFilesOption = new ProgramOption(shortname: "aw", name: "watch-files", usage: "[filepattern [- filepattern]] script", description: "Watch files");
