@@ -28,7 +28,7 @@ namespace NDepCheck.Transforming.Projecting {
         private Dictionary<FromTo, Dependency> _dependenciesForBackProjection;
 
         private Func<Projection[], bool, IProjector> _createProjector;
-        private ProjectionSet _orderedProjections;
+        private IEnumerable<Projection> _allProjectionsForMatchCountLoggingOnly;
 
         public ProjectItems() : this((p, i) => new SimpleProjector(p, "default")) {
         }
@@ -96,7 +96,8 @@ Examples:
         public override void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
             base.Configure(globalContext, configureOptions, forceReload);
 
-            _orderedProjections = null;
+            ProjectionSet orderedProjections = null;
+            _projector = null;
 
             Option.Parse(globalContext, configureOptions,
                 MatcherStrategyOption.Action((args, j) => {
@@ -119,22 +120,25 @@ Examples:
                 }), ProjectionFileOption.Action((args, j) => {
                     string fullSourceName =
                         Path.GetFullPath(Option.ExtractRequiredOptionValue(args, ref j, "missing projections filename"));
-                    _orderedProjections = GetOrReadChildConfiguration(globalContext, () => new StreamReader(fullSourceName),
+                    orderedProjections = GetOrReadChildConfiguration(globalContext, () => new StreamReader(fullSourceName),
                         fullSourceName, globalContext.IgnoreCase, "????", forceReload);
                     return j;
                 }), ProjectionsOption.Action((args, j) => {
-                    _orderedProjections = GetOrReadChildConfiguration(globalContext,
+                    orderedProjections = GetOrReadChildConfiguration(globalContext,
                             () => new StringReader(string.Join("\r\n", args.Skip(j + 1))),
-                            ProjectionsOption.ShortName, globalContext.IgnoreCase, "????", forceReload);
+                            ProjectionsOption.ShortName, globalContext.IgnoreCase, "????", forceReload: true);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;
                 }));
 
-            if (_orderedProjections == null || !_orderedProjections.AllProjections.Any()) {
+            
+            if (orderedProjections == null || !orderedProjections.AllProjections.Any()) {
                 Log.WriteWarning("No projections defined");
                 _projector = new SimpleProjector(new Projection[0], "empty");
+                _allProjectionsForMatchCountLoggingOnly = new Projection[0];
             } else {
-                _projector = _createProjector(_orderedProjections.AllProjections, globalContext.IgnoreCase);
+                _projector = _createProjector(orderedProjections.AllProjections, globalContext.IgnoreCase);
+                _allProjectionsForMatchCountLoggingOnly = orderedProjections.AllProjections;
             }
         }
 
@@ -166,7 +170,7 @@ Examples:
                         bool right = line.StartsWith(ABSTRACT_IT_RIGHT);
                         bool both = line.StartsWith(ABSTRACT_IT_BOTH);
                         if (left || both || right) {
-                            Projection p = CreateProjection(globalContext, sourceItemType, targetItemType,
+                            Projection p = CreateProjection(sourceItemType, targetItemType,
                                 ruleFileName: ruleSourceName, lineNo: lineNo, rule: line.Substring(1).Trim(),
                                 ignoreCase: ignoreCase, forLeftSide: left || both, forRightSide: both || right);
                             elements.Add(p);
@@ -179,7 +183,7 @@ Examples:
             return new ProjectionSet(elements);
         }
 
-        private Projection CreateProjection([NotNull] GlobalContext globalContext, [CanBeNull] ItemType sourceItemType,
+        private Projection CreateProjection([CanBeNull] ItemType sourceItemType,
             [CanBeNull] ItemType targetItemType, [NotNull] string ruleFileName, int lineNo, [NotNull] string rule,
             bool ignoreCase, bool forLeftSide, bool forRightSide) {
             if (sourceItemType == null || targetItemType == null) {
@@ -331,7 +335,7 @@ Examples:
             _dependenciesForBackProjection = null;
 
             if (Log.IsVerboseEnabled) {
-                List<Projection> asList = _orderedProjections.AllProjections.ToList();
+                List<Projection> asList = _allProjectionsForMatchCountLoggingOnly.ToList();
                 asList.Sort((p, q) => p.MatchCount - q.MatchCount);
 
                 Log.WriteInfo("Match counts - projection definitions:");

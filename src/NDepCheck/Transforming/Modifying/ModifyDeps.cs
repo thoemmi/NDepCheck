@@ -80,7 +80,7 @@ Examples:
                 ModificationsOption.Action((args, j) => {
                     _orderedActions = GetOrReadChildConfiguration(globalContext,
                         () => new StringReader(string.Join("\r\n", args.Skip(j + 1))), 
-                        ModificationsOption.ShortName, globalContext.IgnoreCase, "????", forceReload);
+                        ModificationsOption.ShortName, globalContext.IgnoreCase, "????", forceReload: true);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;
                 })

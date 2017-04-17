@@ -81,7 +81,7 @@ Examples:
                     // * and trim } at the end.
                     _orderedActions = GetOrReadChildConfiguration(globalContext,
                         () => new StringReader("//" + (configureOptions ?? "").Trim().TrimEnd('}')), 
-                        ModificationsOption.ShortName, globalContext.IgnoreCase, "????", forceReload);
+                        ModificationsOption.ShortName, globalContext.IgnoreCase, "????", forceReload: true);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;
                 })

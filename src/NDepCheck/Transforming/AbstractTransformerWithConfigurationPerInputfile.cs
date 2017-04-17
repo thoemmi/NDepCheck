@@ -48,7 +48,7 @@ namespace NDepCheck.Transforming {
                 _fileName2configValues.Add(fullSourceName, previousConfigValues = new Dictionary<string, string>());
             }
 
-            if (!_fileName2config.TryGetValue(fullSourceName, out childConfiguration)) {
+            if (forceReload || !_fileName2config.TryGetValue(fullSourceName, out childConfiguration)) {
                 using (var tr = createReader()) {
                     childConfiguration = CreateConfigurationFromText(globalContext, fullSourceName, 0, tr, ignoreCase,
                         fileIncludeStack + "+" + fullSourceName, forceReload, previousConfigValues);
