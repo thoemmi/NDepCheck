@@ -160,7 +160,7 @@ namespace NDepCheck.Transforming {
 
         public abstract IEnumerable<Dependency> GetTestDependencies();
 
-        public virtual void AfterAllTransforms(GlobalContext context) {
+        public virtual void AfterAllTransforms(GlobalContext globalContext) {
             // empty
         }
 

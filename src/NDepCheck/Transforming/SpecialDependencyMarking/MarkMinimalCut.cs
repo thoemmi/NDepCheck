@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace NDepCheck.Transforming.SpecialDependencyMarking {
-    public class MarkMinimalCutDeps {
+    public class MarkMinimalCutDeps : ITransformer {
         public static readonly Option MatchSourceOption = new Option("ms", "match-sources", "&", "Match to select source items", @default: null, multiple: true);
         public static readonly Option MatchTargetOption = new Option("mt", "match-targets", "&", "Match to select target items", @default: null, multiple: true);
         public static readonly Option DepsMarkerOption = new Option("dm", "dependency-cut-marker", "&", "Marker added to dependencies on minimal cut", @default: null);
@@ -47,6 +47,10 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
             public bool InResidual => Flow < Capacity;
             public bool ReverseInResidual => Flow > 0;
+        }
+
+        public void Configure(GlobalContext globalContext, string configureOptions, bool forceReload) {
+            _ignoreCase = globalContext.IgnoreCase;
         }
 
         public int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
@@ -208,10 +212,6 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             }
         }
 
-        public void FinishTransform(GlobalContext context) {
-            // empty
-        }
-
         public IEnumerable<Dependency> GetTestDependencies() {
             // Graph from http://web.stanford.edu/class/cs97si/08-network-flow-problems.pdf p.7
             Item s = Item.New(ItemType.SIMPLE, "s");
@@ -232,6 +232,10 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 new Dependency(d, b, null, "d->b", 142, 7, 0),
                 new Dependency(d, t, null, "d->t", 145, 4, 0),
             };
+        }
+
+        public void AfterAllTransforms(GlobalContext globalContext) {
+            // empty
         }
     }
 }

@@ -109,6 +109,7 @@ namespace NDepCheck {
         public static readonly Option GarbageCollectionOption = new ProgramOption(shortname: "gc", name: "garbage-collect", usage: "", description: "run garbage collection");
         public static readonly Option LogVerboseOption = new ProgramOption(shortname: "lv", name: "log-verbose", usage: "", description: "verbose logging");
         public static readonly Option LogChattyOption = new ProgramOption(shortname: "lc", name: "log-chatty", usage: "", description: "chatty logging");
+        public static readonly Option LogReducedOption = new ProgramOption(shortname: "lr", name: "log-reduced", usage: "", description: "standard logging");
         public static readonly Option LazyOption = new ProgramOption(shortname: "lz", name: "lazy", usage: "", description: "execute readers and transformers lazily (NOT YET IMPLEMENTED FULLY)");
 
         private static readonly Option[] _allOptions = {
@@ -584,6 +585,9 @@ namespace NDepCheck {
                         // -lc
                         Log.SetLevel(Log.Level.Chatty);
                         WriteVersion();
+                    } else if (LogReducedOption.Matches(arg)) {
+                        // -lr
+                        Log.SetLevel(Log.Level.Standard);
                     } else if (LazyOption.Matches(arg)) {
                         // -lz
                         //                         (lazy reading and transforming NOT YET IMPLEMENTED)
@@ -628,7 +632,7 @@ namespace NDepCheck {
 
             DONE:
 
-            if (Log.IsVerboseEnabled) {
+            if (Log.IsChattyEnabled) {
                 Log.WriteInfo(msg: "Completed with exitcode " + result);
             }
 

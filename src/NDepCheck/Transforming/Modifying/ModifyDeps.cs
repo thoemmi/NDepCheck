@@ -123,10 +123,6 @@ Examples:
             return Program.OK_RESULT;
         }
 
-        public override void AfterAllTransforms(GlobalContext context) {
-            // empty
-        }
-
         public override IEnumerable<Dependency> GetTestDependencies() {
             var a = Item.New(ItemType.SIMPLE, "A");
             var b = Item.New(ItemType.SIMPLE, "B");

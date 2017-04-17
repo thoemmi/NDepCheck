@@ -273,16 +273,6 @@ Examples:
                 transformedDependencies.AddRange(localCollector.Values);
             }
 
-            if (Log.IsVerboseEnabled) {
-                List<Projection> asList = _orderedProjections.AllProjections.ToList();
-                asList.Sort((p, q) => p.MatchCount - q.MatchCount);
-
-                Log.WriteInfo("Match counts - projection definitions:");
-                foreach (var p in asList) {
-                    Log.WriteInfo($"{p.MatchCount,5} - {p.Source}");
-                }
-            }
-
             return Program.OK_RESULT;
         }
 
@@ -336,9 +326,19 @@ Examples:
             return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: 1);
         }
 
-        public override void AfterAllTransforms(GlobalContext context) {
+        public override void AfterAllTransforms(GlobalContext globalContext) {
             // reset cached back projection dependencies for next transform
             _dependenciesForBackProjection = null;
+
+            if (Log.IsVerboseEnabled) {
+                List<Projection> asList = _orderedProjections.AllProjections.ToList();
+                asList.Sort((p, q) => p.MatchCount - q.MatchCount);
+
+                Log.WriteInfo("Match counts - projection definitions:");
+                foreach (var p in asList) {
+                    Log.WriteInfo($"{p.MatchCount,5} - {p.Source}");
+                }
+            }
         }
 
         #endregion Transform

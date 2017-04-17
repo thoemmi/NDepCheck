@@ -58,10 +58,12 @@ namespace NDepCheck {
         [NotNull]
         private readonly Dictionary<string, InputContext> _inputContexts = new Dictionary<string, InputContext>();
 
-        private readonly Stack<IEnumerable<Dependency>> _dependenciesWithoutInputContextStack =
-            new Stack<IEnumerable<Dependency>>();
-
+        private readonly Stack<IEnumerable<Dependency>> _dependenciesWithoutInputContextStack = new Stack<IEnumerable<Dependency>>();
         private IEnumerable<Dependency> DependenciesWithoutInputContext => _dependenciesWithoutInputContextStack.Peek();
+
+        public int BadDependenciesCountWithoutInputContext => DependenciesWithoutInputContext.Sum(d => d.BadCt);
+
+        public int QuestionableDependenciesCountWithoutInputContext => DependenciesWithoutInputContext.Sum(d => d.QuestionableCt);
 
         [NotNull]
         private readonly List<IPlugin> _plugins = new List<IPlugin>();

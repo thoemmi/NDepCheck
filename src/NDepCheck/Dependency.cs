@@ -12,8 +12,10 @@ namespace NDepCheck {
     /// (one "using item" uses one "used item").
     /// </remarks>
     public class Dependency : ObjectWithMarkers, IEdge {
-        [NotNull] private readonly Item _usingItem;
-        [NotNull] private readonly Item _usedItem;
+        [NotNull]
+        private readonly Item _usingItem;
+        [NotNull]
+        private readonly Item _usedItem;
 
         [CanBeNull]
         public InputContext InputContext { get; }
@@ -22,7 +24,8 @@ namespace NDepCheck {
         private int _questionableCt;
         private int _badCt;
 
-        [CanBeNull] private string _exampleInfo;
+        [CanBeNull]
+        private string _exampleInfo;
 
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem, [CanBeNull] ISourceLocation source,
             [NotNull] string markers, int ct, int questionableCt = 0, int badCt = 0,
@@ -78,7 +81,7 @@ namespace NDepCheck {
         /// A guess where the use occurs in the
         /// original source file.
         /// </value>
-        [CanBeNull] 
+        [CanBeNull]
         public ISourceLocation Source {
             get;
         }
@@ -113,7 +116,7 @@ namespace NDepCheck {
         /// </summary>
         /// <returns></returns>
         public string QuestionableDependencyMessage() {
-            return "Questionable dependency " + UsingItem + " ---> " + UsedItem +
+            return $"Questionable dependency {UsingItem} --{(QuestionableCt > 1 ? "" + QuestionableCt : "")}-> {UsedItem}" +
                     (Source != null ? (Ct > 1 ? " (e.g. at " : " (at") + Source + ")" : "");
         }
         /// <summary>
@@ -121,7 +124,7 @@ namespace NDepCheck {
         /// </summary>
         /// <returns></returns>
         public string BadDependencyMessage() {
-            return "Bad dependency " + UsingItem + " ---> " + UsedItem +
+            return $"Bad dependency {UsingItem} --{(BadCt > 1 ? "" + BadCt : "")}-> {UsedItem}" +
                     (Source != null ? (Ct > 1 ? " (e.g. at " : " (at") + Source + ")" : "");
         }
 
@@ -154,7 +157,7 @@ namespace NDepCheck {
         }
 
         private void SetBadCount(int value) {
-// First bad example overrides any previous example
+            // First bad example overrides any previous example
             if (_badCt == 0 || _exampleInfo == null) {
                 _exampleInfo = UsingItemAsString + " ---! " + UsedItemAsString;
             }

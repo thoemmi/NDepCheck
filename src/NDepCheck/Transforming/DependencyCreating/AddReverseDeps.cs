@@ -75,7 +75,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             return Program.OK_RESULT;
         }
 
-        public void AfterAllTransforms(GlobalContext context) {
+        public void AfterAllTransforms(GlobalContext globalContext) {
             // empty
         }
 

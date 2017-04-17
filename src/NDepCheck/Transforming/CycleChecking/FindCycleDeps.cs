@@ -137,7 +137,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             }
         }
 
-        public void AfterAllTransforms(GlobalContext context) {
+        public void AfterAllTransforms(GlobalContext globalContext) {
             // empty
         }
 

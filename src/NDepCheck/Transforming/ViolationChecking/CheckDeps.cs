@@ -234,7 +234,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             }
         }
 
-        private int CheckDependencies([NotNull] GlobalContext checkerContext,
+        private int CheckDependencies([NotNull] GlobalContext globalContext,
                     [NotNull] IEnumerable<Dependency> dependencies,
                     string dependencySourceForLogging, DependencyRuleSet ruleSetForAssembly) {
             if (!dependencies.Any()) {
@@ -246,7 +246,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 return Program.NO_RULE_SET_FOUND_FOR_FILE;
             }
 
-            DependencyRuleGroup[] checkedGroups = ruleSetForAssembly.GetAllDependencyGroups(checkerContext.IgnoreCase).ToArray();
+            DependencyRuleGroup[] checkedGroups = ruleSetForAssembly.GetAllDependencyGroups(globalContext.IgnoreCase).ToArray();
             if (checkedGroups.Any()) {
                 Log.WriteInfo("Checking " + dependencySourceForLogging);
                 bool result = true;
@@ -266,7 +266,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             throw new NotImplementedException();
         }
 
-        public override void AfterAllTransforms(GlobalContext context) {
+        public override void AfterAllTransforms(GlobalContext globalContext) {
             foreach (var r in _allCheckedGroups.SelectMany(g => g.AllRules)
                                                .Select(r => r.Representation)
                                                .Distinct()
@@ -283,16 +283,21 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 }
             }
 
-            IEnumerable<InputContext> contexts = context.InputContexts;
-            foreach (var context1 in contexts) {
-                string msg = $"{context1.Filename}: {context1.BadDependenciesCount} errors, {context1.QuestionableDependenciesCount} warnings";
-                if (context1.BadDependenciesCount > 0) {
-                    Log.WriteError(msg);
-                } else if (context1.QuestionableDependenciesCount > 0) {
-                    Log.WriteWarning(msg);
-                }
+            IEnumerable<InputContext> contexts = globalContext.InputContexts;
+            foreach (var ic in contexts) {
+                WriteCounts(ic.Filename, ic.BadDependenciesCount, ic.QuestionableDependenciesCount);
             }
+            WriteCounts("Dependencies not assigned to file", globalContext.BadDependenciesCountWithoutInputContext, globalContext.QuestionableDependenciesCountWithoutInputContext);
             Log.WriteInfo($"{contexts.Count(ctx => ctx.BadDependenciesCount == 0 && ctx.QuestionableDependenciesCount == 0)} input files are without violations.");
+        }
+
+        private static void WriteCounts(string input, int badDependenciesCount, int questionableDependenciesCount) {
+            string msg = $"{input}: {badDependenciesCount} bad dependencies, {questionableDependenciesCount} questionable dependecies";
+            if (badDependenciesCount > 0) {
+                Log.WriteError(msg);
+            } else if (questionableDependenciesCount > 0) {
+                Log.WriteWarning(msg);
+            }
         }
 
         #endregion Transform
