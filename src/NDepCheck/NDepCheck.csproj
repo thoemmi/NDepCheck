@@ -169,11 +169,12 @@
     <Compile Include="ConstraintSolving\VariableVector.cs" />
     <Compile Include="Rendering\VectorF.cs" />
     <Compile Include="Rendering\GraphicsRenderer.cs" />
-    <Compile Include="Transforming\AbstractTransformer.cs" />
+    <Compile Include="Transforming\AbstractTransformerWithConfigurationPerInputfile.cs" />
     <Compile Include="Transforming\FromTo.cs" />
     <Compile Include="Transforming\ITransformer.cs" />
     <Compile Include="Transforming\Projecting\ProjectItems.cs" />
     <Compile Include="Transforming\ViolationChecking\CheckDeps.cs" />
+    <Compile Include="ValuesFrame.cs" />
     <Compile Include="WebServing\WebServer.cs" />
     <Compile Include="WebServing\StringBuilderLogger.cs" />
   </ItemGroup>

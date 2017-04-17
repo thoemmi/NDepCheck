@@ -12,7 +12,7 @@ namespace NDepCheck.Transforming {
                       [CanBeNull] string transformOptions, [NotNull] string dependencySourceForLogging, 
                       [NotNull] List<Dependency> transformedDependencies);
 
-        void FinishTransform([NotNull] GlobalContext context);
+        void AfterAllTransforms([NotNull] GlobalContext context);
 
         [NotNull]
         IEnumerable<Dependency> GetTestDependencies();

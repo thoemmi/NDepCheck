@@ -70,7 +70,7 @@ namespace NDepCheck.WebServing {
                         int runResult;
                         try {
                             Environment.CurrentDirectory = _fullFileDirectory;
-                            runResult = _program.Run(args.ToArray(), new GlobalContext(), writtenMasterFiles,
+                            runResult = _program.Run(args.ToArray(), new string[0], new GlobalContext(), writtenMasterFiles,
                                 logCommands: true);
                         } finally {
                             Environment.CurrentDirectory = previousCurrentDirectory;

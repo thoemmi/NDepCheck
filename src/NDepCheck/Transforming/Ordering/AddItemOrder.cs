@@ -79,7 +79,7 @@ Transform options: {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
             return Program.OK_RESULT;
         }
 
-        public void FinishTransform(GlobalContext context) {
+        public void AfterAllTransforms(GlobalContext context) {
             // empty
         }
 

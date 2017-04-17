@@ -130,7 +130,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             } while (recursive && itemRemoved);
         }
 
-        public void FinishTransform(GlobalContext context) {
+        public void AfterAllTransforms(GlobalContext context) {
             // empty
         }
 

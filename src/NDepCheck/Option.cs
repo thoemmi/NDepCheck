@@ -224,7 +224,7 @@ namespace NDepCheck {
                 var list = new List<string>();
                 using (var sr = new StringReader(argsAsString.TrimStart('{', ' ', '\t', '\r', '\n').TrimEnd('}', ' ', '\t', '\r', '\n'))) {
                     for (;;) {
-                        string line = globalContext.NormalizeLine(sr.ReadLine());
+                        string line = sr.ReadLine();
                         if (line == null) {
                             break;
                         }
@@ -232,10 +232,6 @@ namespace NDepCheck {
                             // ignore;
                         } else {
                             list.Add(line);
-                            //list.AddRange(
-                            //    line.Split(' ', '\r', '\n')
-                            //        .Select(a => a.TrimStart('{').TrimEnd('}').Trim())
-                            //        .Where(a => a != ""));
                         }
                     }
                 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming {
@@ -14,17 +15,43 @@ namespace NDepCheck.Transforming {
         /// </summary>
         private const string ASSIGN = ":=";
 
+        private readonly Dictionary<string, Dictionary<string, string>> _fileName2configValues = new Dictionary<string, Dictionary<string, string>>();
         private readonly Dictionary<string, TConfigurationPerInputfile> _fileName2config = new Dictionary<string, TConfigurationPerInputfile>();
+        private ValuesFrame _localVars;
 
-        public abstract void Configure(GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload);
+        public virtual void Configure(GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
+            _localVars = new ValuesFrame();
+        }
 
         public TConfigurationPerInputfile GetOrReadChildConfiguration(GlobalContext globalContext,
             Func<TextReader> createReader, string fullSourceName, bool ignoreCase, string fileIncludeStack, bool forceReload) {
             TConfigurationPerInputfile childConfiguration;
-            if (forceReload || !_fileName2config.TryGetValue(fullSourceName, out childConfiguration)) {
+
+            Dictionary<string, string> previousConfigValues;
+            if (_fileName2configValues.TryGetValue(fullSourceName, out previousConfigValues)) {
+                if (!forceReload) {
+                    // Check saved names against 
+                    var differences = new StringBuilder();
+                    foreach (var kvp in previousConfigValues) {
+                        string currentValue = globalContext.GetValue(kvp.Key);
+                        if (currentValue != kvp.Value) {
+                            differences.AppendLine($"{kvp.Key}: {currentValue} vs. {kvp.Value}");
+                        }
+                    }
+                    if (differences.Length > 0) {
+                        throw new ApplicationException($"File {fullSourceName} is read with different values:\r\n{differences}");
+                    }
+                }
+                previousConfigValues = null; // no collecting of config values!
+            } else {
+                // Collect new config values
+                _fileName2configValues.Add(fullSourceName, previousConfigValues = new Dictionary<string, string>());
+            }
+
+            if (!_fileName2config.TryGetValue(fullSourceName, out childConfiguration)) {
                 using (var tr = createReader()) {
                     childConfiguration = CreateConfigurationFromText(globalContext, fullSourceName, 0, tr, ignoreCase,
-                        fileIncludeStack + "+" + fullSourceName, forceReload);
+                        fileIncludeStack + "+" + fullSourceName, forceReload, previousConfigValues);
                     _fileName2config[fullSourceName] = childConfiguration;
                 }
             }
@@ -42,17 +69,20 @@ namespace NDepCheck.Transforming {
         }
 
         protected abstract TConfigurationPerInputfile CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
-            int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration);
+                    int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
+                    [CanBeNull] Dictionary<string, string> configValueCollector);
 
         protected void ProcessTextInner(GlobalContext globalContext, string fullConfigFileName, int startLineNo, TextReader tr,
             bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
             [NotNull] Action<TConfigurationPerInputfile, string> onIncludedConfiguration,
-            [NotNull] Func<string, int, string> onLineWithLineNo) {
+            [NotNull] Func<string, int, string> onLineWithLineNo, 
+            
+            [CanBeNull] Dictionary<string, string> configValueCollector) {
 
             int lineNo = startLineNo;
 
             for (;;) {
-                string line = globalContext.NormalizeLine(tr.ReadLine());
+                string line = NormalizeLine(globalContext, tr.ReadLine(), configValueCollector);
 
                 if (line == null) {
                     break;
@@ -72,11 +102,11 @@ namespace NDepCheck.Transforming {
                     } else if (line.Contains(ASSIGN)) {
                         KeyValuePair<string, string>? kvp = ParseVariableDefinition(fullConfigFileName, lineNo, line);
                         if (kvp != null) {
-                            globalContext.SetDefine(kvp.Value.Key, kvp.Value.Value, $"at {fullConfigFileName}:{lineNo}", nowSetAsDefault: false);
+                            _localVars.SetDefine(kvp.Value.Key, kvp.Value.Value, $"at {fullConfigFileName}:{lineNo}");
                         }
                     } else {
                         string errorOrNull = onLineWithLineNo(line, lineNo);
-                        // line's content has been added to result as side-effect
+                        // line's content has been added to result as side-effect of onLineWithLineNo(...)
                         if (errorOrNull != null) {
                             throw new ApplicationException($"Cannot parse line '{line}' at {fullConfigFileName}:{lineNo}; reason: {errorOrNull}");
                         }
@@ -104,6 +134,19 @@ namespace NDepCheck.Transforming {
             }
         }
 
+        private string NormalizeLine(GlobalContext globalContext, [CanBeNull] string line, 
+                                     [CanBeNull] Dictionary<string, string> configValueCollector) {
+            if (line != null) {
+                int commentStart = line.IndexOf("//", StringComparison.InvariantCulture);
+                if (commentStart >= 0) {
+                    line = line.Substring(0, commentStart);
+                }
+                return globalContext.ExpandDefines(_localVars.ExpandDefines(line.Trim(), null), configValueCollector)?.Trim();
+            } else {
+                return null;
+            }
+        }
+
         #endregion Configure
 
         #region Transform
@@ -117,7 +160,9 @@ namespace NDepCheck.Transforming {
 
         public abstract IEnumerable<Dependency> GetTestDependencies();
 
-        public abstract void FinishTransform(GlobalContext context);
+        public virtual void AfterAllTransforms(GlobalContext context) {
+            // empty
+        }
 
         #endregion Transform
     }

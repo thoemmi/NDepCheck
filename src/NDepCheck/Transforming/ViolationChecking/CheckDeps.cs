@@ -48,6 +48,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         internal const string MUST_NOT_USE = "---!";
 
         public override void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
+            base.Configure(globalContext, configureOptions, forceReload);
+
             Option.Parse(globalContext, configureOptions,
                 RuleFileExtensionOption.Action((args, j) => {
                     _ruleFileExtension = '.' + Option.ExtractRequiredOptionValue(args, ref j, "missing extension").TrimStart('.');
@@ -73,7 +75,9 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             );
         }
 
-        protected override DependencyRuleSet CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName, int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration) {
+        protected override DependencyRuleSet CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
+            int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration, 
+            Dictionary<string, string> configValueCollector) {
 
             ItemType usingItemType = null;
             ItemType usedItemType = null;
@@ -102,10 +106,9 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                                 throw new ApplicationException($"$-line '{line}' must contain " + MAY_USE);
                             }
                             usingItemType =
-                                GlobalContext.GetItemType(globalContext.ExpandDefines(typeLine.Substring(0, i).Trim()));
+                                GlobalContext.GetItemType(typeLine.Substring(0, i).Trim());
                             usedItemType =
-                                GlobalContext.GetItemType(
-                                    globalContext.ExpandDefines(typeLine.Substring(i + MAY_USE.Length).Trim()));
+                                GlobalContext.GetItemType(typeLine.Substring(i + MAY_USE.Length).Trim());
                             if (mainRuleGroup == null) {
                                 currentGroup = mainRuleGroup = new DependencyRuleGroup(usingItemType, "", ignoreCase);
                                 ruleGroups.Add(currentGroup);
@@ -148,7 +151,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     } else {
                         return "Could not parse dependency rule";
                     }
-                });
+                }, configValueCollector: configValueCollector);
             return new DependencyRuleSet(ruleGroups, children);
         }
 
@@ -160,6 +163,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
         public override int Transform(GlobalContext globalContext, string dependenciesFileName, IEnumerable<Dependency> dependencies,
             string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
+            _allCheckedGroups = new HashSet<DependencyRuleGroup>();
             if (dependencies.Any()) {
                 transformedDependencies.AddRange(dependencies);
 
@@ -224,7 +228,6 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 // (b) reset counts in all rules (that are read in)
                 // (c) keep a callback list of checked rules ...
 
-                _allCheckedGroups = new HashSet<DependencyRuleGroup>();
                 return CheckDependencies(globalContext, dependencies, dependencySourceForLogging, ruleSetForAssembly);
             } else {
                 return Program.OK_RESULT;
@@ -263,7 +266,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             throw new NotImplementedException();
         }
 
-        public override void FinishTransform(GlobalContext context) {
+        public override void AfterAllTransforms(GlobalContext context) {
             foreach (var r in _allCheckedGroups.SelectMany(g => g.AllRules)
                                                .Select(r => r.Representation)
                                                .Distinct()

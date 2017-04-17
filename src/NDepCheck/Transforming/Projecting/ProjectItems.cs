@@ -94,6 +94,8 @@ Examples:
         #region Configure
 
         public override void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
+            base.Configure(globalContext, configureOptions, forceReload);
+
             _orderedProjections = null;
 
             Option.Parse(globalContext, configureOptions,
@@ -136,9 +138,9 @@ Examples:
             }
         }
 
-        protected override ProjectionSet CreateConfigurationFromText(GlobalContext globalContext,
-            string fullConfigFileName, int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack,
-            bool forceReloadConfiguration) {
+        protected override ProjectionSet CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName, 
+            int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration, 
+            Dictionary<string, string> configValueCollector) {
 
             ItemType sourceItemType = null;
             ItemType targetItemType = null;
@@ -156,11 +158,8 @@ Examples:
                         if (i < 0) {
                             return $"{line}: $-line must contain " + MAP;
                         }
-                        sourceItemType =
-                            GlobalContext.GetItemType(globalContext.ExpandDefines(typeLine.Substring(0, i).Trim()));
-                        targetItemType =
-                            GlobalContext.GetItemType(
-                                globalContext.ExpandDefines(typeLine.Substring(i + MAP.Length).Trim()));
+                        sourceItemType = GlobalContext.GetItemType(typeLine.Substring(0, i).Trim());
+                        targetItemType = GlobalContext.GetItemType(typeLine.Substring(i + MAP.Length).Trim());
                         return null;
                     } else {
                         bool left = line.StartsWith(ABSTRACT_IT_LEFT);
@@ -176,7 +175,7 @@ Examples:
                             return $"{line}: line must start with $, {ABSTRACT_IT_LEFT}, {ABSTRACT_IT_BOTH}, or {ABSTRACT_IT_RIGHT}";
                         }
                     }
-                });
+                }, configValueCollector: configValueCollector);
             return new ProjectionSet(elements);
         }
 
@@ -192,14 +191,10 @@ Examples:
                 string pattern;
                 string[] targetSegments;
                 if (i >= 0) {
-                    string rawPattern = rule.Substring(0, i).Trim();
-                    pattern = globalContext.ExpandDefines(rawPattern);
-
-                    string rawTargetSegments = rule.Substring(i + MAP.Length).Trim();
-                    targetSegments =
-                        globalContext.ExpandDefines(rawTargetSegments).Split(':').Select(s => s.Trim()).ToArray();
+                    pattern = rule.Substring(0, i).Trim();
+                    targetSegments = rule.Substring(i + MAP.Length).Trim().Split(':').Select(s => s.Trim()).ToArray();
                 } else {
-                    pattern = globalContext.ExpandDefines(rule.Trim());
+                    pattern = rule.Trim();
                     targetSegments = null;
                 }
 
@@ -341,7 +336,7 @@ Examples:
             return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: 1);
         }
 
-        public override void FinishTransform(GlobalContext context) {
+        public override void AfterAllTransforms(GlobalContext context) {
             // reset cached back projection dependencies for next transform
             _dependenciesForBackProjection = null;
         }

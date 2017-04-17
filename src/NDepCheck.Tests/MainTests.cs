@@ -118,16 +118,18 @@ NDepCheck:Tests ---> **
 //////% -:(*)
                 ");
                 }
+
                 string outFile = Path.GetTempFileName();
                 int result;
                 //string workingDir = Path.GetTempPath();
                 using (TextWriter tw = new StreamWriter(outFile)) {
                     TextWriter oldOut = Console.Out;
                     Console.SetOut(tw);
-                    string[] args = { Program.LogVerboseOption.Opt,
-                        Program.ConfigureOption.Opt, typeof(CheckDeps).Name,
-                        "{", CheckDeps.DefaultRuleFileOption.Opt, ruleFile.Filename, "}",
-                        Program.ReadOption.Opt, TestAssemblyPath };
+                    string[] args = {
+                        Program.LogVerboseOption.Opt, Program.ConfigureOption.Opt, typeof(CheckDeps).Name,
+                        "{", CheckDeps.DefaultRuleFileOption.Opt, ruleFile.Filename, "}", Program.ReadOption.Opt,
+                        TestAssemblyPath
+                    };
                     result = Program.Main(args);
                     Console.SetOut(oldOut);
                 }
@@ -170,8 +172,8 @@ NDepCheck:Tests ---> **
         ////    }
         ////}
 
-        private static readonly ItemType ITEMTYPE = ItemType.New("TEST", new[] { "AS", "NS", "CL" },
-            new string[] { null, null, null });
+        private static readonly ItemType ITEMTYPE = ItemType.New("TEST", new[] {"AS", "NS", "CL"},
+            new string[] {null, null, null});
 
         private Dependency NewDependency(string usingA, string usingN, string usingC, string usedA, string usedN,
             string usedC) {
@@ -234,7 +236,10 @@ NDepCheck:Tests ---> **
         }
 
         private static string[] CreateCheckDepsArgs(FileProvider d) {
-            return new[] { Program.ConfigureOption.Opt, typeof(CheckDeps).Name, "{", CheckDeps.DefaultRuleFileOption + "=" + d.Filename, "}", TestAssemblyPath };
+            return new[] {
+                Program.ConfigureOption.Opt, typeof(CheckDeps).Name, "{",
+                CheckDeps.DefaultRuleFileOption + "=" + d.Filename, "}", TestAssemblyPath
+            };
         }
 
         private static string CreateTempDotNetDepFileName() {
@@ -274,8 +279,6 @@ NDepCheck:Tests ---> **
                     tw.Write(@"
                     $ DOTNETCALL ---> DOTNETCALL
                   
-                    _A := NDepCheck.TestAssembly
-                    _B := _A
                     _B.** ---> _B.**
                     _B.** ---> System.**
                     _B.dir1.dir2:SomeClass ---? -:NamespacelessTestClassForNDepCheck::I
@@ -284,47 +287,22 @@ NDepCheck:Tests ---> **
                     $ DOTNETREF ---> DOTNETREF
                     * ---> *");
                 }
-                Assert.AreEqual(Program.OK_RESULT, Program.Main(CreateCheckDepsArgs(d)));
+                Assert.AreEqual(Program.OK_RESULT,
+                    Program.Main(
+                        new[] {
+                            Program.DoDefineOption.Opt, "_A", "NDepCheck.TestAssembly", Program.DoDefineOption.Opt,
+                            "_B", "_A"
+                        }.Concat(CreateCheckDepsArgs(d)).ToArray()));
             }
         }
-
-        [TestMethod]
-        public void AnotherOlderTest() {
-            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
-                using (TextWriter tw = new StreamWriter(d.Filename)) {
-                    tw.Write(@"
-                    $ DOTNETCALL ---> DOTNETCALL
-                    
-                    _A := NDepCheck.TestAssembly
-                    _B := _A
-                    _B.** ---> _B.**
-                    _B.** ---> System.**
-
-                    _B.dir1.dir2:SomeClass ---? -:NamespacelessTestClassForNDepCheck::I
-                    -:* ---? System:*
-
-                    $ DOTNETREF ---> DOTNETREF
-                    * ---> *
-                ");
-                }
-                Assert.AreEqual(Program.OK_RESULT, Program.Main(CreateCheckDepsArgs(d)));
-            }
-        }
-
-        ////[TestMethod]
-        ////public void Exit1() {
-        ////    Assert.AreEqual(1, Program.Main(new string[] { }));
-        ////    Assert.AreEqual(1, Program.Main(new[] { "/w" }));
-        ////    ____
-        ////    Assert.AreEqual(1, Program.Main(new[] { "/v", "-v", "-i", "/i=100", "-t", "/t", "-g=someDotFile.dot" }));
-        ////}
 
         [TestMethod]
         public void Exit7OnMissingDefaultSet() {
-            Assert.AreEqual(Program.EXCEPTION_RESULT, Program.Main(
-                new[] { Program.ConfigureOption.Opt, typeof(CheckDeps).FullName, "{", "-rf=nonexistingfile.dep", "}", TestAssemblyPath
-                }
-            ));
+            Assert.AreEqual(Program.EXCEPTION_RESULT,
+                Program.Main(new[] {
+                    Program.ConfigureOption.Opt, typeof(CheckDeps).FullName, "{", "-rf=nonexistingfile.dep", "}",
+                    TestAssemblyPath
+                }));
         }
 
         [TestMethod]
@@ -374,9 +352,8 @@ NDepCheck:Tests ---> **
                     ");
                 }
 
-                Assert.AreEqual(Program.DEPENDENCIES_NOT_OK, Program.Main(
-                    new[] { Program.LogChattyOption.Opt }.Concat(CreateCheckDepsArgs(d)).ToArray()
-                ));
+                Assert.AreEqual(Program.DEPENDENCIES_NOT_OK,
+                    Program.Main(new[] {Program.LogChattyOption.Opt}.Concat(CreateCheckDepsArgs(d)).ToArray()));
             }
 
         }
@@ -390,9 +367,8 @@ NDepCheck:Tests ---> **
                     : ---> blabla
                 ");
                 }
-                Assert.AreEqual(Program.FILE_NOT_FOUND_RESULT, Program.Main(
-                   CreateCheckDepsArgs(d).Concat(new[] { "nonexistingfile.dll" }).ToArray()
-                ));
+                Assert.AreEqual(Program.FILE_NOT_FOUND_RESULT,
+                    Program.Main(CreateCheckDepsArgs(d).Concat(new[] {"nonexistingfile.dll"}).ToArray()));
             }
         }
 
@@ -433,11 +409,18 @@ NDepCheck:Tests ---> **
             public string Filename { get; }
 
             public FileProvider Keep {
-                get { _doDelete = false; return this; }
+                get {
+                    _doDelete = false;
+                    return this;
+                }
             }
 
             public FileProvider(string fileName) {
                 Filename = fileName;
+            }
+
+            public override string ToString() {
+                return Filename;
             }
 
             public void Dispose() {
@@ -474,12 +457,12 @@ NDepCheck:Tests ---> **
                     // typeof(FullName) forces copying to known directory ...
                     Assert.AreEqual(0,
                         Program.Main(
-                            CreateCheckDepsArgs(d).Concat(
-                            new[] {
-                                Program.WritePluginOption.Opt,
-                                "NDepCheck.TestRenderer.dll", typeof(TestRendererForLoadFromAssembly).FullName, e.Filename
-                            }).ToArray()
-                        ));
+                            CreateCheckDepsArgs(d)
+                                .Concat(new[] {
+                                    Program.WritePluginOption.Opt, "NDepCheck.TestRenderer.dll",
+                                    typeof(TestRendererForLoadFromAssembly).FullName, e.Filename
+                                })
+                                .ToArray()));
                 }
             }
         }
@@ -490,9 +473,7 @@ NDepCheck:Tests ---> **
                 // The usage typeof(...).FullName forces copying of assembly to bin directory.
                 Assert.AreEqual(0,
                     Program.Main(new[] {
-                        TestAssemblyPath,
-                        Program.WriteTestDataOption.Opt,
-                        "NDepCheck.TestRenderer.dll",
+                        TestAssemblyPath, Program.WriteTestDataOption.Opt, "NDepCheck.TestRenderer.dll",
                         typeof(TestRendererForLoadFromAssembly).Name, d.Filename
                     }));
             }
@@ -503,15 +484,17 @@ NDepCheck:Tests ---> **
             using (var d = new FileProvider(Path.GetTempFileName() + ".gif")) {
                 Assert.AreEqual(0,
                     Program.Main(new[] {
-                        TestAssemblyPath, Program.WriteTestDataOption.Opt, ".", typeof(ModulesAndInterfacesRenderer).Name,
-                        $"{{ {GraphicsRenderer.WidthOption} 1500 {GraphicsRenderer.HeightOption} 1000 {GraphicsRenderer.TitleOption} TestGOption {ModulesAndInterfacesRenderer.InterfaceSelectorOption} MI }}", d.Filename
+                        TestAssemblyPath, Program.WriteTestDataOption.Opt, ".",
+                        typeof(ModulesAndInterfacesRenderer).Name,
+                        $"{{ {GraphicsRenderer.WidthOption} 1500 {GraphicsRenderer.HeightOption} 1000 {GraphicsRenderer.TitleOption} TestGOption {ModulesAndInterfacesRenderer.InterfaceSelectorOption} MI }}",
+                        d.Filename
                     }));
             }
         }
 
         [TestMethod]
         public void TestExtendedROptionHelp() {
-            Assert.AreEqual(1, Program.Main(new[] { Program.WriteHelpOption.Opt }));
+            Assert.AreEqual(1, Program.Main(new[] {Program.WriteHelpOption.Opt}));
         }
 
         [TestMethod]
@@ -542,7 +525,7 @@ NDepCheck:Tests ---> **
                     {Program.WriteDipOption} {outFile}");
             }
 
-            Assert.AreEqual(0, Program.Main(new[] { Program.DoScriptOption.Opt, ndFile }));
+            Assert.AreEqual(0, Program.Main(new[] {Program.DoScriptOption.Opt, ndFile}));
 
             using (var sw = new StreamReader(outFile)) {
                 string o = sw.ReadToEnd();
@@ -582,7 +565,7 @@ NDepCheck:Tests ---> **
                     {Program.WritePluginOption} . {typeof(DipWriter).FullName} {{ {DipWriter.NoExampleInfoOption} }} {outFile}");
             }
 
-            Assert.AreEqual(0, Program.Main(new[] { Program.DoScriptOption.Opt, ndFile }));
+            Assert.AreEqual(0, Program.Main(new[] {Program.DoScriptOption.Opt, ndFile}));
 
             using (var sw = new StreamReader(outFile)) {
                 string o = sw.ReadToEnd();
@@ -595,21 +578,92 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TestHelpForAllReaders() {
-            Assert.AreEqual(1, Program.Main(new[] { Program.ReadPluginHelpOption.Opt, "." }));
-            Assert.AreEqual(1, Program.Main(new[] { Program.ReadHelpOption.Opt }));
+            Assert.AreEqual(1, Program.Main(new[] {Program.ReadPluginHelpOption.Opt, "."}));
+            Assert.AreEqual(1, Program.Main(new[] {Program.ReadHelpOption.Opt}));
         }
 
         [TestMethod]
         public void TestHelpForAllTransformers() {
-            Assert.AreEqual(1, Program.Main(new[] { Program.TransformPluginHelpOption.Opt, "." }));
-            Assert.AreEqual(1, Program.Main(new[] { Program.TransformHelpOption.Opt }));
+            Assert.AreEqual(1, Program.Main(new[] {Program.TransformPluginHelpOption.Opt, "."}));
+            Assert.AreEqual(1, Program.Main(new[] {Program.TransformHelpOption.Opt}));
         }
 
         [TestMethod]
         public void TestHelpForAllRenderers() {
-            Assert.AreEqual(1, Program.Main(new[] { Program.WritePluginHelpOption.Opt, "." }));
-            Assert.AreEqual(1, Program.Main(new[] { Program.WritePluginHelpOption.Opt }));
-            Assert.AreEqual(1, Program.Main(new[] { Program.WriteHelpOption.Opt }));
+            Assert.AreEqual(1, Program.Main(new[] {Program.WritePluginHelpOption.Opt, "."}));
+            Assert.AreEqual(1, Program.Main(new[] {Program.WritePluginHelpOption.Opt}));
+            Assert.AreEqual(1, Program.Main(new[] {Program.WriteHelpOption.Opt}));
+        }
+
+        [TestMethod]
+        public void TestParams() {
+            const string mainScript = "main.nd";
+            const string script1 = "script1.nd";
+            const string script1a = "script1a.nd";
+            const string script2 = "script2.nd";
+            string resultTxt = Path.GetFullPath("result.txt");
+            Console.WriteLine($"Writing to {resultTxt}");
+
+            using (var m = new FileProvider(mainScript)) {
+                using (var s1 = new FileProvider(script1)) {
+                    using (var s1a = new FileProvider(script1a)) {
+                        using (var s2 = new FileProvider(script2)) {
+                            using (var result = new FileProvider(resultTxt)) {
+                                using (var tw = new StreamWriter(m.Filename)) {
+                                    tw.WriteLine($"-dc cmd.exe 2 {{ /c echo START > {result} }} " +
+                                                 "-dd VALUE1 value1 " + 
+                                                 $"-ds {script1} VALUE1 : value3 " +
+                                                 // passes value1, null, value3
+                                                 $"-ds {script2} VALUE1 " + // passes value1
+                                                 $"-dc cmd.exe 2 {{ /c echo END >> {result} }} ");
+                                }
+                                using (var tw = new StreamWriter(s1.Filename)) {
+                                    tw.WriteLine(
+                                        "-fp F1 -fp F2 defaultValue2 -fp F3 defaultValue3 -fp F4 defaultValue4 " +
+                                        // receives value1, [null->]defaultValue2, value3, [null->]defaultValue4
+                                        $"-dc cmd.exe 2 {{ /c echo {script1} F1 F2 F3 F4 F5 >> {result} }} " +
+                                        // first line: value1, defaultValue2, value3, defaultValue4, F5
+                                        $"-ds {script1a} value1a 2=F3 " +
+                                        // passed value1a, 2=value3
+                                        $"-dc cmd.exe 2 {{ /c echo {script1} F1 F2 F3 F4 F5 >> {result} }}");
+                                        // third result line: write same as above, but globalF5 at the end
+                                }
+                                using (var tw = new StreamWriter(s1a.Filename)) {
+                                    tw.WriteLine(
+                                        "-fp F1 -fp F2 defaultValue2 -fp F3 defaultValue3 -fp F4 defaultValue4 " +
+                                        // receives value1a 2=value3 [null->]defaultValue3 [null->]defaultValue4
+                                        "-dd F5 globalF5 " +
+                                        $"-dc cmd.exe 2 {{ /c echo {script1a} F1 F2 F3 F4 F5 >> {result} }} ");
+                                        // second result line: value1a, 2=value3, defaultValue3, defaultValue4, globalF5
+                                }
+                                using (var tw = new StreamWriter(s2.Filename)) {
+                                    tw.WriteLine(
+                                        "-fp F1 -fp F2 defaultValue2 -fp F3 defaultValue3 -fp F4 defaultValue4 " +
+                                        // receives value1, [null->]defaultValue2, [null->]defaultValue3, [null->]defaultValue4
+                                        $"-dc cmd.exe 2 {{ /c echo {script2} F1 F2 F3 F4 F5 >> {result} }} ");
+                                        // fourth result line: value1, defaultValue2, defaultValue3, defaultValue4, globalF5
+                                }
+
+                                int returnValue = Program.Main(new[] {"-ds", mainScript});
+                                Assert.AreEqual(0, returnValue);
+
+                                using (var tr = new StreamReader(result.Filename)) {
+                                    string resultContents = tr.ReadToEnd().Trim();
+                                    Assert.IsTrue(resultContents.StartsWith("START"));
+                                    Assert.IsTrue(resultContents.EndsWith("END"));
+
+                                    Assert.IsTrue(
+                                        resultContents.Contains(
+                                            @"script1.nd value1 defaultValue2 value3 defaultValue4 F5 
+script1a.nd value1a 2=value3 defaultValue3 defaultValue4 globalF5 
+script1.nd value1 defaultValue2 value3 defaultValue4 globalF5 
+script2.nd value1 defaultValue2 defaultValue3 defaultValue4 globalF5"));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -45,12 +45,6 @@ namespace NDepCheck {
             get; private set;
         }
 
-        public bool ShowUnusedQuestionableRules {
-            get; set;
-        }
-        public bool ShowUnusedRules {
-            get; set;
-        }
         public bool IgnoreCase {
             get; set;
         }
@@ -58,10 +52,8 @@ namespace NDepCheck {
         [NotNull]
         private readonly List<InputOption> _inputSpecs = new List<InputOption>();
 
-        [NotNull]
-        public Dictionary<string, string> GlobalVars { get; } = new Dictionary<string, string>();
-        [NotNull]
-        public HashSet<string> SetAsDefault { get; } = new HashSet<string>();
+        private readonly ValuesFrame _globalValues = new ValuesFrame();
+        private ValuesFrame _localParameters = new ValuesFrame();
 
         [NotNull]
         private readonly Dictionary<string, InputContext> _inputContexts = new Dictionary<string, InputContext>();
@@ -98,42 +90,22 @@ namespace NDepCheck {
         public TimeSpan TimeLongerThan { get; set; } = TimeSpan.FromSeconds(60);
 
         private static int _cxtId = 0;
-
         public GlobalContext() {
             Name = "[" + ++_cxtId + "]";
             _dependenciesWithoutInputContextStack.Push(Enumerable.Empty<Dependency>());
         }
 
-        public void SetDefine(string key, string value, string location, bool nowSetAsDefault) {
-            // -dd X a+b often ends up as -dd a+b a+b after reading expanded files; we never add such things to the dictionary.
-            // TODO: Alternative - add only if key != value ...
-            if (Regex.IsMatch(key, "^[A-Z0-9_]+$")) {
-                if (GlobalVars.ContainsKey(key)) {
-                    if (SetAsDefault.Contains(key) && !nowSetAsDefault) {
-                        // override is ok - we go from default to non-default
-                        GlobalVars[key] = value;
-                    } else if (GlobalVars[key] != value) {
-                        throw new ApplicationException($"'{key}' cannot be redefined as '{value}' {location}");
-                    }
-                } else {
-                    GlobalVars.Add(key, value);
-                }
-
-                if (nowSetAsDefault) {
-                    SetAsDefault.Add(key);
-                } else {
-                    SetAsDefault.Remove(key);
-                }
-            }
+        public void SetDefine(string key, string value, string location) {
+            _globalValues.SetDefine(key, value, location);
         }
 
-        public string ExpandDefines(string s) {
-            Dictionary<string, string> vars = GlobalVars;
-            s = s ?? "";
-            foreach (string key in vars.Keys.OrderByDescending(k => k.Length)) {
-                s = Regex.Replace(s, @"\b" + key + @"\b", vars[key] ?? "");
-            }
-            return s;
+        [ContractAnnotation("s:null => null; s:notnull => notnull")]
+        public string ExpandDefines([CanBeNull] string s, [CanBeNull] Dictionary<string, string> configValueCollector) {
+            return _globalValues.ExpandDefines(_localParameters.ExpandDefines(s, configValueCollector), configValueCollector);
+        }
+
+        public string GetValue(string valueName) {
+            return _localParameters.GetValue(valueName) ?? _globalValues.GetValue(valueName);
         }
 
         public void ReadAllNotYetReadIn() {
@@ -323,6 +295,7 @@ namespace NDepCheck {
                 result = transformer.Transform(this, "", GetAllDependencies().ToArray(), transformerOptions, "all dependencies",
                     newDependenciesCollector);
             }
+            transformer.AfterAllTransforms(this);
             int sum = 0;
             foreach (var ic in _inputContexts.Values) {
                 sum += ic.PushDependencies(newDependenciesCollector.Where(d => d.InputContext == ic));
@@ -383,7 +356,7 @@ namespace NDepCheck {
             Item.Reset();
             AbstractDotNetAssemblyDependencyReader.Reset();
 
-            GlobalVars.Clear();
+            _globalValues.Clear();
         }
 
         public AbstractDotNetAssemblyDependencyReader GetDotNetAssemblyReaderFor(string usedAssembly) {
@@ -491,35 +464,25 @@ namespace NDepCheck {
             }
         }
 
-        public void ShowAllVars() {
-            foreach (var v in GlobalVars.Keys.OrderBy(k => k)) {
-                Log.WriteInfo($"-dd {v,-15} {GlobalVars[v]}");
-            }
+        public void ShowAllValues() {
+            _globalValues.ShowAllValues("Global values:");
+            _localParameters.ShowAllValues("Local parameters:");
         }
 
-        public string NormalizeLine([CanBeNull] string line) {
-            if (line != null) {
-                int commentStart = line.IndexOf("//", StringComparison.InvariantCulture);
-                if (commentStart >= 0) {
-                    line = line.Substring(0, commentStart);
-                }
-                return ExpandDefines(line.Trim()).Trim();
-            } else {
-                return null;
-            }
-        }
-
-        public void Calculate(string varname, string assembly, string calculatorClass, IEnumerable<string> input) {
+        public void Calculate(string valueKey, string assembly, string calculatorClass, IEnumerable<string> input) {
             ICalculator calculator = GetOrCreatePlugin<ICalculator>(assembly, calculatorClass);
-            if (GlobalVars.ContainsKey(varname)) {
-                throw new ArgumentException($"Variable {varname} is already defined");
-            }
             try {
-                string result = calculator.Calculate(input.ToArray());
-                GlobalVars[varname] = result;
+                string value = calculator.Calculate(input.ToArray());
+                _globalValues.SetDefine(valueKey, value, "Computed by " + calculatorClass);
             } catch (Exception ex) {
                 Log.WriteError($"Cannot compute value with ${calculatorClass}; reason: {ex.GetType().Name} '{ex.Message}'");
             }
+        }
+
+        public ValuesFrame SetLocals(ValuesFrame locals) {
+            ValuesFrame previousValue = _localParameters;
+            _localParameters = locals;
+            return previousValue;
         }
     }
 }

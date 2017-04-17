@@ -68,6 +68,8 @@ Examples:
         private IEnumerable<DependencyAction> _orderedActions;
 
         public override void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
+            base.Configure(globalContext, configureOptions, forceReload);
+
             Option.Parse(globalContext, configureOptions,
                 ModificationsFileOption.Action((args, j) => {
                     string fullSourceName = Path.GetFullPath(Option.ExtractRequiredOptionValue(args, ref j, "missing modifications filename"));
@@ -85,18 +87,19 @@ Examples:
             );
         }
 
-        protected override IEnumerable<DependencyAction> CreateConfigurationFromText(GlobalContext globalContext, 
-            string fullConfigFileName, int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, 
-            bool forceReloadConfiguration) {
+        protected override IEnumerable<DependencyAction> CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
+            int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
+            Dictionary<string, string> configValueCollector) {
 
             var actions = new List<DependencyAction>();
             ProcessTextInner(globalContext, fullConfigFileName, startLineNo, tr, ignoreCase, fileIncludeStack,
                 forceReloadConfiguration,
                 onIncludedConfiguration: (e, n) => actions.AddRange(e),
                 onLineWithLineNo: (line, lineNo) => {
-                    actions.Add(new DependencyAction(globalContext.GetExampleDependency(), line.Trim(), ignoreCase, fullConfigFileName, startLineNo));
+                    actions.Add(new DependencyAction(globalContext.GetExampleDependency(), line.Trim(), ignoreCase, 
+                                fullConfigFileName, startLineNo));
                     return null;
-                });
+                }, configValueCollector: configValueCollector);
             return actions;
         }
 
@@ -120,7 +123,7 @@ Examples:
             return Program.OK_RESULT;
         }
 
-        public override void FinishTransform(GlobalContext context) {
+        public override void AfterAllTransforms(GlobalContext context) {
             // empty
         }
 
