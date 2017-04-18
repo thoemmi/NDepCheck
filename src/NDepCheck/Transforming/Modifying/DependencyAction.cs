@@ -45,7 +45,7 @@ namespace NDepCheck.Transforming.Modifying {
                             effects.Add(d => d.MarkAsBad());
                         } else if (effect == "!" || effect == "increment-bad") {
                             effects.Add(d => d.IncrementBad());
-                        } else if (effect == "" || effect == "ignore") {
+                        } else if (effect == "" || effect == "ignore" || effect == "keep") {
                             effects.Add(d => { });
                         } else if (effect.StartsWith("+")) {
                             effects.Add(d => d.AddMarker(effect.Substring(1)));

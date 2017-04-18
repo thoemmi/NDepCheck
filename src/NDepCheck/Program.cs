@@ -115,16 +115,16 @@ namespace NDepCheck {
         private static readonly Option[] _allOptions = {
             HelpAllOption, HelpDetailedHelpOption, DebugOption,
             ReadPluginOption, ReadOption, ReadFileOption, ReadPluginHelpOption, ReadHelpOption, ReadPluginDetailedHelpOption, ReadDetailedHelpOption,
-            ConfigurePluginOption, ConfigureOption, TransformPluginOption, TransformOption, TransformUndo,
-            TransformTestDataOption, TransformPluginHelpOption, TransformHelpOption, TransformPluginDetailedHelpOption, TransformDetailedHelpOption,
+            ConfigurePluginOption, ConfigureOption,
+            TransformPluginOption, TransformOption, TransformUndo, TransformTestDataOption, TransformPluginHelpOption, TransformHelpOption, TransformPluginDetailedHelpOption, TransformDetailedHelpOption,
             WritePluginOption, WriteFileOption, WriteDipOption, WriteTestDataOption, WritePluginHelpOption, WriteHelpOption, WritePluginDetailedHelpOption, WriteDetailedHelpOption,
             CalculatePluginOption, CalculateOption, CalculatePluginHelpOption, CalculateHelpOption, CalculatePluginDetailedHelpOption, CalculateDetailedHelpOption,
-            DoBreakOption, DoCommandOption, DoScriptOption, DoScriptLoggedOption, DoDefineOption, DoResetOption,
+            DoBreakOption, DoCommandOption, DoScriptOption, DoScriptLoggedOption, DoScriptHelpOption, DoDefineOption, DoResetOption, DoTimeOption,
             WatchFilesOption, UnwatchFilesOption, UnwatchTriggersOption,
             HttpRunOption, HttpStopOption,
             IgnoreCaseOption,
-            InteractiveOption, InteractiveStopOption,InteractiveWriteOption, InteractiveDependencyMatchOption, InteractiveItemMatchOption,
-            CurrentDirectoryOption, GarbageCollectionOption, LogVerboseOption, LogChattyOption, LazyOption,
+            InteractiveOption, InteractiveStopOption, InteractiveWriteOption, InteractiveDependencyMatchOption, InteractiveItemMatchOption,
+            CurrentDirectoryOption, ListFilesOption, GarbageCollectionOption, LogVerboseOption, LogChattyOption, LogReducedOption, LazyOption,
         };
 
         private readonly List<FileWatcher> _fileWatchers = new List<FileWatcher>();

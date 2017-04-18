@@ -43,13 +43,13 @@ The four parts have the following syntax:
 
     dependencyAction
         a space- or comma-separated list of:
-            -? or reset-questionable		  reset questionable count to 0
+            -? or reset-questionable      reset questionable count to 0
             +? or mark-questionable       set questionable count to dependency count
             ? or increment-questionable   increment questionable count by 1
             -! or reset-bad               reset bad count to 0             
             +! or mark-bad                set bad count to dependency count
             ! or increment-bad            increment bad count by 1         
-            ignore (or nothing)           is ignored
+            ignore or keep or nothing     dependency is ignored (i.e., kept)
             +marker                       add marker to dependency
             -marker                       remove marker from dependency
             - or delete                   delete dependency
@@ -57,9 +57,16 @@ The four parts have the following syntax:
 Examples:
    'From -- -> 'To => +FromTo      Add marker FromTo to dependencies where using item
                                    has marker From and used item has marker To
+
    -- 'OnCycle -> +!, -OnCycle     Set bad count for all dependencies with marker
-                                   OnCycle and remove the marker";
-            }
+                                   OnCycle and remove the marker
+
+   -cf ModifyDeps { -ml ::Some.Assembly:--->=>keep --->=>delete }
+                                   Keep only depedencies starting at assembly Some.Assembly
+";
+
+            
+}
             return result;
         }
 

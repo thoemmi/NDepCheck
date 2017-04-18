@@ -15,8 +15,11 @@ namespace NDepCheck {
 
         public void SetDefine(string key, string value, string location) {
             // -dd X a+b often ends up as -dd a+b a+b after reading expanded files; we never add such things to the dictionary.
-            // TODO: Alternative - add only if key != value ...
-            if (Regex.IsMatch(key, "^[A-Z0-9_]+$")) {
+            if (key != value) {
+                if (!Regex.IsMatch(key, "^[A-Z0-9_]+$")) {
+                    throw new ApplicationException($"Invalid name '{key}'");
+                }
+
                 if (_values.ContainsKey(key)) {
                     if (_values[key] != value) {
                         throw new ApplicationException($"'{key}' cannot be redefined as '{value}' {location}");

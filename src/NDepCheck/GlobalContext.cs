@@ -171,9 +171,9 @@ namespace NDepCheck {
             }
             try {
                 // plugins can have state, therefore we must manage them
-                T result = (T)_plugins.FirstOrDefault(t => t.GetType() == pluginType);
+                T result = (T) _plugins.FirstOrDefault(t => t.GetType() == pluginType);
                 if (result == null) {
-                    _plugins.Add(result = (T)Activator.CreateInstance(pluginType));
+                    _plugins.Add(result = (T) Activator.CreateInstance(pluginType));
                 }
                 return result;
             } catch (Exception ex) {
@@ -240,7 +240,7 @@ namespace NDepCheck {
             var matched = new Dictionary<Type, string>();
             foreach (var t in pluginTypes) {
                 try {
-                    T renderer = (T)Activator.CreateInstance(t);
+                    T renderer = (T) Activator.CreateInstance(t);
                     string help = t.FullName + ":\r\n" + renderer.GetHelp(detailedHelp: false, filter: "");
                     if (help.IndexOf(filter ?? "", StringComparison.InvariantCultureIgnoreCase) >= 0) {
                         matched.Add(t, HELP_SEPARATOR + "\r\n" + help + "\r\n");
@@ -438,15 +438,26 @@ namespace NDepCheck {
             maxCount = Math.Max(3 * nonEmptyInputContexts.Length, maxCount);
             int depsPerContext = maxCount / (nonEmptyInputContexts.Length + 1);
             foreach (var ic in nonEmptyInputContexts) {
-                foreach (var d in ic.Dependencies.Where(d => m == null || m.Matches(d)).Take(depsPerContext)) {
+                IEnumerable<Dependency> matchingDependencies = ic.Dependencies.Where(d => m == null || m.Matches(d)).Take(depsPerContext + 1);
+                foreach (var d in matchingDependencies.Take(depsPerContext)) {
                     maxCount--;
                     Log.WriteInfo(d.AsDipStringWithTypes(false));
                 }
-                Log.WriteInfo("...");
+                if (matchingDependencies.Skip(depsPerContext).Any()) {
+                    Log.WriteInfo("...");
+                }
             }
-            foreach (var d in DependenciesWithoutInputContext.Where(d => m == null || m.Matches(d)).Take(maxCount)) {
-                Log.WriteInfo(d.AsDipStringWithTypes(false));
+            {
+                IEnumerable<Dependency> matchingDependencies = DependenciesWithoutInputContext.Where(d => m == null || m.Matches(d)).Take(maxCount+1);
+                foreach (var d in matchingDependencies.Take(maxCount)) {
+                    Log.WriteInfo(d.AsDipStringWithTypes(false));
+                }
+                if (matchingDependencies.Skip(maxCount).Any()) {
+                    Log.WriteInfo("...");
+                }
             }
+
+            LogOnlyDependencyCount(pattern);
         }
 
         public void LogDependencyCount(string pattern) {
@@ -466,13 +477,18 @@ namespace NDepCheck {
         public void LogItemCount(string pattern) {
             ReadAllNotYetReadIn();
 
-            ItemMatch m = pattern == null ? null : new ItemMatch(GetExampleDependency(), pattern, IgnoreCase);
-            IEnumerable<Item> allItems = new HashSet<Item>(GetAllDependencies().SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
-            IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.Matches(m, i));
-            Log.WriteInfo(matchingItems.Count() + " items" + (m == null ? "" : " matching " + pattern));
+            IEnumerable<Item> matchingItems = LogOnlyDependencyCount(pattern);
             foreach (var i in matchingItems.Take(3)) {
                 Log.WriteInfo(i.AsStringWithOrderAndType());
             }
+        }
+
+        private IEnumerable<Item> LogOnlyDependencyCount(string pattern) {
+            ItemMatch m = pattern == null ? null : new ItemMatch(GetExampleDependency(), pattern, IgnoreCase);
+            IEnumerable<Item> allItems = new HashSet<Item>(GetAllDependencies().SelectMany(d => new[] {d.UsingItem, d.UsedItem}));
+            IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.Matches(m, i));
+            Log.WriteInfo(matchingItems.Count() + " items" + (m == null ? "" : " matching " + pattern));
+            return matchingItems;
         }
 
         public void ShowAllValues() {

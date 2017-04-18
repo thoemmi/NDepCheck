@@ -126,10 +126,6 @@ namespace NDepCheck.Transforming {
                 // This happens if the variable has been defined by multiply reading an input file; it is ok :-)
                 return null;
             } else {
-                if (key != key.ToUpper()) {
-                    throw new ApplicationException("'" + key + "' at " + ruleFileName + ":" + lineNo + " is not uppercase-only");
-                }
-
                 return new KeyValuePair<string, string>(key, value);
             }
         }
