@@ -54,7 +54,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
         }
 
-        public int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
+        public int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
             [CanBeNull] string transformOptions, string dependencySourceForLogging,
             List<Dependency> transformedDependencies) {
             bool ignoreSelfCycles = false;

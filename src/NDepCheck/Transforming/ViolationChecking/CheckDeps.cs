@@ -161,7 +161,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
         public override bool RunsPerInputContext => true;
 
-        public override int Transform(GlobalContext globalContext, string dependenciesFileName, IEnumerable<Dependency> dependencies,
+        public override int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFileName, IEnumerable<Dependency> dependencies,
             string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
             _allCheckedGroups = new HashSet<DependencyRuleGroup>();
             if (dependencies.Any()) {
@@ -192,7 +192,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
                 fullRuleFileNames = fullRuleFileNames.Distinct().ToList();
 
-                if (!fullRuleFileNames.Any()) {
+                if (!fullRuleFileNames.Any() && dependenciesFileName != null) {
                     fullRuleFileNames = new List<string> { Path.GetFullPath(dependenciesFileName) + _ruleFileExtension };
                 }
 

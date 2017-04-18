@@ -20,7 +20,7 @@ namespace NDepCheck {
     ///     All static methods may run in parallel.
     /// </remarks>
     public class Program {
-        public const string VERSION = "V.3.59";
+        public const string VERSION = "V.3.60";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 1;
@@ -158,9 +158,11 @@ namespace NDepCheck {
                     Console.Write(value: globalContext.Name + " NDepCheck> ");
                     Console.ResetColor();
                     string commands = Console.ReadLine();
+                    string lowerInvariant = commands?.Trim().ToLowerInvariant();
                     if (commands == null
-                         || commands.Trim().ToLowerInvariant().StartsWith(value: "q")
-                         || commands.Trim().ToLowerInvariant() == "exit") {
+                        || Option.ArgMatches("q", "quit", "exit")
+                        || lowerInvariant == "q"
+                        || lowerInvariant == "exit") {
                         break;
                     } else {
                         commands = commands.Trim();
@@ -486,7 +488,7 @@ namespace NDepCheck {
 
                         string fileName = ExtractNextValue(globalContext, args, ref i);
                         if (fileName != null && IsDipFile(fileName)) {
-                            globalContext.CreateInputOption(args, ref i, arg, assembly: "",
+                            globalContext.CreateInputOption(args, ref i, fileName, assembly: "",
                                 readerFactoryClass: typeof(DipReaderFactory).FullName);
                         }
                     } else if (DoTimeOption.Matches(arg)) {

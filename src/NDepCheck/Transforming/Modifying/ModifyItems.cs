@@ -102,7 +102,7 @@ Examples:
             return actions;
         }
 
-        public override int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
+        public override int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
             string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
             if (_orderedActions == null) {

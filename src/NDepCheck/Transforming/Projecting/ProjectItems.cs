@@ -222,7 +222,7 @@ Examples:
 
         public override bool RunsPerInputContext => true;
 
-        public override int Transform(GlobalContext globalContext, string dependenciesFileName, IEnumerable<Dependency> dependencies,
+        public override int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFileName, IEnumerable<Dependency> dependencies,
                             string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
             string fullDipName = null;
             bool keepOnlyProjected = false;

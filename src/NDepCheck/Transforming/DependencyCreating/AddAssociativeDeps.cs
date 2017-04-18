@@ -31,7 +31,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             _ignoreCase = globalContext.IgnoreCase;
         }
 
-        public int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
+        public int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
             [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
             var dependencyMatches = new List<DependencyMatch>();

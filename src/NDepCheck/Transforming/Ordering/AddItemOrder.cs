@@ -26,7 +26,7 @@ Transform options: {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
             // empty
         }
 
-        public int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
+        public int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
             [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
             Func<int, int, decimal> getSortValue = (incoming, outgoing) => incoming / (incoming + outgoing + 0.0001m);

@@ -311,7 +311,7 @@ namespace NDepCheck {
             return result;
         }
 
-        private int Transform(string transformerOptions, ITransformer transformer, string dependenciesFilename, IEnumerable<Dependency> dependencies,
+        private int Transform(string transformerOptions, ITransformer transformer, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
             string dependencySourceForLogging, List<Dependency> newDependenciesCollector, int result) {
             try {
                 int r = transformer.Transform(this, dependenciesFilename, dependencies, transformerOptions,
@@ -389,6 +389,9 @@ namespace NDepCheck {
 
         public void ConfigureTransformer([CanBeNull] string assemblyName, [NotNull] string transformerClass,
             [CanBeNull] string transformerOptions, bool forceReloadConfiguration) {
+            // Reading might define item types that are needed in configuration
+            ReadAllNotYetReadIn();
+
             try {
                 ITransformer plugin = GetOrCreatePlugin<ITransformer>(assemblyName, transformerClass);
                 plugin.Configure(this, transformerOptions, forceReloadConfiguration);
@@ -428,6 +431,8 @@ namespace NDepCheck {
         }
 
         public void LogAboutNDependencies(int maxCount, [CanBeNull] string pattern) {
+            ReadAllNotYetReadIn();
+
             DependencyMatch m = pattern == null ? null : new DependencyMatch(pattern, IgnoreCase);
             InputContext[] nonEmptyInputContexts = _inputContexts.Values.Where(ic => ic.Dependencies.Any()).ToArray();
             maxCount = Math.Max(3 * nonEmptyInputContexts.Length, maxCount);
@@ -445,6 +450,8 @@ namespace NDepCheck {
         }
 
         public void LogDependencyCount(string pattern) {
+            ReadAllNotYetReadIn();
+
             DependencyMatch m = pattern == null ? null : new DependencyMatch(pattern, IgnoreCase);
             int sum = DependenciesWithoutInputContext.Count(d => m == null || m.Matches(d));
             foreach (var ic in _inputContexts.Values) {
@@ -457,6 +464,8 @@ namespace NDepCheck {
         }
 
         public void LogItemCount(string pattern) {
+            ReadAllNotYetReadIn();
+
             ItemMatch m = pattern == null ? null : new ItemMatch(GetExampleDependency(), pattern, IgnoreCase);
             IEnumerable<Item> allItems = new HashSet<Item>(GetAllDependencies().SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
             IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.Matches(m, i));

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.SpecialDependencyMarking {
     public class MarkMinimalCutDeps : ITransformer {
@@ -53,7 +54,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             _ignoreCase = globalContext.IgnoreCase;
         }
 
-        public int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
+        public int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
             string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
             var sourceMatches = new List<ItemMatch>();

@@ -7,7 +7,7 @@ namespace NDepCheck.Transforming {
 
         void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload);
 
-        int Transform([NotNull] GlobalContext globalContext, [NotNull] string dependenciesFilename, 
+        int Transform([NotNull] GlobalContext globalContext, [CanBeNull] string dependenciesFilename, 
                       [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies, 
                       [CanBeNull] string transformOptions, [NotNull] string dependencySourceForLogging, 
                       [NotNull] List<Dependency> transformedDependencies);
