@@ -41,15 +41,14 @@ namespace NDepCheck {
         public abstract void WriteDebug(string msg);
 
         public virtual void WriteViolation(Dependency dependency) {
-            if (dependency.NotOkCt > 0) {
-                WriteError(FormatMessage(dependency, dependency.NotOkMessage()));
+            string message = dependency.Source != null ? $"{dependency.NotOkMessage()} (probably at {dependency.Source})" : dependency.NotOkMessage();
+            if (dependency.BadCt > 0) {
+                WriteError(message);
+            } else if (dependency.QuestionableCt > 0) {
+                WriteWarning(message);
+            } else {
+                WriteInfo(message);
             }
-        }
-
-        private static string FormatMessage(Dependency dependency, string message) {
-            return dependency.Source != null
-                ? new StringBuilder(message).Append(" (probably at ").Append(dependency.Source).Append(")").ToString()
-                : message;
         }
     }
 }
