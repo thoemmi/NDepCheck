@@ -20,7 +20,7 @@ namespace NDepCheck {
     ///     All static methods may run in parallel.
     /// </remarks>
     public class Program {
-        public const string VERSION = "V.3.60";
+        public const string VERSION = "V.3.61";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 1;
@@ -235,12 +235,12 @@ namespace NDepCheck {
                         // -? [filter]
                         string filter = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true);
                         return UsageAndExit(message: null, globalContext: globalContext, withIntro: _interactiveLogFile == null,
-                                            detailed: filter != null, filter: (filter ?? "").TrimStart('-', '/'));
+                                            detailed: filter != null, filter: filter ?? "");
                     } else if (HelpDetailedHelpOption.Matches(arg)) {
                         // -! [filter]
                         string filter = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true);
                         return UsageAndExit(message: null, globalContext: globalContext, withIntro: true,
-                                            detailed: true, filter: (filter ?? "").TrimStart('-', '/'));
+                                            detailed: true, filter: filter ?? "");
                     } else if (arg == "-debug" || arg == "/debug") {
                         // -debug
                         Debugger.Launch();
@@ -544,11 +544,11 @@ namespace NDepCheck {
                         globalContext.LogAboutNDependencies(maxCount, pattern);
                     } else if (InteractiveDependencyMatchOption.Matches(arg)) {
                         // -id [pattern]
-                        string pattern = ExtractOptionValue(globalContext, args, ref i);
+                        string pattern = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true /* as --x-> patterns start with -*/);
                         globalContext.LogDependencyCount(pattern);
                     } else if (InteractiveItemMatchOption.Matches(arg)) {
                         // -ii [pattern]
-                        string pattern = ExtractOptionValue(globalContext, args, ref i);
+                        string pattern = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true /* as --x-> patterns start with -*/);
                         globalContext.LogItemCount(pattern);
                     } else if (CurrentDirectoryOption.Matches(arg)) {
                         // -cd    [directory]

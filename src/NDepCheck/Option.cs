@@ -67,7 +67,7 @@ namespace NDepCheck {
                 sb.AppendLine();
             }
             int lineLength = 0;
-            foreach (var o in options.Where(o => (o.Name + "/" + o.ShortName + "/" + o.Description)
+            foreach (var o in options.Where(o => ("/" + o.Name + " /" + o.ShortName + " -" + o.Name + " -" + o.ShortName + " " + o.Description)
                                                  .IndexOf(filter ?? "", StringComparison.InvariantCultureIgnoreCase) >= 0)) {
                 if (detailed) {
                     sb.AppendLine("-" + o.Name + " or -" + o.ShortName + "   " + o.Usage);
