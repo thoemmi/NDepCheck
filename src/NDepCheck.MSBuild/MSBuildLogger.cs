@@ -24,14 +24,14 @@ namespace NDepCheck.MSBuild {
                     null,
                     null,
                     dependency.Source,
-                    dependency.BadDependencyMessage());
+                    dependency.NotOkMessage());
             } else if (dependency.QuestionableCt > 0) {
                 _log.LogWarning(
                     "Questionable dependency",
                     null,
                     null,
                     dependency.Source,
-                    dependency.QuestionableDependencyMessage());
+                    dependency.NotOkMessage());
             }
         }
 

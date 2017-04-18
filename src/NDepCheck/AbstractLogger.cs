@@ -41,10 +41,8 @@ namespace NDepCheck {
         public abstract void WriteDebug(string msg);
 
         public virtual void WriteViolation(Dependency dependency) {
-            if (dependency.BadCt > 0) {
-                WriteError(FormatMessage(dependency, dependency.BadDependencyMessage()));
-            } else if (dependency.QuestionableCt > 0) {
-                WriteWarning(FormatMessage(dependency, dependency.QuestionableDependencyMessage()));
+            if (dependency.NotOkCt > 0) {
+                WriteError(FormatMessage(dependency, dependency.NotOkMessage()));
             }
         }
 

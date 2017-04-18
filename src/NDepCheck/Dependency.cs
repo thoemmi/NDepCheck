@@ -112,28 +112,23 @@ namespace NDepCheck {
         }
 
         /// <summary>
-        /// A message presented to the user of this Dependency is questionable.
+        /// A message presented to the user if this Dependency has a <see cref="BadCt"/>or <see cref="QuestionableCt"/>.
         /// </summary>
         /// <returns></returns>
-        public string QuestionableDependencyMessage() {
-            return $"Questionable dependency {UsingItem} --{(QuestionableCt > 1 ? "" + QuestionableCt : "")}-> {UsedItem}" +
-                    (Source != null ? (Ct > 1 ? " (e.g. at " : " (at") + Source + ")" : "");
-        }
-        /// <summary>
-        /// A message presented to the user of this Dependency is not allowed.
-        /// </summary>
-        /// <returns></returns>
-        public string BadDependencyMessage() {
-            return $"Bad dependency {UsingItem} --{(BadCt > 1 ? "" + BadCt : "")}-> {UsedItem}" +
-                    (Source != null ? (Ct > 1 ? " (e.g. at " : " (at") + Source + ")" : "");
+        public string NotOkMessage() {
+            string nounTail = Ct > 1 ? "ependencies" : "ependency";
+            string prefix = BadCt > 0
+                ? QuestionableCt > 0 ? "Bad and questionable d" : "Bad d"
+                : QuestionableCt > 0 ? "Questionable d" : "D";
+            string ct = BadCt > 0
+                ? QuestionableCt > 0 ? $"{BadCt};{QuestionableCt}" : $"{BadCt}"
+                : QuestionableCt > 0 ? $";{QuestionableCt}" : "";
+            return $"{prefix}{nounTail} {UsingItem} --{ct}-> {UsedItem}" + (Source != null ? (Ct > 1 ? " (e.g. at " : " (at") + Source + ")" : "");
         }
 
         public INode UsingNode => _usingItem;
-        public INode UsedNode => _usedItem;
 
-        public bool Hidden {
-            get; set;
-        }
+        public INode UsedNode => _usedItem;
 
         public string GetDotRepresentation(int? stringLengthForIllegalEdges) {
             // TODO: ?? And there should be a flag (in Edge?) "hasNotOkInfo", depending on whether dependency checking was done or not.

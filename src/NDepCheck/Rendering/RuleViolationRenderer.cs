@@ -71,11 +71,8 @@ namespace NDepCheck.Rendering {
         }
 
         private static void RenderToStreamWriter(IEnumerable<Dependency> dependencies, StreamWriter sw) {
-            foreach (var d in dependencies.Where(d => d.BadCt > 0)) {
-                sw.WriteLine(d.BadDependencyMessage());
-            }
-            foreach (var d in dependencies.Where(d => d.QuestionableCt > 0 && d.BadCt == 0)) {
-                sw.WriteLine(d.QuestionableDependencyMessage());
+            foreach (var d in dependencies.Where(d => d.NotOkCt > 0)) {
+                sw.WriteLine(d.NotOkMessage());
             }
         }
 
