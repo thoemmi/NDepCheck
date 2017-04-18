@@ -100,7 +100,7 @@ namespace NDepCheck.Transforming {
                             ignoreCase, fileIncludeStack, forceReloadConfiguration);
                         onIncludedConfiguration(childConfiguration, fullConfigFileName);
                     } else if (line.Contains(ASSIGN)) {
-                        KeyValuePair<string, string>? kvp = ParseVariableDefinition(fullConfigFileName, lineNo, line);
+                        KeyValuePair<string, string>? kvp = ParseVariableDefinition(line);
                         if (kvp != null) {
                             _localVars.SetDefine(kvp.Value.Key, kvp.Value.Value, $"at {fullConfigFileName}:{lineNo}");
                         }
@@ -117,7 +117,7 @@ namespace NDepCheck.Transforming {
             }
         }
 
-        private KeyValuePair<string, string>? ParseVariableDefinition([NotNull] string ruleFileName, int lineNo, [NotNull] string line) {
+        private KeyValuePair<string, string>? ParseVariableDefinition([NotNull] string line) {
             int i = line.IndexOf(ASSIGN, StringComparison.Ordinal);
             string key = line.Substring(0, i).Trim();
             string value = line.Substring(i + ASSIGN.Length).Trim();
@@ -137,7 +137,7 @@ namespace NDepCheck.Transforming {
                 if (commentStart >= 0) {
                     line = line.Substring(0, commentStart);
                 }
-                return globalContext.ExpandDefines(_localVars.ExpandDefines(line.Trim(), null), configValueCollector)?.Trim();
+                return globalContext.ExpandDefinesAndHexChars(_localVars.ExpandDefines(line.Trim(), null), configValueCollector).Trim();
             } else {
                 return null;
             }

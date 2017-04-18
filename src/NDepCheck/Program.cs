@@ -444,15 +444,19 @@ namespace NDepCheck {
                                     }
                             };
                             if (process.Start()) {
-                                Log.WriteInfo(msg: $"Started process '{cmd}'");
+                                Log.WriteInfo(msg: $"Started process '{cmd}' with arguments '{cmdArgs}'");
                                 process.WaitForExit(1000 * maxRunTime);
                                 int exitCode = process.ExitCode;
                                 if (exitCode != 0) {
                                     Log.WriteWarning($"Process {cmd} exited with code {exitCode}");
+                                } else {
+                                    Log.WriteWarning($"Process {cmd} completed with code 0");
                                 }
                             } else {
-                                Log.WriteError(msg: $"Could not start process '{cmd}'");
+                                Log.WriteError(msg: $"Could not start process '{cmd}' with arguments '{cmdArgs}'");
                             }
+                            // Starting a process is like providing an input file
+                            globalContext.InputFilesOrTestDataSpecified = true;
                         } catch (Exception ex) {
                             Log.WriteError(msg: $"Could not start process '{cmd}'; reason: {ex.Message}");
                             result = EXCEPTION_RESULT;
@@ -600,6 +604,10 @@ namespace NDepCheck {
                     } else if (IsDipFile(arg)) {
                         globalContext.CreateInputOption(args, ref i, arg, assembly: "",
                             readerFactoryClass: typeof(DipReaderFactory).FullName);
+                    } else if (IsNdFile(arg)) {
+                        string[] paramValues = GetParamsList(globalContext, args, ref i);
+                        result = RunFrom(arg, paramValues, globalContext, writtenMasterFiles, logCommands: false, showParameters: false);
+                        globalContext.InputFilesOrTestDataSpecified = true;
                     } else {
                         return UsageAndExit(message: "Unsupported option '" + arg + "'", globalContext: globalContext);
                     }
@@ -643,12 +651,12 @@ namespace NDepCheck {
 
         [CanBeNull]
         private static string ExtractNextValue(GlobalContext globalContext, string[] args, ref int i, bool allowOptionValue = false) {
-            return globalContext.ExpandDefines(Option.ExtractNextValue(args, ref i, allowOptionValue), null);
+            return globalContext.ExpandDefinesAndHexChars(Option.ExtractNextValue(args, ref i, allowOptionValue), null);
         }
 
         [CanBeNull]
         private static string ExtractOptionValue(GlobalContext globalContext, string[] args, ref int i, bool allowOptionValue = false) {
-            return globalContext.ExpandDefines(Option.ExtractOptionValue(args, ref i, allowOptionValue), null);
+            return globalContext.ExpandDefinesAndHexChars(Option.ExtractOptionValue(args, ref i, allowOptionValue), null);
         }
 
         private static int ExtractIntOptionValue(GlobalContext globalContext, string[] args, ref int i, string message) {
@@ -661,7 +669,7 @@ namespace NDepCheck {
 
         [NotNull]
         private static string ExtractRequiredOptionValue(GlobalContext globalContext, string[] args, ref int i, string message) {
-            return globalContext.ExpandDefines(Option.ExtractRequiredOptionValue(args, ref i, message), null);
+            return globalContext.ExpandDefinesAndHexChars(Option.ExtractRequiredOptionValue(args, ref i, message), null);
         }
 
 
@@ -742,8 +750,16 @@ namespace NDepCheck {
                    arg.EndsWith(value: ".exe", comparisonType: StringComparison.InvariantCultureIgnoreCase);
         }
 
+        private static bool IsNdFile(string arg) {
+            return arg.EndsWith(value: ".nd", comparisonType: StringComparison.InvariantCultureIgnoreCase);
+        }
+
         internal int RunFrom([NotNull] string fileName, [NotNull, ItemNotNull] string[] passedValues, [NotNull] GlobalContext globalContext,
                              [CanBeNull] List<string> writtenMasterFiles, bool logCommands, bool showParameters) {
+            if (Path.GetExtension(fileName) == "") {
+                fileName = Path.ChangeExtension(fileName, ".nd");
+            }
+
             int lineNo = 0;
             try {
                 var argsList = new List<string>();

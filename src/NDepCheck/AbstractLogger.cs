@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace NDepCheck {
     public abstract class AbstractLogger : ILogger {
         public bool HasWarningsOrErrors { get; protected set; }

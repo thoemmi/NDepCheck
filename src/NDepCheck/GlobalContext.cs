@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -102,12 +103,19 @@ namespace NDepCheck {
         }
 
         [ContractAnnotation("s:null => null; s:notnull => notnull")]
-        public string ExpandDefines([CanBeNull] string s, [CanBeNull] Dictionary<string, string> configValueCollector) {
-            return _globalValues.ExpandDefines(_localParameters.ExpandDefines(s, configValueCollector), configValueCollector);
+        public string ExpandDefinesAndHexChars([CanBeNull] string s, [CanBeNull] Dictionary<string, string> configValueCollector) {
+            return ExpandHexChars(_globalValues.ExpandDefines(_localParameters.ExpandDefines(s, configValueCollector), configValueCollector));
         }
 
         public string GetValue(string valueName) {
             return _localParameters.GetValue(valueName) ?? _globalValues.GetValue(valueName);
+        }
+
+        public static string ExpandHexChars([CanBeNull] string s) {
+            return s != null && s.Contains('%')
+                ? Regex.Replace(s, "%[0-9a-fA-F][0-9a-fA-F]",
+                    m => "" + (char) int.Parse(m.Value.Substring(1), NumberStyles.HexNumber))
+                : s;
         }
 
         public void ReadAllNotYetReadIn() {
@@ -162,9 +170,9 @@ namespace NDepCheck {
             IEnumerable<Type> pluginTypes = GetPluginTypes<T>(assemblyName);
             Type pluginType =
                 pluginTypes.FirstOrDefault(
-                    t => string.Compare(t.FullName, pluginClassName, StringComparison.InvariantCultureIgnoreCase) == 0) ??
+                    t => String.Compare(t.FullName, pluginClassName, StringComparison.InvariantCultureIgnoreCase) == 0) ??
                 pluginTypes.FirstOrDefault(
-                    t => string.Compare(t.Name, pluginClassName, StringComparison.InvariantCultureIgnoreCase) == 0);
+                    t => String.Compare(t.Name, pluginClassName, StringComparison.InvariantCultureIgnoreCase) == 0);
             if (pluginType == null) {
                 throw new ApplicationException(
                     $"No plugin type found in assembly '{ShowAssemblyName(assemblyName)}' matching '{pluginClassName}'");
@@ -184,14 +192,14 @@ namespace NDepCheck {
         }
 
         private static string ShowAssemblyName(string assemblyName) {
-            return string.IsNullOrWhiteSpace(assemblyName)
+            return String.IsNullOrWhiteSpace(assemblyName)
                 ? typeof(GlobalContext).Assembly.GetName().Name
                 : assemblyName;
         }
 
         private static IOrderedEnumerable<Type> GetPluginTypes<T>([CanBeNull] string assemblyName) {
             try {
-                Assembly pluginAssembly = string.IsNullOrWhiteSpace(assemblyName) || assemblyName == "."
+                Assembly pluginAssembly = String.IsNullOrWhiteSpace(assemblyName) || assemblyName == "."
                     ? typeof(GlobalContext).Assembly
                     : Assembly.LoadFrom(assemblyName);
 
@@ -420,7 +428,7 @@ namespace NDepCheck {
         }
 
         public static bool IsConsoleOutFileName(string fileName) {
-            return string.IsNullOrWhiteSpace(fileName) || fileName == "-";
+            return String.IsNullOrWhiteSpace(fileName) || fileName == "-";
         }
 
         public static ItemType GetItemType(string definition) {

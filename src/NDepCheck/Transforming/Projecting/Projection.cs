@@ -2,9 +2,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.Projecting {
@@ -78,21 +76,13 @@ namespace NDepCheck.Transforming.Projecting {
                     }
                     targets = targets.Select(s => s.Replace("\\>", item.Order ?? ""));
                     _matchCount++;
-                    return Item.New(_targetItemType, targets.Select(t => ExpandHexChars(t)).ToArray()).SetOrder(item.Order);
+                    return Item.New(_targetItemType, targets.Select(t => GlobalContext.ExpandHexChars(t)).ToArray()).SetOrder(item.Order);
                 }
             }
-        }
-
-        public static string ExpandHexChars(string s) {
-            return s.Contains('%')
-                ? Regex.Replace(s, "%[0-9a-fA-F][0-9a-fA-F]",
-                    m => "" + (char) int.Parse(m.Value.Substring(1), NumberStyles.HexNumber))
-                : s;
         }
 
         public Projection[] AllProjections => new[] { this };
 
         public int MatchCount => _matchCount;
-
     }
 }
