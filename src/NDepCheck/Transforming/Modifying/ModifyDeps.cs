@@ -11,7 +11,7 @@ namespace NDepCheck.Transforming.Modifying {
         private static readonly Option[] _configOptions = { ModificationsFileOption, ModificationsOption };
 
         public override string GetHelp(bool detailedHelp, string filter) {
-            string result = $@"Modify counts and markers on dependencies.
+            string result = $@"Modify counts and markers on dependencies, delete or keep dependencies.
 
 Configuration options: {Option.CreateHelp(_configOptions, detailedHelp, filter)}
 
@@ -131,8 +131,8 @@ Examples:
         }
 
         public override IEnumerable<Dependency> GetTestDependencies() {
-            var a = Item.New(ItemType.SIMPLE, "A");
-            var b = Item.New(ItemType.SIMPLE, "B");
+            Item a = Item.New(ItemType.SIMPLE, "A");
+            Item b = Item.New(ItemType.SIMPLE, "B");
             return new[] {
                 new Dependency(a, a, source: null, markers: "", ct:10, questionableCt:5, badCt:3),
                 new Dependency(a, b, source: null, markers: "use+define", ct:1, questionableCt:0,badCt: 0),

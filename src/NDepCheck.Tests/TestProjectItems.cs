@@ -130,6 +130,35 @@ namespace NDepCheck.Tests {
             Assert.AreEqual(1, result[1].Ct);
         }
 
+
+        [TestMethod]
+        public void TestToTooFewFields() {
+            var pi = new ProjectItems((p, i) => new ProjectItems.SelfOptimizingPrefixTrieProjector(p, i, 2, "prefixTrie"));
+            var gc = new GlobalContext();
+            const string THREE_FIELDS = "THREE_FIELDS";
+            pi.Configure(gc, $@"{{ -pl
+    $ {THREE_FIELDS}(F1:F2:F3) ---% {THREE_FIELDS}
+
+    ! a:b:c ---% ::
+    ! a:b   ---% : // this threw an exception before a fix
+    ! a    ---%
+}}", forceReload: false);
+
+            ItemType threeFields = ItemType.Find(THREE_FIELDS);
+            Item abc = Item.New(threeFields, "a:b:c");
+            Item ab = Item.New(threeFields, "a:b:-");
+            Item a = Item.New(threeFields, "a:-:-");
+
+            var result = new List<Dependency>();
+            pi.Transform(gc, "test", new[] {
+                new Dependency(abc, abc, null, "abc", 1),
+                new Dependency(ab, ab, null, "ab", 1),
+                new Dependency(a, a, null, "a", 1),
+            }, "", "test", result);
+
+            Assert.AreEqual(0, result.Count);
+        }
+
         //[TestMethod]
         //public void TestDamned() {
         //    var gc = new GlobalContext();

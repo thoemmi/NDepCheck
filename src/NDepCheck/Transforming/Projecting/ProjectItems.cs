@@ -83,7 +83,9 @@ Examples:
 ::(**)::(**)                project to 3rd and 5th field; e.g., the result of
                             projecting a.1:b.2:c.3:d.4:e.5:f.6 is c.3:e.5
 ::(**)::(**) ---% \1:\2     same as above
+
 ::a.(**)::   ---% MOD_A:\1  Projection with fixed string
+
 ::()                        do not project item (single group is always empty)
 ::           ---% -         same as above
 ";

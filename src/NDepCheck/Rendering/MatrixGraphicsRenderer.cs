@@ -191,7 +191,7 @@ namespace NDepCheck.Rendering {
                 OrderFieldOption.Action((args, j) => {
                     string orderField = Option.ExtractOptionValue(args, ref j);
                     if (!int.TryParse(orderField, out _orderField) || _orderField < 0) {
-                        Option.Throw("No valid field index after -o", args);
+                        Option.ThrowArgumentException($"No valid field index after {OrderFieldOption}", string.Join(" ", args));
                     }
                     return j;
                 }),

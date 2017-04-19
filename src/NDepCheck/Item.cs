@@ -7,7 +7,6 @@ using System.Linq;
 using System.Text;
 using Gibraltar;
 using JetBrains.Annotations;
-using NDepCheck.Rendering;
 
 namespace NDepCheck {
     public abstract class ItemSegment : ObjectWithMarkers {

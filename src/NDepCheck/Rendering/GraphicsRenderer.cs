@@ -892,7 +892,7 @@ namespace NDepCheck.Rendering {
             int minTextHeight = 15;
             string htmlFormat = DEFAULT_HTML_FORMAT;
             if (baseFileName == null || GlobalContext.IsConsoleOutFileName(baseFileName)) {
-                Option.Throw("Cannot write graphics file to Console.Out", argsAsString);
+                Option.ThrowArgumentException("Cannot write graphics file to Console.Out", argsAsString);
             }
 
             Option.Parse(globalContext, argsAsString,

@@ -22,8 +22,8 @@ namespace NDepCheck.Transforming.Projecting {
         [NotNull]
         private readonly string[] _targetSegments;
 
-        public bool ForLeftSide { get; }
-        public bool ForRightSide { get; }
+        private readonly bool _forLeftSide;
+        private readonly bool _forRightSide;
 
         public string Source { get; }
 
@@ -35,9 +35,12 @@ namespace NDepCheck.Transforming.Projecting {
         public Projection([CanBeNull] ItemType sourceItemTypeOrNull, [NotNull]ItemType targetItemType, [NotNull]string pattern,
             [CanBeNull]string[] targetSegments, bool ignoreCase, bool forLeftSide, bool forRightSide, string source = null) {
             if (targetSegments != null) {
-                if (targetItemType.Length != targetSegments.Length) {
+                if (targetSegments.Length > targetItemType.Length) {
                     Log.WriteError($"Targettype {targetItemType.Name} has {targetItemType.Length} segments, but {targetSegments.Length} are defined in projection: {string.Join(",", targetSegments)}");
                     throw new ArgumentException("targetSegments length != targetItemType.Length", nameof(targetSegments));
+                } else if (targetSegments.Length < targetItemType.Length) {
+                    targetSegments = targetSegments.Concat(Enumerable.Range(1, targetItemType.Length - targetSegments.Length).Select(i => ""))
+                                                   .ToArray();
                 }
                 if (targetSegments.Any(s => s == null)) {
                     throw new ArgumentException("targetSegments contains null", nameof(targetSegments));
@@ -48,8 +51,8 @@ namespace NDepCheck.Transforming.Projecting {
             _targetItemType = targetItemType;
             _targetSegments = targetSegments;
             Source = source;
-            ForLeftSide = forLeftSide;
-            ForRightSide = forRightSide;
+            _forLeftSide = forLeftSide;
+            _forRightSide = forRightSide;
             ItemMatch = new ItemMatch(sourceItemTypeOrNull, pattern, ignoreCase);
         }
 
@@ -61,7 +64,7 @@ namespace NDepCheck.Transforming.Projecting {
         /// <returns>Projected item; or <c>null</c> if item does not 
         /// match projection</returns>
         public Item Match([NotNull] Item item, bool left) {
-            if (left && !ForLeftSide || !left && !ForRightSide) {
+            if (left && !_forLeftSide || !left && !_forRightSide) {
                 return null;
             } else {
                 string[] matchResultGroups = ItemMatch.Matches(item);

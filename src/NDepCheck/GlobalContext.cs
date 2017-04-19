@@ -131,7 +131,7 @@ namespace NDepCheck {
                 }
             }
             stopwatch.Stop();
-            Program.LogElapsed(this, stopwatch, "Reading");
+            Program.LogElapsedTime(this, stopwatch, "Reading");
         }
 
         public string RenderToFile([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName, [CanBeNull] string rendererOptions, [CanBeNull] string fileName) {

@@ -167,7 +167,7 @@ namespace NDepCheck {
         public static int ExtractIntOptionValue(string[] args, ref int j, string msg) {
             int value;
             if (!int.TryParse(ExtractOptionValue(args, ref j), out value)) {
-                Throw(msg, args);
+                ThrowArgumentException(msg, string.Join(" ", args));
             }
             return value;
         }
@@ -208,11 +208,7 @@ namespace NDepCheck {
             }
         }
 
-        internal static void Throw(string message, string[] args) {
-            Throw(message, string.Join(" ", args));
-        }
-
-        internal static void Throw(string message, string argsAsString) {
+        internal static void ThrowArgumentException(string message, string argsAsString) {
             throw new ArgumentException(message + " (provided options: " + (argsAsString.Length > 305 ? argsAsString.Substring(0, 300) + "..." : argsAsString) + ")");
         }
 
@@ -261,12 +257,12 @@ namespace NDepCheck {
                     }
                     message += "\r\nAllowed options: " +
                                CreateHelp(optionActions.Select(oa => oa.Option), detailed: false, filter: "");
-                    Throw(message, argsAsString);
+                    ThrowArgumentException(message, argsAsString);
                 }
             }
 
             if (requiredOptions.Any()) {
-                Throw("Missing required options: " + string.Join(", ", requiredOptions.OrderBy(o => o.Name).Select(o => o.Name)), argsAsString);
+                ThrowArgumentException("Missing required options: " + string.Join(", ", requiredOptions.OrderBy(o => o.Name).Select(o => o.Name)), argsAsString);
             }
         }
 

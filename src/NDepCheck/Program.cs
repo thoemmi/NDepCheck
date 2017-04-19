@@ -15,18 +15,12 @@ using NDepCheck.Transforming.ViolationChecking;
 using NDepCheck.WebServing;
 
 namespace NDepCheck {
-    /// <remarks>
-    ///     Main class of NDepCheck.
-    ///     All static methods may run in parallel.
-    /// </remarks>
     public class Program {
         public const string VERSION = "V.3.63";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 1;
-
         public const int DEPENDENCIES_NOT_OK = 3;
-
         public const int FILE_NOT_FOUND_RESULT = 4;
         public const int NO_RULE_GROUPS_FOUND = 5;
         public const int NO_RULE_SET_FOUND_FOR_FILE = 6;
@@ -135,9 +129,6 @@ namespace NDepCheck {
             get; set;
         }
 
-        /// <summary>
-        ///     The static Main method.
-        /// </summary>
         public static int Main(string[] args) {
             ItemType.New("DUMMY(DUMMY)"); // For init - TODO - REALLY still necessary??
             Log.SetLevel(Log.Level.Standard);
@@ -146,7 +137,6 @@ namespace NDepCheck {
 
             var program = new Program();
             try {
-                // TODO: In my first impl, I used a separate GlobalContext() for each entry - why? This defies explorative working!
                 var globalContext = new GlobalContext();
 
                 int lastResult = program.Run(args, new string[0], globalContext, writtenMasterFiles: null, logCommands: false);
@@ -188,7 +178,7 @@ namespace NDepCheck {
                     Console.WriteLine(ex);
                 return EXCEPTION_RESULT;
             } finally {
-                // Main may be called multiple times; therefore we clear all caches
+                // Main may be called multiple times in tests; therefore we clear all caches
                 Intern.ResetAll();
             }
         }
@@ -447,10 +437,10 @@ namespace NDepCheck {
                                 Log.WriteInfo(msg: $"Started process '{cmd}' with arguments '{cmdArgs}'");
                                 process.WaitForExit(1000 * maxRunTime);
                                 int exitCode = process.ExitCode;
-                                if (exitCode != 0) {
+                                if (exitCode == 0) {
                                     Log.WriteWarning($"Process {cmd} exited with code {exitCode}");
                                 } else {
-                                    Log.WriteWarning($"Process {cmd} completed with code 0");
+                                    Log.WriteInfo($"Process {cmd} completed with code 0");
                                 }
                             } else {
                                 Log.WriteError(msg: $"Could not start process '{cmd}' with arguments '{cmdArgs}'");
@@ -475,7 +465,7 @@ namespace NDepCheck {
                         // file is also an input file - and if there are no input files in -o, the error will come up there.
                         globalContext.InputFilesOrTestDataSpecified = true;
                     } else if (FormalParametersOption.Matches(arg)) {
-                        Log.WriteError($"Option {FormalParametersOption.Name} must not occur after other option in script");
+                        Log.WriteError($"Option {FormalParametersOption.Name} must not occur after other options");
                     } else if (DoDefineOption.Matches(arg)) {
                         // -dd    name value
                         string varname = ExtractOptionValue(globalContext, args, ref i);
@@ -487,7 +477,6 @@ namespace NDepCheck {
                         }
                     } else if (DoResetOption.Matches(arg)) {
                         // -dr    [filename]
-
                         globalContext.ResetAll();
 
                         string fileName = ExtractNextValue(globalContext, args, ref i);
@@ -596,7 +585,7 @@ namespace NDepCheck {
                         Log.SetLevel(Log.Level.Standard);
                     } else if (LazyOption.Matches(arg)) {
                         // -lz
-                        //                         (lazy reading and transforming NOT YET IMPLEMENTED)
+                        // (lazy reading and transforming NOT YET IMPLEMENTED)
                         globalContext.WorkLazily = true;
                     } else if (IsDllOrExeFile(arg)) {
                         globalContext.CreateInputOption(args, ref i, arg, assembly: "",
@@ -616,7 +605,7 @@ namespace NDepCheck {
                         Log.WriteInfo($">>>> Finished {arg}");
                     }
                     stopWatch.Stop();
-                    LogElapsed(globalContext, stopWatch, arg);
+                    LogElapsedTime(globalContext, stopWatch, arg);
                 }
             } catch (ArgumentException ex) {
                 return UsageAndExit(ex.Message, globalContext);
@@ -662,7 +651,7 @@ namespace NDepCheck {
         private static int ExtractIntOptionValue(GlobalContext globalContext, string[] args, ref int i, string message) {
             int value;
             if (!int.TryParse(ExtractOptionValue(globalContext, args, ref i), out value)) {
-                Option.Throw(message, args);
+                Option.ThrowArgumentException(message, string.Join(" ", args));
             }
             return value;
         }
@@ -671,7 +660,6 @@ namespace NDepCheck {
         private static string ExtractRequiredOptionValue(GlobalContext globalContext, string[] args, ref int i, string message) {
             return globalContext.ExpandDefinesAndHexChars(Option.ExtractRequiredOptionValue(args, ref i, message), null);
         }
-
 
         private static string[] GetParamsList(GlobalContext globalContext, string[] args, ref int i) {
             var result = new List<string>();
@@ -706,7 +694,7 @@ namespace NDepCheck {
             }
         }
 
-        public static void LogElapsed(GlobalContext globalContext, Stopwatch stopWatch, string arg) {
+        public static void LogElapsedTime(GlobalContext globalContext, Stopwatch stopWatch, string arg) {
             TimeSpan elapsed = stopWatch.Elapsed;
             if (elapsed >= globalContext.TimeLongerThan) {
                 if (elapsed < TimeSpan.FromMinutes(1)) {
