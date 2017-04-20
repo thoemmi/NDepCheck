@@ -8,38 +8,14 @@ namespace NDepCheck.Rendering {
     /// <summary>
     /// Class that creates AT&amp;T DOT (graphviz) output from dependencies - see <a href="http://graphviz.org/">http://graphviz.org/</a>.
     /// </summary>
-    public class DotRenderer : IDependencyRenderer {
-        private readonly GenericDotRenderer _delegate = new GenericDotRenderer();
-
-        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
-            _delegate.Render(globalContext, dependencies, dependenciesCount, argsAsString, baseFileName, ignoreCase);
-        }
-
-        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
-            _delegate.RenderToStreamForUnitTests(dependencies, output);
-        }
-
-        public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
-            SomeRendererTestData.CreateSomeTestItems(out items, out dependencies);
-        }
-
-        public string GetHelp(bool detailedHelp, string filter) {
-            return _delegate.GetHelp(detailedHelp, filter);
-        }
-
-        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
-            return _delegate.GetMasterFileName(globalContext, argsAsString, baseFileName);
-        }
-    }
-
-    public class GenericDotRenderer : IRenderer<IEdge> {
+    public class DotRenderer : IRenderer {
         public static readonly Option MaxExampleLengthOption = new Option("ml", "max-example-length", "#", "Maximal length of example string", @default:"full example");
         public static readonly Option InnerMatchOption = new Option("im", "inner-item", "#", "Match to mark item as inner item", @default: "all items are inner");
 
         private static readonly Option[] _allOptions = { MaxExampleLengthOption, InnerMatchOption };
 
-        private void Render(IEnumerable<IEdge> edges, [NotNull] TextWriter output, ItemMatch innerMatch, int? maxExampleLength) {
-            IDictionary<Item, IEnumerable<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdges(edges);
+        private void Render(IEnumerable<Dependency> edges, [NotNull] TextWriter output, ItemMatch innerMatch, int? maxExampleLength) {
+            IDictionary<Item, IEnumerable<Dependency>> nodesAndEdges = Dependency.Edges2NodesAndEdges(edges);
 
             output.WriteLine("digraph D {");
             output.WriteLine("ranksep = 1.5;");
@@ -59,7 +35,7 @@ namespace NDepCheck.Rendering {
             output.WriteLine("}");
         }
 
-        public void Render(GlobalContext globalContext, IEnumerable<IEdge> dependencies, int? dependenciesCount, string argsAsString, [CanBeNull] string baseFileName, bool ignoreCase) {
+        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [CanBeNull] string baseFileName, bool ignoreCase) {
             int? maxExampleLength = null;
             ItemMatch innerMatch = null;
             Option.Parse(globalContext, argsAsString,
@@ -69,8 +45,8 @@ namespace NDepCheck.Rendering {
                     return j;
                 }),
                 AbstractMatrixRenderer.InnerMatchOption.Action((args, j) => {
-                    innerMatch = new ItemMatch(dependencies.FirstOrDefault() as Dependency, 
-                                                Option.ExtractRequiredOptionValue(args, ref j, "Pattern for selecting inner items missing"), ignoreCase);
+                    innerMatch = new ItemMatch(dependencies.FirstOrDefault(), 
+                                               Option.ExtractRequiredOptionValue(args, ref j, "Pattern for selecting inner items missing"), ignoreCase);
                     return j;
                 }));
             using (TextWriter sw = new StreamWriter(GetDotFileName(baseFileName))) {
@@ -82,7 +58,7 @@ namespace NDepCheck.Rendering {
             return GlobalContext.CreateFullFileName(baseFileName, ".dot");
         }
 
-        public void RenderToStreamForUnitTests(IEnumerable<IEdge> dependencies, Stream stream) {
+        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream stream) {
             using (var sw = new StreamWriter(stream)) {
                 Render(dependencies, sw, null, null);
             }
@@ -100,6 +76,10 @@ $@"  Writes dependencies to file in .dot format (graphviz; see http://graphviz.o
 
         public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
             return GetDotFileName(baseFileName);
+        }
+
+        public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
+            SomeRendererTestData.CreateSomeTestItems(out items, out dependencies);
         }
     }
 }

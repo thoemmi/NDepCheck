@@ -3,7 +3,7 @@ using System.IO;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Rendering {
-    public interface IRenderer<in TDependency> where TDependency : class, IEdge {
+    public interface IRenderer : IPlugin {
         string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName);
 
         /// <summary>
@@ -16,12 +16,14 @@ namespace NDepCheck.Rendering {
         /// <param name="baseFileName"></param>
         /// <param name="ignoreCase"></param>
         /// <returns>Returns full name of written masterfile; or null if not written</returns>
-        void Render([NotNull] GlobalContext globalContext, [ItemNotNull] [NotNull] IEnumerable<TDependency> dependencies, 
+        void Render([NotNull] GlobalContext globalContext, [ItemNotNull] [NotNull] IEnumerable<Dependency> dependencies, 
                     int? dependenciesCount, [NotNull] string argsAsString, [CanBeNull] string baseFileName, bool ignoreCase);
 
         /// <summary>
         /// Render dependencies to stream
         /// </summary>
-        void RenderToStreamForUnitTests([ItemNotNull, NotNull] IEnumerable<TDependency> dependencies, [NotNull] Stream stream);
+        void RenderToStreamForUnitTests([ItemNotNull, NotNull] IEnumerable<Dependency> dependencies, [NotNull] Stream stream);
+
+        void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies);
     }
 }

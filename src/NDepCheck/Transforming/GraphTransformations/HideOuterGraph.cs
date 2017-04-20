@@ -3,7 +3,7 @@
 //using System.Linq;
 
 //namespace NDepCheck.Transforming.GraphTransformations {
-//    public class HideOuterGraph <T> : IGraphTransformation<T> where T : class, IEdge  {
+//    public class HideOuterGraph <T> : IGraphTransformation<T> where T : class, Dependency  {
 //        private readonly bool _incoming;
 //        private readonly bool _outgoing;
 

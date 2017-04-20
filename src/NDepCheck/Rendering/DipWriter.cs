@@ -6,12 +6,12 @@ namespace NDepCheck.Rendering {
     /// <summary>
     /// Writer for dependencies ("Edges") in standard "DIP" format
     /// </summary>
-    public class DipWriter : IDependencyRenderer {
+    public class DipWriter : IRenderer {
         public static readonly Option NoExampleInfoOption = new Option("ne", "no-example", "", "Does not write example info", @default:false);
 
         private static readonly Option[] _allOptions = { NoExampleInfoOption };
 
-        public static void Write(IEnumerable<IEdge> edges, TextWriter sw, bool withExampleInfo) {
+        public static void Write(IEnumerable<Dependency> edges, TextWriter sw, bool withExampleInfo) {
             var writtenTypes = new HashSet<ItemType>();
 
             sw.WriteLine($"// Written {DateTime.Now} by {typeof(DipWriter).Name} in NDepCheck {Program.VERSION}");

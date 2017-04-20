@@ -14,10 +14,10 @@ namespace NDepCheck.Tests {
 
         #region Simple tests
 
-        internal class DelegteTestRenderer : GraphicsRenderer<Dependency> {
-            private readonly Action<DelegteTestRenderer> _placeObjects;
+        internal class LambdaTestRenderer : GraphicsRenderer {
+            private readonly Action<LambdaTestRenderer> _placeObjects;
 
-            public DelegteTestRenderer(Action<DelegteTestRenderer> placeObjects) {
+            public LambdaTestRenderer(Action<LambdaTestRenderer> placeObjects) {
                 _placeObjects = placeObjects;
             }
 
@@ -41,8 +41,8 @@ namespace NDepCheck.Tests {
             }
         }
 
-        private static void CreateAndRender(Action<DelegteTestRenderer> placeObjects) {
-            new DelegteTestRenderer(placeObjects).Render(new GlobalContext(), Enumerable.Empty<Dependency>(), 0, 
+        private static void CreateAndRender(Action<LambdaTestRenderer> placeObjects) {
+            new LambdaTestRenderer(placeObjects).Render(new GlobalContext(), Enumerable.Empty<Dependency>(), 0, 
                                     "", Path.GetTempFileName(), ignoreCase : false);
         }
 
@@ -222,7 +222,7 @@ namespace NDepCheck.Tests {
 
         #region Somewhat complex tests
 
-        internal class SomewhatComplexTestRenderer : GraphicsRenderer<Dependency> {
+        internal class SomewhatComplexTestRenderer : GraphicsRenderer {
             private readonly int _boxHeight;
             protected override Color GetBackGroundColor => Color.Yellow;
 

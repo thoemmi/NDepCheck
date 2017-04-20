@@ -6,7 +6,7 @@ using NDepCheck.ConstraintSolving;
 using NDepCheck.Rendering;
 
 namespace NDepCheck.TestRenderer {
-    public class TestRendererForLoadFromAssembly : GraphicsDependencyRenderer {
+    public class TestRendererForLoadFromAssembly : GraphicsRenderer {
         protected override Color GetBackGroundColor => Color.Yellow;
 
         protected override void PlaceObjects(IEnumerable<Dependency> dependencies) {

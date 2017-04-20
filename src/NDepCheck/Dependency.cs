@@ -11,7 +11,9 @@ namespace NDepCheck {
     /// knowledge about a concrete dependency
     /// (one "using item" uses one "used item").
     /// </remarks>
-    public class Dependency : ObjectWithMarkers, IEdge {
+    public class Dependency : ObjectWithMarkers, IWithCt {
+        public const string DIP_ARROW = "=>";
+
         [NotNull]
         private readonly Item _usingItem;
         [NotNull]
@@ -205,11 +207,12 @@ namespace NDepCheck {
         }
 
         public string AsDipStringWithTypes(bool withExampleInfo) {
+            // Should that be in DipWriter?
             string exampleInfo = withExampleInfo ? _exampleInfo : null;
             string markers = string.Join("+", Markers.OrderBy(s => s));
-            return $"{_usingItem.AsStringWithOrderAndType()} {EdgeConstants.DIP_ARROW} "
+            return $"{_usingItem.AsStringWithOrderAndType()} {DIP_ARROW} "
                  + $"{markers};{_ct};{_questionableCt};{_badCt};{Source?.AsDipString()};{exampleInfo} "
-                 + $"{EdgeConstants.DIP_ARROW} {_usedItem.AsStringWithOrderAndType()}";
+                 + $"{DIP_ARROW} {_usedItem.AsStringWithOrderAndType()}";
         }
 
         public void AggregateMarkersAndCounts(Dependency d) {
@@ -220,7 +223,7 @@ namespace NDepCheck {
             _exampleInfo = _exampleInfo ?? d.ExampleInfo;
         }
 
-        private static Item GetOrCreateNode<T>(Dictionary<Item, Item> canonicalNodes, Dictionary<Item, List<T>> nodesAndEdges, Item node) where T : IEdge {
+        private static Item GetOrCreateNode<T>(Dictionary<Item, Item> canonicalNodes, Dictionary<Item, List<T>> nodesAndEdges, Item node) where T : Dependency {
             Item result;
             if (!canonicalNodes.TryGetValue(node, out result)) {
                 canonicalNodes.Add(node, result = node);
@@ -231,12 +234,12 @@ namespace NDepCheck {
             return result;
         }
 
-        internal static IDictionary<Item, IEnumerable<T>> Edges2NodesAndEdges<T>(IEnumerable<T> edges) where T : class, IEdge {
+        internal static IDictionary<Item, IEnumerable<T>> Edges2NodesAndEdges<T>(IEnumerable<T> edges) where T : Dependency {
             Dictionary<Item, List<T>> result = Edges2NodesAndEdgesList(edges);
             return result.ToDictionary<KeyValuePair<Item, List<T>>, Item, IEnumerable<T>>(kvp => kvp.Key, kvp => kvp.Value);
         }
 
-        internal static Dictionary<Item, List<T>> Edges2NodesAndEdgesList<T>(IEnumerable<T> edges) where T : IEdge {
+        internal static Dictionary<Item, List<T>> Edges2NodesAndEdgesList<T>(IEnumerable<T> edges) where T : Dependency {
             var canonicalNodes = new Dictionary<Item, Item>();
             var result = new Dictionary<Item, List<T>>();
             foreach (var e in edges) {

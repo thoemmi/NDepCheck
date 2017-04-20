@@ -9,7 +9,7 @@ namespace NDepCheck.Tests {
     public class TestRemoveDeps {
         private void AssertEdgeCount(int expected, string o) {
             string[] lines = o.Split('\n');
-            int actual = lines.Count(line => line.Contains(EdgeConstants.DIP_ARROW));
+            int actual = lines.Count(line => line.Contains(Dependency.DIP_ARROW));
             Assert.AreEqual(expected, actual, $"Number of deps is different: '{o}'");
         }
 

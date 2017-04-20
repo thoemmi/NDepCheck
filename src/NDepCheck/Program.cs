@@ -364,22 +364,22 @@ namespace NDepCheck {
                         // -wp?    assembly
                         string assembly = ExtractOptionValue(globalContext, args, ref i);
                         string filter = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>(assembly, filter);
+                        globalContext.ShowAllPluginsAndTheirHelp<IRenderer>(assembly, filter);
                     } else if (WriteHelpOption.Matches(arg)) {
                         // -wr?
                         string filter = ExtractOptionValue(globalContext, args, ref i);
-                        globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>("", filter);
+                        globalContext.ShowAllPluginsAndTheirHelp<IRenderer>("", filter);
                     } else if (WritePluginDetailedHelpOption.Matches(arg)) {
                         // -wp!    assembly reader
                         string assembly = ExtractOptionValue(globalContext, args, ref i);
                         string writer = ExtractNextValue(globalContext, args, ref i);
                         string filter = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, writer, filter);
+                        globalContext.ShowDetailedHelp<IRenderer>(assembly, writer, filter);
                     } else if (WriteDetailedHelpOption.Matches(arg)) {
                         // -wr!    reader
                         string writer = ExtractOptionValue(globalContext, args, ref i);
                         string filter = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.ShowDetailedHelp<IDependencyRenderer>("", writer, filter);
+                        globalContext.ShowDetailedHelp<IRenderer>("", writer, filter);
                     } else if (CalculatePluginOption.Matches(arg)) {
                         // -xp    varname assembly calculator [varname ...]
                         string varname = ExtractOptionValue(globalContext, args, ref i);
@@ -407,7 +407,7 @@ namespace NDepCheck {
                         string assembly = ExtractOptionValue(globalContext, args, ref i);
                         string calculator = ExtractNextValue(globalContext, args, ref i);
                         string filter = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.ShowDetailedHelp<IDependencyRenderer>(assembly, calculator, filter);
+                        globalContext.ShowDetailedHelp<IRenderer>(assembly, calculator, filter);
                     } else if (CalculateDetailedHelpOption.Matches(arg)) {
                         // -xf!    calculator
                         string calculator = ExtractOptionValue(globalContext, args, ref i);
@@ -871,7 +871,7 @@ Option overview:
                     globalContext.ShowAllPluginsAndTheirHelp<IReaderFactory>("", filter);
                     globalContext.ShowAllPluginsAndTheirHelp<ITransformer>("", filter);
                     globalContext.ShowAllPluginsAndTheirHelp<ICalculator>("", filter);
-                    globalContext.ShowAllPluginsAndTheirHelp<IDependencyRenderer>("", filter);
+                    globalContext.ShowAllPluginsAndTheirHelp<IRenderer>("", filter);
                 } else {
                     Console.WriteLine(help);
                 }

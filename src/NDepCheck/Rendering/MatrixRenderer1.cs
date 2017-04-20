@@ -4,35 +4,19 @@ using System.Linq;
 using NDepCheck.Transforming;
 
 namespace NDepCheck.Rendering {
-    public class MatrixRenderer1 : AbstractMatrixRenderer, IDependencyRenderer {
-        private readonly GenericMatrixRenderer1 _delegate = new GenericMatrixRenderer1();
-
-        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
-            _delegate.Render(globalContext, dependencies, dependenciesCount, argsAsString, baseFileName, ignoreCase);
-        }
-
-        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
-            _delegate.RenderToStreamForUnitTests(dependencies, output);
-        }
-
-        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
-            return _delegate.GetMasterFileName(globalContext, argsAsString, baseFileName);
-        }
-    }
-
-    public class GenericMatrixRenderer1 : AbstractGenericMatrixRenderer {
-        private class ZeroEdge : IWithCt {
+    public class MatrixRenderer1 : AbstractMatrixRenderer {
+        private class ZeroDependency : IWithCt {
             public int Ct => 0;
 
             public int NotOkCt => 0;
         }
 
         protected override void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<Item> topNodes, string nodeFormat,
-           Dictionary<Item, int> node2Index, bool withNotOkCt, IEnumerable<Item> sortedNodes, string ctFormat, IDictionary<Item, IEnumerable<IEdge>> nodesAndEdges) {
+           Dictionary<Item, int> node2Index, bool withNotOkCt, IEnumerable<Item> sortedNodes, string ctFormat, IDictionary<Item, IEnumerable<Dependency>> nodesAndEdges) {
             WriteFormat1Line(output, Limit("Id", colWidth), Limit("Name", labelWidth),
                 topNodes.Select(n => NodeId(n, nodeFormat, node2Index) + (withNotOkCt ? ";" + Repeat(' ', colWidth) : "")));
 
-            IWithCt ZERO_EDGE = new ZeroEdge();
+            IWithCt ZERO_EDGE = new ZeroDependency();
 
             foreach (var used in sortedNodes) {
                 Item used1 = used;
@@ -55,13 +39,13 @@ namespace NDepCheck.Rendering {
             output.WriteLine();
         }
 
-        public override void RenderToStreamForUnitTests(IEnumerable<IEdge> dependencies, Stream stream) {
+        public override void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream stream) {
             using (var sw = new StreamWriter(stream)) {
                 Render(dependencies, null, sw, null, true);
             }
         }
 
-        public override void Render(GlobalContext globalContext, IEnumerable<IEdge> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
+        public override void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
             int? labelWidthOrNull;
             bool withNotOkCt;
             ItemMatch itemMatchOrNull;

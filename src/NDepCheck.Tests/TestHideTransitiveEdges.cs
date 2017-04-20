@@ -36,10 +36,10 @@ namespace NDepCheck.Tests {
         //    CreateEdge(nodes, "BAC", "BUC");
         //    //CreateEdge(nodes, "BAC", "VKF");
 
-        //    IEnumerable<TestEdge> edges = nodes.Values.SelectMany(n => n.Edges);
+        //    IEnumerable<Dependency> edges = nodes.Values.SelectMany(n => n.Edges);
         //    int ctEdgesBeforeHiding = edges.Count(e => !e.Hidden);
 
-        //    new HideTransitiveEdges<TestEdge>(new string[0]).Run(edges);
+        //    new HideTransitiveEdges<Dependency>(new string[0]).Run(edges);
 
         //    using (var s = new MemoryStream()) {
         //        new GenericDotRenderer().RenderToStreamForUnitTests(edges, s);
@@ -227,10 +227,10 @@ namespace NDepCheck.Tests {
         //    CreateEdge(nodes, "LAG.Lagerbestand.MI", "BUC");
         //    CreateEdge(nodes, "LAG.Lagerbestand.MI", "KST.Bonussystem.MI");
 
-        //    IEnumerable<TestEdge> edges = nodes.Values.SelectMany(n => n.Edges);
+        //    IEnumerable<Dependency> edges = nodes.Values.SelectMany(n => n.Edges);
         //    int ctEdgesBeforeHiding = edges.Count(e => !e.Hidden);
 
-        //    new HideTransitiveEdges<TestEdge>(new string[0]).Run(edges);
+        //    new HideTransitiveEdges<Dependency>(new string[0]).Run(edges);
 
         //    using (var s = new MemoryStream()) {
         //        new GenericDotRenderer().RenderToStreamForUnitTests(edges, s);

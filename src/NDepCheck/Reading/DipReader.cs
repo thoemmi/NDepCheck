@@ -19,7 +19,7 @@ namespace NDepCheck.Reading {
 
         protected override IEnumerable<Dependency> ReadDependencies([CanBeNull] InputContext inputContext, int depth) {
             Log.WriteInfo("Reading " + _fullFileName);
-            Regex dipArrow = new Regex($@"\s*{EdgeConstants.DIP_ARROW}\s*");
+            Regex dipArrow = new Regex($@"\s*{Dependency.DIP_ARROW}\s*");
 
             var result = new List<Dependency>(10000);
             using (var sr = new StreamReader(_fullFileName)) {
@@ -44,7 +44,7 @@ namespace NDepCheck.Reading {
                         string[] parts = dipArrow.Split(line);
 
                         if (parts.Length != 3) {
-                            WriteError(_fullFileName, lineNo, $"Line is not ... {EdgeConstants.DIP_ARROW} #;#;... {EdgeConstants.DIP_ARROW} ..., but " + parts.Length, line);
+                            WriteError(_fullFileName, lineNo, $"Line is not ... {Dependency.DIP_ARROW} #;#;... {Dependency.DIP_ARROW} ..., but " + parts.Length, line);
                         }
 
                         try {

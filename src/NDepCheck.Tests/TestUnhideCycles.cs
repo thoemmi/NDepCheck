@@ -32,12 +32,12 @@
 //            Assert.IsTrue(n1.Edges.Skip(1).First().Hidden);
 //        }
 
-//        private static void UnhideCycles(IEnumerable<TestEdge> edges) {
+//        private static void UnhideCycles(IEnumerable<Dependency> edges) {
 //            foreach (var e in edges) {
 //                e.Hidden = true;
 //            }
 
-//            new UnhideCycles<TestEdge>(new string[0]).Run(edges);
+//            new UnhideCycles<Dependency>(new string[0]).Run(edges);
 //        }
 
 //        [TestMethod]

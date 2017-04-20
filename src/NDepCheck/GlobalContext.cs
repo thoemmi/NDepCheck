@@ -135,7 +135,7 @@ namespace NDepCheck {
         }
 
         public string RenderToFile([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName, [CanBeNull] string rendererOptions, [CanBeNull] string fileName) {
-            IDependencyRenderer renderer = GetOrCreatePlugin<IDependencyRenderer>(assemblyName, rendererClassName);
+            IRenderer renderer = GetOrCreatePlugin<IRenderer>(assemblyName, rendererClassName);
 
             ReadAllNotYetReadIn();
 
@@ -214,7 +214,7 @@ namespace NDepCheck {
         }
 
         public string RenderTestData([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName, string rendererOptions, [NotNull] string baseFileName) {
-            IDependencyRenderer renderer = GetOrCreatePlugin<IDependencyRenderer>(assemblyName, rendererClassName);
+            IRenderer renderer = GetOrCreatePlugin<IRenderer>(assemblyName, rendererClassName);
 
             IEnumerable<Item> items;
             IEnumerable<Dependency> dependencies;

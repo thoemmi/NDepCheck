@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace NDepCheck.Transforming.GraphTransformations {
-    //public class AssociativeHull<T> : IGraphTransformation<T> where T : class, IEdge {
+    //public class AssociativeHull<T> : IGraphTransformation<T> where T : class, Dependency {
     //    private readonly Func<T, T, T> _concatEdge;
     //    //private readonly bool _outerOnly = false;
 

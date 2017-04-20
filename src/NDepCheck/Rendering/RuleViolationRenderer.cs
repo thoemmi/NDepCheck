@@ -7,7 +7,7 @@ using System.Xml.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Rendering {
-    public class RuleViolationRenderer : IDependencyRenderer {
+    public class RuleViolationRenderer : IRenderer {
         public static readonly Option XmlOutputOption = new Option("xo", "xml-output", "", "Write output to XML file", @default: false);
 
         private static readonly Option[] _allOptions = { XmlOutputOption };

@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using NDepCheck.ConstraintSolving;
 
 namespace NDepCheck.Rendering {
-    public class ModulesAndInterfacesRenderer : GraphicsDependencyRenderer {
+    public class ModulesAndInterfacesRenderer : GraphicsRenderer {
         public static readonly Option InterfaceSelectorOption = new Option("si", "select-interface", "&", "Regexp for interface marker, i.e., items that are drawn as vertical bars", @default: null);
         public static readonly Option OrderFieldOption = new Option("of", "order-field", "#", "Field on which items are sorted, counted from 1 up. Items with equal order are sorted by edge count.", @default: "internal order field, then edge count.");
 

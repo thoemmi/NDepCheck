@@ -69,7 +69,7 @@ namespace NDepCheck.Rendering {
         Left, Center, Right, LeftInclined, CenterInclined, RightInclined
     }
 
-    public abstract class GraphicsRenderer {
+    public abstract class GraphicsRenderer : IRenderer {
         protected const string DEFAULT_HTML_FORMAT = "<!DOCTYPE html><html><body>{0}</body></html>";
 
         public static readonly Option WidthOption = new Option("gw", "gif-width", "#", "width of graphics in pixels", @default: "computed from height, or via minimal text size");
@@ -88,14 +88,10 @@ namespace NDepCheck.Rendering {
 @"  The fileName is used as a base name for writing a .gif file as well as an .html file, which contains
     the link and popup information.
 ";
-    }
-
-    public abstract class GraphicsRenderer<TDependency> : GraphicsRenderer, IRenderer<TDependency>
-            where TDependency : class, IEdge {
         private class GraphicsRendererSolver : SimpleConstraintSolver {
-            private readonly GraphicsRenderer<TDependency> _renderer;
+            private readonly GraphicsRenderer _renderer;
 
-            public GraphicsRendererSolver(GraphicsRenderer<TDependency> renderer) : base(1.5e-5) {
+            public GraphicsRendererSolver(GraphicsRenderer renderer) : base(1.5e-5) {
                 _renderer = renderer;
             }
 
@@ -776,7 +772,7 @@ namespace NDepCheck.Rendering {
             return arrowBuilder;
         }
 
-        private Bitmap Render(IEnumerable<TDependency> dependencies, float minTextHeight,
+        private Bitmap Render(IEnumerable<Dependency> dependencies, float minTextHeight,
                               ref int width, ref int height, StringBuilder htmlForClicks) {
             PlaceObjects(dependencies);
 
@@ -881,11 +877,11 @@ namespace NDepCheck.Rendering {
             return bitmap;
         }
 
-        public virtual void Render(GlobalContext globalContext, IEnumerable<TDependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
+        public virtual void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
             DoRender(globalContext, dependencies, argsAsString, baseFileName);
         }
 
-        protected string DoRender(GlobalContext globalContext, IEnumerable<TDependency> dependencies, string argsAsString, string baseFileName, params OptionAction[] additionalOptions) {
+        protected string DoRender(GlobalContext globalContext, IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, params OptionAction[] additionalOptions) {
             int width = -1;
             int height = -1;
             int minTextHeight = 15;
@@ -950,7 +946,7 @@ namespace NDepCheck.Rendering {
             return GlobalContext.CreateFullFileName(baseFileName, ".gif");
         }
 
-        public void RenderToStreamForUnitTests(IEnumerable<TDependency> dependencies, Stream stream) {
+        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream stream) {
             int width = 1000;
             int height = 1000;
             Bitmap bitMap = Render(dependencies, 15, ref width, ref height, htmlForClicks: null);
@@ -962,17 +958,14 @@ namespace NDepCheck.Rendering {
 
         protected SimpleConstraintSolver Solver => _solver;
 
-        protected abstract void PlaceObjects(IEnumerable<TDependency> dependencies);
+        protected abstract void PlaceObjects(IEnumerable<Dependency> dependencies);
 
-        public abstract void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<TDependency> dependencies);
+        public abstract void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies);
 
         public abstract string GetHelp(bool detailedHelp, string filter);
 
         public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
             return GetHtmlFileName(baseFileName);
         }
-    }
-
-    public abstract class GraphicsDependencyRenderer : GraphicsRenderer<Dependency>, IDependencyRenderer {
     }
 }

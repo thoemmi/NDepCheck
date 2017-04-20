@@ -154,7 +154,7 @@
     <Compile Include="Reading\DipReader.cs" />
     <Compile Include="Rendering\DipWriter.cs" />
     <Compile Include="Transforming\Projecting\Projection.cs" />
-    <Compile Include="IEdge.cs" />
+    <Compile Include="IWithCt.cs" />
     <Compile Include="INode.cs" />
     <Compile Include="Item.cs" />
     <Compile Include="Reading\ItemsOnlyDotNetAssemblyDependencyReader.cs" />
@@ -164,7 +164,6 @@
     <Compile Include="ILogger.cs" />
     <Compile Include="Option.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Rendering\IDependencyRenderer.cs" />
     <Compile Include="Rendering\SomeRendererTestData.cs" />
     <Compile Include="ConstraintSolving\VariableVector.cs" />
     <Compile Include="Rendering\VectorF.cs" />

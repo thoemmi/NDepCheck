@@ -4,31 +4,15 @@ using System.Linq;
 using NDepCheck.Transforming;
 
 namespace NDepCheck.Rendering {
-    public class MatrixRenderer2 : AbstractMatrixRenderer, IDependencyRenderer {
-        private readonly GenericMatrixRenderer2 _delegate = new GenericMatrixRenderer2();
-
-        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
-            _delegate.Render(globalContext, dependencies, dependenciesCount, argsAsString, baseFileName, ignoreCase);
-        }
-
-        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
-            _delegate.RenderToStreamForUnitTests(dependencies, output);
-        }
-
-        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
-            return _delegate.GetMasterFileName(globalContext, argsAsString, baseFileName);
-        }
-    }
-
-    public class GenericMatrixRenderer2 : AbstractGenericMatrixRenderer {
+    public class MatrixRenderer2 : AbstractMatrixRenderer {
         protected override void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<Item> topNodes, string nodeFormat,
-            Dictionary<Item, int> node2Index, bool withNotOkCt, IEnumerable<Item> sortedNodes, string ctFormat, IDictionary<Item, IEnumerable<IEdge>> nodesAndEdges) {
+            Dictionary<Item, int> node2Index, bool withNotOkCt, IEnumerable<Item> sortedNodes, string ctFormat, IDictionary<Item, IEnumerable<Dependency>> nodesAndEdges) {
             var emptyCtCols = Repeat(' ', colWidth) + (withNotOkCt ? ";" + Repeat(' ', colWidth) : "");
             WriteFormat2Line(output, Limit("Id", colWidth), Limit("Name", labelWidth), Limit("Id", colWidth), Limit("Name", labelWidth), emptyCtCols);
             foreach (var @using in topNodes) {
                 WriteFormat2Line(output, NodeId(@using, nodeFormat, node2Index), Limit(@using.Name, labelWidth), Limit("", colWidth), Limit("", labelWidth), emptyCtCols);
                 foreach (var used in sortedNodes) {
-                    var edge = nodesAndEdges[@using].FirstOrDefault(e => e.UsedNode.Equals(used));
+                    Dependency edge = nodesAndEdges[@using].FirstOrDefault(e => e.UsedNode.Equals(used));
                     if (edge != null) {
                         WriteFormat2Line(output, NodeId(@using, nodeFormat, node2Index), Limit(@using.Name, labelWidth), NodeId(used, nodeFormat, node2Index),
                             Limit(used.Name, labelWidth),
@@ -50,13 +34,13 @@ namespace NDepCheck.Rendering {
             output.WriteLine(cts);
         }
 
-        public override void RenderToStreamForUnitTests(IEnumerable<IEdge> dependencies, Stream stream) {
+        public override void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream stream) {
             using (var sw = new StreamWriter(stream)) {
                 Render(dependencies, null, sw, null, true);
             }
         }
 
-        public override void Render(GlobalContext globalContext, IEnumerable<IEdge> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
+        public override void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
             int? labelWidthOrNull;
             bool withNotOkCt;
             ItemMatch itemMatchOrNull;

@@ -7,15 +7,19 @@ using NDepCheck.Rendering;
 namespace NDepCheck.Tests {
     [TestClass]
     public class TestWriteMatrixFile {
+        private static Dependency CreateDependency(Item @using, Item used, int ct = 1, int badCt = 0) {
+            return new Dependency(@using, used, null, "", ct, badCt: badCt);
+        }
+
         [TestMethod]
         public void TestSimpleDAG() {
             Item[] nodes;
-            TestEdge[] edges;
+            Dependency[] edges;
             SetupDAG(out nodes, out edges);
 
             using (var s = new MemoryStream()) {
-                new GenericMatrixRenderer1().RenderToStreamForUnitTests(edges, s);
-            
+                new MatrixRenderer1().RenderToStreamForUnitTests(edges, s);
+
                 Assert.AreEqual(@"Id;Name;1;  ;2;  ;3;  
 1;n3  ; 1;  ;  ;  ;  ;  
 2;n2  ; 1;  ;  ;  ;  ;  
@@ -27,12 +31,12 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestSimpleDAGWithNotOkCounts() {
             Item[] nodes;
-            TestEdge[] edges;
+            Dependency[] edges;
             SetupDAG(out nodes, out edges);
 
 
             using (var s = new MemoryStream()) {
-                new GenericMatrixRenderer1().RenderToStreamForUnitTests(edges, s);
+                new MatrixRenderer1().RenderToStreamForUnitTests(edges, s);
                 Assert.AreEqual(@"Id;Name;1;  ;2;  ;3;  
 1;n3  ; 1;  ;  ;  ;  ;  
 2;n2  ; 1;  ;  ;  ;  ;  
@@ -41,18 +45,18 @@ namespace NDepCheck.Tests {
             }
         }
 
-        private static void SetupDAG(out Item[] nodes, out TestEdge[] edges) {
+        private static void SetupDAG(out Item[] nodes, out Dependency[] edges) {
             nodes = new[] {
                 Item.New(ItemType.SIMPLE, new[] {"n1"}),
                 Item.New(ItemType.SIMPLE, new[] {"n2"}),
                 Item.New(ItemType.SIMPLE, new[] {"n3"})
             };
             edges = new[] {
-                new TestEdge(nodes[2], nodes[1]),
-                new TestEdge(nodes[2], nodes[0]),
-                new TestEdge(nodes[1], nodes[0]),
+                CreateDependency(nodes[2], nodes[1]),
+                CreateDependency(nodes[2], nodes[0]),
+                CreateDependency(nodes[1], nodes[0]),
                 // a loop on the lowest
-                new TestEdge(nodes[2], nodes[2])
+                CreateDependency(nodes[2], nodes[2])
             };
         }
 
@@ -64,15 +68,15 @@ namespace NDepCheck.Tests {
                 Item.New(ItemType.SIMPLE, new[] {"n3"})
             };
             var edges = new[] {
-                new TestEdge(nodes[2], nodes[1], 55),
-                new TestEdge(nodes[2], nodes[0], 111),
-                new TestEdge(nodes[1], nodes[0], 77),
-                new TestEdge(nodes[0], nodes[2], 7),
-                new TestEdge(nodes[0], nodes[0], 999),
+                CreateDependency(nodes[2], nodes[1], 55),
+                CreateDependency(nodes[2], nodes[0], 111),
+                CreateDependency(nodes[1], nodes[0], 77),
+                CreateDependency(nodes[0], nodes[2], 7),
+                CreateDependency(nodes[0], nodes[0], 999),
             };
 
             using (var s = new MemoryStream()) {
-                new GenericMatrixRenderer1().RenderToStreamForUnitTests(edges, s);
+                new MatrixRenderer1().RenderToStreamForUnitTests(edges, s);
                 Assert.AreEqual(@"Id  ;Name;001;    ;002;    ;003;    
 001;n3  ;    ;    ;    ;    ;#  7;    
 002;n2  ;  55;    ;    ;    ;    ;    
@@ -91,10 +95,10 @@ namespace NDepCheck.Tests {
                 Item.New(ItemType.SIMPLE, new[] {"n3"})
             };
             int ct = 100;
-            TestEdge[] edges = nodes.SelectMany(from => nodes.Select(to => new TestEdge(from, to, ++ct, ct / 2))).ToArray();
+            Dependency[] edges = nodes.SelectMany(from => nodes.Select(to => CreateDependency(from, to, ++ct, ct / 2))).ToArray();
 
             using (var s = new MemoryStream()) {
-                new GenericMatrixRenderer1().RenderToStreamForUnitTests(edges, s);
+                new MatrixRenderer1().RenderToStreamForUnitTests(edges, s);
                 Assert.AreEqual(@"Id  ;Name;001;    ;002;    ;003;    
 001;n3  ; 109;~ 54;#106;* 53;#103;* 51
 002;n2  ; 108;~ 54; 105;~ 52;#102;* 51

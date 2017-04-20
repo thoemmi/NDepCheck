@@ -150,11 +150,11 @@
       <Filename>DependencyRuleRepresentation.cs</Filename>
     </TypeIdentifier>
   </Class>
-  <Interface Name="NDepCheck.IEdge" Collapsed="true">
+  <Interface Name="NDepCheck.Dependency" Collapsed="true">
     <Position X="3.5" Y="6.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAgEAAAAAAIAAAAAQBAAAAAAAAAEAIA=</HashCode>
-      <Filename>IEdge.cs</Filename>
+      <Filename>Dependency.cs</Filename>
     </TypeIdentifier>
   </Interface>
   <Interface Name="NDepCheck.IMatcher" Collapsed="true">
