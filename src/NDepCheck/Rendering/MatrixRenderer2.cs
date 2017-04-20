@@ -21,8 +21,8 @@ namespace NDepCheck.Rendering {
     }
 
     public class GenericMatrixRenderer2 : AbstractGenericMatrixRenderer {
-        protected override void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<INode> topNodes, string nodeFormat,
-            Dictionary<INode, int> node2Index, bool withNotOkCt, IEnumerable<INode> sortedNodes, string ctFormat, IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges) {
+        protected override void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<Item> topNodes, string nodeFormat,
+            Dictionary<Item, int> node2Index, bool withNotOkCt, IEnumerable<Item> sortedNodes, string ctFormat, IDictionary<Item, IEnumerable<IEdge>> nodesAndEdges) {
             var emptyCtCols = Repeat(' ', colWidth) + (withNotOkCt ? ";" + Repeat(' ', colWidth) : "");
             WriteFormat2Line(output, Limit("Id", colWidth), Limit("Name", labelWidth), Limit("Id", colWidth), Limit("Name", labelWidth), emptyCtCols);
             foreach (var @using in topNodes) {

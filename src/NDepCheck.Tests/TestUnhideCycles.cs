@@ -11,11 +11,11 @@
 //        [TestMethod]
 //        public void TestSimpleUnhideCycles() {
 //            // 1 --> 2, 2 --> 3, 3 --> 4, 4 --> 1, 1 --> 5
-//            var n1 = new TestNode("n1", true, TEST);
-//            var n2 = new TestNode("n2", true, TEST);
-//            var n3 = new TestNode("n3", true, TEST);
-//            var n4 = new TestNode("n4", true, TEST);
-//            var n5 = new TestNode("n5", true, TEST);
+//            var n1 = TestNode.New("n1", true, TEST);
+//            var n2 = TestNode.New("n2", true, TEST);
+//            var n3 = TestNode.New("n3", true, TEST);
+//            var n4 = TestNode.New("n4", true, TEST);
+//            var n5 = TestNode.New("n5", true, TEST);
 
 //            n1.AddEdgeTo(n2);
 //            n2.AddEdgeTo(n3);
@@ -43,10 +43,10 @@
 //        [TestMethod]
 //        public void TestSmallUnhideCycles() {
 //            // 1 --> 2, 2 --> 3, 3 --> 2, 3 --> 4
-//            var n1 = new TestNode("n1", true, TEST);
-//            var n2 = new TestNode("n2", true, TEST);
-//            var n3 = new TestNode("n3", true, TEST);
-//            var n4 = new TestNode("n4", true, TEST);
+//            var n1 = TestNode.New("n1", true, TEST);
+//            var n2 = TestNode.New("n2", true, TEST);
+//            var n3 = TestNode.New("n3", true, TEST);
+//            var n4 = TestNode.New("n4", true, TEST);
 
 //            n1.AddEdgeTo(n2);
 //            n2.AddEdgeTo(n3);
@@ -85,7 +85,7 @@
 //        }
 
 //        private static List<TestNode> CreateTriangularLattice(int N) {
-//            var nodes = Enumerable.Range(0, N).Select(i => new TestNode("n" + i, true, TEST)).ToList();
+//            var nodes = Enumerable.Range(0, N).Select(i => TestNode.New("n" + i, true, TEST)).ToList();
 //            foreach (var src in nodes) {
 //                TestNode src1 = src;
 //                IEnumerable<TestNode> testNodes = nodes.SkipWhile(n => n != src1).Skip(1).ToArray();
@@ -109,7 +109,7 @@
 //        private static void TestCyclicLattice(int N) {
 //            List<TestNode> nodes = CreateTriangularLattice(N);
 //            nodes.Last().AddEdgeTo(nodes.First());
-//            var sink = new TestNode("sink", true, TEST);
+//            var sink = TestNode.New("sink", true, TEST);
 //            foreach (var n in nodes) {
 //                n.AddEdgeTo(sink);
 //            }

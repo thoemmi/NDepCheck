@@ -21,7 +21,7 @@ namespace NDepCheck.Transforming.GraphTransformations {
     //    }
 
     //    public IEnumerable<T> Run(IEnumerable<T> edges) {
-    //        IDictionary<INode, IEnumerable<T>> nodesAndEdges = Dependency.Edges2NodesAndEdges(edges);
+    //        IDictionary<Item, IEnumerable<T>> nodesAndEdges = Dependency.Edges2NodesAndEdges(edges);
 
     //        IEnumerable<T> workingSet = edges;
     //        var result = new HashSet<T>();

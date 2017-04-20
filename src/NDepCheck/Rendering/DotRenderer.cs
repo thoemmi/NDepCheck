@@ -39,7 +39,7 @@ namespace NDepCheck.Rendering {
         private static readonly Option[] _allOptions = { MaxExampleLengthOption, InnerMatchOption };
 
         private void Render(IEnumerable<IEdge> edges, [NotNull] TextWriter output, ItemMatch innerMatch, int? maxExampleLength) {
-            IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdges(edges);
+            IDictionary<Item, IEnumerable<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdges(edges);
 
             output.WriteLine("digraph D {");
             output.WriteLine("ranksep = 1.5;");

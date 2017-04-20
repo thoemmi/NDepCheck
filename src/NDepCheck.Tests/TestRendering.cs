@@ -14,7 +14,7 @@ namespace NDepCheck.Tests {
 
         #region Simple tests
 
-        internal class DelegteTestRenderer : GraphicsRenderer<Item, Dependency> {
+        internal class DelegteTestRenderer : GraphicsRenderer<Dependency> {
             private readonly Action<DelegteTestRenderer> _placeObjects;
 
             public DelegteTestRenderer(Action<DelegteTestRenderer> placeObjects) {
@@ -222,7 +222,7 @@ namespace NDepCheck.Tests {
 
         #region Somewhat complex tests
 
-        internal class SomewhatComplexTestRenderer : GraphicsRenderer<Item, Dependency> {
+        internal class SomewhatComplexTestRenderer : GraphicsRenderer<Dependency> {
             private readonly int _boxHeight;
             protected override Color GetBackGroundColor => Color.Yellow;
 

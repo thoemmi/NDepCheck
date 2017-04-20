@@ -1,11 +1,11 @@
-using JetBrains.Annotations;
+//using JetBrains.Annotations;
 
-namespace NDepCheck {
-    public interface INode {
-        [NotNull]
-        string Name { get; }
+//namespace NDepCheck {
+//    public interface Item {
+//        [NotNull]
+//        string Name { get; }
 
-        [NotNull]
-        ItemType Type { get; }
-    }
-}
+//        [NotNull]
+//        ItemType Type { get; }
+//    }
+//}

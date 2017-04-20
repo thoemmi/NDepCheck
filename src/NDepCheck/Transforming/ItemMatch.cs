@@ -23,12 +23,12 @@ namespace NDepCheck.Transforming {
             return _markerPattern.Match(item) ? _itemPattern.Matches(item) : null;
         }
 
-        public static bool Matches(ItemMatch matchOrNull, INode node) {
+        public static bool Matches(ItemMatch matchOrNull, Item node) {
             if (matchOrNull == null) {
                 return true;
             } else if (!(node is Item)) {
                 return true;
-                    // TODO: INodes do not work with ItemMatch ... either I upgrade ItemMatch; oder I kill INode ...
+                    // TODO: Items do not work with ItemMatch ... either I upgrade ItemMatch; oder I kill Item ...
             } else {
                 return matchOrNull.Matches((Item) node) != null;
             }

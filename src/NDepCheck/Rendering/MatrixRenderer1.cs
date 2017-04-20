@@ -27,15 +27,15 @@ namespace NDepCheck.Rendering {
             public int NotOkCt => 0;
         }
 
-        protected override void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<INode> topNodes, string nodeFormat,
-           Dictionary<INode, int> node2Index, bool withNotOkCt, IEnumerable<INode> sortedNodes, string ctFormat, IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges) {
+        protected override void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<Item> topNodes, string nodeFormat,
+           Dictionary<Item, int> node2Index, bool withNotOkCt, IEnumerable<Item> sortedNodes, string ctFormat, IDictionary<Item, IEnumerable<IEdge>> nodesAndEdges) {
             WriteFormat1Line(output, Limit("Id", colWidth), Limit("Name", labelWidth),
                 topNodes.Select(n => NodeId(n, nodeFormat, node2Index) + (withNotOkCt ? ";" + Repeat(' ', colWidth) : "")));
 
             IWithCt ZERO_EDGE = new ZeroEdge();
 
             foreach (var used in sortedNodes) {
-                INode used1 = used;
+                Item used1 = used;
                 WriteFormat1Line(output, NodeId(used, nodeFormat, node2Index), Limit(used.Name, labelWidth),
                     topNodes.Select( @using =>
                             FormatCt(withNotOkCt, ctFormat, node2Index[@using] > node2Index[used1],

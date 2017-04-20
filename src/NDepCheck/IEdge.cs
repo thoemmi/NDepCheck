@@ -12,9 +12,9 @@ namespace NDepCheck {
 
     public interface IEdge : IWithCt {
         [NotNull]
-        INode UsingNode { get; }
+        Item UsingNode { get; }
         [NotNull]
-        INode UsedNode { get; }
+        Item UsedNode { get; }
         [NotNull]
         string GetDotRepresentation(int? stringLengthForIllegalEdges);
 

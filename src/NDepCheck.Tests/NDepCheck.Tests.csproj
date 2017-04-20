@@ -89,7 +89,6 @@
     <Compile Include="TestModifyDeps.cs" />
     <Compile Include="TestTopologicalOrder.cs" />
     <Compile Include="TestUnhideCycles.cs" />
-    <Compile Include="TestNode.cs" />
     <Compile Include="TestPatternsAndItems.cs" />
     <Compile Include="TestWriteMatrixFile.cs" />
   </ItemGroup>

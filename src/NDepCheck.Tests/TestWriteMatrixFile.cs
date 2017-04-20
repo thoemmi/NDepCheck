@@ -9,7 +9,7 @@ namespace NDepCheck.Tests {
     public class TestWriteMatrixFile {
         [TestMethod]
         public void TestSimpleDAG() {
-            TestNode[] nodes;
+            Item[] nodes;
             TestEdge[] edges;
             SetupDAG(out nodes, out edges);
 
@@ -26,7 +26,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestSimpleDAGWithNotOkCounts() {
-            TestNode[] nodes;
+            Item[] nodes;
             TestEdge[] edges;
             SetupDAG(out nodes, out edges);
 
@@ -41,11 +41,11 @@ namespace NDepCheck.Tests {
             }
         }
 
-        private static void SetupDAG(out TestNode[] nodes, out TestEdge[] edges) {
+        private static void SetupDAG(out Item[] nodes, out TestEdge[] edges) {
             nodes = new[] {
-                new TestNode("n1", true, null),
-                new TestNode("n2", true, null),
-                new TestNode("n3", true, null)
+                Item.New(ItemType.SIMPLE, new[] {"n1"}),
+                Item.New(ItemType.SIMPLE, new[] {"n2"}),
+                Item.New(ItemType.SIMPLE, new[] {"n3"})
             };
             edges = new[] {
                 new TestEdge(nodes[2], nodes[1]),
@@ -59,9 +59,9 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestSimpleCycle() {
             var nodes = new[] {
-                new TestNode("n1", true, null),
-                new TestNode("n2", true, null),
-                new TestNode("n3", true, null)
+                Item.New(ItemType.SIMPLE, new[] {"n1"}),
+                Item.New(ItemType.SIMPLE, new[] {"n2"}),
+                Item.New(ItemType.SIMPLE, new[] {"n3"})
             };
             var edges = new[] {
                 new TestEdge(nodes[2], nodes[1], 55),
@@ -86,9 +86,9 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestCompleteGraph() {
             var nodes = new[] {
-                new TestNode("n1", true, null),
-                new TestNode("n2", true, null),
-                new TestNode("n3", true, null)
+                Item.New(ItemType.SIMPLE, new[] {"n1"}),
+                Item.New(ItemType.SIMPLE, new[] {"n2"}),
+                Item.New(ItemType.SIMPLE, new[] {"n3"})
             };
             int ct = 100;
             TestEdge[] edges = nodes.SelectMany(from => nodes.Select(to => new TestEdge(from, to, ++ct, ct / 2))).ToArray();

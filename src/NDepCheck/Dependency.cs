@@ -126,9 +126,9 @@ namespace NDepCheck {
             return $"{prefix}{nounTail} {UsingItem} --{ct}-> {UsedItem}" + (Source != null ? (Ct > 1 ? " (e.g. at " : " (at") + Source + ")" : "");
         }
 
-        public INode UsingNode => _usingItem;
-
-        public INode UsedNode => _usedItem;
+        public Item UsingNode => _usingItem;
+        
+        public Item UsedNode => _usedItem;
 
         public string GetDotRepresentation(int? stringLengthForIllegalEdges) {
             // TODO: ?? And there should be a flag (in Edge?) "hasNotOkInfo", depending on whether dependency checking was done or not.
@@ -220,8 +220,8 @@ namespace NDepCheck {
             _exampleInfo = _exampleInfo ?? d.ExampleInfo;
         }
 
-        private static INode GetOrCreateNode<T>(Dictionary<INode, INode> canonicalNodes, Dictionary<INode, List<T>> nodesAndEdges, INode node) where T : IEdge {
-            INode result;
+        private static Item GetOrCreateNode<T>(Dictionary<Item, Item> canonicalNodes, Dictionary<Item, List<T>> nodesAndEdges, Item node) where T : IEdge {
+            Item result;
             if (!canonicalNodes.TryGetValue(node, out result)) {
                 canonicalNodes.Add(node, result = node);
             }
@@ -231,16 +231,16 @@ namespace NDepCheck {
             return result;
         }
 
-        internal static IDictionary<INode, IEnumerable<T>> Edges2NodesAndEdges<T>(IEnumerable<T> edges) where T : class, IEdge {
-            Dictionary<INode, List<T>> result = Edges2NodesAndEdgesList(edges);
-            return result.ToDictionary<KeyValuePair<INode, List<T>>, INode, IEnumerable<T>>(kvp => kvp.Key, kvp => kvp.Value);
+        internal static IDictionary<Item, IEnumerable<T>> Edges2NodesAndEdges<T>(IEnumerable<T> edges) where T : class, IEdge {
+            Dictionary<Item, List<T>> result = Edges2NodesAndEdgesList(edges);
+            return result.ToDictionary<KeyValuePair<Item, List<T>>, Item, IEnumerable<T>>(kvp => kvp.Key, kvp => kvp.Value);
         }
 
-        internal static Dictionary<INode, List<T>> Edges2NodesAndEdgesList<T>(IEnumerable<T> edges) where T : IEdge {
-            var canonicalNodes = new Dictionary<INode, INode>();
-            var result = new Dictionary<INode, List<T>>();
+        internal static Dictionary<Item, List<T>> Edges2NodesAndEdgesList<T>(IEnumerable<T> edges) where T : IEdge {
+            var canonicalNodes = new Dictionary<Item, Item>();
+            var result = new Dictionary<Item, List<T>>();
             foreach (var e in edges) {
-                INode @using = GetOrCreateNode(canonicalNodes, result, e.UsingNode);
+                Item @using = GetOrCreateNode(canonicalNodes, result, e.UsingNode);
                 GetOrCreateNode(canonicalNodes, result, e.UsedNode);
 
                 result[@using].Add(e);

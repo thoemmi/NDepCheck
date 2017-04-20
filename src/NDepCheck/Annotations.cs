@@ -467,7 +467,7 @@ namespace JetBrains.Annotations {
     /// class Foo {
     ///   [ProvidesContext] IBarService _barService = ...;
     ///
-    ///   void ProcessNode(INode node) {
+    ///   void ProcessNode(Item node) {
     ///     DoSomething(node, node.GetGlobalServices().Bar);
     ///     //              ^ Warning: use value of '_barService' field
     ///   }

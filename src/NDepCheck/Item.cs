@@ -16,6 +16,9 @@ namespace NDepCheck {
         public readonly string[] Values;
 
         protected ItemSegment([NotNull] ItemType type, [NotNull] string[] values) : base(markers: null) {
+            if (type == null) {
+                throw new ArgumentNullException(nameof(type));
+            }
             _type = type;
             if (values.Length < type.Length) {
                 values = values.Concat(Enumerable.Range(0, type.Length - values.Length).Select(i => "")).ToArray();
@@ -81,7 +84,7 @@ namespace NDepCheck {
     /// <remarks>
     /// A token representing a complex name. 
     /// </remarks>
-    public sealed class Item : ItemSegment, INode {
+    public sealed class Item : ItemSegment {
         //private AdditionalDynamicData _additionalDynamicData;
 
         private string _asString;

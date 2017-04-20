@@ -90,13 +90,12 @@ namespace NDepCheck.Rendering {
 ";
     }
 
-    public abstract class GraphicsRenderer<TItem, TDependency> : GraphicsRenderer, IRenderer<TDependency>
-            where TItem : class, INode
+    public abstract class GraphicsRenderer<TDependency> : GraphicsRenderer, IRenderer<TDependency>
             where TDependency : class, IEdge {
         private class GraphicsRendererSolver : SimpleConstraintSolver {
-            private readonly GraphicsRenderer<TItem, TDependency> _renderer;
+            private readonly GraphicsRenderer<TDependency> _renderer;
 
-            public GraphicsRendererSolver(GraphicsRenderer<TItem, TDependency> renderer) : base(1.5e-5) {
+            public GraphicsRendererSolver(GraphicsRenderer<TDependency> renderer) : base(1.5e-5) {
                 _renderer = renderer;
             }
 
@@ -965,7 +964,7 @@ namespace NDepCheck.Rendering {
 
         protected abstract void PlaceObjects(IEnumerable<TDependency> dependencies);
 
-        public abstract void CreateSomeTestItems(out IEnumerable<TItem> items, out IEnumerable<TDependency> dependencies);
+        public abstract void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<TDependency> dependencies);
 
         public abstract string GetHelp(bool detailedHelp, string filter);
 
@@ -974,6 +973,6 @@ namespace NDepCheck.Rendering {
         }
     }
 
-    public abstract class GraphicsDependencyRenderer : GraphicsRenderer<Item, Dependency>, IDependencyRenderer {
+    public abstract class GraphicsDependencyRenderer : GraphicsRenderer<Dependency>, IDependencyRenderer {
     }
 }

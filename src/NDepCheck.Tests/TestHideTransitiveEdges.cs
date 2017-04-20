@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq.Expressions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace NDepCheck.Tests {
@@ -6,16 +7,16 @@ namespace NDepCheck.Tests {
     public class TestHideTransitiveEdges {
         private static readonly ItemType TEST = ItemType.New("TEST", new[] { "NAME" }, new[] { "" });
 
-        private void CreateEdge(Dictionary<string, TestNode> nodes, string from, string to) {
-            TestNode fromNode = GetOrCreate(nodes, "\"" + from + "\"");
-            TestNode toNode = GetOrCreate(nodes, "\"" + to + "\"");
-            fromNode.AddEdgeTo(toNode);
-        }
+        ////private void CreateEdge(Dictionary<string, Item> nodes, string from, string to) {
+        ////    Item fromNode = GetOrCreate(nodes, "\"" + from + "\"");
+        ////    Item toNode = GetOrCreate(nodes, "\"" + to + "\"");
+        ////    fromNode.AddEdgeTo(toNode);
+        ////}
 
-        private TestNode GetOrCreate(Dictionary<string, TestNode> nodes, string name) {
-            TestNode result;
+        private Item GetOrCreate(Dictionary<string, Item> nodes, string name) {
+            Item result;
             if (!nodes.TryGetValue(name, out result)) {
-                nodes.Add(name, result = new TestNode(name, isInner: true, type: TEST));
+                nodes.Add(name, result = Item.New(TEST, new[] {name} ));
             }
             return result;
         }

@@ -49,15 +49,15 @@ $@"  Write a textual matrix representation of dependencies.
             innerMatch = im;
         }
 
-        private static List<INode> MoreOrLessTopologicalSort(IEnumerable<IEdge> edges) {
-            Dictionary<INode, List<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdgesList(edges);
+        private static List<Item> MoreOrLessTopologicalSort(IEnumerable<IEdge> edges) {
+            Dictionary<Item, List<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdgesList(edges);
 
-            var result = new List<INode>();
-            var resultAsHashSet = new HashSet<INode>();
-            var candidates = new List<INode>(nodesAndEdges.Keys.OrderBy(n => n.Name));
+            var result = new List<Item>();
+            var resultAsHashSet = new HashSet<Item>();
+            var candidates = new List<Item>(nodesAndEdges.Keys.OrderBy(n => n.Name));
 
             while (candidates.Any()) {
-                //INode best =
+                //Item best =
                 //    // First try real sinks, i.e., nodes where the number of outgoing edges is 0
                 //    candidates.FirstOrDefault(n => WeightOfAllLeavingEdges(nodesAndEdges, n, e => true, e => 1) == 0)
                 //    // Then, try "not ok sinks", i.e., nodes where there are as many not-ok edges to nodes below.
@@ -66,7 +66,7 @@ $@"  Write a textual matrix representation of dependencies.
 
                 // Keine ausgehenden Kanten; und keine reinkommenden mit notOk-Ct von candidates
 
-                INode best = FindBest(candidates, true, nodesAndEdges) ?? FindBest(candidates, false, nodesAndEdges);
+                Item best = FindBest(candidates, true, nodesAndEdges) ?? FindBest(candidates, false, nodesAndEdges);
 
                 if (best == null) {
                     throw new Exception("Error in algorithm - no best candidate found");
@@ -83,10 +83,10 @@ $@"  Write a textual matrix representation of dependencies.
             return result;
         }
 
-        private static INode FindBest(List<INode> candidates, bool skipOutgoing, Dictionary<INode, List<IEdge>> nodesAndEdges) {
+        private static Item FindBest(List<Item> candidates, bool skipOutgoing, Dictionary<Item, List<IEdge>> nodesAndEdges) {
             var minimalIncomingNotOkWeight = int.MaxValue;
             var minimalLeavingWeight = int.MaxValue;
-            INode result = null;
+            Item result = null;
             foreach (var n in candidates) {
                 int leavingWeight = nodesAndEdges[n].Where(e => !e.UsedNode.Equals(n)).Sum(e => e.Ct);
 
@@ -116,7 +116,7 @@ $@"  Write a textual matrix representation of dependencies.
             return string.Join("", Enumerable.Repeat(c, lg));
         }
 
-        protected static string NodeId(INode n, string nodeFormat, Dictionary<INode, int> node2Index) {
+        protected static string NodeId(Item n, string nodeFormat, Dictionary<Item, int> node2Index) {
             return string.Format(nodeFormat, node2Index[n]);
         }
 
@@ -130,19 +130,19 @@ $@"  Write a textual matrix representation of dependencies.
 
         protected void Render(IEnumerable<IEdge> edges, ItemMatch innerMatchOrNull,
             [NotNull] TextWriter output, int? labelWidthOrNull, bool withNotOkCt) {
-            IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdges(edges);
+            IDictionary<Item, IEnumerable<IEdge>> nodesAndEdges = Dependency.Edges2NodesAndEdges(edges);
 
             var innerAndReachableOuterNodes =
-                new HashSet<INode>(nodesAndEdges.Where(n => ItemMatch.Matches(innerMatchOrNull, n.Key)).SelectMany(kvp => new[] { kvp.Key }.Concat(kvp.Value.Select(e => e.UsedNode))));
+                new HashSet<Item>(nodesAndEdges.Where(n => ItemMatch.Matches(innerMatchOrNull, n.Key)).SelectMany(kvp => new[] { kvp.Key }.Concat(kvp.Value.Select(e => e.UsedNode))));
 
-            IEnumerable<INode> sortedNodes = MoreOrLessTopologicalSort(edges).Where(n => innerAndReachableOuterNodes.Contains(n));
+            IEnumerable<Item> sortedNodes = MoreOrLessTopologicalSort(edges).Where(n => innerAndReachableOuterNodes.Contains(n));
 
             if (sortedNodes.Any()) {
 
                 int m = 0;
-                Dictionary<INode, int> node2Index = sortedNodes.ToDictionary(n => n, n => ++m);
+                Dictionary<Item, int> node2Index = sortedNodes.ToDictionary(n => n, n => ++m);
 
-                IEnumerable<INode> topNodes = sortedNodes.Where(n => ItemMatch.Matches(innerMatchOrNull, n));
+                IEnumerable<Item> topNodes = sortedNodes.Where(n => ItemMatch.Matches(innerMatchOrNull, n));
 
                 int labelWidth = labelWidthOrNull ?? Math.Max(Math.Min(sortedNodes.Max(n => n.Name.Length), 30), 4);
                 int colWidth = Math.Max(1 + ("" + edges.Max(e => e.Ct)).Length, // 1+ because of loop prefix
@@ -156,9 +156,9 @@ $@"  Write a textual matrix representation of dependencies.
             }
         }
 
-        protected abstract void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<INode> topNodes,
-            string nodeFormat, Dictionary<INode, int> node2Index, bool withNotOkCt, IEnumerable<INode> sortedNodes,
-            string ctFormat, IDictionary<INode, IEnumerable<IEdge>> nodesAndEdges);
+        protected abstract void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<Item> topNodes,
+            string nodeFormat, Dictionary<Item, int> node2Index, bool withNotOkCt, IEnumerable<Item> sortedNodes,
+            string ctFormat, IDictionary<Item, IEnumerable<IEdge>> nodesAndEdges);
 
         public abstract void Render(GlobalContext globalContext, IEnumerable<IEdge> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase);
 
