@@ -84,14 +84,12 @@ namespace NDepCheck {
     /// <remarks>
     /// A token representing a complex name. 
     /// </remarks>
-    public sealed class Item : ItemSegment {
-        //private AdditionalDynamicData _additionalDynamicData;
-
+    public class Item : ItemSegment {
         private string _asString;
         private string _asStringWithType;
         private string _order;
 
-        private Item([NotNull] ItemType type, string[] values)
+        protected Item([NotNull] ItemType type, string[] values)
             : base(type, values) {
             if (type.Length < values.Length) {
                 throw new ArgumentException($"ItemType '{type.Name}' is defined as '{type}' with {type.Length} fields, but item is created with {values.Length} fields '{string.Join(":", values)}'", nameof(values));

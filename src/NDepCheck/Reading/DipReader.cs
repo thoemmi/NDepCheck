@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 
@@ -9,6 +10,26 @@ namespace NDepCheck.Reading {
         private class DipReaderException : Exception {
             public DipReaderException(string msg)
                 : base(msg) {
+            }
+        }
+
+        private class ItemProxy : Item {
+            public ItemProxy([NotNull] ItemType type, string[] values) : base(type, values) {
+            }
+
+            public bool ProxyMatches([NotNull] Item item) {
+                if (!Type.Equals(item.Type)) {
+                    return false;
+                }
+                if (Values.Length != item.Values.Length) {
+                    return false;
+                }
+                for (int i = 0; i < Values.Length; i++) {
+                    if (Values[i] != "?" && Values[i] != item.Values[i]) {
+                        return false;
+                    }
+                }
+                return true;
             }
         }
 
@@ -22,6 +43,7 @@ namespace NDepCheck.Reading {
             Regex dipArrow = new Regex($@"\s*{Dependency.DIP_ARROW}\s*");
 
             var result = new List<Dependency>(10000);
+            bool thereAreProxies = false;
             using (var sr = new StreamReader(_fullFileName)) {
                 var itemsDictionary = new Dictionary<Item, Item>();
 
@@ -51,6 +73,9 @@ namespace NDepCheck.Reading {
                             Item foundUsingItem = GetOrCreateItem(parts[0].Trim(), itemsDictionary);
                             Item foundUsedItem = GetOrCreateItem(parts[2].Trim(), itemsDictionary);
 
+                            bool pointsToProxy = foundUsingItem is ItemProxy || foundUsedItem is ItemProxy;
+                            thereAreProxies |= pointsToProxy;
+
                             string[] properties = parts[1].Split(new[] { ';' }, 6);
                             int ct, questionableCt, badCt;
                             string dependencyMarkers = Get(properties, 0);
@@ -78,7 +103,7 @@ namespace NDepCheck.Reading {
                                 string.IsNullOrWhiteSpace(source[0])
                                     ? new TextFileSource(_fullFileName, lineNo)
                                     : new TextFileSource(source[0], sourceLine < 0 ? null : (int?)sourceLine),
-                                dependencyMarkers, ct, questionableCt, badCt, exampleInfo, inputContext);
+                                dependencyMarkers, ct, questionableCt, badCt, exampleInfo, pointsToProxy ? null : inputContext);
 
                             result.Add(dependency);
                         } catch (DipReaderException ex) {
@@ -86,9 +111,30 @@ namespace NDepCheck.Reading {
                         }
                     }
                 }
+
                 Log.WriteInfo($"... read {result.Count} dependencies from {_fullFileName}");
-                return result;
+                if (thereAreProxies) {
+                    var proxies = new HashSet<ItemProxy>(itemsDictionary.Keys.OfType<ItemProxy>());
+                    Item[] items = itemsDictionary.Keys.Where(i => !(i is ItemProxy)).ToArray();
+                    foreach (var item in items) {
+                        foreach (var matchingProxy in proxies.Where(p => p.ProxyMatches(item)).ToArray()) {
+                            itemsDictionary[matchingProxy] = item;
+                            proxies.Remove(matchingProxy);
+                        }
+                    }
+
+                    return result.Select(d => ResolveItemProxies(d, itemsDictionary, inputContext)).ToArray();
+                } else {
+                    return result;
+                }
             }
+        }
+
+        private Dependency ResolveItemProxies(Dependency d, Dictionary<Item, Item> itemsDictionary, InputContext inputContext) {
+            return d.UsingItem is ItemProxy || d.UsedItem is ItemProxy
+                ? new Dependency(itemsDictionary[d.UsingItem], itemsDictionary[d.UsedItem],
+                    d.Source, d.Markers, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo, inputContext)
+                : d;
         }
 
         [NotNull]
@@ -118,7 +164,8 @@ namespace NDepCheck.Reading {
                 throw new DipReaderException("ItemType '" + typeName + "' has not been defined in this file previously");
             } else {
                 string[] values = prefixAndValues.Length > 1 ? prefixAndValues[1].Split(':', ';') : new string[0];
-                Item result = Item.New(foundType, values);
+
+                var result = values.Contains("?") ? new ItemProxy(foundType, values) : Item.New(foundType, values);
                 return prefix.Length > 1 ? result.SetOrder(prefix[1]) : result;
             }
         }

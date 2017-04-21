@@ -31,7 +31,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void GeneralSucceedingTest() {
-            using (var ruleFile = new FileProvider(CreateTempDotNetDepFileName())) {
+            using (var ruleFile = new TempFileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(ruleFile.Filename, false, Encoding.Default)) {
                     tw.Write(@"
 // Test dependencies for NDepCheck
@@ -216,7 +216,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void ExitOk() {
-            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+            using (var d = new TempFileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
                     $ DOTNETCALL ---> DOTNETCALL
@@ -235,7 +235,7 @@ NDepCheck:Tests ---> **
             }
         }
 
-        private static string[] CreateCheckDepsArgs(FileProvider d) {
+        private static string[] CreateCheckDepsArgs(TempFileProvider d) {
             return new[] {
                 Program.ConfigureOption.Opt, typeof(CheckDeps).Name, "{",
                 CheckDeps.DefaultRuleFileOption + "=" + d.Filename, "}", TestAssemblyPath
@@ -248,7 +248,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void ExitOkAspects() {
-            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+            using (var d = new TempFileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
                     $ DOTNETCALL ---> DOTNETCALL
@@ -274,7 +274,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void NestedMacroTest1() {
-            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+            using (var d = new TempFileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
                     $ DOTNETCALL ---> DOTNETCALL
@@ -307,7 +307,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void ExitDependenciesNotOk() {
-            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+            using (var d = new TempFileProvider(CreateTempDotNetDepFileName())) {
                 // The rules are not enough for the test assembly - we expect return result 3
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
@@ -323,7 +323,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void ExitNoRuleGroupsFoundForEmptyDepFile() {
-            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+            using (var d = new TempFileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write("");
                 }
@@ -335,7 +335,7 @@ NDepCheck:Tests ---> **
         [TestMethod]
         public void ExitDependenciesNotOkAspects() {
 
-            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+            using (var d = new TempFileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
 
@@ -360,7 +360,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void ExitFileNotFound() {
-            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+            using (var d = new TempFileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
 
@@ -374,7 +374,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void ExitException() {
-            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+            using (var d = new TempFileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
 
@@ -391,7 +391,7 @@ NDepCheck:Tests ---> **
                 }
                 Assert.AreEqual(Program.EXCEPTION_RESULT, Program.Main(CreateCheckDepsArgs(d)));
             }
-            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+            using (var d = new TempFileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
 
@@ -404,35 +404,9 @@ NDepCheck:Tests ---> **
             }
         }
 
-        public class FileProvider : IDisposable {
-            private bool _doDelete = true;
-            public string Filename { get; }
-
-            public FileProvider Keep {
-                get {
-                    _doDelete = false;
-                    return this;
-                }
-            }
-
-            public FileProvider(string fileName) {
-                Filename = fileName;
-            }
-
-            public override string ToString() {
-                return Filename;
-            }
-
-            public void Dispose() {
-                if (_doDelete) {
-                    File.Delete(Filename);
-                }
-            }
-        }
-
         [TestMethod]
         public void TestWritePluginption() {
-            using (var d = new FileProvider(CreateTempDotNetDepFileName())) {
+            using (var d = new TempFileProvider(CreateTempDotNetDepFileName())) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
                     $ DOTNETCALL ---> DOTNETCALL
@@ -453,7 +427,7 @@ NDepCheck:Tests ---> **
                 ");
                 }
 
-                using (var e = new FileProvider(Path.GetTempFileName() + ".gif")) {
+                using (var e = new TempFileProvider(Path.GetTempFileName() + ".gif")) {
                     // typeof(FullName) forces copying to known directory ...
                     Assert.AreEqual(0,
                         Program.Main(
@@ -469,7 +443,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TestWriteTestDataOption() {
-            using (var d = new FileProvider(Path.GetTempFileName() + ".gif")) {
+            using (var d = new TempFileProvider(Path.GetTempFileName() + ".gif")) {
                 // The usage typeof(...).FullName forces copying of assembly to bin directory.
                 Assert.AreEqual(0,
                     Program.Main(new[] {
@@ -481,7 +455,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TestWriteTestDataOptionWithModulesAndInterfacesRenderer() {
-            using (var d = new FileProvider(Path.GetTempFileName() + ".gif")) {
+            using (var d = new TempFileProvider(Path.GetTempFileName() + ".gif")) {
                 Assert.AreEqual(0,
                     Program.Main(new[] {
                         TestAssemblyPath, Program.WriteTestDataOption.Opt, ".",
@@ -604,11 +578,11 @@ NDepCheck:Tests ---> **
             string resultTxt = Path.GetFullPath("result.txt");
             Console.WriteLine($"Writing to {resultTxt}");
 
-            using (var m = new FileProvider(mainScript)) {
-                using (var s1 = new FileProvider(script1)) {
-                    using (var s1a = new FileProvider(script1a)) {
-                        using (var s2 = new FileProvider(script2)) {
-                            using (var result = new FileProvider(resultTxt)) {
+            using (var m = new TempFileProvider(mainScript)) {
+                using (var s1 = new TempFileProvider(script1)) {
+                    using (var s1a = new TempFileProvider(script1a)) {
+                        using (var s2 = new TempFileProvider(script2)) {
+                            using (var result = new TempFileProvider(resultTxt)) {
                                 using (var tw = new StreamWriter(m.Filename)) {
                                     tw.WriteLine($"-dc cmd.exe 2 {{ /c echo START > {result} }} " +
                                                  "-dd VALUE1 value1 " + 
