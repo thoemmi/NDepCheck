@@ -149,7 +149,7 @@ namespace NDepCheck.Rendering {
         }
 
         public override void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
-            ItemType ar = ItemType.New("AR:Assembly:Ref");
+            ItemType ar = ItemType.New("AR(Assembly:Ref)");
 
             var wlg = Item.New(ar, "WLG:1".Split(':'));
             var kst = Item.New(ar, "KST:2".Split(':'));

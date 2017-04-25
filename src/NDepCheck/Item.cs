@@ -14,8 +14,10 @@ namespace NDepCheck {
         private readonly ItemType _type;
         [NotNull]
         public readonly string[] Values;
+        [NotNull]
+        public readonly string[] CasedValues;
 
-        protected ItemSegment([NotNull] ItemType type, [NotNull] string[] values) : base(markers: null) {
+        protected ItemSegment([NotNull] ItemType type, [NotNull] string[] values) : base(type.IgnoreCase, markers: null) {
             if (type == null) {
                 throw new ArgumentNullException(nameof(type));
             }
@@ -24,6 +26,7 @@ namespace NDepCheck {
                 values = values.Concat(Enumerable.Range(0, type.Length - values.Length).Select(i => "")).ToArray();
             }
             Values = values.Select(v => v == null ? null : string.Intern(v)).ToArray();
+            CasedValues = type.IgnoreCase ? values.Select(v => v.ToUpperInvariant()).ToArray() : Values;
         }
 
         public ItemType Type => _type;
@@ -39,8 +42,8 @@ namespace NDepCheck {
                 if (Values.Length != other.Values.Length) {
                     return false;
                 }
-                for (int i = 0; i < Values.Length; i++) {
-                    if (Values[i] != other.Values[i]) {
+                for (int i = 0; i < CasedValues.Length; i++) {
+                    if (CasedValues[i] != other.CasedValues[i]) {
                         return false;
                     }
                 }
@@ -52,7 +55,7 @@ namespace NDepCheck {
         protected int SegmentHashCode() {
             int h = _type.GetHashCode();
 
-            foreach (var t in Values) {
+            foreach (var t in CasedValues) {
                 h ^= (t ?? "").GetHashCode();
             }
             return h;

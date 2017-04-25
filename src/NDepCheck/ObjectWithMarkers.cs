@@ -9,18 +9,25 @@ using NDepCheck.Transforming.Projecting;
 
 namespace NDepCheck {
     public abstract class ObjectWithMarkers {
+        private readonly bool _ignoreCase;
+        [CanBeNull]
         private HashSet<string> _markersOrNull;
 
-        protected ObjectWithMarkers([CanBeNull] IEnumerable<string> markers) {
+        protected ObjectWithMarkers(bool ignoreCase, [CanBeNull] IEnumerable<string> markers) {
+            _ignoreCase = ignoreCase;
             IEnumerable<string> cleanMarkers = (markers ?? Enumerable.Empty<string>()).Select(s => s.Trim()).Where(s => s != "");
-            _markersOrNull = cleanMarkers.Any() ? new HashSet<string>(cleanMarkers) : null;
+            _markersOrNull = cleanMarkers.Any() ? CreateHashSet(cleanMarkers) : null;
+        }
+
+        private HashSet<string> CreateHashSet(IEnumerable<string> cleanMarkers) {
+            return new HashSet<string>(cleanMarkers, GetComparer());
         }
 
         public IEnumerable<string> Markers => _markersOrNull ?? Enumerable.Empty<string>();
 
         internal void UnionWithMarkers(IEnumerable<string> markers) {
             if (_markersOrNull == null) {
-                _markersOrNull = new HashSet<string>(markers);
+                _markersOrNull = CreateHashSet(markers);
             } else {
                 _markersOrNull.UnionWith(markers);
             }
@@ -28,7 +35,7 @@ namespace NDepCheck {
 
         public void AddMarker(string marker) {
             if (_markersOrNull == null) {
-                _markersOrNull = new HashSet<string> { marker };
+                _markersOrNull = CreateHashSet(new[] { marker });
             } else {
                 _markersOrNull.Add(marker);
             }
@@ -57,6 +64,14 @@ namespace NDepCheck {
 
         public static StringComparer GetComparer(bool ignoreCase) {
             return ignoreCase ? StringComparer.InvariantCultureIgnoreCase : StringComparer.InvariantCulture;
+        }
+
+        protected StringComparison GetComparison() {
+            return _ignoreCase ? StringComparison.InvariantCultureIgnoreCase : StringComparison.InvariantCulture;
+        }
+
+        protected StringComparer GetComparer() {
+            return _ignoreCase ? StringComparer.InvariantCultureIgnoreCase : StringComparer.InvariantCulture;
         }
 
         public static IEnumerable<string> ConcatOrUnionWithMarkers(IEnumerable<string> left, IEnumerable<string> right, bool ignoreCase) {

@@ -133,7 +133,7 @@ Examples:
                     return int.MaxValue;
                 }));
 
-            
+
             if (orderedProjections == null || !orderedProjections.AllProjections.Any()) {
                 Log.WriteWarning("No projections defined");
                 _projector = new SimpleProjector(new Projection[0], "empty");
@@ -144,8 +144,8 @@ Examples:
             }
         }
 
-        protected override ProjectionSet CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName, 
-            int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration, 
+        protected override ProjectionSet CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
+            int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
             Dictionary<string, string> configValueCollector) {
 
             ItemType sourceItemType = null;
@@ -164,8 +164,8 @@ Examples:
                         if (i < 0) {
                             return $"{line}: $-line must contain " + MAP;
                         }
-                        sourceItemType = GlobalContext.GetItemType(typeLine.Substring(0, i).Trim());
-                        targetItemType = GlobalContext.GetItemType(typeLine.Substring(i + MAP.Length).Trim());
+                        sourceItemType = globalContext.GetItemType(typeLine.Substring(0, i).Trim());
+                        targetItemType = globalContext.GetItemType(typeLine.Substring(i + MAP.Length).Trim());
                         return null;
                     } else {
                         bool left = line.StartsWith(ABSTRACT_IT_LEFT);
@@ -239,7 +239,7 @@ Examples:
             if (fullDipName != null) {
                 // Back projection
                 if (_dependenciesForBackProjection == null) {
-                    InputContext localContext = new DipReader(fullDipName).ReadDependencies(0);
+                    InputContext localContext = new DipReader(fullDipName).ReadDependencies(0, globalContext.IgnoreCase);
                     if (localContext == null) {
                         throw new Exception("Internal Error: new DipReader() will always create new InputContext - cannot be null");
                     }
@@ -317,11 +317,10 @@ Examples:
         }
 
         public override IEnumerable<Dependency> GetTestDependencies() {
-            ItemType abc = ItemType.New("AB:A:B");
+            ItemType abc = ItemType.New("AB+(A:B)");
             Item a1 = Item.New(abc, "a", "1");
             Item a2 = Item.New(abc, "a", "2");
             Item b = Item.New(abc, "b", "");
-
 
             return new[] {
                 FromTo(a1, a1), FromTo(a1, a2), FromTo(a2, a1), FromTo(a2, a2), FromTo(a1, b)

@@ -24,7 +24,7 @@ namespace NDepCheck.Tests {
                 }
 
                 InputContext inputContext =
-                    new DipReaderFactory().CreateReader(inFile, new GlobalContext(), false).ReadDependencies(0);
+                    new DipReaderFactory().CreateReader(inFile, new GlobalContext(), false).ReadDependencies(0, ignoreCase: false);
                 Assert.IsNotNull(inputContext);
                 IEnumerable<Dependency> deps = inputContext.Dependencies;
                 Item[] items = deps.SelectMany(d => new[] { d.UsingItem, d.UsedItem }).Distinct().ToArray();

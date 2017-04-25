@@ -20,7 +20,9 @@ namespace NDepCheck {
         private readonly Item _usedItem;
 
         [CanBeNull]
-        public InputContext InputContext { get; }
+        public InputContext InputContext {
+            get;
+        }
 
         private int _ct;
         private int _questionableCt;
@@ -32,7 +34,8 @@ namespace NDepCheck {
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem, [CanBeNull] ISourceLocation source,
             [NotNull] string markers, int ct, int questionableCt = 0, int badCt = 0,
             [CanBeNull] string exampleInfo = null, [CanBeNull] InputContext inputContext = null) : this(
-                usingItem, usedItem, source, markers: markers.Split('&', '+', ','), ct: ct, questionableCt: questionableCt, badCt: badCt, exampleInfo: exampleInfo, inputContext: inputContext) { }
+                usingItem, usedItem, source, markers: markers.Split('&', '+', ','), ct: ct, questionableCt: questionableCt, badCt: badCt, exampleInfo: exampleInfo, inputContext: inputContext) {
+        }
 
         /// <summary>
         /// Create a dependency.
@@ -46,10 +49,12 @@ namespace NDepCheck {
         /// <param name="badCt"></param>
         /// <param name="exampleInfo"></param>
         /// <param name="inputContext"></param>
+        /// <param name="ignoreCase"></param>
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem,
             [CanBeNull] ISourceLocation source, [CanBeNull] IEnumerable<string> markers,
             int ct, int questionableCt = 0, int badCt = 0, [CanBeNull] string exampleInfo = null,
-            [CanBeNull] InputContext inputContext = null) : base(markers) {
+            [CanBeNull] InputContext inputContext = null, bool? ignoreCase = null) : base(
+                ignoreCase ?? usingItem.Type.IgnoreCase | usedItem.Type.IgnoreCase, markers) {
             if (usingItem == null) {
                 throw new ArgumentNullException(nameof(usingItem));
             }
@@ -129,7 +134,7 @@ namespace NDepCheck {
         }
 
         public Item UsingNode => _usingItem;
-        
+
         public Item UsedNode => _usedItem;
 
         public string GetDotRepresentation(int? stringLengthForIllegalEdges) {

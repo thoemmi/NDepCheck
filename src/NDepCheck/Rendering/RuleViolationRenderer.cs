@@ -83,7 +83,7 @@ namespace NDepCheck.Rendering {
         }
 
         public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
-            ItemType simple = ItemType.New("Simple:Name");
+            ItemType simple = ItemType.New("SIMPLE(Name)");
             Item root = Item.New(simple, "root");
             Item ok = Item.New(simple, "ok");
             Item questionable = Item.New(simple, "questionable");

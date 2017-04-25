@@ -9,7 +9,7 @@ namespace NDepCheck.Reading {
             : base(factory, fileName, globalContext) {
         }
 
-        protected override IEnumerable<Dependency> ReadDependencies(InputContext inputContext, int depth) {
+        protected override IEnumerable<Dependency> ReadDependencies(InputContext inputContext, int depth, bool ignoreCase) {
             throw new NotImplementedException(); // TODO: gehört da eigentlich raus!
         }
 
@@ -66,7 +66,7 @@ namespace NDepCheck.Reading {
         private IEnumerable<RawUsingItem> AnalyzeProperty(PropertyDefinition property, ItemTail typeCustomSections) {
             ItemTail propertyCustomSections = GetCustomSections(property.CustomAttributes, typeCustomSections);
 
-            yield return GetFullnameItem(property.DeclaringType, property.Name,"get", propertyCustomSections);
+            yield return GetFullnameItem(property.DeclaringType, property.Name, "get", propertyCustomSections);
             yield return GetFullnameItem(property.DeclaringType, property.Name, "set", propertyCustomSections);
         }
 

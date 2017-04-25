@@ -32,17 +32,18 @@ namespace NDepCheck.Reading {
         public string FullFileName => _fullFileName;
 
         [NotNull]
-        protected abstract IEnumerable<Dependency> ReadDependencies([CanBeNull] InputContext inputContext, int depth);
+        protected abstract IEnumerable<Dependency> ReadDependencies([CanBeNull] InputContext inputContext, int depth, bool ignoreCase);
 
         /// <summary>
         /// Read dependencies from file
         /// </summary>
         /// <param name="depth"></param>
+        /// <param name="ignoreCase"></param>
         /// <returns><c>null</c> if already read in</returns>
         [CanBeNull]
-        public InputContext ReadDependencies(int depth) {
+        public InputContext ReadDependencies(int depth, bool ignoreCase) {
             var inputContext = new InputContext(FullFileName);
-            Dependency[] dependencies = ReadDependencies(inputContext, depth).ToArray();
+            Dependency[] dependencies = ReadDependencies(inputContext, depth, ignoreCase).ToArray();
             if (!dependencies.Any()) {
                 Log.WriteWarning("No dependencies found in " + FullFileName);
             }

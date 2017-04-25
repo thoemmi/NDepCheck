@@ -76,7 +76,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         }
 
         protected override DependencyRuleSet CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
-            int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration, 
+            int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
             Dictionary<string, string> configValueCollector) {
 
             ItemType usingItemType = null;
@@ -106,9 +106,9 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                                 throw new ApplicationException($"$-line '{line}' must contain " + MAY_USE);
                             }
                             usingItemType =
-                                GlobalContext.GetItemType(typeLine.Substring(0, i).Trim());
+                                globalContext.GetItemType(typeLine.Substring(0, i).Trim());
                             usedItemType =
-                                GlobalContext.GetItemType(typeLine.Substring(i + MAY_USE.Length).Trim());
+                                globalContext.GetItemType(typeLine.Substring(i + MAY_USE.Length).Trim());
                             if (mainRuleGroup == null) {
                                 currentGroup = mainRuleGroup = new DependencyRuleGroup(usingItemType, "", ignoreCase);
                                 ruleGroups.Add(currentGroup);
@@ -170,7 +170,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 // Transformation only done if there are any dependencies. This is especially useful for the
                 // typical case that there are no inputcontext-less dependencies; and no default set is specified
                 // (which would emit an error message "no dep file for input "" found" or the like).
-                Option.Parse(globalContext, transformOptions, 
+                Option.Parse(globalContext, transformOptions,
                     ShowUnusedQuestionableRulesOption.Action((args, j) => {
                         _showUnusedQuestionableRules = true;
                         return j;

@@ -11,7 +11,7 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestSimpleDependencyRuleMatches() {
             DependencyRuleRepresentation rep = new DependencyRuleRepresentation("FILE", 0, "...", false);
-            ItemType itemType = ItemType.New("NC", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" });
+            ItemType itemType = ItemType.New("NC", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" }, ignoreCase: false);
 
             var r1 = new DependencyRule(itemType, ":", itemType, ":", rep, IGNORECASE);
 
@@ -56,7 +56,7 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestBackReferenceDependencyRuleMatches() {
             DependencyRuleRepresentation rep = new DependencyRuleRepresentation("FILE", 0, "...", false);
-            ItemType itemtype = ItemType.New("SO", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" });
+            ItemType itemtype = ItemType.New("SO", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" }, ignoreCase: false);
             var rn1 = new DependencyRule(itemtype, "(s)*", itemtype, @"\1*", rep, IGNORECASE);
             var rn2 = new DependencyRule(itemtype, "(s)*:(t)*", itemtype, @"\1*:\2*", rep, IGNORECASE);
             var rn3 = new DependencyRule(itemtype, "(s)**:(t)**", itemtype, @"\1*:\2*", rep, IGNORECASE);
@@ -74,7 +74,7 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestBackReferenceDependencyRuleMatchesWithOuterParentheses() {
             DependencyRuleRepresentation rep = new DependencyRuleRepresentation("FILE", 0, "...", false);
-            ItemType itemtype = ItemType.New("SO", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" });
+            ItemType itemtype = ItemType.New("SO", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" }, ignoreCase: false);
             var rn3 = new DependencyRule(itemtype, "(s**):(t**)", itemtype, @"\1*:\2*", rep, IGNORECASE);
             var rn5 = new DependencyRule(itemtype, "(**s**):(**t**)", itemtype, @"\1:\2", rep, IGNORECASE);
 
@@ -86,7 +86,7 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestMoreBackReferenceDependencyRuleMatches() {
             DependencyRuleRepresentation rep = new DependencyRuleRepresentation("FILE", 0, "...", false);
-            ItemType itemType = ItemType.New("SO", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" });
+            ItemType itemType = ItemType.New("SO", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" }, ignoreCase: false);
             var rn1 = new DependencyRule(itemType, "(s)*", itemType, @"\1*", rep, IGNORECASE);
             var rn2 = new DependencyRule(itemType, "(s*)", itemType, @"\1", rep, IGNORECASE);
             var rn3 = new DependencyRule(itemType, "s(*)", itemType, @"s\1", rep, IGNORECASE);
@@ -106,8 +106,8 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestSimpleGraphAbstractionMatches() {
-            ItemType testType = ItemType.New("NC", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" });
-            ItemType simpleType = ItemType.New("N", new[] { "NAME", }, new[] { "" });
+            ItemType testType = ItemType.New("NC", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" }, ignoreCase: false);
+            ItemType simpleType = ItemType.New("N", new[] { "NAME", }, new[] { "" }, ignoreCase: false);
             var g1 = new Projection(testType, simpleType, "**():", null, IGNORECASE, true, true);
 
             var gn1 = new Projection(testType, simpleType, "(n)*", null, IGNORECASE, true, true);
@@ -179,8 +179,8 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestRegexGraphAbstractionMatches() {
-            ItemType testType = ItemType.New("NC", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" });
-            ItemType simpleType = ItemType.New("N", new[] { "NAME" }, new[] { "" });
+            ItemType testType = ItemType.New("NC", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" }, ignoreCase: false);
+            ItemType simpleType = ItemType.New("N", new[] { "NAME" }, new[] { "" }, ignoreCase: false);
             var g1 = new Projection(testType, simpleType, "^.*()$:", null, IGNORECASE, true, true);
 
             // ReSharper disable InconsistentNaming
@@ -286,8 +286,8 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestAsterisks() {
-            ItemType testType = ItemType.New("T", new[] { "NAME", }, new[] { "" });
-            ItemType simpleType = ItemType.New("N", new[] { "NAME", }, new[] { "" });
+            ItemType testType = ItemType.New("T", new[] { "NAME", }, new[] { "" }, ignoreCase: false);
+            ItemType simpleType = ItemType.New("N", new[] { "NAME", }, new[] { "" }, ignoreCase: false);
             var g1 = new Projection(testType, simpleType, "(**)", null, IGNORECASE, true, true);
 
             Assert.AreEqual("n1", g1.Match(Item.New(testType, "n1"), true).Name);
@@ -298,8 +298,8 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestProblemWithTests() {
-            ItemType testType = ItemType.New("A", new[] { "ASSEMBLY", }, new[] { "NAME" });
-            ItemType simpleType = ItemType.New("N", new[] { "NAME", }, new[] { "" });
+            ItemType testType = ItemType.New("A", new[] { "ASSEMBLY", }, new[] { "NAME" }, ignoreCase: false);
+            ItemType simpleType = ItemType.New("N", new[] { "NAME", }, new[] { "" }, ignoreCase: false);
             var g1 = new Projection(testType, simpleType, "**Tests**", null, IGNORECASE, true, true);
             var g2 = new Projection(testType, simpleType, "**Tests**()", null, IGNORECASE, true, true);
 

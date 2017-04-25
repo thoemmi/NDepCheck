@@ -223,7 +223,7 @@ namespace NDepCheck.Rendering {
         }
 
         public override void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
-            ItemType amo = ItemType.New("AMO:Assembly:Module:Order");
+            ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
 
             var bac = Item.New(amo, "BAC:BAC:0100".Split(':'));
             var kst = Item.New(amo, "KST:KST:0200".Split(':'));

@@ -55,7 +55,7 @@ namespace NDepCheck.Transforming {
                 _itemType = itemTypeHintOrNull;
             } else {
                 // No type found form pattern, no itemTypeHint - we guess a generic type.
-                _itemType = ItemType.Generic(parts.Count());
+                _itemType = ItemType.Generic(parts.Count(), ignoreCase);
             }
 
             var result = new List<IMatcher>();
@@ -334,8 +334,8 @@ namespace NDepCheck.Transforming {
     internal sealed class ContainsMatcher : AbstractRememberingDelegateMatcher {
         public ContainsMatcher(string segment, bool ignoreCase, int maxSize = 1000)
             : base(segment.TakeWhile(c => c == '(').Count(),
-                  segment.TrimStart('(').TrimEnd(')').Trim('*').Trim('.'), 
-                  (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) >= 0, 
+                  segment.TrimStart('(').TrimEnd(')').Trim('*').Trim('.'),
+                  (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) >= 0,
                   ignoreCase, maxSize) {
         }
 
@@ -356,7 +356,7 @@ namespace NDepCheck.Transforming {
         public EqualsMatcher(string segment, bool ignoreCase, int maxSize = 1000)
             : base(segment.TakeWhile(c => c == '(').Count(),
                   segment.TrimStart('(').TrimEnd(')'),
-                  (value, seg) => string.Compare(value, seg, ignoreCase) == 0, 
+                  (value, seg) => string.Compare(value, seg, ignoreCase) == 0,
                   ignoreCase, maxSize) {
         }
 
@@ -376,8 +376,8 @@ namespace NDepCheck.Transforming {
     internal sealed class StartsWithMatcher : AbstractRememberingDelegateMatcher {
         public StartsWithMatcher(string segment, bool ignoreCase, int maxSize = 1000)
             : base(segment.TakeWhile(c => c == '(').Count(),
-                  segment.TrimStart('(').TrimEnd(')').TrimEnd('*').TrimEnd('.'), 
-                  (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) == 0, 
+                  segment.TrimStart('(').TrimEnd(')').TrimEnd('*').TrimEnd('.'),
+                  (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) == 0,
                   ignoreCase, maxSize) {
         }
 
@@ -397,8 +397,8 @@ namespace NDepCheck.Transforming {
     internal sealed class EndsWithMatcher : AbstractRememberingDelegateMatcher {
         public EndsWithMatcher(string segment, bool ignoreCase, int maxSize = 1000)
             : base(segment.TakeWhile(c => c == '(').Count(),
-                  segment.TrimStart('(').TrimEnd(')').TrimStart('*').TrimStart('.'), 
-                  (value, seg) => value.LastIndexOf(seg, GetComparisonType(ignoreCase)) >= value.Length - segment.Length, 
+                  segment.TrimStart('(').TrimEnd(')').TrimStart('*').TrimStart('.'),
+                  (value, seg) => value.LastIndexOf(seg, GetComparisonType(ignoreCase)) >= value.Length - segment.Length,
                   ignoreCase, maxSize) {
         }
 

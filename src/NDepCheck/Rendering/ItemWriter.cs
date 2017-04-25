@@ -15,10 +15,10 @@ namespace NDepCheck.Rendering {
 
         private static int Write(IEnumerable<Dependency> dependencies, TextWriter sw, ItemMatch itemMatch, bool ignoreCase) {
             var items = new HashSet<Item>(
-                dependencies.SelectMany(d => new [] { d.UsingItem, d.UsedItem}).Where(i => ItemMatch.Matches(itemMatch, i))
+                dependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }).Where(i => ItemMatch.Matches(itemMatch, i))
                 );
             List<Item> itemsAsList = items.ToList();
-            itemsAsList.Sort((i1,i2) => string.Compare(i1.AsStringWithOrderAndType(), i2.AsStringWithOrderAndType(), 
+            itemsAsList.Sort((i1, i2) => string.Compare(i1.AsStringWithOrderAndType(), i2.AsStringWithOrderAndType(),
                 ignoreCase ? StringComparison.InvariantCultureIgnoreCase : StringComparison.InvariantCulture));
 
             sw.WriteLine($"// Written {DateTime.Now} by {typeof(ItemWriter).Name} in NDepCheck {Program.VERSION}");
@@ -42,15 +42,15 @@ namespace NDepCheck.Rendering {
 
         public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount,
                            string argsAsString, string baseFileName, bool ignoreCase) {
-            ItemMatch itemMatch= null;
+            ItemMatch itemMatch = null;
             Option.Parse(globalContext, argsAsString,
                 MatchOption.Action((args, j) => {
                     itemMatch = ItemMatch.CreateItemMatchWithGenericType(Option.ExtractRequiredOptionValue(args, ref j, "Missing item match"), globalContext.IgnoreCase);
                     return j;
                 }));
-            using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(globalContext, argsAsString, baseFileName))) { 
+            using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(globalContext, argsAsString, baseFileName))) {
                 int n = Write(dependencies, sw.Writer, itemMatch, globalContext.IgnoreCase);
-                    Log.WriteInfo($"... written {n} items");
+                Log.WriteInfo($"... written {n} items");
             }
         }
 
@@ -61,7 +61,7 @@ namespace NDepCheck.Rendering {
         }
 
         public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
-            ItemType amo = ItemType.New("AMO:Assembly:Module:Order");
+            ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
 
             var bac = Item.New(amo, "BAC:BAC:0100".Split(':'));
             var kst = Item.New(amo, "KST:KST:0200".Split(':'));

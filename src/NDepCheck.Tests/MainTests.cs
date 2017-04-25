@@ -172,8 +172,8 @@ NDepCheck:Tests ---> **
         ////    }
         ////}
 
-        private static readonly ItemType ITEMTYPE = ItemType.New("TEST", new[] {"AS", "NS", "CL"},
-            new string[] {null, null, null});
+        private static readonly ItemType ITEMTYPE = ItemType.New("TEST", new[] { "AS", "NS", "CL" },
+            new string[] { null, null, null }, ignoreCase: false);
 
         private Dependency NewDependency(string usingA, string usingN, string usingC, string usedA, string usedN,
             string usedC) {
@@ -353,7 +353,7 @@ NDepCheck:Tests ---> **
                 }
 
                 Assert.AreEqual(Program.DEPENDENCIES_NOT_OK,
-                    Program.Main(new[] {Program.LogChattyOption.Opt}.Concat(CreateCheckDepsArgs(d)).ToArray()));
+                    Program.Main(new[] { Program.LogChattyOption.Opt }.Concat(CreateCheckDepsArgs(d)).ToArray()));
             }
 
         }
@@ -368,7 +368,7 @@ NDepCheck:Tests ---> **
                 ");
                 }
                 Assert.AreEqual(Program.FILE_NOT_FOUND_RESULT,
-                    Program.Main(CreateCheckDepsArgs(d).Concat(new[] {"nonexistingfile.dll"}).ToArray()));
+                    Program.Main(CreateCheckDepsArgs(d).Concat(new[] { "nonexistingfile.dll" }).ToArray()));
             }
         }
 
@@ -468,7 +468,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TestExtendedROptionHelp() {
-            Assert.AreEqual(1, Program.Main(new[] {Program.WriteHelpOption.Opt}));
+            Assert.AreEqual(1, Program.Main(new[] { Program.WriteHelpOption.Opt }));
         }
 
         [TestMethod]
@@ -499,7 +499,7 @@ NDepCheck:Tests ---> **
                     {Program.WriteDipOption} {outFile}");
             }
 
-            Assert.AreEqual(0, Program.Main(new[] {Program.DoScriptOption.Opt, ndFile}));
+            Assert.AreEqual(0, Program.Main(new[] { Program.DoScriptOption.Opt, ndFile }));
 
             using (var sw = new StreamReader(outFile)) {
                 string o = sw.ReadToEnd();
@@ -539,7 +539,7 @@ NDepCheck:Tests ---> **
                     {Program.WritePluginOption} . {typeof(DipWriter).FullName} {{ {DipWriter.NoExampleInfoOption} }} {outFile}");
             }
 
-            Assert.AreEqual(0, Program.Main(new[] {Program.DoScriptOption.Opt, ndFile}));
+            Assert.AreEqual(0, Program.Main(new[] { Program.DoScriptOption.Opt, ndFile }));
 
             using (var sw = new StreamReader(outFile)) {
                 string o = sw.ReadToEnd();
@@ -552,21 +552,21 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TestHelpForAllReaders() {
-            Assert.AreEqual(1, Program.Main(new[] {Program.ReadPluginHelpOption.Opt, "."}));
-            Assert.AreEqual(1, Program.Main(new[] {Program.ReadHelpOption.Opt}));
+            Assert.AreEqual(1, Program.Main(new[] { Program.ReadPluginHelpOption.Opt, "." }));
+            Assert.AreEqual(1, Program.Main(new[] { Program.ReadHelpOption.Opt }));
         }
 
         [TestMethod]
         public void TestHelpForAllTransformers() {
-            Assert.AreEqual(1, Program.Main(new[] {Program.TransformPluginHelpOption.Opt, "."}));
-            Assert.AreEqual(1, Program.Main(new[] {Program.TransformHelpOption.Opt}));
+            Assert.AreEqual(1, Program.Main(new[] { Program.TransformPluginHelpOption.Opt, "." }));
+            Assert.AreEqual(1, Program.Main(new[] { Program.TransformHelpOption.Opt }));
         }
 
         [TestMethod]
         public void TestHelpForAllRenderers() {
-            Assert.AreEqual(1, Program.Main(new[] {Program.WritePluginHelpOption.Opt, "."}));
-            Assert.AreEqual(1, Program.Main(new[] {Program.WritePluginHelpOption.Opt}));
-            Assert.AreEqual(1, Program.Main(new[] {Program.WriteHelpOption.Opt}));
+            Assert.AreEqual(1, Program.Main(new[] { Program.WritePluginHelpOption.Opt, "." }));
+            Assert.AreEqual(1, Program.Main(new[] { Program.WritePluginHelpOption.Opt }));
+            Assert.AreEqual(1, Program.Main(new[] { Program.WriteHelpOption.Opt }));
         }
 
         [TestMethod]
@@ -585,7 +585,7 @@ NDepCheck:Tests ---> **
                             using (var result = new TempFileProvider(resultTxt)) {
                                 using (var tw = new StreamWriter(m.Filename)) {
                                     tw.WriteLine($"-dc cmd.exe 2 {{ /c echo START > {result} }} " +
-                                                 "-dd VALUE1 value1 " + 
+                                                 "-dd VALUE1 value1 " +
                                                  $"-ds {script1} VALUE1 : value3 " +
                                                  // passes value1, null, value3
                                                  $"-ds {script2} VALUE1 " + // passes value1
@@ -600,7 +600,7 @@ NDepCheck:Tests ---> **
                                         $"-ds {script1a} value1a 2=F3 " +
                                         // passed value1a, 2=value3
                                         $"-dc cmd.exe 2 {{ /c echo {script1} F1 F2 F3 F4 F5 >> {result} }}");
-                                        // third result line: write same as above, but globalF5 at the end
+                                    // third result line: write same as above, but globalF5 at the end
                                 }
                                 using (var tw = new StreamWriter(s1a.Filename)) {
                                     tw.WriteLine(
@@ -608,17 +608,17 @@ NDepCheck:Tests ---> **
                                         // receives value1a 2=value3 [null->]defaultValue3 [null->]defaultValue4
                                         "-dd F5 globalF5 " +
                                         $"-dc cmd.exe 2 {{ /c echo {script1a} F1 F2 F3 F4 F5 >> {result} }} ");
-                                        // second result line: value1a, 2=value3, defaultValue3, defaultValue4, globalF5
+                                    // second result line: value1a, 2=value3, defaultValue3, defaultValue4, globalF5
                                 }
                                 using (var tw = new StreamWriter(s2.Filename)) {
                                     tw.WriteLine(
                                         "-fp F1 -fp F2 defaultValue2 -fp F3 defaultValue3 -fp F4 defaultValue4 " +
                                         // receives value1, [null->]defaultValue2, [null->]defaultValue3, [null->]defaultValue4
                                         $"-dc cmd.exe 2 {{ /c echo {script2} F1 F2 F3 F4 F5 >> {result} }} ");
-                                        // fourth result line: value1, defaultValue2, defaultValue3, defaultValue4, globalF5
+                                    // fourth result line: value1, defaultValue2, defaultValue3, defaultValue4, globalF5
                                 }
 
-                                int returnValue = Program.Main(new[] {"-ds", mainScript});
+                                int returnValue = Program.Main(new[] { "-ds", mainScript });
                                 Assert.AreEqual(0, returnValue);
 
                                 using (var tr = new StreamReader(result.Filename)) {

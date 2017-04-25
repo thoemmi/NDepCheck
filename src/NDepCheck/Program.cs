@@ -450,7 +450,7 @@ namespace NDepCheck {
                         } catch (Exception ex) {
                             Log.WriteError(msg: $"Could not start process '{cmd}'; reason: {ex.Message}");
                             result = EXCEPTION_RESULT;
-                        }                       
+                        }
                     } else if (DoScriptHelpOption.Matches(arg)) {
                         string fileName = ExtractOptionValue(globalContext, args, ref i);
                         result = RunFrom(fileName, new string[0], globalContext, writtenMasterFiles,

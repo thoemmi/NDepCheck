@@ -12,7 +12,7 @@ namespace NDepCheck {
         private static readonly Dictionary<string, ItemType> _allTypes = new Dictionary<string, ItemType>();
 
         [NotNull]
-        public static readonly ItemType SIMPLE = New("SIMPLE", new[] { "Name" }, new[] { "" }, matchesOnFieldNr: true);
+        public static readonly ItemType SIMPLE = New("SIMPLE", new[] { "Name" }, new[] { "" }, ignoreCase: false, matchesOnFieldNr: true);
 
         private static void ForceLoadingPredefinedTypes() {
             _allTypes[SIMPLE.Name] = SIMPLE;
@@ -21,14 +21,14 @@ namespace NDepCheck {
         }
 
         [NotNull]
-        public static ItemType Generic(int fieldNr) {
+        public static ItemType Generic(int fieldNr, bool ignoreCase) {
             if (fieldNr < 1 || fieldNr > 40) {
                 throw new ArgumentException("fieldNr must be 1...40", nameof(fieldNr));
             }
             return fieldNr == 1 ? SIMPLE :
                 New("GENERIC_" + fieldNr,
                         Enumerable.Range(1, fieldNr).Select(i => "Field_" + i).ToArray(),
-                        Enumerable.Range(1, fieldNr).Select(i => "").ToArray(), matchesOnFieldNr: true);
+                        Enumerable.Range(1, fieldNr).Select(i => "").ToArray(), ignoreCase: ignoreCase, matchesOnFieldNr: true);
         }
 
         [NotNull]
@@ -40,13 +40,17 @@ namespace NDepCheck {
         /// </summary>
         private readonly bool _matchesOnFieldNr;
 
+        public bool IgnoreCase {
+            get;
+        }
+
         [NotNull]
         public readonly string[] Keys;
 
         [NotNull]
         public readonly string[] SubKeys;
 
-        private ItemType([NotNull] string name, [NotNull] string[] keys, [NotNull] string[] subKeys, bool matchesOnFieldNr) {
+        private ItemType([NotNull] string name, [NotNull] string[] keys, [NotNull] string[] subKeys, bool matchesOnFieldNr, bool ignoreCase) {
             if (keys.Length == 0) {
                 throw new ArgumentException("keys.Length must be > 0", nameof(keys));
             }
@@ -61,6 +65,7 @@ namespace NDepCheck {
             SubKeys = subKeys.Select(s => s?.Trim()).ToArray();
             Name = name;
             _matchesOnFieldNr = matchesOnFieldNr;
+            IgnoreCase = ignoreCase;
         }
 
         public ItemType CommonType(ItemType other) {
@@ -81,10 +86,10 @@ namespace NDepCheck {
             return result;
         }
 
-        public static ItemType New([NotNull] string name, [NotNull, ItemNotNull] string[] keys, [NotNull, ItemNotNull] string[] subKeys, bool matchesOnFieldNr = false) {
+        public static ItemType New([NotNull] string name, [NotNull] [ItemNotNull] string[] keys, [NotNull] [ItemNotNull] string[] subKeys, bool ignoreCase, bool matchesOnFieldNr = false) {
             ItemType result;
             if (!_allTypes.TryGetValue(name, out result)) {
-                _allTypes.Add(name, result = new ItemType(name, keys, subKeys, matchesOnFieldNr));
+                _allTypes.Add(name, result = new ItemType(name, keys, subKeys, matchesOnFieldNr, ignoreCase));
             }
             return result;
         }
@@ -118,6 +123,9 @@ namespace NDepCheck {
 
         public override string ToString() {
             var result = new StringBuilder(Name);
+            if (IgnoreCase) {
+                result.Append('+');
+            }
             var sep = '(';
             for (int i = 0; i < Keys.Length; i++) {
                 result.Append(sep);
@@ -135,13 +143,13 @@ namespace NDepCheck {
 
         public static ItemType New(string format) {
             string[] parts = format.Split(':', ';', ' ', '(', ')');
-            return New(parts[0], parts.Skip(1).Where(p => p != "").ToArray());
+            return New(parts[0].TrimEnd('+'), parts.Skip(1).Where(p => p != "").ToArray(), parts[0].EndsWith("+"));
         }
 
-        public static ItemType New(string name, IEnumerable<string> keysAndSubKeys) {
+        public static ItemType New(string name, IEnumerable<string> keysAndSubKeys, bool ignoreCase) {
             string[] keys = keysAndSubKeys.Select(k => k.Split('.')[0]).ToArray();
             string[] subkeys = keysAndSubKeys.Select(k => k.Split('.').Length > 1 ? "." + k.Split('.')[1] : "").ToArray();
-            return New(name, keys, subkeys);
+            return New(name, keys, subkeys, ignoreCase);
         }
 
         public static void Reset() {

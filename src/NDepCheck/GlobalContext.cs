@@ -127,7 +127,7 @@ namespace NDepCheck {
             foreach (var r in allReaders) {
                 InputContext inputContext;
                 if (!_inputContexts.TryGetValue(r.FullFileName, out inputContext)) {
-                    _inputContexts.Add(r.FullFileName, r.ReadDependencies(0));
+                    _inputContexts.Add(r.FullFileName, r.ReadDependencies(0, IgnoreCase));
                 }
             }
             stopwatch.Stop();
@@ -434,11 +434,11 @@ namespace NDepCheck {
             return String.IsNullOrWhiteSpace(fileName) || fileName == "-";
         }
 
-        public static ItemType GetItemType(string definition) {
+        public ItemType GetItemType(string definition) {
             IEnumerable<string> parts = definition.Split('(', ':', ')').Select(s => s.Trim()).Where(s => s != "");
             string name = parts.First();
 
-            return ItemType.New(name, parts.Skip(1).ToArray());
+            return ItemType.New(name, parts.Skip(1).ToArray(), IgnoreCase);
         }
 
         public void LogAboutNDependencies(int maxCount, [CanBeNull] string pattern) {
@@ -459,7 +459,7 @@ namespace NDepCheck {
                 }
             }
             {
-                IEnumerable<Dependency> matchingDependencies = DependenciesWithoutInputContext.Where(d => m == null || m.Matches(d)).Take(maxCount+1);
+                IEnumerable<Dependency> matchingDependencies = DependenciesWithoutInputContext.Where(d => m == null || m.Matches(d)).Take(maxCount + 1);
                 foreach (var d in matchingDependencies.Take(maxCount)) {
                     Log.WriteInfo(d.AsDipStringWithTypes(false));
                 }
@@ -496,7 +496,7 @@ namespace NDepCheck {
 
         private IEnumerable<Item> LogOnlyDependencyCount(string pattern) {
             ItemMatch m = pattern == null ? null : ItemMatch.CreateItemMatchWithGenericType(pattern, IgnoreCase);
-            IEnumerable<Item> allItems = new HashSet<Item>(GetAllDependencies().SelectMany(d => new[] {d.UsingItem, d.UsedItem}));
+            IEnumerable<Item> allItems = new HashSet<Item>(GetAllDependencies().SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
             IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.Matches(m, i));
             Log.WriteInfo(matchingItems.Count() + " items" + (m == null ? "" : " matching " + pattern));
             return matchingItems;

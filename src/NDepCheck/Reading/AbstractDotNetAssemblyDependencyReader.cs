@@ -14,12 +14,12 @@ namespace NDepCheck.Reading {
         public static readonly ItemType DOTNETREF = ItemType.New(
             "DOTNETREF",
             new[] { "ASSEMBLY", "ASSEMBLY", "ASSEMBLY" },
-            new[] { ".NAME", ".VERSION", ".CULTURE" });
+            new[] { ".NAME", ".VERSION", ".CULTURE" }, ignoreCase: false);
 
         public static readonly ItemType DOTNETCALL = ItemType.New(
             "DOTNETCALL",
             new[] { "NAMESPACE", "CLASS", "ASSEMBLY", "ASSEMBLY", "ASSEMBLY", "MEMBER", "MEMBER" },
-            new[] { null, null, ".NAME", ".VERSION", ".CULTURE", ".NAME", ".SORT" });
+            new[] { null, null, ".NAME", ".VERSION", ".CULTURE", ".NAME", ".SORT" }, ignoreCase: false);
 
         public override AbstractDependencyReader CreateReader(string fileName, GlobalContext options, bool needsOnlyItemTails) {
             return needsOnlyItemTails
@@ -29,7 +29,7 @@ namespace NDepCheck.Reading {
 
         [NotNull]
         public ItemType GetOrCreateDotNetType(string name, string[] keys, string[] subkeys) {
-            return ItemType.New(name, keys, subkeys);
+            return ItemType.New(name, keys, subkeys, ignoreCase: false);
         }
 
         public static void GetTypeAssemblyInfo(TypeReference reference, out string assemblyName, out string assemblyVersion, out string assemblyCulture) {
@@ -278,7 +278,7 @@ The files are read with Mono.Cecil.
             private readonly SequencePoint _sequencePoint;
             private readonly AbstractDotNetAssemblyDependencyReader _reader;
 
-            public RawDependency([NotNull] ItemType type, [NotNull] RawUsingItem usingItem, [NotNull] RawUsedItem usedItem, 
+            public RawDependency([NotNull] ItemType type, [NotNull] RawUsingItem usingItem, [NotNull] RawUsedItem usedItem,
                 Usage usage, [CanBeNull] SequencePoint sequencePoint, GlobalContext globalState) {
                 if (usingItem == null) {
                     throw new ArgumentNullException(nameof(usingItem));
@@ -297,7 +297,7 @@ The files are read with Mono.Cecil.
             public override bool Equals(object obj) {
                 var other = obj as RawDependency;
                 return this == obj
-                    || other != null 
+                    || other != null
                         && Equals(other.UsedItem, UsedItem)
                         && Equals(other.UsingItem, UsingItem)
                         && Equals(other._type, _type)
@@ -317,7 +317,7 @@ The files are read with Mono.Cecil.
                 return _sequencePoint == null
                     ? new Dependency(UsingItem.ToItem(_type), usedItem, null, Usage.ToString(), 1, inputContext: inputContext)
                     : new Dependency(UsingItem.ToItem(_type), usedItem,
-                        new ProgramFileSource(_sequencePoint.Document.Url, _sequencePoint.StartLine, _sequencePoint.StartColumn, _sequencePoint.EndLine, _sequencePoint.EndColumn),                    
+                        new ProgramFileSource(_sequencePoint.Document.Url, _sequencePoint.StartLine, _sequencePoint.StartColumn, _sequencePoint.EndLine, _sequencePoint.EndColumn),
                         Usage.ToString(), 1, inputContext: inputContext);
             }
 
@@ -415,10 +415,9 @@ The files are read with Mono.Cecil.
             return className;
         }
 
-        public static void Reset()
-        {
+        public static void Reset() {
             Intern<RawUsingItem>.Reset();
-            Intern<RawUsedItem>.Reset();            
+            Intern<RawUsedItem>.Reset();
         }
     }
 }

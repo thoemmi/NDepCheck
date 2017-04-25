@@ -7,7 +7,7 @@ namespace NDepCheck.Rendering {
     /// Writer for dependencies ("Edges") in standard "DIP" format
     /// </summary>
     public class DipWriter : IRenderer {
-        public static readonly Option NoExampleInfoOption = new Option("ne", "no-example", "", "Does not write example info", @default:false);
+        public static readonly Option NoExampleInfoOption = new Option("ne", "no-example", "", "Does not write example info", @default: false);
 
         private static readonly Option[] _allOptions = { NoExampleInfoOption };
 
@@ -40,7 +40,7 @@ namespace NDepCheck.Rendering {
                     noExampleInfo = true;
                     return j;
                 }));
-            using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(globalContext, argsAsString, baseFileName))) { 
+            using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(globalContext, argsAsString, baseFileName))) {
                 Write(dependencies, sw.Writer, !noExampleInfo);
                 if (dependenciesCount.HasValue) {
                     Log.WriteInfo($"... written {dependenciesCount} dependencies");
@@ -55,7 +55,7 @@ namespace NDepCheck.Rendering {
         }
 
         public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
-            ItemType amo = ItemType.New("AMO:Assembly:Module:Order");
+            ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
 
             var bac = Item.New(amo, "BAC:BAC:0100".Split(':'));
             var kst = Item.New(amo, "KST:KST:0200".Split(':'));

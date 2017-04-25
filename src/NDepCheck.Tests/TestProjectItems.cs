@@ -20,13 +20,14 @@ namespace NDepCheck.Tests {
     ! :** ---% 
 }", forceReload: false);
 
-            Item a = Item.New(ItemType.Generic(2), "x:a");
-            Item ab = Item.New(ItemType.Generic(2), "x:ab");
-            Item ac = Item.New(ItemType.Generic(2), "x:ac");
-            Item ca = Item.New(ItemType.Generic(2), "x:ca");
-            Item cb = Item.New(ItemType.Generic(2), "x:cb");
-            Item s = Item.New(ItemType.Generic(2), "m:s");
-            Item t = Item.New(ItemType.Generic(2), "m:t");
+            ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
+            Item a = Item.New(generic2, "x:a");
+            Item ab = Item.New(generic2, "x:ab");
+            Item ac = Item.New(generic2, "x:ac");
+            Item ca = Item.New(generic2, "x:ca");
+            Item cb = Item.New(generic2, "x:cb");
+            Item s = Item.New(generic2, "m:s");
+            Item t = Item.New(generic2, "m:t");
 
             var result = new List<Dependency>();
             pi.Transform(gc, "test", new[] {
@@ -109,11 +110,12 @@ namespace NDepCheck.Tests {
     ! :**  ---% 
 }", forceReload: false);
 
-            Item a = Item.New(ItemType.Generic(2), "x:a");
-            Item ab = Item.New(ItemType.Generic(2), "x:ab");
-            Item abc = Item.New(ItemType.Generic(2), "x:abc");
-            Item abcd = Item.New(ItemType.Generic(2), "x:abcd");
-            Item t = Item.New(ItemType.Generic(2), "m:t");
+            ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
+            Item a = Item.New(generic2, "x:a");
+            Item ab = Item.New(generic2, "x:ab");
+            Item abc = Item.New(generic2, "x:abc");
+            Item abcd = Item.New(generic2, "x:abcd");
+            Item t = Item.New(generic2, "m:t");
 
             var result = new List<Dependency>();
             pi.Transform(gc, "test", new[] {

@@ -14,7 +14,7 @@ namespace NDepCheck.Reading {
             : base(factory, fileName, globalContext) {
         }
 
-        protected override IEnumerable<Dependency> ReadDependencies(InputContext inputContext, int depth) {
+        protected override IEnumerable<Dependency> ReadDependencies(InputContext inputContext, int depth, bool ignoreCase) {
             return GetOrReadRawDependencies(depth).Where(d => d.UsedItem != null).Select(d => d.ToDependencyWithTail(depth, inputContext));
         }
 
@@ -30,7 +30,7 @@ namespace NDepCheck.Reading {
             return GetOrReadRawDependencies(depth).Select(d => d.UsingItem);
         }
 
-        protected IEnumerable<RawDependency> ReadRawDependencies(int depth) {            
+        protected IEnumerable<RawDependency> ReadRawDependencies(int depth) {
             Log.WriteInfo(new string(' ', 2 * depth) + "Reading " + _fullFileName);
             var resolver = new DefaultAssemblyResolver();
             resolver.AddSearchDirectory(Path.GetDirectoryName(_fullFileName));
@@ -138,7 +138,7 @@ namespace NDepCheck.Reading {
             }
         }
 
-        private IEnumerable<RawDependency> AnalyzeProperty([NotNull] TypeDefinition owner, [NotNull] RawUsingItem usingItem, 
+        private IEnumerable<RawDependency> AnalyzeProperty([NotNull] TypeDefinition owner, [NotNull] RawUsingItem usingItem,
                                                            [NotNull] PropertyDefinition property, [CanBeNull] ItemTail typeCustomSections) {
             ItemTail propertyCustomSections = GetCustomSections(property.CustomAttributes, typeCustomSections);
 
@@ -167,7 +167,7 @@ namespace NDepCheck.Reading {
             }
         }
 
-        private IEnumerable<RawDependency> AnalyzeCustomAttributes([NotNull] RawUsingItem usingItem, 
+        private IEnumerable<RawDependency> AnalyzeCustomAttributes([NotNull] RawUsingItem usingItem,
                                                                    [NotNull] IEnumerable<CustomAttribute> customAttributes) {
             foreach (CustomAttribute customAttribute in customAttributes) {
                 foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, customAttribute.Constructor.DeclaringType, usage: Usage.Declaration, sequencePoint: null)) {
@@ -179,8 +179,8 @@ namespace NDepCheck.Reading {
             }
         }
 
-        private IEnumerable<RawDependency> AnalyzeGetterSetter([NotNull] TypeDefinition owner, [NotNull] PropertyDefinition property, 
-                                                               [NotNull] string sort, [CanBeNull] ItemTail propertyCustomSections, 
+        private IEnumerable<RawDependency> AnalyzeGetterSetter([NotNull] TypeDefinition owner, [NotNull] PropertyDefinition property,
+                                                               [NotNull] string sort, [CanBeNull] ItemTail propertyCustomSections,
                                                                [CanBeNull] MethodDefinition getterSetter) {
             if (getterSetter != null) {
                 RawUsingItem usingItem = GetFullnameItem(property.DeclaringType, property.Name, sort, propertyCustomSections);
@@ -323,12 +323,12 @@ namespace NDepCheck.Reading {
         /// Create a single dependency to the calledType or (if passed) calledType+method.
         /// Create additional dependencies for each generic parameter type of calledType.
         /// </summary>
-        private IEnumerable<RawDependency> CreateTypeAndMethodDependencies([NotNull] RawUsingItem usingItem, [NotNull] TypeReference usedType, 
+        private IEnumerable<RawDependency> CreateTypeAndMethodDependencies([NotNull] RawUsingItem usingItem, [NotNull] TypeReference usedType,
             Usage usage, [CanBeNull] SequencePoint sequencePoint, [NotNull] string memberName = "") {
             if (usedType is TypeSpecification) {
                 // E.g. the reference type System.Int32&, which is used for out parameters.
                 // or an arraytype?!?
-                usedType = ((TypeSpecification)usedType).ElementType;
+                usedType = ((TypeSpecification) usedType).ElementType;
             }
             if (!(usedType is GenericInstanceType) && !(usedType is GenericParameter)) {
                 // Currently, we do not look at generic type parameters; we would have to
@@ -336,13 +336,13 @@ namespace NDepCheck.Reading {
                 // to get a useful Dependency_ for the user.
 
                 RawUsedItem usedItem = GetFullnameItem(usedType, memberName, "");
-                yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, usedItem,  usage, sequencePoint, _globalContext);
+                yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, usedItem, usage, sequencePoint, _globalContext);
             }
 
             var genericInstanceType = usedType as GenericInstanceType;
             if (genericInstanceType != null) {
                 foreach (TypeReference genericArgument in genericInstanceType.GenericArguments) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, genericArgument, 
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, genericArgument,
                                                                                 usage: Usage.UseAsGenericArgument, sequencePoint: sequencePoint)) {
                         yield return dependency_;
                     }

@@ -28,7 +28,7 @@ namespace NDepCheck.Tests {
             }
 
             public override void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
-                ItemType simple = ItemType.New("Simple:Name");
+                ItemType simple = ItemType.New("SIMPLE(Name)");
                 Item i1 = Item.New(simple, "I1");
                 Item i2 = Item.New(simple, "I2");
                 items = new[] { i1, Item.New(simple, "I2") };
@@ -42,8 +42,8 @@ namespace NDepCheck.Tests {
         }
 
         private static void CreateAndRender(Action<LambdaTestRenderer> placeObjects) {
-            new LambdaTestRenderer(placeObjects).Render(new GlobalContext(), Enumerable.Empty<Dependency>(), 0, 
-                                    "", Path.GetTempFileName(), ignoreCase : false);
+            new LambdaTestRenderer(placeObjects).Render(new GlobalContext(), Enumerable.Empty<Dependency>(), 0,
+                                    "", Path.GetTempFileName(), ignoreCase: false);
         }
 
         [TestMethod]
@@ -235,7 +235,7 @@ namespace NDepCheck.Tests {
                 double deltaAngle = 2 * Math.PI / items.Count();
                 Func<int, double> r =
                       items.Any(i => i.Name.StartsWith("star")) ? i => 100.0 + (i % 2 == 0 ? 60 : 0)
-                    : items.Any(i => i.Name.StartsWith("spiral")) ? (Func<int, double>)(i => 80.0 + 20 * i)
+                    : items.Any(i => i.Name.StartsWith("spiral")) ? (Func<int, double>) (i => 80.0 + 20 * i)
                     : /*circle*/ i => 100;
 
                 int n = 0;
@@ -260,7 +260,7 @@ namespace NDepCheck.Tests {
             }
 
             public static void CreateSomeTestItems(int n, string prefix, out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
-                ItemType simple = ItemType.New("Simple:Name");
+                ItemType simple = ItemType.New("SIMPLE(Name)");
                 var localItems = Enumerable.Range(0, n).Select(i => Item.New(simple, prefix + i)).ToArray();
                 dependencies =
                     localItems.SelectMany(
@@ -278,15 +278,15 @@ namespace NDepCheck.Tests {
         }
 
         private void CreateAndRender(int n, string prefix, int boxHeight = 15) {
-            ItemType simple = ItemType.New("Simple:Name");
+            ItemType simple = ItemType.New("SIMPLE(Name)");
             Item[] items = Enumerable.Range(0, n).Select(i => Item.New(simple, prefix + i)).ToArray();
             Dependency[] dependencies =
                 items.SelectMany(
                     (from, i) => items.Skip(i).Select(to => new Dependency(from, to, new TextFileSource(prefix, i), "Use", 10 * i))).ToArray();
 
             string tempFile = Path.GetTempFileName();
-            new SomewhatComplexTestRenderer(boxHeight).Render(new GlobalContext(), dependencies, dependencies.Length, 
-                                                              argsAsString:"", baseFileName: tempFile, ignoreCase : false);
+            new SomewhatComplexTestRenderer(boxHeight).Render(new GlobalContext(), dependencies, dependencies.Length,
+                                                              argsAsString: "", baseFileName: tempFile, ignoreCase: false);
         }
 
         [TestMethod]
@@ -331,7 +331,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TwoItemBoxes() {
-            ItemType amo = ItemType.New("AMO:Assembly:Module:Order");
+            ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
             Item i = Item.New(amo, "VKF", "VKF", "01");
 
             CreateAndRender(r => {

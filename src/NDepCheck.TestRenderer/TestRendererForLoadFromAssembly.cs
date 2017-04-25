@@ -14,7 +14,7 @@ namespace NDepCheck.TestRenderer {
             double deltaAngle = 2 * Math.PI / items.Count();
             Func<int, double> r =
                   items.Any(i => i.Name.StartsWith("star")) ? i => 100.0 + (i % 2 == 0 ? 60 : 0)
-                : items.Any(i => i.Name.StartsWith("spiral")) ? (Func<int, double>)(i => 80.0 + 20 * i)
+                : items.Any(i => i.Name.StartsWith("spiral")) ? (Func<int, double>) (i => 80.0 + 20 * i)
                 : /*circle*/ i => 100;
 
             int n = 0;
@@ -39,7 +39,7 @@ namespace NDepCheck.TestRenderer {
         }
 
         public override void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
-            ItemType simple = ItemType.New("Simple:Name");
+            ItemType simple = ItemType.New("SIMPLE(Name)");
             Item[] localItems = Enumerable.Range(0, 5).Select(i => Item.New(simple, "Item " + i)).ToArray();
             dependencies = localItems.SelectMany(
                     (from, i) => localItems.Skip(i).Select(to => new Dependency(from, to, new TextFileSource("Test", i), "Test", ct: 10 * i))).ToArray();

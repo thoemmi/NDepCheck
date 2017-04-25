@@ -38,7 +38,7 @@ namespace NDepCheck.Reading {
         public DipReader([NotNull] string fileName) : base(fileName) {
         }
 
-        protected override IEnumerable<Dependency> ReadDependencies([CanBeNull] InputContext inputContext, int depth) {
+        protected override IEnumerable<Dependency> ReadDependencies([CanBeNull] InputContext inputContext, int depth, bool ignoreCase) {
             Log.WriteInfo("Reading " + _fullFileName);
             Regex dipArrow = new Regex($@"\s*{Dependency.DIP_ARROW}\s*");
 
@@ -102,7 +102,7 @@ namespace NDepCheck.Reading {
                             var dependency = new Dependency(foundUsingItem, foundUsedItem,
                                 string.IsNullOrWhiteSpace(source[0])
                                     ? new TextFileSource(_fullFileName, lineNo)
-                                    : new TextFileSource(source[0], sourceLine < 0 ? null : (int?)sourceLine),
+                                    : new TextFileSource(source[0], sourceLine < 0 ? null : (int?) sourceLine),
                                 dependencyMarkers, ct, questionableCt, badCt, exampleInfo, pointsToProxy ? null : inputContext);
 
                             result.Add(dependency);
@@ -154,7 +154,7 @@ namespace NDepCheck.Reading {
 
         [NotNull]
         private Item CreateItem(string s) {
-            string[] prefixAndValues = s.Split(new [] { ':' }, 2);
+            string[] prefixAndValues = s.Split(new[] { ':' }, 2);
             string[] prefix = prefixAndValues[0].Split(';');
 
             string typeName = prefix[0];
