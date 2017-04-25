@@ -66,11 +66,11 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
             Option.Parse(globalContext, transformOptions,
                 MatchSourceOption.Action((args, j) => {
-                    sourceMatches.Add(new ItemMatch(dependencies.FirstOrDefault(), Option.ExtractRequiredOptionValue(args, ref j, "Match pattern missing"), _ignoreCase));
+                    sourceMatches.Add(ItemMatch.CreateItemMatchWithGenericType(Option.ExtractRequiredOptionValue(args, ref j, "Match pattern missing"), _ignoreCase));
                     return j;
                 }),
                 MatchTargetOption.Action((args, j) => {
-                    targetMatches.Add(new ItemMatch(dependencies.FirstOrDefault(), Option.ExtractRequiredOptionValue(args, ref j, "Match pattern missing"), _ignoreCase));
+                    targetMatches.Add(ItemMatch.CreateItemMatchWithGenericType(Option.ExtractRequiredOptionValue(args, ref j, "Match pattern missing"), _ignoreCase));
                     return j;
                 }),
                 UseQuestionableCountOption.Action((args, j) => {

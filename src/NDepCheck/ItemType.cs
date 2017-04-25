@@ -65,9 +65,9 @@ namespace NDepCheck {
 
         public ItemType CommonType(ItemType other) {
             if (_matchesOnFieldNr) {
-                return Keys.Length == other.Keys.Length ? other : null;
+                return Keys.Length <= other.Keys.Length ? other : null;
             } else if (other._matchesOnFieldNr) {
-                return Keys.Length == other.Keys.Length ? this : null;
+                return Keys.Length >= other.Keys.Length ? this : null;
             } else if (Equals(this, other)) {
                 return this;
             } else {

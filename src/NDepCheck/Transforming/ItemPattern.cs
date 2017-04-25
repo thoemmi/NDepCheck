@@ -21,10 +21,10 @@ namespace NDepCheck.Transforming {
         private static readonly string ASTERISK_ALONE_PATTERN = EscapePattern(CHARACTER_REGEX + "+");
 
         private static readonly string ASTERISKS_AFTER_LETTER_PATTERN =
-            EscapePattern(@"(?:" + ASTERISK_NEAR_LETTER_PATTERN + @"(?:" + SEPARATORS_REGEX + ASTERISK_ALONE_PATTERN + ")*)?");
+            EscapePattern("(?:" + ASTERISK_NEAR_LETTER_PATTERN + "(?:" + SEPARATORS_REGEX + ASTERISK_ALONE_PATTERN + ")*)?");
 
-        private static readonly string ASTERISKS_PATTERN = EscapePattern(@"(?:" + ASTERISK_ALONE_PATTERN + @"(?:" + SEPARATORS_REGEX + ASTERISK_ALONE_PATTERN + ")*)?");
-        private static readonly string SEPARATOR_AND_ASTERISKS_PATTERN = EscapePattern(@"(?:" + SEPARATORS_REGEX + ASTERISK_ALONE_PATTERN + ")*");
+        private static readonly string ASTERISKS_PATTERN = EscapePattern("(?:" + ASTERISK_ALONE_PATTERN + "(?:" + SEPARATORS_REGEX + ASTERISK_ALONE_PATTERN + ")*)?");
+        private static readonly string SEPARATOR_AND_ASTERISKS_PATTERN = EscapePattern("(?:" + SEPARATORS_REGEX + ASTERISK_ALONE_PATTERN + ")*");
 
         internal static readonly string[] NO_GROUPS = new string[0];
 

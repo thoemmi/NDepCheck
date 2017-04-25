@@ -116,7 +116,7 @@
     <Compile Include="Reading\FullDotNetAssemblyDependencyReader.cs" />
     <Compile Include="Gibraltar\StringReference.cs" />
     <Compile Include="Transforming\CycleChecking\FindCycleDeps.cs" />
-    <Compile Include="Transforming\DependencyCreating\AddAssociativeDeps.cs" />
+    <Compile Include="Transforming\DependencyCreating\AddTransitiveDeps.cs" />
     <Compile Include="Transforming\DependencyMatch.cs" />
     <Compile Include="Transforming\EffectOptions.cs" />
     <Compile Include="Transforming\ExtendedDependencyEffectOptions.cs" />

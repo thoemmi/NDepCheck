@@ -96,7 +96,7 @@ Examples:
             ProcessTextInner(globalContext, fullConfigFileName, startLineNo, tr, ignoreCase, fileIncludeStack, forceReloadConfiguration,
                 onIncludedConfiguration: (e, n) => actions.AddRange(e),
                 onLineWithLineNo: (line, lineNo) => {
-                    actions.Add(new ItemAction(globalContext.GetExampleDependency(), line.Trim(), ignoreCase, fullConfigFileName, startLineNo));
+                    actions.Add(new ItemAction(line.Trim(), ignoreCase, fullConfigFileName, startLineNo));
                     return null;
                 }, configValueCollector: configValueCollector);
             return actions;

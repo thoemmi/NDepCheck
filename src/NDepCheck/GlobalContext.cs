@@ -155,12 +155,6 @@ namespace NDepCheck {
             return _inputContexts.Values.SelectMany(ic => ic.Dependencies).Concat(DependenciesWithoutInputContext);
         }
 
-        [CanBeNull]
-        public Dependency GetExampleDependency() {
-            ReadAllNotYetReadIn();
-            return _inputContexts.Values.SelectMany(ic => ic.Dependencies).Concat(DependenciesWithoutInputContext).FirstOrDefault();
-        }
-
         private T GetOrCreatePlugin<T>([CanBeNull] string assemblyName, [CanBeNull] string pluginClassName)
             where T : IPlugin {
             if (pluginClassName == null) {
@@ -305,6 +299,11 @@ namespace NDepCheck {
                 result = transformer.Transform(this, "", GetAllDependencies().ToArray(), transformerOptions, "all dependencies",
                     newDependenciesCollector);
             }
+
+            if (newDependenciesCollector.Contains(null)) {
+                throw new NullReferenceException("newDependenciesCollector contains null dependency");
+            }
+
             transformer.AfterAllTransforms(this);
             int sum = 0;
             foreach (var ic in _inputContexts.Values) {
@@ -333,6 +332,10 @@ namespace NDepCheck {
         }
 
         private int PushDependenciesWithoutInputContext(Dependency[] dependencies) {
+            if (dependencies.Contains(null)) {
+                throw new ArgumentNullException(nameof(dependencies), "Contains null item");
+            }
+
             _dependenciesWithoutInputContextStack.Push(dependencies);
             return dependencies.Length;
         }
@@ -492,7 +495,7 @@ namespace NDepCheck {
         }
 
         private IEnumerable<Item> LogOnlyDependencyCount(string pattern) {
-            ItemMatch m = pattern == null ? null : new ItemMatch(GetExampleDependency(), pattern, IgnoreCase);
+            ItemMatch m = pattern == null ? null : ItemMatch.CreateItemMatchWithGenericType(pattern, IgnoreCase);
             IEnumerable<Item> allItems = new HashSet<Item>(GetAllDependencies().SelectMany(d => new[] {d.UsingItem, d.UsedItem}));
             IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.Matches(m, i));
             Log.WriteInfo(matchingItems.Count() + " items" + (m == null ? "" : " matching " + pattern));

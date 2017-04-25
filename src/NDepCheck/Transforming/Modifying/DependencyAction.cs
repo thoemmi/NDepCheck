@@ -13,25 +13,25 @@ namespace NDepCheck.Transforming.Modifying {
         private readonly ItemMatch _usedMatch;
         private readonly IEnumerable<Action<Dependency>> _effects;
 
-        public DependencyAction(Dependency dependencyForItemTypeGuessOrNull, string line, bool ignoreCase, string fullConfigFileName, int startLineNo) {
+        public DependencyAction(string line, bool ignoreCase, string fullConfigFileName, int startLineNo) {
             Match match = Regex.Match(line ?? "", PATTERN_PATTERN);
             if (!match.Success) {
                 throw new ArgumentException($"Unexpected dependency pattern '{line}' at {fullConfigFileName}/{startLineNo}");
             } else {
                 GroupCollection groups = match.Groups;
                 if (groups[1].Value != "") {
-                    _usingMatch = new ItemMatch(dependencyForItemTypeGuessOrNull, groups[1].Value, ignoreCase);
+                    _usingMatch = ItemMatch.CreateItemMatchWithGenericType(groups[1].Value, ignoreCase);
                 }
                 if (groups[2].Value != "") {
                     _dependencyMatch = new DependencyMatch(groups[2].Value, ignoreCase);
                 }
                 if (groups[3].Value != "") {
-                    _usedMatch = new ItemMatch(dependencyForItemTypeGuessOrNull, groups[3].Value, ignoreCase);
+                    _usedMatch = ItemMatch.CreateItemMatchWithGenericType(groups[3].Value, ignoreCase);
                 }
                 if (groups[4].Value != "-" && groups[4].Value != "delete") {
                     var effects = new List<Action<Dependency>>();
                     var effectOptions =
-                        groups[4].Value.Split(' ', ',').Select(s => s.Trim()).Where(s => !String.IsNullOrWhiteSpace(s));
+                        groups[4].Value.Split(' ', ',').Select(s => s.Trim()).Where(s => !string.IsNullOrWhiteSpace(s));
                     foreach (var effect in effectOptions) {
                         if (effect == "-?" || effect == "reset-questionable") {
                             effects.Add(d => d.ResetQuestionable());

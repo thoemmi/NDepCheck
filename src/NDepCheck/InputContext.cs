@@ -29,7 +29,9 @@ namespace NDepCheck {
         //////}
 
         [NotNull]
-        public string Filename { get; }
+        public string Filename {
+            get;
+        }
 
         public int BadDependenciesCount => DependencyList.Sum(d => d.BadCt);
 
@@ -37,7 +39,11 @@ namespace NDepCheck {
 
         public IEnumerable<Dependency> Dependencies => DependencyList;
 
-        public int PushDependencies(IEnumerable<Dependency> dependencies) {
+        public int PushDependencies([ItemNotNull] IEnumerable<Dependency> dependencies) {
+            if (dependencies.Contains(null)) {
+                throw new ArgumentNullException(nameof(dependencies), "Contains null item");
+            }
+
             List<Dependency> dependencyList = dependencies.ToList();
             _dependenciesStack.Push(dependencyList);
             return dependencyList.Count;

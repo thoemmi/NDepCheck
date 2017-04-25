@@ -2,6 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using NDepCheck.Transforming.CycleChecking;
+using NDepCheck.Transforming.DependencyCreating;
+using NDepCheck.Transforming.Modifying;
+using NDepCheck.Transforming.Projecting;
 
 namespace NDepCheck {
     public abstract class ObjectWithMarkers {
@@ -62,7 +66,7 @@ namespace NDepCheck {
             foreach (var l in left.Where(l => l.Contains("/"))) {
                 string leftTail = l.Substring(l.IndexOf("/", StringComparison.InvariantCulture) + 1);
                 foreach (var r in right.Where(r => r.Contains("/"))) {
-                    string[] rightParts = r.Split(new[] {'/'}, 2);
+                    string[] rightParts = r.Split(new[] { '/' }, 2);
                     if (GetComparer(ignoreCase).Compare(leftTail, rightParts[0]) == 0) {
                         // l & r are partners!
                         result.Remove(l);
@@ -74,23 +78,23 @@ namespace NDepCheck {
             return result;
         }
 
-        public const string HELP = @"
+        public static readonly string HELP = $@"
 It is possible to add arbitrary 'marker strings' (or markers) items and dependencies.
 This is useful
 * to add additional information to read-in dependencies (e.g., dependencies read in
   from .Net assemblies have markers like 'inherit' or 'call')
 * to add additional information in dep-checking algorithms that can be used later
-  (e.g., FindCycleDeps adds a marker to each dependency on a cycle; later,
-  ModifyDeps can use that marker to delete or modify the dependency, e.g. set the 
+  (e.g., {typeof(FindCycleDeps).Name}  adds a marker to each dependency on a cycle; later,
+  {typeof(ModifyDeps).Name}  can use that marker to delete or modify the dependency, e.g. set the 
   questionable count).
 
 Markers on items are transient information that is not written to Dip files.
 Markers on dependencies are persistent information that is written into Dip files.
 
-If dependencies are aggregated into a simpler graph, e.g. by ProjectDeps or
-by AddAssociativeDeps, the markers of the source dependencies are combined into
+If dependencies are aggregated into a simpler graph, e.g. by {typeof(ProjectItems).Name} or
+by {typeof(AddTransitiveDeps).Name}, the markers of the source dependencies are combined into
 a new marker set on the resulting dependency. This combination handles markers 
-differently, based on whether they contain a dash ('/'):
+differently, based on whether they contain a dash ('/' - 'path markers') or not:
 * If a 'left' dependency (where 'left' is defined by the plugin) contains
   a marker whose last part delimited by / is the same as a marker's first
   part in a 'right' dependency, the new edge gets a marker that is the

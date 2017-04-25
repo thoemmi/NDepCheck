@@ -14,7 +14,7 @@ namespace NDepCheck.Transforming.Modifying {
         private readonly DependencyMatch _atLeastOneOutgoingDependencyMatch;
         private readonly IEnumerable<Action<Item>> _effects;
 
-        public ItemAction(Dependency dependencyForItemTypeGuessOrNull, string line, bool ignoreCase, string fullConfigFileName, int startLineNo) {
+        public ItemAction(string line, bool ignoreCase, string fullConfigFileName, int startLineNo) {
             Match match = Regex.Match(line ?? "", PATTERN_PATTERN);
             if (!match.Success) {
                 throw new ArgumentException(
@@ -25,7 +25,7 @@ namespace NDepCheck.Transforming.Modifying {
                     _atLeastOneIncomingDependencyMatch = new DependencyMatch(groups[1].Value, ignoreCase);
                 }
                 if (groups[2].Value != "") {
-                    _itemMatch = new ItemMatch(dependencyForItemTypeGuessOrNull, groups[2].Value, ignoreCase);
+                    _itemMatch = ItemMatch.CreateItemMatchWithGenericType(groups[2].Value, ignoreCase);
                 }
                 if (groups[3].Value != "") {
                     _atLeastOneOutgoingDependencyMatch = new DependencyMatch(groups[3].Value, ignoreCase);
@@ -33,7 +33,7 @@ namespace NDepCheck.Transforming.Modifying {
                 if (groups[4].Value != "-" && groups[4].Value != "delete") {
                     var effects = new List<Action<Item>>();
                     var effectOptions =
-                        groups[4].Value.Split(' ', ',').Select(s => s.Trim()).Where(s => !String.IsNullOrWhiteSpace(s));
+                        groups[4].Value.Split(' ', ',').Select(s => s.Trim()).Where(s => !string.IsNullOrWhiteSpace(s));
                     foreach (var effect in effectOptions) {
                         if (effect == "" || effect == "ignore") {
                             effects.Add(d => { });

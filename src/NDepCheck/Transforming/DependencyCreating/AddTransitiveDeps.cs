@@ -3,7 +3,7 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.DependencyCreating {
-    public class AddAssociativeDeps : ITransformer {
+    public class AddTransitiveDeps : ITransformer {
         public static readonly Option DependencyMatchOption = new Option("dm", "dependency-match", "&", "Match to select dependencies to reverse", @default: "reverse all edges", multiple: true);
         //public static readonly Option RemoveOriginalOption = new Option("ro", "remove-original", "", "If present, original dependency of a newly created reverse dependency is removed", @default: false);
         public static readonly Option MarkerToAddOption = new Option("ma", "marker-to-add", "&", "Marker added to newly created reverse dependencies", @default: "none");
@@ -18,7 +18,7 @@ namespace NDepCheck.Transforming.DependencyCreating {
         private bool _ignoreCase;
 
         public string GetHelp(bool detailedHelp, string filter) {
-            return $@"Add associative edges.
+            return $@"Add transitive edges.
 
 Configuration options: None
 
@@ -47,11 +47,11 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     return j;
                 }),
                 FromItemsOption.Action((args, j) => {
-                    fromItemMatches.Add(new ItemMatch(dependencies.FirstOrDefault(), Option.ExtractRequiredOptionValue(args, ref j, "Missing 'from' match"), _ignoreCase));
+                    fromItemMatches.Add(ItemMatch.CreateItemMatchWithGenericType( Option.ExtractRequiredOptionValue(args, ref j, "Missing 'from' match"), _ignoreCase));
                     return j;
                 }),
                 ToItemsOption.Action((args, j) => {
-                    toItemMatches.Add(new ItemMatch(dependencies.FirstOrDefault(), Option.ExtractRequiredOptionValue(args, ref j, "Missing 'to' match"), _ignoreCase));
+                    toItemMatches.Add(ItemMatch.CreateItemMatchWithGenericType( Option.ExtractRequiredOptionValue(args, ref j, "Missing 'to' match"), _ignoreCase));
                     return j;
                 }),
                 IdempotentOption.Action((args, j) => {
@@ -99,28 +99,28 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 foreach (var d in outgoing[from].Where(d => Matches(dependencyMatches, d))) {
                     Item target = d.UsedItem;
                     if (visited.Add(target)) {
+                        Dependency rootToTarget = collectedEdge == null
+                            ? d
+                            : new Dependency(root, target, d.Source,
+                                markersToAddOrNull ??
+                                ObjectWithMarkers.ConcatOrUnionWithMarkers(collectedEdge.Markers, d.Markers, _ignoreCase),
+                                collectedEdge.Ct + d.Ct, collectedEdge.QuestionableCt + d.QuestionableCt,
+                                collectedEdge.BadCt + d.BadCt, d.ExampleInfo, d.InputContext);
+
                         if (Matches(toItemMatches, target)) {
                             Dependency alreadyThere;
-                            var fromTo = new FromTo(from, target);
-                            if (checkPresence.TryGetValue(fromTo, out alreadyThere) && idempotentMatch.Matches(alreadyThere)) {
+                            var rootTargetKey = new FromTo(root, target);
+                            if (checkPresence.TryGetValue(rootTargetKey, out alreadyThere) && idempotentMatch.Matches(alreadyThere)) {
                                 // we do not add a dependency
                             } else {
-                                //var newDependency = new Dependency(root, target, d.Source, markersToAddOrNull, d.Ct,
-                                //                        d.QuestionableCt, d.BadCt, d.ExampleInfo, d.InputContext);
-                                checkPresence[fromTo] = collectedEdge;
-                                result.Add(collectedEdge);
+                                checkPresence[rootTargetKey] = rootToTarget;
+                                result.Add(rootToTarget);
                             }
                         }
 
                         // Continue search
-                        RecursivelyFlood(root, from, visited, checkPresence, idempotentMatch, outgoing,
-                                            toItemMatches, dependencyMatches, markersToAddOrNull, result,
-                                            collectedEdge == null 
-                                                ? d 
-                                                : new Dependency(root, target, d.Source,
-                                                        markersToAddOrNull ?? ObjectWithMarkers.ConcatOrUnionWithMarkers(collectedEdge.Markers, d.Markers, _ignoreCase),
-                                                        collectedEdge.Ct + d.Ct, collectedEdge.QuestionableCt + d.QuestionableCt, 
-                                                        collectedEdge.BadCt + d.BadCt, d.ExampleInfo, d.InputContext));
+                        RecursivelyFlood(root, target, visited, checkPresence, idempotentMatch, outgoing,
+                                         toItemMatches, dependencyMatches, markersToAddOrNull, result, rootToTarget);
                     }
                 }
             }
@@ -131,14 +131,33 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         }
 
         public IEnumerable<Dependency> GetTestDependencies() {
-            // NOT YET GOOD ENOUGH TEST DATA ...
+            var s1 = Item.New(ItemType.SIMPLE, "S1");
+            var s2 = Item.New(ItemType.SIMPLE, "S2");
             var a = Item.New(ItemType.SIMPLE, "A");
+            var t1 = Item.New(ItemType.SIMPLE, "T1");
+            var t2 = Item.New(ItemType.SIMPLE, "T2");
             var b = Item.New(ItemType.SIMPLE, "B");
+            var c = Item.New(ItemType.SIMPLE, "C");
+            var d = Item.New(ItemType.SIMPLE, "D");
+            var t3 = Item.New(ItemType.SIMPLE, "T3");
+            var t4 = Item.New(ItemType.SIMPLE, "T4");
             return new[] {
-                new Dependency(a, a, source: null, markers: "inherit", ct:10, questionableCt:5, badCt:3),
-                new Dependency(a, b, source: null, markers: "inherit+define", ct:1, questionableCt:0,badCt: 0),
-                new Dependency(b, a, source: null, markers: "define", ct:5, questionableCt:0, badCt:2),
-                new Dependency(b, b, source: null, markers: "", ct: 5, questionableCt:0, badCt:2),
+                new Dependency(s1, a, source: null, markers: "1", ct:10, questionableCt:5, badCt:3),
+                new Dependency(s1, d, source: null, markers: "D", ct:10, questionableCt:5, badCt:3),
+                new Dependency(s1, t4, source: null, markers: "D", ct:10, questionableCt:5, badCt:3),
+                new Dependency(s2, a, source: null, markers: "2", ct:10, questionableCt:5, badCt:3),
+
+                new Dependency(a, t1, source: null, markers: "1", ct:1, questionableCt:0, badCt: 0),
+                new Dependency(a, t2, source: null, markers: "2", ct:2, questionableCt:0, badCt: 0),
+                new Dependency(a, t2, source: null, markers: "2", ct:3, questionableCt:0, badCt: 0),
+
+                new Dependency(a, b, source: null, markers: "", ct:1, questionableCt:0, badCt: 0),
+                new Dependency(b, c, source: null, markers: "", ct:1, questionableCt:0, badCt: 0),
+                new Dependency(c, b, source: null, markers: "", ct:1, questionableCt:0, badCt: 0),
+
+                new Dependency(c, t3, source: null, markers: "3", ct:5, questionableCt:0, badCt:2),
+
+                new Dependency(d, t4, source: null, markers: "4", ct:5, questionableCt:0, badCt:2),
             };
         }
     }

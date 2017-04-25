@@ -13,8 +13,8 @@ namespace NDepCheck.Transforming {
             _markerPattern = new MarkerPattern(patternParts.Length > 1 ? patternParts[1] : "", ignoreCase);
         }
 
-        public ItemMatch([CanBeNull] Dependency typeHintOrNull, [NotNull] string pattern, bool ignoreCase)
-            : this(typeHintOrNull?.UsingItem.Type, pattern, ignoreCase) {
+        public static ItemMatch CreateItemMatchWithGenericType([NotNull] string pattern, bool ignoreCase) {
+            return new ItemMatch(null, pattern, ignoreCase);
         }
 
         public ItemPattern ItemPattern => _itemPattern;
@@ -24,14 +24,7 @@ namespace NDepCheck.Transforming {
         }
 
         public static bool Matches(ItemMatch matchOrNull, Item node) {
-            if (matchOrNull == null) {
-                return true;
-            } else if (!(node is Item)) {
-                return true;
-                    // TODO: Items do not work with ItemMatch ... either I upgrade ItemMatch; oder I kill Item ...
-            } else {
-                return matchOrNull.Matches((Item) node) != null;
-            }
+            return matchOrNull == null || matchOrNull.Matches(node) != null;
         }
     }
 }

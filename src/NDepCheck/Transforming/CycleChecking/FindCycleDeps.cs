@@ -73,8 +73,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     return j;
                 }),
                 CycleAnchorsOption.Action((args, j) => {
-                    cycleAnchorsMatch = new ItemMatch(dependencies.FirstOrDefault(),
-                        Option.ExtractRequiredOptionValue(args, ref j, "missing anchor name"), _ignoreCase);
+                    cycleAnchorsMatch = ItemMatch.CreateItemMatchWithGenericType(Option.ExtractRequiredOptionValue(args, ref j, "missing anchor name"), _ignoreCase);
                     return j;
                 }),
                 MaxCycleLengthOption.Action((args, j) => {
