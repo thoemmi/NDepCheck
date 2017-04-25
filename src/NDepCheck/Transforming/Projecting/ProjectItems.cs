@@ -30,7 +30,7 @@ namespace NDepCheck.Transforming.Projecting {
         private Func<Projection[], bool, IProjector> _createProjector;
         private IEnumerable<Projection> _allProjectionsForMatchCountLoggingOnly;
 
-        public ProjectItems() : this((p, i) => new SimpleProjector(p, "default")) {
+        public ProjectItems() : this((p, i) => new SimpleProjector(p, name: "default")) {
         }
 
         public ProjectItems(Func<Projection[], bool, IProjector> createProjector) {
@@ -106,13 +106,13 @@ Examples:
                     string strategy = Option.ExtractRequiredOptionValue(args, ref j, "missing strategy");
                     switch (strategy) {
                         case "S":
-                            _createProjector = (p, i) => new SimpleProjector(p, "default projector");
+                            _createProjector = (p, i) => new SimpleProjector(p, name: "default projector");
                             break;
                         case "PT":
-                            _createProjector = (p, i) => new SelfOptimizingPrefixTrieProjector(p, i, 1000, "PT projector");
+                            _createProjector = (p, i) => new SelfOptimizingPrefixTrieProjector(p, i, 1000, name: "PT projector");
                             break;
                         case "FL":
-                            _createProjector = (p, i) => new SelfOptimizingFirstLetterProjector(p, i, 1000, "FL projector");
+                            _createProjector = (p, i) => new SelfOptimizingFirstLetterProjector(p, i, 1000, name: "FL projector");
                             break;
                         default:
                             Log.WriteWarning($"Unrecognized matcher optimization strategy {strategy} - using default");
@@ -136,7 +136,7 @@ Examples:
 
             if (orderedProjections == null || !orderedProjections.AllProjections.Any()) {
                 Log.WriteWarning("No projections defined");
-                _projector = new SimpleProjector(new Projection[0], "empty");
+                _projector = new SimpleProjector(new Projection[0], name: "empty");
                 _allProjectionsForMatchCountLoggingOnly = new Projection[0];
             } else {
                 _projector = _createProjector(orderedProjections.AllProjections, globalContext.IgnoreCase);

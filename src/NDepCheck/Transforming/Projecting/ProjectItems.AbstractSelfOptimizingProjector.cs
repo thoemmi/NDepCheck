@@ -34,7 +34,7 @@ namespace NDepCheck.Transforming.Projecting {
                 // ReSharper disable once VirtualMemberCallInConstructor 
                 _projectors = CreateResortableProjectors(orderedProjections);
 
-                _fallBackProjector = new SimpleProjector(orderedProjections, "fallback");
+                _fallBackProjector = new SimpleProjector(orderedProjections, name: "fallback");
             }
 
             public IEnumerable<TResortableProjectorWithCost> ProjectorsForTesting => _projectors;

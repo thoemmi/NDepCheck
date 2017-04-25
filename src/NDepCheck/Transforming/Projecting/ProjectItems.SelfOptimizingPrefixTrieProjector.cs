@@ -48,7 +48,7 @@ namespace NDepCheck.Transforming.Projecting {
                         !_children.Keys.Any(c => pfp.FixedPrefix.StartsWith(triePath + c)));
 
                 _projections = mightLandHere.Select(pfp => pfp.Projection).ToArray();
-                _projectorToUseIfNoCharMatches = new SimpleProjector(_projections, $"trie[{triePath}]");
+                _projectorToUseIfNoCharMatches = new SimpleProjector(_projections, name: $"trie[{triePath}]");
 
                 int nodeCount = 1;
                 foreach (var kvp in _children) {
@@ -142,7 +142,7 @@ namespace NDepCheck.Transforming.Projecting {
                     // projections also for left-side items.
                     //
                     // The data structure to do this with any retries is the so-called "trie".
-                    // Example: We have 6 projections, 5 with known prefxes abc, de, ab, abd, and 
+                    // Example: We have 6 projections, 5 with known prefixes abc, de, ab, abd, and 
                     // x, and a last catch-all projection.
                     // Here is the trie; the [#] markers are used to show the projection list attached
                     // to that node - it is used when projecting an item if that trie node is reached, 
