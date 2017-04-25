@@ -14,7 +14,10 @@ namespace NDepCheck.Reading {
         }
 
         private class ItemProxy : Item {
-            public ItemProxy([NotNull] ItemType type, string[] values) : base(type, values) {
+            public ItemProxy([NotNull] ItemType type, string[] values, string[] markers) : base(type, values) {
+                if (markers.Any()) {
+                    throw new ArgumentException($"ItemProxy with markers not allowed: {type.Name}:{AsString()} defined with markers {string.Join("+", markers)}");
+                }
             }
 
             public bool ProxyMatches([NotNull] Item item) {
@@ -152,10 +155,14 @@ namespace NDepCheck.Reading {
             return foundItem;
         }
 
+        private static readonly string[] NO_MARKERS = new string[0];
+
         [NotNull]
         private Item CreateItem(string s) {
-            string[] prefixAndValues = s.Split(new[] { ':' }, 2);
+            string[] valuesAndMarkers = s.Split(new[] { '\'' }, 2);
+            string[] prefixAndValues = valuesAndMarkers[0].Split(new[] { ':' }, 2);
             string[] prefix = prefixAndValues[0].Split(';');
+            string[] markers = valuesAndMarkers.Length > 1 ? valuesAndMarkers[1].Split('+') : NO_MARKERS;
 
             string typeName = prefix[0];
 
@@ -165,7 +172,7 @@ namespace NDepCheck.Reading {
             } else {
                 string[] values = prefixAndValues.Length > 1 ? prefixAndValues[1].Split(':', ';') : new string[0];
 
-                var result = values.Contains("?") ? new ItemProxy(foundType, values) : Item.New(foundType, values);
+                Item result = values.Contains("?") ? new ItemProxy(foundType, values, markers) : Item.New(foundType, values, markers);
                 return prefix.Length > 1 ? result.SetOrder(prefix[1]) : result;
             }
         }

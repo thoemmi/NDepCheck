@@ -18,8 +18,8 @@ namespace NDepCheck.Reading {
 
         public static readonly ItemType DOTNETCALL = ItemType.New(
             "DOTNETCALL",
-            new[] { "NAMESPACE", "CLASS", "ASSEMBLY", "ASSEMBLY", "ASSEMBLY", "MEMBER", "MEMBER" },
-            new[] { null, null, ".NAME", ".VERSION", ".CULTURE", ".NAME", ".SORT" }, ignoreCase: false);
+            new[] { "NAMESPACE", "CLASS", "ASSEMBLY", "ASSEMBLY", "ASSEMBLY", "MEMBER" },
+            new[] { null, null, ".NAME", ".VERSION", ".CULTURE", ".NAME" }, ignoreCase: false);
 
         public override AbstractDependencyReader CreateReader(string fileName, GlobalContext options, bool needsOnlyItemTails) {
             return needsOnlyItemTails
@@ -59,7 +59,7 @@ namespace NDepCheck.Reading {
             string result = @"Read data from .Net assembly file (.dll or .exe)
 
 This reader returns items of two types:
-    DOTNETCALL(NAMESPACE:CLASS:ASSEMBLY.NAME;ASSEMBLY.VERSION;ASSEMBLY.CULTURE:MEMBER.NAME;MEMBER.SORT)
+    DOTNETCALL(NAMESPACE:CLASS:ASSEMBLY.NAME;ASSEMBLY.VERSION;ASSEMBLY.CULTURE:MEMBER.NAME)
     DOTNETREF(ASSEMBLY.NAME;ASSEMBLY.VERSION;ASSEMBLY.CULTURE)
 ";
             if (detailedHelp) {
@@ -86,6 +86,10 @@ The files are read with Mono.Cecil.
         protected readonly DotNetAssemblyDependencyReaderFactory _factory;
         protected readonly string _assemblyname;
         protected readonly GlobalContext _globalContext;
+
+        protected readonly string[] GET_MARKER = { "get" };
+        protected readonly string[] SET_MARKER = { "set" };
+
         private Dictionary<RawUsedItem, Item> _rawItems2Items;
 
         protected AbstractDotNetAssemblyDependencyReader(DotNetAssemblyDependencyReaderFactory factory, string fileName, GlobalContext globalContext)
@@ -114,9 +118,10 @@ The files are read with Mono.Cecil.
             private readonly string _assemblyVersion;
             private readonly string _assemblyCulture;
             private readonly string _memberName;
-            private readonly string _memberSort;
+            private readonly string[] _markers;
 
-            protected RawAbstractItem(string namespaceName, string className, string assemblyName, string assemblyVersion, string assemblyCulture, string memberName, string memberSort) {
+            protected RawAbstractItem(string namespaceName, string className, string assemblyName, string assemblyVersion, 
+                                      string assemblyCulture, string memberName, string[] markers) {
                 if (namespaceName == null) {
                     throw new ArgumentNullException(nameof(namespaceName));
                 }
@@ -132,21 +137,22 @@ The files are read with Mono.Cecil.
                 _assemblyVersion = string.Intern(assemblyVersion ?? "");
                 _assemblyCulture = string.Intern(assemblyCulture ?? "");
                 _memberName = string.Intern(memberName ?? "");
-                _memberSort = string.Intern(memberSort ?? "");
+                _markers = markers;
             }
 
             public override string ToString() {
-                return _namespaceName + ":" + ClassName + ":" + AssemblyName + ";" + _assemblyVersion + ";" + _assemblyCulture + ":" + _memberName + ";" + _memberSort;
+                return _namespaceName + ":" + ClassName + ":" + AssemblyName + ";" + _assemblyVersion + ";" + 
+                       _assemblyCulture + ":" + _memberName + ";" + _markers;
             }
 
             [NotNull]
             public virtual Item ToItem(ItemType type) {
-                return Item.New(type, _namespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, _memberName, _memberSort);
+                return Item.New(type, new [] { _namespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, _memberName}, _markers);
             }
 
             [NotNull]
             protected RawUsedItem ToRawUsedItem() {
-                return RawUsedItem.New(_namespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, _memberName, _memberSort);
+                return RawUsedItem.New(_namespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, _memberName, _markers);
             }
 
             protected bool EqualsRawAbstractItem(RawAbstractItem other) {
@@ -158,11 +164,11 @@ The files are read with Mono.Cecil.
                        && other._assemblyVersion == _assemblyVersion
                        && other._assemblyCulture == _assemblyCulture
                        && other._memberName == _memberName
-                       && other._memberSort == _memberSort;
+                       && other._markers == _markers;
             }
 
             protected int GetRawAbstractItemHashCode() {
-                return unchecked(_namespaceName.GetHashCode() + ClassName.GetHashCode() + AssemblyName.GetHashCode() + (_memberName ?? "").GetHashCode());
+                return unchecked(_namespaceName.GetHashCode() ^ ClassName.GetHashCode() ^ AssemblyName.GetHashCode() ^ (_memberName ?? "").GetHashCode());
             }
         }
 
@@ -171,15 +177,15 @@ The files are read with Mono.Cecil.
             private Item _item;
             private RawUsedItem _usedItem;
 
-            private RawUsingItem(string namespaceName, string className, string assemblyName, string assemblyVersion, string assemblyCulture, string memberName, string memberSort, ItemTail tail)
-                : base(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, memberSort) {
+            private RawUsingItem(string namespaceName, string className, string assemblyName, string assemblyVersion, string assemblyCulture, string memberName, string[] markers, ItemTail tail)
+                : base(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers) {
                 _tail = tail;
             }
 
             public static RawUsingItem New(string namespaceName, string className, string assemblyName,
-                string assemblyVersion, string assemblyCulture, string memberName, string memberSort, ItemTail tail) {
+                string assemblyVersion, string assemblyCulture, string memberName, string[] markers, ItemTail tail) {
                 return Intern<RawUsingItem>.GetReference(new RawUsingItem(namespaceName, className, assemblyName,
-                        assemblyVersion, assemblyCulture, memberName, memberSort, tail));
+                                                         assemblyVersion, assemblyCulture, memberName, markers, tail));
             }
 
             public override string ToString() {
@@ -212,14 +218,15 @@ The files are read with Mono.Cecil.
         }
 
         protected sealed class RawUsedItem : RawAbstractItem {
-            private RawUsedItem(string namespaceName, string className, string assemblyName, string assemblyVersion, string assemblyCulture, string memberName, string memberSort)
-                : base(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, memberSort) {
+            private RawUsedItem(string namespaceName, string className, string assemblyName, string assemblyVersion, string assemblyCulture,
+                                string memberName, string[] markers)
+                : base(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers) {
             }
 
             public static RawUsedItem New(string namespaceName, string className, string assemblyName,
-                string assemblyVersion, string assemblyCulture, string memberName, string memberSort) {
+                string assemblyVersion, string assemblyCulture, string memberName, string[] markers) {
                 return Intern<RawUsedItem>.GetReference(new RawUsedItem(namespaceName, className, assemblyName,
-                        assemblyVersion, assemblyCulture, memberName, memberSort));
+                        assemblyVersion, assemblyCulture, memberName, markers));
             }
 
             public override string ToString() {
@@ -272,11 +279,12 @@ The files are read with Mono.Cecil.
 
         protected sealed class RawDependency {
             private readonly ItemType _type;
+            private readonly SequencePoint _sequencePoint;
+            private readonly AbstractDotNetAssemblyDependencyReader _reader;
+
             public readonly RawUsingItem UsingItem;
             public readonly RawUsedItem UsedItem;
             public readonly Usage Usage;
-            private readonly SequencePoint _sequencePoint;
-            private readonly AbstractDotNetAssemblyDependencyReader _reader;
 
             public RawDependency([NotNull] ItemType type, [NotNull] RawUsingItem usingItem, [NotNull] RawUsedItem usedItem,
                 Usage usage, [CanBeNull] SequencePoint sequencePoint, GlobalContext globalState) {

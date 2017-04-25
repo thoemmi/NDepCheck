@@ -17,7 +17,7 @@ namespace NDepCheck.Tests {
     [TestClass]
     public class MainTests {
         // ReSharper disable once AssignNullToNotNullAttribute - certainly ok in this test
-        private static readonly string TestAssemblyPath =
+        public static readonly string TestAssemblyPath =
             Path.Combine(Path.GetDirectoryName(typeof(MainTests).Assembly.Location), "NDepCheck.TestAssembly.dll");
 
         // ReSharper disable UnusedParameter.Local - Das ist ein Assert, daher die "Nur-Verwendung" in Assert ok :-)

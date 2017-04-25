@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
@@ -32,6 +33,24 @@ namespace NDepCheck.Tests {
                 Assert.IsTrue(items.Contains(Item.New(ItemType.Find("NKK"), "a", "keyA1", "KEYa1")));
                 Assert.IsTrue(items.Contains(Item.New(ItemType.Find("NKK"), "a", "keyA2", "KEYa2")));
                 Assert.IsTrue(items.Contains(Item.New(ItemType.Find("NKK"), "b", "", "KEYb")));
+            }
+        }
+
+
+        [TestMethod]
+        public void WriteAndReadDotNetDependencies() {
+            string dipFileName = Path.GetTempFileName() + ".dip";
+            using (var dipFile = new TempFileProvider(dipFileName).Keep) {
+                int result =
+                    Program.Main(new[] {
+                        MainTests.TestAssemblyPath,
+                        Program.WriteDipOption.Opt, dipFile.Filename,
+                        Program.DoResetOption.Opt, dipFile.Filename,
+                        Program.InteractiveDependencyMatchOption.Opt
+                    });
+                Assert.AreEqual(Program.OK_RESULT, result);
+
+                Console.WriteLine(dipFile.Filename);
             }
         }
     }

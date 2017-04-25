@@ -82,6 +82,10 @@ namespace NDepCheck {
         public override int GetHashCode() {
             return SegmentHashCode();
         }
+
+        protected override void MarkersHaveChanged() {
+            // empty
+        }
     }
 
     /// <remarks>
@@ -89,7 +93,7 @@ namespace NDepCheck {
     /// </remarks>
     public class Item : ItemSegment {
         private string _asString;
-        private string _asStringWithType;
+        private string _asFullString;
         private string _order;
 
         protected Item([NotNull] ItemType type, string[] values)
@@ -103,6 +107,12 @@ namespace NDepCheck {
             return Intern<Item>.GetReference(new Item(type, values));
         }
 
+        public static Item New([NotNull]ItemType type, [ItemNotNull] string[] values, [ItemNotNull] string[] markers) {
+            Item item = Intern<Item>.GetReference(new Item(type, values));
+            item.UnionWithMarkers(markers);
+            return item;
+        }
+
         public static Item New([NotNull]ItemType type, [NotNull]string reducedName) {
             return New(type, reducedName.Split(':'));
         }
@@ -112,15 +122,13 @@ namespace NDepCheck {
 
         public Item SetOrder([CanBeNull] string order) {
             _order = order;
-            _asStringWithType = null;
+            _asFullString = null;
             return this;
         }
 
         public string Name => AsString();
 
-        public bool IsEmpty() {
-            return Values.All(s => s == "");
-        }
+        public bool IsEmpty() => Values.All(s => s == "");
 
         [DebuggerStepThrough]
         public override bool Equals(object obj) {
@@ -134,13 +142,16 @@ namespace NDepCheck {
         }
 
         public override string ToString() {
-            return AsStringWithOrderAndType();
+            return AsFullString();
         }
 
         [NotNull]
-        public string AsStringWithOrderAndType() {
-            return _asStringWithType
-                ?? (_asStringWithType = Type.Name + (string.IsNullOrEmpty(Order) ? "" : ";" + Order) + ":" + AsString());
+        public string AsFullString() {
+            if (_asFullString == null) {
+                string markers = Markers.Any() ? "'" + string.Join("+", Markers.OrderBy(s => s)) : "";
+                _asFullString = Type.Name + (string.IsNullOrEmpty(Order) ? "" : ";" + Order) + ":" + AsString() + markers;
+            }
+            return _asFullString;
         }
 
         [NotNull]
@@ -190,6 +201,10 @@ namespace NDepCheck {
         public static void Reset() {
             Intern<ItemTail>.Reset();
             Intern<Item>.Reset();
+        }
+
+        protected override void MarkersHaveChanged() {
+            _asFullString = null;
         }
     }
 }

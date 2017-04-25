@@ -483,6 +483,7 @@ namespace NDepCheck {
             foreach (var d in GetAllDependencies().Where(d => m == null || m.Matches(d)).Take(3)) {
                 Log.WriteInfo(d.AsDipStringWithTypes(false));
             }
+            TransformingDone = true;
         }
 
         public void LogItemCount(string pattern) {
@@ -490,8 +491,9 @@ namespace NDepCheck {
 
             IEnumerable<Item> matchingItems = LogOnlyDependencyCount(pattern);
             foreach (var i in matchingItems.Take(3)) {
-                Log.WriteInfo(i.AsStringWithOrderAndType());
+                Log.WriteInfo(i.AsFullString());
             }
+            TransformingDone = true;
         }
 
         private IEnumerable<Item> LogOnlyDependencyCount(string pattern) {

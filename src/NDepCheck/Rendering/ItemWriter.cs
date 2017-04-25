@@ -18,7 +18,7 @@ namespace NDepCheck.Rendering {
                 dependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }).Where(i => ItemMatch.Matches(itemMatch, i))
                 );
             List<Item> itemsAsList = items.ToList();
-            itemsAsList.Sort((i1, i2) => string.Compare(i1.AsStringWithOrderAndType(), i2.AsStringWithOrderAndType(),
+            itemsAsList.Sort((i1, i2) => string.Compare(i1.AsFullString(), i2.AsFullString(),
                 ignoreCase ? StringComparison.InvariantCultureIgnoreCase : StringComparison.InvariantCulture));
 
             sw.WriteLine($"// Written {DateTime.Now} by {typeof(ItemWriter).Name} in NDepCheck {Program.VERSION}");
@@ -34,7 +34,7 @@ namespace NDepCheck.Rendering {
             }
             sw.WriteLine();
             foreach (var i in itemsAsList) {
-                sw.WriteLine(i.AsStringWithOrderAndType());
+                sw.WriteLine(i.AsFullString());
             }
 
             return itemsAsList.Count;

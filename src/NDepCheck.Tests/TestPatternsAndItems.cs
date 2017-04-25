@@ -310,8 +310,8 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestProblemWithEmptyNamespace() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
-            var @using = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "", "");
-            var used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "", "");
+            var @using = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
+            var used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "");
             var d = new Dependency(@using, used, null, "Test", ct: 1);
 
             var r = new DependencyRule(itemType, "**", itemType, "System.**", new DependencyRuleRepresentation("rules.dep", 0, "...", false), IGNORECASE);
@@ -322,8 +322,8 @@ namespace NDepCheck.Tests {
         public void TestEmptyNamespaceInRule() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
 
-            Item @using = Item.New(itemType, "NDepCheck.TestAssembly.dir1.dir2", "SomeClass", "NDepCheck.TestAssembly", "1.0.0.0", "", "AnotherMethod", "");
-            Item used = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "I", "");
+            Item @using = Item.New(itemType, "NDepCheck.TestAssembly.dir1.dir2", "SomeClass", "NDepCheck.TestAssembly", "1.0.0.0", "", "AnotherMethod");
+            Item used = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "I");
             var d = new Dependency(@using, used, null, "Test", ct: 1);
 
             var r = new DependencyRule(itemType, "NDepCheck.TestAssembly.dir1.dir2:SomeClass:**", itemType, "-:NamespacelessTestClassForNDepCheck::I", new DependencyRuleRepresentation("rules.dep", 0, "...", false), IGNORECASE);
@@ -335,14 +335,36 @@ namespace NDepCheck.Tests {
         public void TestAmpersand() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
 
-            var ga = new Projection(itemType, itemType, "(**):(**):(**)", new[] { "\\1", "\\2", "\\3", "", "", "", "" },
+            var ga = new Projection(itemType, itemType, "(**):(**):(**)", new[] { "\\1", "\\2", "\\3", "", "", "" },
                                     ignoreCase: false, forLeftSide: true, forRightSide: true);
 
-            Item used = Item.New(itemType, "System", "Byte&", "mscorlib", "4.0.0.0", "", "", "");
+            Item used = Item.New(itemType, "System", "Byte&", "mscorlib", "4.0.0.0", "", "");
 
             string result = ga.Match(used, true).Name;
 
-            Assert.AreEqual("System:Byte&:mscorlib;;:;", result);
+            Assert.AreEqual("System:Byte&:mscorlib;;:", result);
+        }
+
+        [TestMethod]
+        public void TestSimpleNamedCall() {
+            ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
+            var @using = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
+            var used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "");
+            var d = new Dependency(@using, used, null, "Test", ct: 1);
+
+            var r = new DependencyRule(itemType, "**", itemType, "ASSEMBLY.NAME=mscorlib", new DependencyRuleRepresentation("rules.dep", 0, "...", false), IGNORECASE);
+            Assert.IsTrue(r.IsMatch(d));
+        }
+
+        [TestMethod]
+        public void TestReverseFieldsInNamedCall() {
+            ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
+            var @using = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
+            var used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "");
+            var d = new Dependency(@using, used, null, "Test", ct: 1);
+
+            var r = new DependencyRule(itemType, "**", itemType, "ASSEMBLY.NAME=mscorlib:CLASS=Object", new DependencyRuleRepresentation("rules.dep", 0, "...", false), IGNORECASE);
+            Assert.IsTrue(r.IsMatch(d));
         }
     }
 }

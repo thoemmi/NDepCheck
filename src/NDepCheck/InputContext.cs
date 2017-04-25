@@ -23,11 +23,6 @@ namespace NDepCheck {
             DependencyList.Add(d);
         }
 
-        //////public DependencyRuleSet GetOrCreateDependencyRuleSet(string fileIncludeStack) {
-        //////    string dependencyFilename = Path.GetFilename(_fileName) + _globalContext.RuleFileExtension;
-        //////    return _globalContext.GetOrCreateDependencyRuleSet(_globalContext, dependencyFilename, fileIncludeStack);
-        //////}
-
         [NotNull]
         public string Filename {
             get;

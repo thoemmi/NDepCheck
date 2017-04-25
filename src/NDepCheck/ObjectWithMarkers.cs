@@ -25,33 +25,46 @@ namespace NDepCheck {
 
         public IEnumerable<string> Markers => _markersOrNull ?? Enumerable.Empty<string>();
 
-        internal void UnionWithMarkers(IEnumerable<string> markers) {
-            if (_markersOrNull == null) {
-                _markersOrNull = CreateHashSet(markers);
-            } else {
-                _markersOrNull.UnionWith(markers);
+        protected abstract void MarkersHaveChanged();
+
+        internal void UnionWithMarkers([CanBeNull] IEnumerable<string> markers) {
+            if (markers != null && markers.Any()) {
+                if (_markersOrNull == null) {
+                    _markersOrNull = CreateHashSet(markers);
+                } else {
+                    _markersOrNull.UnionWith(markers);
+                }
+                MarkersHaveChanged();
             }
         }
 
-        public void AddMarker(string marker) {
+        public void AddMarker([NotNull] string marker) {
             if (_markersOrNull == null) {
                 _markersOrNull = CreateHashSet(new[] { marker });
+                MarkersHaveChanged();
             } else {
-                _markersOrNull.Add(marker);
+                if (_markersOrNull.Add(marker)) {
+                    MarkersHaveChanged();
+                }
             }
         }
 
         public void RemoveMarker(string marker) {
             if (_markersOrNull != null) {
-                _markersOrNull.Remove(marker);
-                if (_markersOrNull.Count == 0) {
-                    _markersOrNull = null;
+                if (_markersOrNull.Remove(marker)) {
+                    if (_markersOrNull.Count == 0) {
+                        _markersOrNull = null;
+                    }
+                    MarkersHaveChanged();
                 }
             }
         }
 
         public void ClearMarkers() {
-            _markersOrNull = null;
+            if (_markersOrNull != null) {
+                MarkersHaveChanged();
+                _markersOrNull = null;
+            }
         }
 
         public bool Matches(MarkerPattern pattern) {
@@ -103,8 +116,7 @@ This is useful
   {typeof(ModifyDeps).Name}  can use that marker to delete or modify the dependency, e.g. set the 
   questionable count).
 
-Markers on items are transient information that is not written to Dip files.
-Markers on dependencies are persistent information that is written into Dip files.
+Markers on items and dependencies are persistent information that is written into Dip files.
 
 If dependencies are aggregated into a simpler graph, e.g. by {typeof(ProjectItems).Name} or
 by {typeof(AddTransitiveDeps).Name}, the markers of the source dependencies are combined into

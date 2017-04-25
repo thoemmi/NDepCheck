@@ -157,5 +157,14 @@ namespace NDepCheck {
             ForceLoadingPredefinedTypes();
             Intern<ItemType>.Reset();
         }
+
+        public int IndexOf(string keyAndSubkey) {
+            for (int i = 0; i < Keys.Length; i++) {
+                if (keyAndSubkey == Keys[i] + SubKeys[i]) {
+                    return i;
+                }
+            }
+            return -1;
+        }
     }
 }

@@ -37,7 +37,7 @@ namespace NDepCheck.Reading {
             }
 
             AssemblyNameDefinition currentAssembly = assembly.Name;
-            yield return RawUsingItem.New("", "", currentAssembly.Name, currentAssembly.Version.ToString(), currentAssembly.Culture, "", "", null);
+            yield return RawUsingItem.New("", "", currentAssembly.Name, currentAssembly.Version.ToString(), currentAssembly.Culture, memberName: "", markers: null, tail: null);
         }
 
         private IEnumerable<RawUsingItem> AnalyzeType(TypeDefinition type, ItemTail parentCustomSections) {
@@ -53,7 +53,7 @@ namespace NDepCheck.Reading {
 
             foreach (MethodDefinition method in type.Methods) {
                 ItemTail methodCustomSections = GetCustomSections(method.CustomAttributes, typeCustomSections);
-                yield return GetFullnameItem(type, method.Name, "", methodCustomSections);
+                yield return GetFullNameItem(type, method.Name, markers: null, customSections: methodCustomSections);
             }
 
             foreach (TypeDefinition nestedType in type.NestedTypes) {
@@ -66,8 +66,8 @@ namespace NDepCheck.Reading {
         private IEnumerable<RawUsingItem> AnalyzeProperty(PropertyDefinition property, ItemTail typeCustomSections) {
             ItemTail propertyCustomSections = GetCustomSections(property.CustomAttributes, typeCustomSections);
 
-            yield return GetFullnameItem(property.DeclaringType, property.Name, "get", propertyCustomSections);
-            yield return GetFullnameItem(property.DeclaringType, property.Name, "set", propertyCustomSections);
+            yield return GetFullNameItem(property.DeclaringType, property.Name, GET_MARKER, propertyCustomSections);
+            yield return GetFullNameItem(property.DeclaringType, property.Name, SET_MARKER, propertyCustomSections);
         }
 
         [NotNull]
@@ -75,14 +75,14 @@ namespace NDepCheck.Reading {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
 
-            return RawUsingItem.New(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, "", "", customSections);
+            return RawUsingItem.New(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName: "", markers: null, tail: customSections);
         }
 
         [NotNull]
-        private RawUsingItem GetFullnameItem(TypeReference typeReference, string memberName, string memberSort, ItemTail customSections) {
+        private RawUsingItem GetFullNameItem(TypeReference typeReference, string memberName, string[] markers, ItemTail customSections) {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
-            return RawUsingItem.New(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, memberSort, customSections);
+            return RawUsingItem.New(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, customSections);
         }
     }
 }

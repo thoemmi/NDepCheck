@@ -215,9 +215,9 @@ namespace NDepCheck {
             // Should that be in DipWriter?
             string exampleInfo = withExampleInfo ? _exampleInfo : null;
             string markers = string.Join("+", Markers.OrderBy(s => s));
-            return $"{_usingItem.AsStringWithOrderAndType()} {DIP_ARROW} "
+            return $"{_usingItem.AsFullString()} {DIP_ARROW} "
                  + $"{markers};{_ct};{_questionableCt};{_badCt};{Source?.AsDipString()};{exampleInfo} "
-                 + $"{DIP_ARROW} {_usedItem.AsStringWithOrderAndType()}";
+                 + $"{DIP_ARROW} {_usedItem.AsFullString()}";
         }
 
         public void AggregateMarkersAndCounts(Dependency d) {
@@ -255,6 +255,10 @@ namespace NDepCheck {
                 result[@using].Add(e);
             }
             return result;
+        }
+
+        protected override void MarkersHaveChanged() {
+            // empty
         }
     }
 }
