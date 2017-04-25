@@ -89,7 +89,7 @@ namespace NDepCheck.Transforming.Projecting {
         public class TrieNodeProjector : AbstractProjector, IResortableProjectorWithCost {
             private readonly TrieNode _root;
             private readonly int _fieldPos;
-            private readonly int _nodeCount;
+            public int NodeCount { get; }
 
             public TrieNodeProjector(Projection[] orderedProjections, int fieldPos, IEqualityComparer<char> equalityComparer, string name)
                 : base(name) {
@@ -101,7 +101,7 @@ namespace NDepCheck.Transforming.Projecting {
                 foreach (var p in allPrefixes) {
                     _root.Insert(p, equalityComparer);
                 }
-                _nodeCount = _root.SetProjectors("", pms);
+                NodeCount = _root.SetProjectors("", pms);
                 _fieldPos = fieldPos;
             }
 
@@ -110,8 +110,6 @@ namespace NDepCheck.Transforming.Projecting {
             }
 
             public double CostPerProjection => (_root.GetMatchCount() + 1e-3) / (_root.GetProjectCount() + 1e-9);
-
-            public int NodeCount => _nodeCount;
 
             public int CompareTo(IResortableProjectorWithCost other) {
                 return CostPerProjection.CompareTo(other.CostPerProjection);
