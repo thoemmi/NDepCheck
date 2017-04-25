@@ -21,13 +21,13 @@ namespace NDepCheck.Rendering {
             output.WriteLine("ranksep = 1.5;");
 
             foreach (var n in itemsAndDependencies.Keys.OrderBy(n => n.Name)) {
-                output.WriteLine("\"" + n.Name + "\" [shape=" + (ItemMatch.Matches(innerMatch, n) ? "box,style=bold" : "oval") + "];");
+                output.WriteLine("\"" + n.Name + "\" [shape=" + (ItemMatch.IsMatch(innerMatch, n) ? "box,style=bold" : "oval") + "];");
             }
 
             output.WriteLine();
 
             foreach (var n in itemsAndDependencies.Keys.OrderBy(n => n.Name)) {
-                foreach (var e in itemsAndDependencies[n].Where(e => ItemMatch.Matches(innerMatch, e.UsingNode) || ItemMatch.Matches(innerMatch, e.UsedNode))) {
+                foreach (var e in itemsAndDependencies[n].Where(e => ItemMatch.IsMatch(innerMatch, e.UsingItem) || ItemMatch.IsMatch(innerMatch, e.UsedItem))) {
                     output.WriteLine(e.GetDotRepresentation(maxExampleLength));
                 }
             }

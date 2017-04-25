@@ -11,19 +11,19 @@ namespace NDepCheck.Rendering {
             public int NotOkCt => 0;
         }
 
-        protected override void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<Item> topNodes, string nodeFormat,
-           Dictionary<Item, int> node2Index, bool withNotOkCt, IEnumerable<Item> sortedNodes, string ctFormat, IDictionary<Item, IEnumerable<Dependency>> nodesAndEdges) {
+        protected override void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<Item> topItems, string itemFormat,
+           Dictionary<Item, int> item2Index, bool withNotOkCt, IEnumerable<Item> sortedItems, string ctFormat, IDictionary<Item, IEnumerable<Dependency>> itemsAndDependencies) {
             WriteFormat1Line(output, Limit("Id", colWidth), Limit("Name", labelWidth),
-                topNodes.Select(n => NodeId(n, nodeFormat, node2Index) + (withNotOkCt ? ";" + Repeat(' ', colWidth) : "")));
+                topItems.Select(n => GetItemId(n, itemFormat, item2Index) + (withNotOkCt ? ";" + Repeat(' ', colWidth) : "")));
 
             IWithCt ZERO_EDGE = new ZeroDependency();
 
-            foreach (var used in sortedNodes) {
+            foreach (var used in sortedItems) {
                 Item used1 = used;
-                WriteFormat1Line(output, NodeId(used, nodeFormat, node2Index), Limit(used.Name, labelWidth),
-                    topNodes.Select( @using =>
-                            FormatCt(withNotOkCt, ctFormat, node2Index[@using] > node2Index[used1],
-                                nodesAndEdges[@using].FirstOrDefault(e => e.UsedNode.Equals(used1)) ?? ZERO_EDGE)));
+                WriteFormat1Line(output, GetItemId(used, itemFormat, item2Index), Limit(used.Name, labelWidth),
+                    topItems.Select( @using =>
+                            FormatCt(withNotOkCt, ctFormat, item2Index[@using] > item2Index[used1],
+                                itemsAndDependencies[@using].FirstOrDefault(e => e.UsedItem.Equals(used1)) ?? ZERO_EDGE)));
             }
         }
 

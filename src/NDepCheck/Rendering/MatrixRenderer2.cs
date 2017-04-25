@@ -5,18 +5,18 @@ using NDepCheck.Transforming;
 
 namespace NDepCheck.Rendering {
     public class MatrixRenderer2 : AbstractMatrixRenderer {
-        protected override void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<Item> topNodes, string nodeFormat,
-            Dictionary<Item, int> node2Index, bool withNotOkCt, IEnumerable<Item> sortedNodes, string ctFormat, IDictionary<Item, IEnumerable<Dependency>> nodesAndEdges) {
+        protected override void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<Item> topItems, string itemFormat,
+            Dictionary<Item, int> item2Index, bool withNotOkCt, IEnumerable<Item> sortedItems, string ctFormat, IDictionary<Item, IEnumerable<Dependency>> itemsAndDependencies) {
             var emptyCtCols = Repeat(' ', colWidth) + (withNotOkCt ? ";" + Repeat(' ', colWidth) : "");
             WriteFormat2Line(output, Limit("Id", colWidth), Limit("Name", labelWidth), Limit("Id", colWidth), Limit("Name", labelWidth), emptyCtCols);
-            foreach (var @using in topNodes) {
-                WriteFormat2Line(output, NodeId(@using, nodeFormat, node2Index), Limit(@using.Name, labelWidth), Limit("", colWidth), Limit("", labelWidth), emptyCtCols);
-                foreach (var used in sortedNodes) {
-                    Dependency edge = nodesAndEdges[@using].FirstOrDefault(e => e.UsedNode.Equals(used));
+            foreach (var @using in topItems) {
+                WriteFormat2Line(output, GetItemId(@using, itemFormat, item2Index), Limit(@using.Name, labelWidth), Limit("", colWidth), Limit("", labelWidth), emptyCtCols);
+                foreach (var used in sortedItems) {
+                    Dependency edge = itemsAndDependencies[@using].FirstOrDefault(e => e.UsedItem.Equals(used));
                     if (edge != null) {
-                        WriteFormat2Line(output, NodeId(@using, nodeFormat, node2Index), Limit(@using.Name, labelWidth), NodeId(used, nodeFormat, node2Index),
+                        WriteFormat2Line(output, GetItemId(@using, itemFormat, item2Index), Limit(@using.Name, labelWidth), GetItemId(used, itemFormat, item2Index),
                             Limit(used.Name, labelWidth),
-                            FormatCt(withNotOkCt, ctFormat, node2Index[@using] > node2Index[used], edge));
+                            FormatCt(withNotOkCt, ctFormat, item2Index[@using] > item2Index[used], edge));
                     }
                 }
             }

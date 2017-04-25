@@ -449,7 +449,7 @@ namespace NDepCheck {
             maxCount = Math.Max(3 * nonEmptyInputContexts.Length, maxCount);
             int depsPerContext = maxCount / (nonEmptyInputContexts.Length + 1);
             foreach (var ic in nonEmptyInputContexts) {
-                IEnumerable<Dependency> matchingDependencies = ic.Dependencies.Where(d => m == null || m.Matches(d)).Take(depsPerContext + 1);
+                IEnumerable<Dependency> matchingDependencies = ic.Dependencies.Where(d => m == null || m.IsMatch(d)).Take(depsPerContext + 1);
                 foreach (var d in matchingDependencies.Take(depsPerContext)) {
                     maxCount--;
                     Log.WriteInfo(d.AsDipStringWithTypes(false));
@@ -459,7 +459,7 @@ namespace NDepCheck {
                 }
             }
             {
-                IEnumerable<Dependency> matchingDependencies = DependenciesWithoutInputContext.Where(d => m == null || m.Matches(d)).Take(maxCount + 1);
+                IEnumerable<Dependency> matchingDependencies = DependenciesWithoutInputContext.Where(d => m == null || m.IsMatch(d)).Take(maxCount + 1);
                 foreach (var d in matchingDependencies.Take(maxCount)) {
                     Log.WriteInfo(d.AsDipStringWithTypes(false));
                 }
@@ -475,12 +475,12 @@ namespace NDepCheck {
             ReadAllNotYetReadIn();
 
             DependencyMatch m = pattern == null ? null : new DependencyMatch(pattern, IgnoreCase);
-            int sum = DependenciesWithoutInputContext.Count(d => m == null || m.Matches(d));
+            int sum = DependenciesWithoutInputContext.Count(d => m == null || m.IsMatch(d));
             foreach (var ic in _inputContexts.Values) {
-                sum += ic.Dependencies.Count(d => m == null || m.Matches(d));
+                sum += ic.Dependencies.Count(d => m == null || m.IsMatch(d));
             }
             Log.WriteInfo(sum + " dependencies" + (m == null ? "" : " matching " + pattern));
-            foreach (var d in GetAllDependencies().Where(d => m == null || m.Matches(d)).Take(3)) {
+            foreach (var d in GetAllDependencies().Where(d => m == null || m.IsMatch(d)).Take(3)) {
                 Log.WriteInfo(d.AsDipStringWithTypes(false));
             }
             TransformingDone = true;
@@ -499,7 +499,7 @@ namespace NDepCheck {
         private IEnumerable<Item> LogOnlyDependencyCount(string pattern) {
             ItemMatch m = pattern == null ? null : ItemMatch.CreateItemMatchWithGenericType(pattern, IgnoreCase);
             IEnumerable<Item> allItems = new HashSet<Item>(GetAllDependencies().SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
-            IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.Matches(m, i));
+            IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.IsMatch(m, i));
             Log.WriteInfo(matchingItems.Count() + " items" + (m == null ? "" : " matching " + pattern));
             return matchingItems;
         }

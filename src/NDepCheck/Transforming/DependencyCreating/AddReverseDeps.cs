@@ -60,7 +60,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 if (!removeOriginal) {
                     transformedDependencies.Add(d);
                 }
-                if (!dependencyMatches.Any() || dependencyMatches.Any(m => m.Matches(d))) {
+                if (!dependencyMatches.Any() || dependencyMatches.Any(m => m.IsMatch(d))) {
                     if (fromTos == null ||
                         !FromTo.ContainsMatchingDependency(fromTos, d.UsedItem, d.UsingItem, idempotentMatch)) {
                         var newDependency = new Dependency(d.UsedItem, d.UsingItem, d.Source, d.Markers, d.Ct,

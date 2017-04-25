@@ -16,8 +16,8 @@ namespace NDepCheck.Rendering {
 
             sw.WriteLine($"// Written {DateTime.Now} by {typeof(DipWriter).Name} in NDepCheck {Program.VERSION}");
             foreach (var e in dependencies) {
-                WriteItemType(writtenTypes, e.UsingNode.Type, sw);
-                WriteItemType(writtenTypes, e.UsedNode.Type, sw);
+                WriteItemType(writtenTypes, e.UsingItem.Type, sw);
+                WriteItemType(writtenTypes, e.UsedItem.Type, sw);
 
                 sw.WriteLine(e.AsDipStringWithTypes(withExampleInfo));
             }

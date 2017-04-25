@@ -70,7 +70,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             DependencyMatch idempotentMatch = new DependencyMatch("'" + string.Join("+", markersToAdd), _ignoreCase);
             Dictionary<FromTo, Dependency> checkPresence = idempotent ? FromTo.AggregateAllEdges(dependencies) : new Dictionary<FromTo, Dependency>();
             Dictionary<Item, IEnumerable<Dependency>> outgoing = Item.CollectOutgoingDependenciesMap(dependencies);
-            var matchingFroms = outgoing.Keys.Where(i => Matches(fromItemMatches, i));
+            var matchingFroms = outgoing.Keys.Where(i => IsMatch(fromItemMatches, i));
 
             var result = new List<Dependency>();
             foreach (var from in matchingFroms) {
@@ -84,19 +84,19 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             return Program.OK_RESULT;
         }
 
-        private static bool Matches(IEnumerable<ItemMatch> itemMatches, Item i) {
+        private static bool IsMatch(IEnumerable<ItemMatch> itemMatches, Item i) {
             return !itemMatches.Any() || itemMatches.Any(m => m.Matches(i) != null);
         }
 
-        private static bool Matches(IEnumerable<DependencyMatch> dependencyMatches, Dependency d) {
-            return !dependencyMatches.Any() || dependencyMatches.Any(m => m.Matches(d));
+        private static bool IsMatch(IEnumerable<DependencyMatch> dependencyMatches, Dependency d) {
+            return !dependencyMatches.Any() || dependencyMatches.Any(m => m.IsMatch(d));
         }
 
         private void RecursivelyFlood(Item root, Item from, HashSet<Item> visited, Dictionary<FromTo, Dependency> checkPresence,
             DependencyMatch idempotentMatch, Dictionary<Item, IEnumerable<Dependency>> outgoing, IEnumerable<ItemMatch> toItemMatches,
             List<DependencyMatch> dependencyMatches, IEnumerable<string> markersToAddOrNull, List<Dependency> result, Dependency collectedEdge) {
             if (outgoing.ContainsKey(from)) {
-                foreach (var d in outgoing[from].Where(d => Matches(dependencyMatches, d))) {
+                foreach (var d in outgoing[from].Where(d => IsMatch(dependencyMatches, d))) {
                     Item target = d.UsedItem;
                     if (visited.Add(target)) {
                         Dependency rootToTarget = collectedEdge == null
@@ -107,10 +107,10 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                                 collectedEdge.Ct + d.Ct, collectedEdge.QuestionableCt + d.QuestionableCt,
                                 collectedEdge.BadCt + d.BadCt, d.ExampleInfo, d.InputContext);
 
-                        if (Matches(toItemMatches, target)) {
+                        if (IsMatch(toItemMatches, target)) {
                             Dependency alreadyThere;
                             var rootTargetKey = new FromTo(root, target);
-                            if (checkPresence.TryGetValue(rootTargetKey, out alreadyThere) && idempotentMatch.Matches(alreadyThere)) {
+                            if (checkPresence.TryGetValue(rootTargetKey, out alreadyThere) && idempotentMatch.IsMatch(alreadyThere)) {
                                 // we do not add a dependency
                             } else {
                                 checkPresence[rootTargetKey] = rootToTarget;

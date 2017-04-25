@@ -15,7 +15,7 @@ namespace NDepCheck.Rendering {
 
         private static int Write(IEnumerable<Dependency> dependencies, TextWriter sw, ItemMatch itemMatch, bool ignoreCase) {
             var items = new HashSet<Item>(
-                dependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }).Where(i => ItemMatch.Matches(itemMatch, i))
+                dependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }).Where(i => ItemMatch.IsMatch(itemMatch, i))
                 );
             List<Item> itemsAsList = items.ToList();
             itemsAsList.Sort((i1, i2) => string.Compare(i1.AsFullString(), i2.AsFullString(),

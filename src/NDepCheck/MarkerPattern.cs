@@ -26,8 +26,8 @@ namespace NDepCheck {
             Absent = new HashSet<string>(absent, ObjectWithMarkers.GetComparer(ignoreCase));
         }
 
-        public bool Match(ObjectWithMarkers obj) {
-            return obj.Matches(this);
+        public bool IsMatch(ObjectWithMarkers obj) {
+            return obj.IsMatch(this);
         }
     }
 }

@@ -28,8 +28,8 @@ namespace NDepCheck.Transforming.GraphTransformations {
 
     //        while (workingSet.Any()) {
     //            var newEdges = new HashSet<T>();
-    //            foreach (var e1 in workingSet.Where(e => !e.UsingNode.Equals(e.UsedNode))) {
-    //                foreach (var e2 in nodesAndEdges[e1.UsedNode]) {
+    //            foreach (var e1 in workingSet.Where(e => !e.UsingItem.Equals(e.UsedItem))) {
+    //                foreach (var e2 in nodesAndEdges[e1.UsedItem]) {
     //                    T newEdge = _concatEdge(e1, e2);
     //                    if (result.Add(newEdge)) {
     //                        newEdges.Add(newEdge);

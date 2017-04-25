@@ -12,7 +12,7 @@ namespace NDepCheck.Transforming.CycleChecking {
             "remove all non-cycle dependencies", @default: false);
 
         public static readonly Option CycleAnchorsOption = new Option("ca", "cycle-anchors", "itempattern",
-            "nodes checked for cycles through them", @default: "all nodes are checked");
+            "items checked for cycles through them", @default: "all items are checked");
 
         public static readonly Option MaxCycleLengthOption = new Option("ml", "max-length", "#",
             "maximum length of cycles found", @default: "arbitrary length");
@@ -86,7 +86,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
             var foundCycleHashs = new HashSet<int>();
             var dependenciesOnCycles = new HashSet<Dependency>();
-            foreach (var i in outgoing.Keys.Where(i => ItemMatch.Matches(cycleAnchorsMatch, i)).OrderBy(i => i.Name)) {
+            foreach (var i in outgoing.Keys.Where(i => ItemMatch.IsMatch(cycleAnchorsMatch, i)).OrderBy(i => i.Name)) {
                 var pathHeadFromI = new Stack<Dependency>();
                 var visitedItem2CheckedPathLengthBehindVisitedItem = new Dictionary<Item, int>();
                 FindCyclesFrom(i, i, ignoreSelfCycles, outgoing, visitedItem2CheckedPathLengthBehindVisitedItem, 
@@ -120,7 +120,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
                         pathHash ^= restLength;
                         if (foundCycleHashs.Contains(pathHash)) {
-                            // The cycle was already found via another node
+                            // The cycle was already found via another item
                             // - we ignore it.
                         } else {
                             // New cycle found; we record it

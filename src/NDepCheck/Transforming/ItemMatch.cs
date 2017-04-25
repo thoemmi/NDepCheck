@@ -20,10 +20,10 @@ namespace NDepCheck.Transforming {
         public ItemPattern ItemPattern => _itemPattern;
 
         public string[] Matches(Item item) {
-            return _markerPattern.Match(item) ? _itemPattern.Matches(item) : null;
+            return _markerPattern.IsMatch(item) ? _itemPattern.Matches(item) : null;
         }
 
-        public static bool Matches(ItemMatch matchOrNull, Item item) {
+        public static bool IsMatch(ItemMatch matchOrNull, Item item) {
             return matchOrNull == null || matchOrNull.Matches(item) != null;
         }
     }

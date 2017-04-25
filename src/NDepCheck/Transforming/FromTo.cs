@@ -43,7 +43,7 @@ namespace NDepCheck.Transforming {
             DependencyMatch matchOrNull = null) {
             Dependency fromTo;
             return fromTos.TryGetValue(new FromTo(@from, to), out fromTo) &&
-                   (matchOrNull == null || matchOrNull.Matches(fromTo));
+                   (matchOrNull == null || matchOrNull.IsMatch(fromTo));
         }
     }
 }

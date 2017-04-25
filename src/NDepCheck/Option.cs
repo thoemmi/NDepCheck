@@ -56,7 +56,7 @@ namespace NDepCheck {
             return "/" + ShortName;
         }
 
-        public bool Matches(string arg) {
+        public bool IsMatch(string arg) {
             return ArgMatches(arg, ShortName, Name) || ArgMatches(arg, MoreNames);
         }
 
@@ -241,7 +241,7 @@ namespace NDepCheck {
 
             for (int i = 0; i < args.Length; i++) {
                 string arg = args[i];
-                OptionAction optionAction = optionActions.FirstOrDefault(oa => oa.Option.Matches(arg));
+                OptionAction optionAction = optionActions.FirstOrDefault(oa => oa.Option.IsMatch(arg));
                 if (optionAction != null) {
                     requiredOptions.Remove(optionAction.Option);
                     i = optionAction.Action(args, i);

@@ -48,23 +48,15 @@ $@"  Write a textual matrix representation of dependencies.
         }
 
         private static List<Item> MoreOrLessTopologicalSort(IEnumerable<Dependency> edges) {
-            Dictionary<Item, List<Dependency>> nodesAndEdges = Dependency.Edges2NodesAndEdgesList(edges);
+            Dictionary<Item, List<Dependency>> dependencies2ItemsAndDependencies = Dependency.Dependencies2ItemsAndDependenciesList(edges);
 
             var result = new List<Item>();
             var resultAsHashSet = new HashSet<Item>();
-            var candidates = new List<Item>(nodesAndEdges.Keys.OrderBy(n => n.Name));
+            var candidates = new List<Item>(dependencies2ItemsAndDependencies.Keys.OrderBy(n => n.Name));
 
             while (candidates.Any()) {
-                //Item best =
-                //    // First try real sinks, i.e., nodes where the number of outgoing edges is 0
-                //    candidates.FirstOrDefault(n => WeightOfAllLeavingEdges(nodesAndEdges, n, e => true, e => 1) == 0)
-                //    // Then, try "not ok sinks", i.e., nodes where there are as many not-ok edges to nodes below.
-                //          ?? SinkCandidate(candidates, nodesAndEdges, e => !resultAsHashSet.Contains(e.UsedNode), e => 1000 * e.NotOkCt / (e.Ct + 1))
-                //          ;
 
-                // Keine ausgehenden Kanten; und keine reinkommenden mit notOk-Ct von candidates
-
-                Item best = FindBest(candidates, true, nodesAndEdges) ?? FindBest(candidates, false, nodesAndEdges);
+                Item best = FindBest(candidates, true, dependencies2ItemsAndDependencies) ?? FindBest(candidates, false, dependencies2ItemsAndDependencies);
 
                 if (best == null) {
                     throw new Exception("Error in algorithm - no best candidate found");
@@ -73,20 +65,20 @@ $@"  Write a textual matrix representation of dependencies.
                 resultAsHashSet.Add(best);
 
                 candidates.Remove(best);
-                foreach (var es in nodesAndEdges.Values) {
-                    es.RemoveAll(e => e.UsedNode.Equals(best));
+                foreach (var es in dependencies2ItemsAndDependencies.Values) {
+                    es.RemoveAll(e => e.UsedItem.Equals(best));
                 }
             }
             result.Reverse();
             return result;
         }
 
-        private static Item FindBest(List<Item> candidates, bool skipOutgoing, Dictionary<Item, List<Dependency>> nodesAndEdges) {
+        private static Item FindBest(List<Item> candidates, bool skipOutgoing, Dictionary<Item, List<Dependency>> itemsAndDependencies) {
             var minimalIncomingNotOkWeight = int.MaxValue;
             var minimalLeavingWeight = int.MaxValue;
             Item result = null;
             foreach (var n in candidates) {
-                int leavingWeight = nodesAndEdges[n].Where(e => !e.UsedNode.Equals(n)).Sum(e => e.Ct);
+                int leavingWeight = itemsAndDependencies[n].Where(e => !e.UsedItem.Equals(n)).Sum(e => e.Ct);
 
                 if (skipOutgoing) {
                     if (leavingWeight > 0) {
@@ -94,7 +86,7 @@ $@"  Write a textual matrix representation of dependencies.
                     }
                 }
 
-                int incomingNotOkWeight = candidates.Where(c => !c.Equals(n)).Sum(c => nodesAndEdges[c].Where(e => e.UsedNode.Equals(n)).Sum(e => e.NotOkCt));
+                int incomingNotOkWeight = candidates.Where(c => !c.Equals(n)).Sum(c => itemsAndDependencies[c].Where(e => e.UsedItem.Equals(n)).Sum(e => e.NotOkCt));
 
                 if (leavingWeight < minimalLeavingWeight
                     || leavingWeight == minimalLeavingWeight && incomingNotOkWeight < minimalIncomingNotOkWeight) {
@@ -114,8 +106,8 @@ $@"  Write a textual matrix representation of dependencies.
             return string.Join("", Enumerable.Repeat(c, lg));
         }
 
-        protected static string NodeId(Item n, string nodeFormat, Dictionary<Item, int> node2Index) {
-            return string.Format(nodeFormat, node2Index[n]);
+        protected static string GetItemId(Item n, string itemFormat, Dictionary<Item, int> item2Index) {
+            return string.Format(itemFormat, item2Index[n]);
         }
 
         protected static string FormatCt(bool withNotOkCt, string ctFormat, bool rightUpper, IWithCt e) {
@@ -128,35 +120,35 @@ $@"  Write a textual matrix representation of dependencies.
 
         protected void Render(IEnumerable<Dependency> edges, ItemMatch innerMatchOrNull,
             [NotNull] TextWriter output, int? labelWidthOrNull, bool withNotOkCt) {
-            IDictionary<Item, IEnumerable<Dependency>> nodesAndEdges = Dependency.Dependencies2ItemsAndDependencies(edges);
+            IDictionary<Item, IEnumerable<Dependency>> itemsAndDependencies = Dependency.Dependencies2ItemsAndDependencies(edges);
 
-            var innerAndReachableOuterNodes =
-                new HashSet<Item>(nodesAndEdges.Where(n => ItemMatch.Matches(innerMatchOrNull, n.Key)).SelectMany(kvp => new[] { kvp.Key }.Concat(kvp.Value.Select(e => e.UsedNode))));
+            var innerAndReachableOuterItems =
+                new HashSet<Item>(itemsAndDependencies.Where(n => ItemMatch.IsMatch(innerMatchOrNull, n.Key)).SelectMany(kvp => new[] { kvp.Key }.Concat(kvp.Value.Select(e => e.UsedItem))));
 
-            IEnumerable<Item> sortedNodes = MoreOrLessTopologicalSort(edges).Where(n => innerAndReachableOuterNodes.Contains(n));
+            IEnumerable<Item> sortedItems = MoreOrLessTopologicalSort(edges).Where(n => innerAndReachableOuterItems.Contains(n));
 
-            if (sortedNodes.Any()) {
+            if (sortedItems.Any()) {
 
                 int m = 0;
-                Dictionary<Item, int> node2Index = sortedNodes.ToDictionary(n => n, n => ++m);
+                Dictionary<Item, int> item2Index = sortedItems.ToDictionary(n => n, n => ++m);
 
-                IEnumerable<Item> topNodes = sortedNodes.Where(n => ItemMatch.Matches(innerMatchOrNull, n));
+                IEnumerable<Item> topItems = sortedItems.Where(n => ItemMatch.IsMatch(innerMatchOrNull, n));
 
-                int labelWidth = labelWidthOrNull ?? Math.Max(Math.Min(sortedNodes.Max(n => n.Name.Length), 30), 4);
+                int labelWidth = labelWidthOrNull ?? Math.Max(Math.Min(sortedItems.Max(n => n.Name.Length), 30), 4);
                 int colWidth = Math.Max(1 + ("" + edges.Max(e => e.Ct)).Length, // 1+ because of loop prefix
-                    1 + ("" + sortedNodes.Count()).Length); // 1+ because of ! or % marker
-                string nodeFormat = "{0," + (colWidth - 1) + ":" + Repeat('0', colWidth - 1) + "}";
+                    1 + ("" + sortedItems.Count()).Length); // 1+ because of ! or % marker
+                string itemFormat = "{0," + (colWidth - 1) + ":" + Repeat('0', colWidth - 1) + "}";
                 string ctFormat = "{0}{1," + (colWidth - 1) + ":" + Repeat('#', colWidth) + "}";
 
-                Write(output, colWidth, labelWidth, topNodes, nodeFormat, node2Index, withNotOkCt, sortedNodes, ctFormat, nodesAndEdges);
+                Write(output, colWidth, labelWidth, topItems, itemFormat, item2Index, withNotOkCt, sortedItems, ctFormat, itemsAndDependencies);
             } else {
-                Log.WriteError("No visible nodes and edges found for output");
+                Log.WriteError("No visible items and dependencies found for output");
             }
         }
 
-        protected abstract void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<Item> topNodes,
-            string nodeFormat, Dictionary<Item, int> node2Index, bool withNotOkCt, IEnumerable<Item> sortedNodes,
-            string ctFormat, IDictionary<Item, IEnumerable<Dependency>> nodesAndEdges);
+        protected abstract void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<Item> topItems,
+            string itemFormat, Dictionary<Item, int> item2Index, bool withNotOkCt, IEnumerable<Item> sortedItems,
+            string ctFormat, IDictionary<Item, IEnumerable<Dependency>> itemsAndDependencies);
 
         public abstract void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase);
 

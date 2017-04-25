@@ -133,10 +133,6 @@ namespace NDepCheck {
             return $"{prefix}{nounTail} {UsingItem} --{ct}-> {UsedItem}" + (Source != null ? (Ct > 1 ? " (e.g. at " : " (at") + Source + ")" : "");
         }
 
-        public Item UsingNode => _usingItem;
-
-        public Item UsedNode => _usedItem;
-
         public string GetDotRepresentation(int? stringLengthForIllegalEdges) {
             // TODO: ?? And there should be a flag (in Edge?) "hasNotOkInfo", depending on whether dependency checking was done or not.
             return "\"" + _usingItem.Name + "\" -> \"" + _usedItem.Name + "\" ["
@@ -228,29 +224,29 @@ namespace NDepCheck {
             _exampleInfo = _exampleInfo ?? d.ExampleInfo;
         }
 
-        private static Item GetOrCreateNode<T>(Dictionary<Item, Item> canonicalNodes, Dictionary<Item, List<T>> nodesAndEdges, Item node) where T : Dependency {
+        private static Item GetOrCreateItem<T>(Dictionary<Item, Item> canonicalItems, Dictionary<Item, List<T>> itemsAndDependencies, Item item) where T : Dependency {
             Item result;
-            if (!canonicalNodes.TryGetValue(node, out result)) {
-                canonicalNodes.Add(node, result = node);
+            if (!canonicalItems.TryGetValue(item, out result)) {
+                canonicalItems.Add(item, result = item);
             }
-            if (!nodesAndEdges.ContainsKey(result)) {
-                nodesAndEdges.Add(result, new List<T>());
+            if (!itemsAndDependencies.ContainsKey(result)) {
+                itemsAndDependencies.Add(result, new List<T>());
             }
             return result;
         }
 
         // TODO: Duplicate of Outgoing???
         internal static IDictionary<Item, IEnumerable<Dependency>> Dependencies2ItemsAndDependencies(IEnumerable<Dependency> edges) {
-            Dictionary<Item, List<Dependency>> result = Edges2NodesAndEdgesList(edges);
+            Dictionary<Item, List<Dependency>> result = Dependencies2ItemsAndDependenciesList(edges);
             return result.ToDictionary<KeyValuePair<Item, List<Dependency>>, Item, IEnumerable<Dependency>>(kvp => kvp.Key, kvp => kvp.Value);
         }
 
-        internal static Dictionary<Item, List<Dependency>> Edges2NodesAndEdgesList(IEnumerable<Dependency> edges) {
-            var canonicalNodes = new Dictionary<Item, Item>();
+        internal static Dictionary<Item, List<Dependency>> Dependencies2ItemsAndDependenciesList(IEnumerable<Dependency> edges) {
+            var canonicalItems = new Dictionary<Item, Item>();
             var result = new Dictionary<Item, List<Dependency>>();
             foreach (var e in edges) {
-                Item @using = GetOrCreateNode(canonicalNodes, result, e.UsingNode);
-                GetOrCreateNode(canonicalNodes, result, e.UsedNode);
+                Item @using = GetOrCreateItem(canonicalItems, result, e.UsingItem);
+                GetOrCreateItem(canonicalItems, result, e.UsedItem);
 
                 result[@using].Add(e);
             }

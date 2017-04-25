@@ -29,16 +29,16 @@
 //        public IEnumerable<T> Run(IEnumerable<T> edges) {
 //            T[] visibleEdges = edges.Where(e => !e.Hidden).ToArray();
 
-//            foreach (var e in visibleEdges.Where(e => !e.UsingNode.IsInner || !e.UsedNode.IsInner)) {
+//            foreach (var e in visibleEdges.Where(e => !e.UsingItem.IsInner || !e.UsedItem.IsInner)) {
 //                e.Hidden = true;
 //            }
 //            if (_incoming) {
-//                foreach (var e in visibleEdges.Where(e => !e.UsingNode.IsInner && e.UsedNode.IsInner)) {
+//                foreach (var e in visibleEdges.Where(e => !e.UsingItem.IsInner && e.UsedItem.IsInner)) {
 //                    e.Hidden = false;
 //                }
 //            }
 //            if (_outgoing) {
-//                foreach (var e in visibleEdges.Where(e => e.UsingNode.IsInner && !e.UsedNode.IsInner)) {
+//                foreach (var e in visibleEdges.Where(e => e.UsingItem.IsInner && !e.UsedItem.IsInner)) {
 //                    e.Hidden = false;
 //                }
 //            }

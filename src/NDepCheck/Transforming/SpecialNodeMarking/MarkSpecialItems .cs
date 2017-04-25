@@ -71,7 +71,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
             Dependency[] matchingDependencies = dependencies
                 .Where(d => !matches.Any()
-                        || matches.Any(m => ItemMatch.Matches(m, d.UsingItem)) && matches.Any(m => ItemMatch.Matches(m, d.UsedItem)))
+                        || matches.Any(m => ItemMatch.IsMatch(m, d.UsingItem)) && matches.Any(m => ItemMatch.IsMatch(m, d.UsedItem)))
                 .ToArray();
 
             MatrixDictionary<Item, int> aggregatedCounts = MatrixDictionary.CreateCounts(matchingDependencies, d => d.Ct);

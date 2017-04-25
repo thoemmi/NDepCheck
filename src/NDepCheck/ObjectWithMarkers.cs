@@ -27,7 +27,7 @@ namespace NDepCheck {
 
         protected abstract void MarkersHaveChanged();
 
-        internal void UnionWithMarkers([CanBeNull] IEnumerable<string> markers) {
+        internal ObjectWithMarkers UnionWithMarkers([CanBeNull] IEnumerable<string> markers) {
             if (markers != null && markers.Any()) {
                 if (_markersOrNull == null) {
                     _markersOrNull = CreateHashSet(markers);
@@ -36,9 +36,10 @@ namespace NDepCheck {
                 }
                 MarkersHaveChanged();
             }
+            return this;
         }
 
-        public void AddMarker([NotNull] string marker) {
+        public ObjectWithMarkers AddMarker([NotNull] string marker) {
             if (_markersOrNull == null) {
                 _markersOrNull = CreateHashSet(new[] { marker });
                 MarkersHaveChanged();
@@ -47,9 +48,10 @@ namespace NDepCheck {
                     MarkersHaveChanged();
                 }
             }
+            return this;
         }
 
-        public void RemoveMarker(string marker) {
+        public ObjectWithMarkers RemoveMarker(string marker) {
             if (_markersOrNull != null) {
                 if (_markersOrNull.Remove(marker)) {
                     if (_markersOrNull.Count == 0) {
@@ -58,16 +60,29 @@ namespace NDepCheck {
                     MarkersHaveChanged();
                 }
             }
+            return this;
         }
 
-        public void ClearMarkers() {
+        public ObjectWithMarkers RemoveMarkers([CanBeNull] IEnumerable<string> markers) {
+            if (markers != null && _markersOrNull != null) {
+                _markersOrNull.ExceptWith(markers);
+                if (_markersOrNull.Count == 0) {
+                    _markersOrNull = null;
+                }
+                MarkersHaveChanged();
+            }
+            return this;
+        }
+
+        public ObjectWithMarkers ClearMarkers() {
             if (_markersOrNull != null) {
                 MarkersHaveChanged();
                 _markersOrNull = null;
             }
+            return this;
         }
 
-        public bool Matches(MarkerPattern pattern) {
+        public bool IsMatch(MarkerPattern pattern) {
             if (_markersOrNull == null) {
                 return pattern.Present.Count == 0;
             } else {

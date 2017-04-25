@@ -81,6 +81,7 @@
     <Compile Include="TestFindCycleDeps.cs" />
     <Compile Include="TestConstraints.cs" />
     <Compile Include="TestHideTransitiveEdges.cs" />
+    <Compile Include="TestMarkDeps.cs" />
     <Compile Include="TestMarkMinimalCutDeps.cs" />
     <Compile Include="TestProjectItems.cs" />
     <Compile Include="TestReaders.cs" />

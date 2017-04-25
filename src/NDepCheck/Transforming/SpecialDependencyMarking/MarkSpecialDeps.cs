@@ -59,7 +59,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 }));
 
             Dependency[] matchingDependencies = dependencies
-                .Where(d => !matches.Any() || matches.Any(m => m.Matches(d)))
+                .Where(d => !matches.Any() || matches.Any(m => m.IsMatch(d)))
                 .ToArray();
 
             if (markSingleCycleNodes) {

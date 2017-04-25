@@ -117,7 +117,7 @@ Examples:
                 Log.WriteWarning($"No actions configured for {GetType().Name}");
             } else {
                 foreach (var d in dependencies) {
-                    DependencyAction firstMatchingAction = _orderedActions.FirstOrDefault(a => a.Match(d));
+                    DependencyAction firstMatchingAction = _orderedActions.FirstOrDefault(a => a.IsMatch(d));
                     if (firstMatchingAction == null) {
                         Log.WriteWarning("No match in actions for dependency " + d);
                     } else {
