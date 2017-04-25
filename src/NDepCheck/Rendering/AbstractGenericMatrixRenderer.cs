@@ -128,7 +128,7 @@ $@"  Write a textual matrix representation of dependencies.
 
         protected void Render(IEnumerable<Dependency> edges, ItemMatch innerMatchOrNull,
             [NotNull] TextWriter output, int? labelWidthOrNull, bool withNotOkCt) {
-            IDictionary<Item, IEnumerable<Dependency>> nodesAndEdges = Dependency.Edges2NodesAndEdges(edges);
+            IDictionary<Item, IEnumerable<Dependency>> nodesAndEdges = Dependency.Dependencies2ItemsAndDependencies(edges);
 
             var innerAndReachableOuterNodes =
                 new HashSet<Item>(nodesAndEdges.Where(n => ItemMatch.Matches(innerMatchOrNull, n.Key)).SelectMany(kvp => new[] { kvp.Key }.Concat(kvp.Value.Select(e => e.UsedNode))));

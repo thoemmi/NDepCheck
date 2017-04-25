@@ -11,11 +11,11 @@ namespace NDepCheck.Rendering {
 
         private static readonly Option[] _allOptions = { NoExampleInfoOption };
 
-        public static void Write(IEnumerable<Dependency> edges, TextWriter sw, bool withExampleInfo) {
+        public static void Write(IEnumerable<Dependency> dependencies, TextWriter sw, bool withExampleInfo) {
             var writtenTypes = new HashSet<ItemType>();
 
             sw.WriteLine($"// Written {DateTime.Now} by {typeof(DipWriter).Name} in NDepCheck {Program.VERSION}");
-            foreach (var e in edges) {
+            foreach (var e in dependencies) {
                 WriteItemType(writtenTypes, e.UsingNode.Type, sw);
                 WriteItemType(writtenTypes, e.UsedNode.Type, sw);
 

@@ -35,7 +35,7 @@ namespace NDepCheck.Transforming.Modifying {
                     var effectOptions =
                         groups[4].Value.Split(' ', ',').Select(s => s.Trim()).Where(s => !string.IsNullOrWhiteSpace(s));
                     foreach (var effect in effectOptions) {
-                        if (effect == "" || effect == "ignore") {
+                        if (effect == "" || effect == "ignore" || effect == "keep") {
                             effects.Add(d => { });
                         } else if (effect.StartsWith("+")) {
                             effects.Add(i => i.AddMarker(effect.Substring(1)));
@@ -43,7 +43,7 @@ namespace NDepCheck.Transforming.Modifying {
                             effects.Add(i => i.RemoveMarker(effect.Substring(1)));
                         } else {
                             throw new ArgumentException(
-                                $"Unexpected edge directive '{effect}' at {fullConfigFileName}/{startLineNo}");
+                                $"Unexpected item directive '{effect}' at {fullConfigFileName}/{startLineNo}");
                         }
                     }
                     _effects = effects;

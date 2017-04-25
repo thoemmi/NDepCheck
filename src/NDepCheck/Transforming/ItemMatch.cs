@@ -23,8 +23,8 @@ namespace NDepCheck.Transforming {
             return _markerPattern.Match(item) ? _itemPattern.Matches(item) : null;
         }
 
-        public static bool Matches(ItemMatch matchOrNull, Item node) {
-            return matchOrNull == null || matchOrNull.Matches(node) != null;
+        public static bool Matches(ItemMatch matchOrNull, Item item) {
+            return matchOrNull == null || matchOrNull.Matches(item) != null;
         }
     }
 }

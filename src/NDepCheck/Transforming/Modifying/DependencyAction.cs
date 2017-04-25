@@ -52,7 +52,7 @@ namespace NDepCheck.Transforming.Modifying {
                         } else if (effect.StartsWith("-")) {
                             effects.Add(d => d.RemoveMarker(effect.Substring(1)));
                         } else {
-                            throw new ArgumentException($"Unexpected edge directive '{effect}' at {fullConfigFileName}/{startLineNo}");
+                            throw new ArgumentException($"Unexpected dependency directive '{effect}' at {fullConfigFileName}/{startLineNo}");
                         }
                     }
                     _effects = effects;

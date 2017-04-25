@@ -234,14 +234,15 @@ namespace NDepCheck {
             return result;
         }
 
-        internal static IDictionary<Item, IEnumerable<T>> Edges2NodesAndEdges<T>(IEnumerable<T> edges) where T : Dependency {
-            Dictionary<Item, List<T>> result = Edges2NodesAndEdgesList(edges);
-            return result.ToDictionary<KeyValuePair<Item, List<T>>, Item, IEnumerable<T>>(kvp => kvp.Key, kvp => kvp.Value);
+        // TODO: Duplicate of Outgoing???
+        internal static IDictionary<Item, IEnumerable<Dependency>> Dependencies2ItemsAndDependencies(IEnumerable<Dependency> edges) {
+            Dictionary<Item, List<Dependency>> result = Edges2NodesAndEdgesList(edges);
+            return result.ToDictionary<KeyValuePair<Item, List<Dependency>>, Item, IEnumerable<Dependency>>(kvp => kvp.Key, kvp => kvp.Value);
         }
 
-        internal static Dictionary<Item, List<T>> Edges2NodesAndEdgesList<T>(IEnumerable<T> edges) where T : Dependency {
+        internal static Dictionary<Item, List<Dependency>> Edges2NodesAndEdgesList(IEnumerable<Dependency> edges) {
             var canonicalNodes = new Dictionary<Item, Item>();
-            var result = new Dictionary<Item, List<T>>();
+            var result = new Dictionary<Item, List<Dependency>>();
             foreach (var e in edges) {
                 Item @using = GetOrCreateNode(canonicalNodes, result, e.UsingNode);
                 GetOrCreateNode(canonicalNodes, result, e.UsedNode);

@@ -14,20 +14,20 @@ namespace NDepCheck.Rendering {
 
         private static readonly Option[] _allOptions = { MaxExampleLengthOption, InnerMatchOption };
 
-        private void Render(IEnumerable<Dependency> edges, [NotNull] TextWriter output, ItemMatch innerMatch, int? maxExampleLength) {
-            IDictionary<Item, IEnumerable<Dependency>> nodesAndEdges = Dependency.Edges2NodesAndEdges(edges);
+        private void Render(IEnumerable<Dependency> dependencies, [NotNull] TextWriter output, ItemMatch innerMatch, int? maxExampleLength) {
+            IDictionary<Item, IEnumerable<Dependency>> itemsAndDependencies = Dependency.Dependencies2ItemsAndDependencies(dependencies);
 
             output.WriteLine("digraph D {");
             output.WriteLine("ranksep = 1.5;");
 
-            foreach (var n in nodesAndEdges.Keys.OrderBy(n => n.Name)) {
+            foreach (var n in itemsAndDependencies.Keys.OrderBy(n => n.Name)) {
                 output.WriteLine("\"" + n.Name + "\" [shape=" + (ItemMatch.Matches(innerMatch, n) ? "box,style=bold" : "oval") + "];");
             }
 
             output.WriteLine();
 
-            foreach (var n in nodesAndEdges.Keys.OrderBy(n => n.Name)) {
-                foreach (var e in nodesAndEdges[n].Where(e => ItemMatch.Matches(innerMatch, e.UsingNode) || ItemMatch.Matches(innerMatch, e.UsedNode))) {
+            foreach (var n in itemsAndDependencies.Keys.OrderBy(n => n.Name)) {
+                foreach (var e in itemsAndDependencies[n].Where(e => ItemMatch.Matches(innerMatch, e.UsingNode) || ItemMatch.Matches(innerMatch, e.UsedNode))) {
                     output.WriteLine(e.GetDotRepresentation(maxExampleLength));
                 }
             }
