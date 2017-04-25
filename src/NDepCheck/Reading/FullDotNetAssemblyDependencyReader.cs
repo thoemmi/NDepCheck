@@ -151,17 +151,33 @@ namespace NDepCheck.Reading {
             CreateCheck<VariableDefinition>(t => t.IsPinned, "pinned"),
         };
 
+        private static string[] GetVariableMarkers(VariableDefinition t, MarkerGenerator<VariableDefinition>[] markerGenerators) {
+            return GetMarkers(t, markerGenerators);
+        }
 
-        private string[] GetMarkers<T>(T t, params MarkerGenerator<T>[] markerGenerators) {
-            IEnumerable<MarkerGenerator<T>> matchingGenerators = markerGenerators.Where(c => c.IsTrue(t)).ToArray();
-            return matchingGenerators.Any() ? matchingGenerators.Select(c => c.Marker).ToArray() : null;
+        private static string[] GetParameterMarkers(ParameterDefinition t, MarkerGenerator<ParameterDefinition>[] markerGenerators) {
+            return GetMarkers(t, markerGenerators);
+        }
+
+        private static string[] GetMemberMarkers<T>(T t, MarkerGenerator<T>[] markerGenerators) where T : IMemberDefinition {
+            return GetMarkers(t, markerGenerators);
+        }
+
+        [CanBeNull]
+        private static string[] GetMarkers<T>(T t, MarkerGenerator<T>[] markerGenerators) {
+            if (t == null) {
+                return null;
+            } else {
+                IEnumerable<MarkerGenerator<T>> matchingGenerators = markerGenerators.Where(c => c.IsTrue(t)).ToArray();
+                return matchingGenerators.Any() ? matchingGenerators.Select(c => c.Marker).ToArray() : null;
+            }
         }
 
         [NotNull]
         private IEnumerable<RawDependency> AnalyzeType([NotNull] TypeDefinition type, [CanBeNull] ItemTail parentCustomSections) {
             ItemTail typeCustomSections = GetCustomSections(type.CustomAttributes, parentCustomSections);
             {
-                RawUsingItem usingItem = GetClassItem(type, typeCustomSections, GetMarkers(_typeDefinitionMarkers));
+                RawUsingItem usingItem = GetClassItem(type, typeCustomSections, GetMemberMarkers(type, _typeDefinitionMarkers));
                 // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
 
                 foreach (var dependency_ in AnalyzeCustomAttributes(usingItem, type.CustomAttributes)) {
@@ -170,13 +186,15 @@ namespace NDepCheck.Reading {
 
                 if (type.BaseType != null && !IsLinked(type.BaseType, type.DeclaringType)) {
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
-GetMarkers(type, _typeDefinitionMarkers), type.BaseType, usage: Usage.Inherit, sequencePoint: null)) {
+                        GetMemberMarkers(type, _typeDefinitionMarkers), type.BaseType, usage: Usage.inherits, sequencePoint: null)) {
                         yield return dependency_;
                     }
                 }
 
                 foreach (TypeReference interfaceRef in type.Interfaces) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, null, interfaceRef, usage: Usage.Implement, sequencePoint: null)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
+                        GetMemberMarkers(Resolve(interfaceRef), _typeDefinitionMarkers),
+                        interfaceRef, usage: Usage.implements, sequencePoint: null)) {
                         yield return dependency_;
                     }
                 }
@@ -186,7 +204,8 @@ GetMarkers(type, _typeDefinitionMarkers), type.BaseType, usage: Usage.Inherit, s
                     ItemTail fieldCustomSections = GetCustomSections(field.CustomAttributes, typeCustomSections);
                     // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, field.Name, "", fieldCustomSections), null, null);
 
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMarkers(field, _fieldDefinitionMarkers), field.FieldType, usage: Usage.DeclareField, sequencePoint: null)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(field, _fieldDefinitionMarkers),
+                             field.FieldType, usage: Usage.declaresfield, sequencePoint: null)) {
                         yield return dependency_;
                     }
                     //}
@@ -196,7 +215,8 @@ GetMarkers(type, _typeDefinitionMarkers), type.BaseType, usage: Usage.Inherit, s
                     ItemTail eventCustomSections = GetCustomSections(@event.CustomAttributes, typeCustomSections);
                     // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, @event.Name, "", eventCustomSections), null, null);
 
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMarkers(@event, _eventDefinitionMarkers), @event.EventType, usage: Usage.DeclareEvent, sequencePoint: null)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(@event, _eventDefinitionMarkers),
+                             @event.EventType, usage: Usage.declaresevent, sequencePoint: null)) {
                         yield return dependency_;
                     }
                 }
@@ -214,7 +234,7 @@ GetMarkers(type, _typeDefinitionMarkers), type.BaseType, usage: Usage.Inherit, s
             foreach (MethodDefinition method in type.Methods) {
                 ItemTail methodCustomSections = GetCustomSections(method.CustomAttributes, typeCustomSections);
 
-                RawUsingItem usingItem = GetFullNameItem(type, method.Name, GetMarkers(method, _methodDefinitionMarkers), methodCustomSections);
+                RawUsingItem usingItem = GetFullNameItem(type, method.Name, GetMemberMarkers(method, _methodDefinitionMarkers), methodCustomSections);
                 // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
 
                 foreach (var dependency_ in AnalyzeMethod(type, usingItem, method)) {
@@ -238,13 +258,15 @@ GetMarkers(type, _typeDefinitionMarkers), type.BaseType, usage: Usage.Inherit, s
             }
 
             foreach (ParameterDefinition parameter in property.Parameters) {
-                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMarkers(parameter, _parameterDefinitionMarkers), parameter.ParameterType, usage: Usage.DeclareParameter, sequencePoint: null)) {
+                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetParameterMarkers(parameter, _parameterDefinitionMarkers),
+                         parameter.ParameterType, usage: Usage.declaresparameter, sequencePoint: null)) {
                     yield return dependency_;
                 }
             }
 
             if (property.PropertyType != null) {
-                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMarkers(property, _propertyDefinitionMarkers), property.PropertyType, usage: Usage.DeclareReturnType, sequencePoint: null)) {
+                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(property, _propertyDefinitionMarkers),
+                         property.PropertyType, usage: Usage.declaresreturntype, sequencePoint: null)) {
                     yield return dependency_;
                 }
             }
@@ -261,10 +283,12 @@ GetMarkers(type, _typeDefinitionMarkers), type.BaseType, usage: Usage.Inherit, s
         private IEnumerable<RawDependency> AnalyzeCustomAttributes([NotNull] RawUsingItem usingItem,
                                                                    [NotNull] IEnumerable<CustomAttribute> customAttributes) {
             foreach (CustomAttribute customAttribute in customAttributes) {
-                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, null, customAttribute.Constructor.DeclaringType, usage: Usage.Declaration, sequencePoint: null)) {
+                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, null, customAttribute.Constructor.DeclaringType,
+                         usage: Usage.declares, sequencePoint: null)) {
                     yield return dependency_;
                 }
-                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, null, customAttribute.Constructor.DeclaringType, usage: Usage.Use, sequencePoint: null, memberName: customAttribute.Constructor.Name)) {
+                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, null, customAttribute.Constructor.DeclaringType,
+                         usage: Usage.uses, sequencePoint: null, memberName: customAttribute.Constructor.Name)) {
                     yield return dependency_;
                 }
             }
@@ -291,13 +315,16 @@ GetMarkers(type, _typeDefinitionMarkers), type.BaseType, usage: Usage.Inherit, s
 
             foreach (ParameterDefinition parameter in method.Parameters) {
                 foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
-                    GetMarkers(parameter, _parameterDefinitionMarkers), parameter.ParameterType, usage: Usage.DeclareParameter, sequencePoint: null)) {
+                         GetParameterMarkers(parameter, _parameterDefinitionMarkers), parameter.ParameterType,
+                         usage: Usage.declaresparameter, sequencePoint: null)) {
                     yield return dependency_;
                 }
             }
 
             if (method.ReturnType != null && !IsLinked(method.ReturnType, method.DeclaringType.DeclaringType)) {
-                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, null, method.ReturnType, usage: Usage.DeclareReturnType, sequencePoint: null)) {
+                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
+                         GetMemberMarkers(Resolve(method.ReturnType), _typeDefinitionMarkers),
+                         method.ReturnType, usage: Usage.declaresreturntype, sequencePoint: null)) {
                     yield return dependency_;
                 }
             }
@@ -306,7 +333,7 @@ GetMarkers(type, _typeDefinitionMarkers), type.BaseType, usage: Usage.Inherit, s
                 foreach (var variable in method.Body.Variables) {
                     if (!IsLinked(variable.VariableType, method.DeclaringType.DeclaringType)) {
                         foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
-                            GetMarkers(variable, _variableDefinitionMarkers), variable.VariableType, usage: Usage.DeclareVariable, sequencePoint: null)) {
+                                 GetVariableMarkers(variable, _variableDefinitionMarkers), variable.VariableType, usage: Usage.declaresvar, sequencePoint: null)) {
                             yield return dependency_;
                         }
                     }
@@ -334,10 +361,15 @@ GetMarkers(type, _typeDefinitionMarkers), type.BaseType, usage: Usage.Inherit, s
                 // werden ...
                 // WIESO SOLL DAS SO SEIN? - bitte um Erklärung! ==> SIehe nun temporäre Änderung an IsLinked - IST DAS OK?
                 if (methodReference != null && !IsLinked(methodReference.DeclaringType, owner)) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, null, methodReference.DeclaringType, usage: Usage.Use, sequencePoint: sequencePoint, memberName: methodReference.Name)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
+                                GetMemberMarkers(Resolve(methodReference.DeclaringType), _typeDefinitionMarkers),
+                                methodReference.DeclaringType, usage: Usage.uses, sequencePoint: sequencePoint,
+                                memberName: methodReference.Name)) {
                         yield return dependency_;
                     }
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, null, methodReference.ReturnType, usage: Usage.Use, sequencePoint: sequencePoint)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
+                                GetMemberMarkers(Resolve(methodReference.ReturnType), _typeDefinitionMarkers),
+                                methodReference.ReturnType, usage: Usage.uses, sequencePoint: sequencePoint)) {
                         yield return dependency_;
                     }
                 }
@@ -345,11 +377,13 @@ GetMarkers(type, _typeDefinitionMarkers), type.BaseType, usage: Usage.Inherit, s
             {
                 var field = instruction.Operand as FieldDefinition;
                 if (field != null && !IsLinked(field.DeclaringType, owner)) {
-                    foreach (var dependency_ in
-                        CreateTypeAndMethodDependencies(usingItem, GetMarkers(field, _fieldDefinitionMarkers), field.FieldType, usage: Usage.Use, sequencePoint: sequencePoint)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, 
+                                GetMemberMarkers(field, _fieldDefinitionMarkers), field.FieldType, usage: Usage.uses, 
+                                sequencePoint: sequencePoint)) {
                         yield return dependency_;
                     }
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMarkers(field, _fieldDefinitionMarkers), field.DeclaringType, usage: Usage.Use, sequencePoint: sequencePoint, memberName: field.Name)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(field, _fieldDefinitionMarkers), 
+                                field.DeclaringType, usage: Usage.uses, sequencePoint: sequencePoint, memberName: field.Name)) {
                         yield return dependency_;
                     }
                 }
@@ -357,10 +391,12 @@ GetMarkers(type, _typeDefinitionMarkers), type.BaseType, usage: Usage.Inherit, s
             {
                 var property = instruction.Operand as PropertyDefinition;
                 if (property != null && !IsLinked(property.DeclaringType, owner)) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMarkers(property, _propertyDefinitionMarkers), property.PropertyType, usage: Usage.Use, sequencePoint: sequencePoint)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(property, _propertyDefinitionMarkers), 
+                                property.PropertyType, usage: Usage.uses, sequencePoint: sequencePoint)) {
                         yield return dependency_;
                     }
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMarkers(property, _propertyDefinitionMarkers), property.DeclaringType, usage: Usage.Use, sequencePoint: sequencePoint, memberName: property.Name)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(property, _propertyDefinitionMarkers), 
+                                property.DeclaringType, usage: Usage.uses, sequencePoint: sequencePoint, memberName: property.Name)) {
                         yield return dependency_;
                     }
                 }
@@ -368,7 +404,9 @@ GetMarkers(type, _typeDefinitionMarkers), type.BaseType, usage: Usage.Inherit, s
             {
                 var typeref = instruction.Operand as TypeReference;
                 if (typeref != null && !IsLinked(typeref, owner)) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, null, typeref, usage: Usage.Use, sequencePoint: sequencePoint)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
+                                GetMemberMarkers(Resolve(typeref), _typeDefinitionMarkers),
+                                typeref, usage: Usage.uses, sequencePoint: sequencePoint)) {
                         yield return dependency_;
                     }
                 }
@@ -432,8 +470,9 @@ GetMarkers(type, _typeDefinitionMarkers), type.BaseType, usage: Usage.Inherit, s
             var genericInstanceType = usedType as GenericInstanceType;
             if (genericInstanceType != null) {
                 foreach (TypeReference genericArgument in genericInstanceType.GenericArguments) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, null, genericArgument,
-                                                                                usage: Usage.UseAsGenericArgument, sequencePoint: sequencePoint)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
+                             GetMemberMarkers(Resolve(genericArgument), _typeDefinitionMarkers), genericArgument,
+                             usage: Usage.usesasgenericargument, sequencePoint: sequencePoint)) {
                         yield return dependency_;
                     }
                 }

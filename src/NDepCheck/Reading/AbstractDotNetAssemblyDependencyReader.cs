@@ -23,7 +23,7 @@ namespace NDepCheck.Reading {
 
         public override AbstractDependencyReader CreateReader(string fileName, GlobalContext options, bool needsOnlyItemTails) {
             return needsOnlyItemTails
-                ? (AbstractDependencyReader) new ItemsOnlyDotNetAssemblyDependencyReader(this, fileName, options)
+                ? (AbstractDependencyReader)new ItemsOnlyDotNetAssemblyDependencyReader(this, fileName, options)
                 : new FullDotNetAssemblyDependencyReader(this, fileName, options);
         }
 
@@ -35,20 +35,20 @@ namespace NDepCheck.Reading {
         public static void GetTypeAssemblyInfo(TypeReference reference, out string assemblyName, out string assemblyVersion, out string assemblyCulture) {
             switch (reference.Scope.MetadataScopeType) {
                 case MetadataScopeType.AssemblyNameReference:
-                    AssemblyNameReference r = (AssemblyNameReference) reference.Scope;
+                    AssemblyNameReference r = (AssemblyNameReference)reference.Scope;
                     assemblyName = reference.Scope.Name;
                     assemblyVersion = r.Version.ToString();
                     assemblyCulture = r.Culture;
                     break;
                 case MetadataScopeType.ModuleReference:
-                    assemblyName = ((ModuleReference) reference.Scope).Name;
+                    assemblyName = ((ModuleReference)reference.Scope).Name;
                     assemblyVersion = null;
                     assemblyCulture = null;
                     break;
                 case MetadataScopeType.ModuleDefinition:
-                    assemblyName = ((ModuleDefinition) reference.Scope).Assembly.Name.Name;
-                    assemblyVersion = ((ModuleDefinition) reference.Scope).Assembly.Name.Version.ToString();
-                    assemblyCulture = ((ModuleDefinition) reference.Scope).Assembly.Name.Culture;
+                    assemblyName = ((ModuleDefinition)reference.Scope).Assembly.Name.Name;
+                    assemblyVersion = ((ModuleDefinition)reference.Scope).Assembly.Name.Version.ToString();
+                    assemblyCulture = ((ModuleDefinition)reference.Scope).Assembly.Name.Culture;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -120,7 +120,7 @@ The files are read with Mono.Cecil.
             private readonly string _memberName;
             private readonly string[] _markers;
 
-            protected RawAbstractItem(string namespaceName, string className, string assemblyName, string assemblyVersion, 
+            protected RawAbstractItem(string namespaceName, string className, string assemblyName, string assemblyVersion,
                                       string assemblyCulture, string memberName, string[] markers) {
                 if (namespaceName == null) {
                     throw new ArgumentNullException(nameof(namespaceName));
@@ -141,13 +141,13 @@ The files are read with Mono.Cecil.
             }
 
             public override string ToString() {
-                return _namespaceName + ":" + ClassName + ":" + AssemblyName + ";" + _assemblyVersion + ";" + 
+                return _namespaceName + ":" + ClassName + ":" + AssemblyName + ";" + _assemblyVersion + ";" +
                        _assemblyCulture + ":" + _memberName + ";" + _markers;
             }
 
             [NotNull]
             public virtual Item ToItem(ItemType type) {
-                return Item.New(type, new [] { _namespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, _memberName}, _markers);
+                return Item.New(type, new[] { _namespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, _memberName }, _markers);
             }
 
             [NotNull]
@@ -265,16 +265,16 @@ The files are read with Mono.Cecil.
         }
 
         protected enum Usage {
-            DeclareField,
-            DeclareEvent,
-            DeclareParameter,
-            DeclareReturnType,
-            Declaration,
-            DeclareVariable,
-            Use,
-            Inherit,
-            Implement,
-            UseAsGenericArgument,
+            declaresfield,
+            declaresevent,
+            declaresparameter,
+            declaresreturntype,
+            declares,
+            declaresvar,
+            uses,
+            inherits,
+            implements,
+            usesasgenericargument,
         }
 
         protected sealed class RawDependency {
@@ -353,20 +353,7 @@ The files are read with Mono.Cecil.
         private ItemTail ExtractCustomSections(CustomAttribute customAttribute, ItemTail parent) {
             TypeDefinition attributeType;
             TypeReference customAttributeTypeReference = customAttribute.AttributeType;
-            if (_unresolvableTypeReferences.Contains(customAttributeTypeReference.FullName)) {
-                attributeType = null;
-            } else {
-                try {
-                    attributeType = customAttributeTypeReference.Resolve();
-                } catch (Exception ex) {
-                    _unresolvableTypeReferences.Add(customAttributeTypeReference.FullName);
-                    attributeType = null;
-                    string msg = "Cannot resolve " + customAttributeTypeReference + " - reason: " + ex.Message;
-                    if (_loggedInfos.Add(msg)) {
-                        Log.WriteInfo(msg);
-                    }
-                }
-            }
+            attributeType = Resolve(customAttributeTypeReference);
             bool isSectionAttribute = attributeType != null && attributeType.Interfaces.Any(i => i.FullName == "NDepCheck.ISectionAttribute");
             if (isSectionAttribute) {
                 string[] keys = attributeType.Properties.Select(property => property.Name).ToArray();
@@ -389,6 +376,25 @@ The files are read with Mono.Cecil.
                 }
             } else {
                 return parent;
+            }
+        }
+
+        protected TypeDefinition Resolve(TypeReference typeReference) {
+            if (_unresolvableTypeReferences.Contains(typeReference.FullName)) {
+                return null;
+            } else {
+                TypeDefinition typeDefinition;
+                try {
+                    typeDefinition = typeReference.Resolve();
+                } catch (Exception ex) {
+                    _unresolvableTypeReferences.Add(typeReference.FullName);
+                    typeDefinition = null;
+                    string msg = "Cannot resolve " + typeReference + " - reason: " + ex.Message;
+                    if (_loggedInfos.Add(msg)) {
+                        Log.WriteInfo(msg);
+                    }
+                }
+                return typeDefinition;
             }
         }
 
