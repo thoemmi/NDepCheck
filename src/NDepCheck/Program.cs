@@ -16,7 +16,7 @@ using NDepCheck.WebServing;
 
 namespace NDepCheck {
     public class Program {
-        public const string VERSION = "V.3.68";
+        public const string VERSION = "V.3.69";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 1;
@@ -841,13 +841,15 @@ namespace NDepCheck {
                 Console.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck input files (+, //, defines)");
                 return exitValue;
             } else if (filter.StartsWith("item")) {
-                Console.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck item patterns");
+                Console.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck items in general");
+                Console.WriteLine(Item.ITEM_HELP);
                 return exitValue;
             } else if (filter.StartsWith("dep")) {
-                Console.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck dependency patterns");
+                Console.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck dependencies in general");
+                Console.WriteLine(DependencyMatch.DEPENDENCY_MATCH_HELP);
                 return exitValue;
             } else if (filter.StartsWith("marker")) {
-                Console.WriteLine(ObjectWithMarkers.HELP);
+                Console.WriteLine(ObjectWithMarkers.MARKER_HELP);
                 return exitValue;
             } else if (filter.StartsWith("type")) {
                 Console.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck item types");

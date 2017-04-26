@@ -79,12 +79,12 @@ namespace NDepCheck.Transforming {
                 _matchers = Enumerable.Repeat(_alwaysMatcher, _itemType.Keys.Length).ToArray();
                 foreach (var p in parts) {
                     string[] nameAndPattern = p.Split(new [] { '=' }, 2);
-                    string keyAndSubkey = nameAndPattern[0];
+                    string keyAndSubkey = nameAndPattern[0].Trim();
                     int i = _itemType.IndexOf(keyAndSubkey);
                     if (i < 0) {
                         throw new ApplicationException($"Key '{keyAndSubkey}' not defined in item type {_itemType.Name}");
                     }
-                    _matchers[i] = CreateMatcher(nameAndPattern[1], 0, ignoreCase);
+                    _matchers[i] = CreateMatcher(nameAndPattern[1].Trim(), 0, ignoreCase);
                 }
             } else {
                 int j = 0;

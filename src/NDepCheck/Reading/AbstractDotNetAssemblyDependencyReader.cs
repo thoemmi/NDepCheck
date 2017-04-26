@@ -225,8 +225,10 @@ The files are read with Mono.Cecil.
 
             public static RawUsedItem New(string namespaceName, string className, string assemblyName,
                 string assemblyVersion, string assemblyCulture, string memberName, string[] markers) {
-                return Intern<RawUsedItem>.GetReference(new RawUsedItem(namespaceName, className, assemblyName,
-                        assemblyVersion, assemblyCulture, memberName, markers));
+                //return Intern<RawUsedItem>.GetReference(new RawUsedItem(namespaceName, className, assemblyName,
+                //        assemblyVersion, assemblyCulture, memberName, markers));
+                // Dont make unique - costs lot of time; and Raw...Items are anyway removed at end of DLL reading.
+                return new RawUsedItem(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers);
             }
 
             public override string ToString() {

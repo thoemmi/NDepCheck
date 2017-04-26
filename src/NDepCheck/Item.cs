@@ -206,5 +206,35 @@ namespace NDepCheck {
         protected override void MarkersHaveChanged() {
             _asFullString = null;
         }
+
+        public static readonly string ITEM_HELP = $@"
+TBD
+
+Item matches
+============
+
+An item match is a string that is matched against items for various
+plugins. An item match has the following format (unfortunately, not all
+plugins follow this format as of today):
+   
+    [ typename : ] positionfieldmatch {{ : positionfieldmatch }} [markerpattern]
+
+or 
+
+    typename : namedfieldmatch {{ : namedfieldmatch }} [markerpattern]
+
+For more information on types, see the help topic for 'type'.
+The marker pattern is described in the help text for 'marker'.
+
+A positionfieldmatch has the following format:
+
+    TBD
+
+A namedfieldmatch has the following format:
+
+    name=positionfieldmatch
+
+TBD
+";
     }
 }

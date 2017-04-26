@@ -121,7 +121,10 @@ namespace NDepCheck {
             return result;
         }
 
-        public static readonly string HELP = $@"
+        public static readonly string MARKER_HELP = $@"
+Markers
+=======
+
 It is possible to add arbitrary 'marker strings' (or markers) items and dependencies.
 This is useful
 * to add additional information to read-in dependencies (e.g., dependencies read in
@@ -149,6 +152,20 @@ For example, the two marker sets
 are combined to
   a, b/c, f, g/h, d/g, d/h
 The first four are without / or did not find partners. The last two
-are the results of combining d/e + e/g and d/e + e/h.";
+are the results of combining d/e + e/g and d/e + e/h.
+
+Marker patterns
+===============
+
+A marker pattern is used in dependency matches and item matches.
+It has the following format:
+
+    ' singlepattern {{ & singlepattern }}
+
+where a singlepattern checks for the presence or absence of a marker:
+
+    marker      marker is present
+    ~marker     marker is absent
+";
     }
 }
