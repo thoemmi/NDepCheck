@@ -114,8 +114,8 @@ namespace NDepCheck {
         }
 
         [NotNull]
-        public static string ExtractRequiredOptionValue(string[] args, ref int i, string message) {
-            string optionValue = ExtractOptionValue(args, ref i);
+        public static string ExtractRequiredOptionValue(string[] args, ref int i, string message, bool allowOptionValue = false) {
+            string optionValue = ExtractOptionValue(args, ref i, allowOptionValue);
             if (string.IsNullOrWhiteSpace(optionValue)) {
                 throw new ArgumentException(message);
             }

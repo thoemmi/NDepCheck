@@ -1,15 +1,19 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.DependencyCreating {
     public class AddReverseDeps : ITransformer {
         public static readonly Option DependencyMatchOption = new Option("dm", "dependency-match", "&", "Match to select dependencies to reverse", @default: "reverse all edges", multiple: true);
+        public static readonly Option NoMatchOption = new Option("nm", "dont-match", "&", "Match to exclude dependencies", @default: "do not exclude any", multiple: true);
+
         public static readonly Option RemoveOriginalOption = new Option("ro", "remove-original", "", "If present, original dependency of a newly created reverse dependency is removed", @default:false);
         public static readonly Option MarkerToAddOption = new Option("ma", "marker-to-add", "&", "Marker added to newly created reverse dependencies", @default: "none");
         public static readonly Option IdempotentOption = new Option("ip", "idempotent", "", "Do not add if dependency with provided marker already exists", @default: false);
 
-        private static readonly Option[] _transformOptions = { DependencyMatchOption, RemoveOriginalOption, MarkerToAddOption, IdempotentOption };
+        private static readonly Option[] _transformOptions = {
+            DependencyMatchOption, NoMatchOption,
+            RemoveOriginalOption, MarkerToAddOption, IdempotentOption
+        };
 
         private bool _ignoreCase;
 
@@ -30,14 +34,21 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         public int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
             [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
-            var dependencyMatches = new List<DependencyMatch>();
+            var matches = new List<DependencyMatch>();
+            var excludes = new List<DependencyMatch>();
             string markerToAdd = null;
             bool removeOriginal = false;
             bool idempotent = false;
 
             Option.Parse(globalContext, transformOptions,
                 DependencyMatchOption.Action((args, j) => {
-                    dependencyMatches.Add(DependencyMatch.Create(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), _ignoreCase));
+                    string pattern = Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency pattern", allowOptionValue: true);
+                    matches.Add(DependencyMatch.Create(pattern, _ignoreCase));
+                    return j;
+                }),
+                NoMatchOption.Action((args, j) => {
+                    string pattern = Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency pattern", allowOptionValue: true);
+                    excludes.Add(DependencyMatch.Create(pattern, _ignoreCase));
                     return j;
                 }),
                 IdempotentOption.Action((args, j) => {
@@ -60,11 +71,11 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 if (!removeOriginal) {
                     transformedDependencies.Add(d);
                 }
-                if (!dependencyMatches.Any() || dependencyMatches.Any(m => m.IsMatch(d))) {
+                if (d.IsMatch(matches, excludes)) {
                     if (fromTos == null ||
                         !FromTo.ContainsMatchingDependency(fromTos, d.UsedItem, d.UsingItem, idempotentPattern)) {
                         var newDependency = new Dependency(d.UsedItem, d.UsingItem, d.Source, d.Markers, d.Ct,
-                            d.QuestionableCt, d.BadCt, d.ExampleInfo, d.InputContext);
+                                                           d.QuestionableCt, d.BadCt, d.ExampleInfo, d.InputContext);
                         if (markerToAdd != null) {
                             newDependency.AddMarker(markerToAdd);
                         }

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using JetBrains.Annotations;
+using NDepCheck.Transforming;
 
 namespace NDepCheck {
     /// <remarks>Class <c>Dependency</c> stores
@@ -255,6 +256,11 @@ namespace NDepCheck {
 
         protected override void MarkersHaveChanged() {
             // empty
+        }
+
+        public bool IsMatch(List<DependencyMatch> matches, List<DependencyMatch> excludes) {
+            return (matches.Count == 0 || matches.Any(m => m.IsMatch(this))) &&
+                   (excludes.Count == 0 || !excludes.Any(m => m.IsMatch(this)));
         }
     }
 }

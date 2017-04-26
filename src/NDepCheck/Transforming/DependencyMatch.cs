@@ -31,7 +31,7 @@ namespace NDepCheck.Transforming {
                    && ItemMatch.IsMatch(_usedMatch, d.UsedItem);
         }
 
-        public static readonly string DEPENDENCY_MATCH_HELP = $@"
+        public static readonly string DEPENDENCY_MATCH_HELP = @"
 TBD
 
 A dependency match is a string that is matched against dependencies for various
