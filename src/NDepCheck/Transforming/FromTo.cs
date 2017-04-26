@@ -20,7 +20,7 @@ namespace NDepCheck.Transforming {
             return From.GetHashCode() ^ To.GetHashCode();
         }
 
-        public FromTo AggregateEdge(Dependency d, Dictionary<FromTo, Dependency> edgeCollector) {
+        public FromTo AggregateDependency(Dependency d, Dictionary<FromTo, Dependency> edgeCollector) {
             Dependency result;
             if (!edgeCollector.TryGetValue(this, out result)) {
                 result = new Dependency(From, To, d.Source, d.Markers, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo);
@@ -28,13 +28,15 @@ namespace NDepCheck.Transforming {
             } else {
                 result.AggregateMarkersAndCounts(d);
             }
+            result.UsingItem.UnionWithMarkers(d.UsingItem.Markers);
+            result.UsedItem.UnionWithMarkers(d.UsedItem.Markers);
             return this;
         }
 
-        public static Dictionary<FromTo, Dependency> AggregateAllEdges(IEnumerable<Dependency> dependencies) {
+        public static Dictionary<FromTo, Dependency> AggregateAllDependencies(IEnumerable<Dependency> dependencies) {
             var result = new Dictionary<FromTo, Dependency>();
             foreach (var d in dependencies) {
-                new FromTo(d.UsingItem, d.UsedItem).AggregateEdge(d, result);
+                new FromTo(d.UsingItem, d.UsedItem).AggregateDependency(d, result);
             }
             return result;
         }
@@ -42,7 +44,7 @@ namespace NDepCheck.Transforming {
         public static bool ContainsMatchingDependency(Dictionary<FromTo, Dependency> fromTos, Item from, Item to,
             DependencyMatch matchOrNull = null) {
             Dependency fromTo;
-            return fromTos.TryGetValue(new FromTo(@from, to), out fromTo) &&
+            return fromTos.TryGetValue(new FromTo(from, to), out fromTo) &&
                    (matchOrNull == null || matchOrNull.IsMatch(fromTo));
         }
     }

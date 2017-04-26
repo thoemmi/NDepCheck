@@ -10,7 +10,7 @@ namespace NDepCheck.Transforming {
             [NotNull] Func<Dependency, int> getCount) {
             var aggregated = new Dictionary<FromTo, Dependency>();
             foreach (var d in dependencies) {
-                new FromTo(d.UsingItem, d.UsedItem).AggregateEdge(d, aggregated);
+                new FromTo(d.UsingItem, d.UsedItem).AggregateDependency(d, aggregated);
             }
 
             var aggregatedCounts = new MatrixDictionary<Item, int>((s, i) => s + i, (s, i) => s - i);

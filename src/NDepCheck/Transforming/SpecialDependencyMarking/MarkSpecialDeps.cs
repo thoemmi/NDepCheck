@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using NDepCheck.Transforming.Modifying;
 
 namespace NDepCheck.Transforming.SpecialDependencyMarking {
     public class MarkSpecialDeps : ITransformer {
@@ -34,7 +35,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         public int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
             [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
-            var matches = new List<DependencyMatch>();
+            var matches = new List<ItemDependencyItemMatch>();
             bool markSingleCycleNodes = false;
             //bool recursive = false;
             bool markTransitiveDependencies = false;
@@ -42,7 +43,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
             Option.Parse(globalContext, transformOptions,
                 MatchOption.Action((args, j) => {
-                    matches.Add(new DependencyMatch(Option.ExtractOptionValue(args, ref j), _ignoreCase));
+                    matches.Add(ItemDependencyItemMatch.Create(Option.ExtractOptionValue(args, ref j), _ignoreCase));
                     return j;
                 }), MarkSingleCyclesOption.Action((args, j) => {
                     markSingleCycleNodes = true;

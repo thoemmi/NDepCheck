@@ -11,6 +11,7 @@ using NDepCheck.Calculating;
 using NDepCheck.Reading;
 using NDepCheck.Rendering;
 using NDepCheck.Transforming;
+using NDepCheck.Transforming.Modifying;
 
 namespace NDepCheck {
     public class NamedTextWriter : IDisposable {
@@ -444,7 +445,7 @@ namespace NDepCheck {
         public void LogAboutNDependencies(int maxCount, [CanBeNull] string pattern) {
             ReadAllNotYetReadIn();
 
-            DependencyMatch m = pattern == null ? null : new DependencyMatch(pattern, IgnoreCase);
+            ItemDependencyItemMatch m = pattern == null ? null : ItemDependencyItemMatch.Create(pattern, IgnoreCase);
             InputContext[] nonEmptyInputContexts = _inputContexts.Values.Where(ic => ic.Dependencies.Any()).ToArray();
             maxCount = Math.Max(3 * nonEmptyInputContexts.Length, maxCount);
             int depsPerContext = maxCount / (nonEmptyInputContexts.Length + 1);
@@ -468,13 +469,24 @@ namespace NDepCheck {
                 }
             }
 
-            LogOnlyDependencyCount(pattern);
+            LogOnlyItemCount(pattern);
+        }
+
+        public void LogAboutNItems(int maxCount, [CanBeNull] string pattern) {
+            ReadAllNotYetReadIn();
+
+            List<Item> matchingItems = LogOnlyItemCount(pattern).ToList();
+            matchingItems.Sort((i1,i2) => string.Compare(i1.Name, i2.Name, IgnoreCase ? StringComparison.InvariantCultureIgnoreCase : StringComparison.InvariantCulture));
+            foreach (var i in matchingItems.Take(maxCount)) {
+                Log.WriteInfo(i.AsFullString());
+            }
+            TransformingDone = true;
         }
 
         public void LogDependencyCount(string pattern) {
             ReadAllNotYetReadIn();
 
-            DependencyMatch m = pattern == null ? null : new DependencyMatch(pattern, IgnoreCase);
+            ItemDependencyItemMatch m = pattern == null ? null : ItemDependencyItemMatch.Create(pattern, IgnoreCase);
             int sum = DependenciesWithoutInputContext.Count(d => m == null || m.IsMatch(d));
             foreach (var ic in _inputContexts.Values) {
                 sum += ic.Dependencies.Count(d => m == null || m.IsMatch(d));
@@ -489,14 +501,14 @@ namespace NDepCheck {
         public void LogItemCount(string pattern) {
             ReadAllNotYetReadIn();
 
-            IEnumerable<Item> matchingItems = LogOnlyDependencyCount(pattern);
+            IEnumerable<Item> matchingItems = LogOnlyItemCount(pattern);
             foreach (var i in matchingItems.Take(3)) {
                 Log.WriteInfo(i.AsFullString());
             }
             TransformingDone = true;
         }
 
-        private IEnumerable<Item> LogOnlyDependencyCount(string pattern) {
+        private IEnumerable<Item> LogOnlyItemCount(string pattern) {
             ItemMatch m = pattern == null ? null : ItemMatch.CreateItemMatchWithGenericType(pattern, IgnoreCase);
             IEnumerable<Item> allItems = new HashSet<Item>(GetAllDependencies().SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
             IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.IsMatch(m, i));

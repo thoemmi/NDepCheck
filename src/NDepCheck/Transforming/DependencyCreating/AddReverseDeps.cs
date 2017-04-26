@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using NDepCheck.Transforming.Modifying;
 
 namespace NDepCheck.Transforming.DependencyCreating {
     public class AddReverseDeps : ITransformer {
@@ -30,14 +31,14 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         public int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
             [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
-            var dependencyMatches = new List<DependencyMatch>();
+            var dependencyMatches = new List<ItemDependencyItemMatch>();
             string markerToAdd = null;
             bool removeOriginal = false;
             bool idempotent = false;
 
             Option.Parse(globalContext, transformOptions,
                 DependencyMatchOption.Action((args, j) => {
-                    dependencyMatches.Add(new DependencyMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), _ignoreCase));
+                    dependencyMatches.Add(ItemDependencyItemMatch.Create(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match", allowOptionValue: true), _ignoreCase));
                     return j;
                 }),
                 IdempotentOption.Action((args, j) => {
@@ -54,7 +55,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 }));
 
             DependencyMatch idempotentMatch = markerToAdd == null ? null : new DependencyMatch("'" + markerToAdd, _ignoreCase);
-            Dictionary<FromTo, Dependency> fromTos = idempotent ? FromTo.AggregateAllEdges(dependencies) : null;
+            Dictionary<FromTo, Dependency> fromTos = idempotent ? FromTo.AggregateAllDependencies(dependencies) : null;
 
             foreach (var d in dependencies) {
                 if (!removeOriginal) {

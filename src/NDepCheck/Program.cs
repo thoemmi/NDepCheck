@@ -94,9 +94,10 @@ namespace NDepCheck {
 
         public static readonly Option InteractiveOption = new ProgramOption(shortname: "ia", name: "interactive", usage: "[filename]", description: "interactive mode, logging to filename");
         public static readonly Option InteractiveStopOption = new ProgramOption(shortname: "is", name: "interactive-stop", usage: "", description: "stop interactive mode", moreNames: new[] { "q", "quit", "exit" });
-        public static readonly Option InteractiveWriteOption = new ProgramOption(shortname: "iw", name: "interactive-write", usage: "# [pattern]", description: "write about # dependencies matching pattern from all sources");
-        public static readonly Option InteractiveDependencyMatchOption = new ProgramOption(shortname: "id", name: "interactive-match", usage: "[pattern]", description: "Show number of dependencies matching pattern from all sources");
-        public static readonly Option InteractiveItemMatchOption = new ProgramOption(shortname: "ii", name: "interactive-match", usage: "[pattern]", description: "Show number of items matching pattern from all sources");
+        public static readonly Option ListDependenciesOption = new ProgramOption(shortname: "sd", name: "list-dependencies", usage: "# [pattern]", description: "write about # dependencies matching pattern from all sources");
+        public static readonly Option ListItemsOption = new ProgramOption(shortname: "si", name: "list-items", usage: "# [pattern]", description: "write about # items matching pattern from all sources");
+        public static readonly Option CountDependenciesOption = new ProgramOption(shortname: "id", name: "count-dependencies", usage: "[pattern]", description: "Show number of dependencies matching pattern from all sources");
+        public static readonly Option CountItemsOption = new ProgramOption(shortname: "ii", name: "count-items", usage: "[pattern]", description: "Show number of items matching pattern from all sources");
 
         public static readonly Option CurrentDirectoryOption = new ProgramOption(shortname: "cd", name: "current-directory", usage: "[directory]", description: "show or change current directory");
         public static readonly Option ListFilesOption = new ProgramOption(shortname: "ls", name: "list", usage: "[-r] [filespec]", description: "list matching files");
@@ -117,7 +118,7 @@ namespace NDepCheck {
             WatchFilesOption, UnwatchFilesOption, UnwatchTriggersOption,
             HttpRunOption, HttpStopOption,
             IgnoreCaseOption,
-            InteractiveOption, InteractiveStopOption, InteractiveWriteOption, InteractiveDependencyMatchOption, InteractiveItemMatchOption,
+            InteractiveOption, InteractiveStopOption, ListItemsOption, CountDependenciesOption, CountItemsOption,
             CurrentDirectoryOption, ListFilesOption, GarbageCollectionOption, LogVerboseOption, LogChattyOption, LogReducedOption, LazyOption,
         };
 
@@ -530,16 +531,21 @@ namespace NDepCheck {
                     } else if (InteractiveStopOption.IsMatch(arg)) {
                         // -is
                         _interactiveLogFile = null;
-                    } else if (InteractiveWriteOption.IsMatch(arg)) {
+                    } else if (ListItemsOption.IsMatch(arg)) {
+                        // -iw # [pattern]
+                        int maxCount = ExtractIntOptionValue(globalContext, args, ref i, "Not a valid number");
+                        string pattern = ExtractNextValue(globalContext, args, ref i);
+                        globalContext.LogAboutNItems(maxCount, pattern);
+                    } else if (ListDependenciesOption.IsMatch(arg)) {
                         // -iw # [pattern]
                         int maxCount = ExtractIntOptionValue(globalContext, args, ref i, "Not a valid number");
                         string pattern = ExtractNextValue(globalContext, args, ref i);
                         globalContext.LogAboutNDependencies(maxCount, pattern);
-                    } else if (InteractiveDependencyMatchOption.IsMatch(arg)) {
+                    } else if (CountDependenciesOption.IsMatch(arg)) {
                         // -id [pattern]
                         string pattern = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true /* as --x-> patterns start with -*/);
                         globalContext.LogDependencyCount(pattern);
-                    } else if (InteractiveItemMatchOption.IsMatch(arg)) {
+                    } else if (CountItemsOption.IsMatch(arg)) {
                         // -ii [pattern]
                         string pattern = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true /* as --x-> patterns start with -*/);
                         globalContext.LogItemCount(pattern);

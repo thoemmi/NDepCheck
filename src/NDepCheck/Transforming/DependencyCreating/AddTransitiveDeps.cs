@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using NDepCheck.Transforming.Modifying;
 
 namespace NDepCheck.Transforming.DependencyCreating {
     public class AddTransitiveDeps : ITransformer {
@@ -34,7 +35,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         public int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
             [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
-            var dependencyMatches = new List<DependencyMatch>();
+            var dependencyMatches = new List<ItemDependencyItemMatch>();
             var fromItemMatches = new List<ItemMatch>();
             var toItemMatches = new List<ItemMatch>();
             var markersToAdd = new List<string>();
@@ -43,7 +44,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
             Option.Parse(globalContext, transformOptions,
                 DependencyMatchOption.Action((args, j) => {
-                    dependencyMatches.Add(new DependencyMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), _ignoreCase));
+                    dependencyMatches.Add(ItemDependencyItemMatch.Create(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), _ignoreCase));
                     return j;
                 }),
                 FromItemsOption.Action((args, j) => {
@@ -68,7 +69,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 }));
 
             DependencyMatch idempotentMatch = new DependencyMatch("'" + string.Join("+", markersToAdd), _ignoreCase);
-            Dictionary<FromTo, Dependency> checkPresence = idempotent ? FromTo.AggregateAllEdges(dependencies) : new Dictionary<FromTo, Dependency>();
+            Dictionary<FromTo, Dependency> checkPresence = idempotent ? FromTo.AggregateAllDependencies(dependencies) : new Dictionary<FromTo, Dependency>();
             Dictionary<Item, IEnumerable<Dependency>> outgoing = Item.CollectOutgoingDependenciesMap(dependencies);
             var matchingFroms = outgoing.Keys.Where(i => IsMatch(fromItemMatches, i));
 
@@ -88,13 +89,13 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             return !itemMatches.Any() || itemMatches.Any(m => m.Matches(i) != null);
         }
 
-        private static bool IsMatch(IEnumerable<DependencyMatch> dependencyMatches, Dependency d) {
+        private static bool IsMatch(IEnumerable<ItemDependencyItemMatch> dependencyMatches, Dependency d) {
             return !dependencyMatches.Any() || dependencyMatches.Any(m => m.IsMatch(d));
         }
 
         private void RecursivelyFlood(Item root, Item from, HashSet<Item> visited, Dictionary<FromTo, Dependency> checkPresence,
             DependencyMatch idempotentMatch, Dictionary<Item, IEnumerable<Dependency>> outgoing, IEnumerable<ItemMatch> toItemMatches,
-            List<DependencyMatch> dependencyMatches, IEnumerable<string> markersToAddOrNull, List<Dependency> result, Dependency collectedEdge) {
+            List<ItemDependencyItemMatch> dependencyMatches, IEnumerable<string> markersToAddOrNull, List<Dependency> result, Dependency collectedEdge) {
             if (outgoing.ContainsKey(from)) {
                 foreach (var d in outgoing[from].Where(d => IsMatch(dependencyMatches, d))) {
                     Item target = d.UsedItem;

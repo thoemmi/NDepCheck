@@ -1,15 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace NDepCheck.Transforming.Projecting {
     public partial class ProjectItems {
         private class CharIgnoreCaseEqualityComparer : IEqualityComparer<char> {
             public bool Equals(char x, char y) {
-                return Char.ToUpperInvariant(x) == Char.ToUpperInvariant(y);
+                return char.ToUpperInvariant(x) == char.ToUpperInvariant(y);
             }
 
             public int GetHashCode(char obj) {
-                return Char.ToUpperInvariant(obj).GetHashCode();
+                return char.ToUpperInvariant(obj).GetHashCode();
             }
         }
 
