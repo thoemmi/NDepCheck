@@ -81,7 +81,7 @@ namespace NDepCheck {
         public static readonly Option FormalParametersOption = new ProgramOption(shortname: "fp", name: "formal-parameters", usage: "name [default]", description: "define formal parameters for -ds call");
         public static readonly Option DoDefineOption = new ProgramOption(shortname: "dd", name: "do-define", usage: "name value", description: "define name gobally as value");
         public static readonly Option DoResetOption = new ProgramOption(shortname: "dr", name: "do-reset", usage: "[filename]", description: "reset state; and read file as dip file if provided");
-        public static readonly Option DoTimeOption = new ProgramOption(shortname: "dt", name: "do-time", usage: "secs", description: "log execution time for commands running longer than secs seconds; default: 60");
+        public static readonly Option DoTimeOption = new ProgramOption(shortname: "dt", name: "do-time", usage: "secs", description: "log execution time for commands running longer than secs seconds; default: 10");
 
         public static readonly Option WatchFilesOption = new ProgramOption(shortname: "aw", name: "watch-files", usage: "[filepattern [- filepattern]] script", description: "Watch files");
         public static readonly Option UnwatchFilesOption = new ProgramOption(shortname: "au", name: "unwatch-files", usage: "filepattern", description: "Unwatch files specified by filepattern");
@@ -719,7 +719,7 @@ namespace NDepCheck {
 
         private static string Write(GlobalContext globalContext, string s, string[] args, ref int i, Func<string, string, string> action) {
             string writerOptions, fileName;
-            if (s.StartsWith("{")) {
+            if (Option.IsOptionGroupStart(s)) {
                 writerOptions = s;
                 fileName = ExtractNextValue(globalContext, args, ref i);
             } else {
@@ -762,11 +762,17 @@ namespace NDepCheck {
                         string trimmedLine = Regex.Replace(line, pattern: "//.*$", replacement: "").Trim();
                         string[] splitLine = trimmedLine.Split(' ', '\t').Select(s => s.Trim()).Where(s => s != "").ToArray();
 
-                        if (splitLine.Any(s => s == "{")) {
+                        if (splitLine.Any(s => Option.IsOptionGroupStart(s))) {
                             argsList.AddRange(splitLine);
+                            int? groupStart = splitLine
+                                    .Select((s, j) => new { S = s, I = j })
+                                    .FirstOrDefault(sj => Option.IsOptionGroupStart(sj.S))?.I;
+                            int? groupEnd = splitLine
+                                    .Select((s, j) => new { S = s, I = j })
+                                    .FirstOrDefault(sj => Option.IsOptionGroupEnd(sj.S))?.I;
                             // If there is a } after the {, we are NOT in inBraces mode.
-                            inBraces = !(trimmedLine.IndexOf("}", StringComparison.InvariantCulture) > trimmedLine.IndexOf("{", StringComparison.InvariantCulture));
-                        } else if (splitLine.Any(s => s == "}")) {
+                            inBraces = !(groupEnd > groupStart);
+                        } else if (splitLine.Any(s => Option.IsOptionGroupEnd(s))) {
                             inBraces = false;
                             argsList.AddRange(splitLine);
                         } else if (!inBraces) {

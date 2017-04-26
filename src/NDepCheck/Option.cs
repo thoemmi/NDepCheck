@@ -148,13 +148,21 @@ namespace NDepCheck {
             } else if (!allowOptionValue && LooksLikeAnOption(optionValue)) {
                 // This is the following option - i is not changed
                 return null;
-            } else if (optionValue.StartsWith("{")) {
+            } else if (IsOptionGroupStart(optionValue)) {
                 i = nextI;
                 return CollectMultipleArgs(args, ref i, optionValue);
             } else {
                 i = nextI;
                 return optionValue;
             }
+        }
+
+        public static bool IsOptionGroupStart(string optionValue) {
+            return optionValue.StartsWith("{") || optionValue.StartsWith("<.");
+        }
+
+        public static bool IsOptionGroupEnd(string optionValue) {
+            return optionValue.EndsWith("}") || optionValue.EndsWith(".>");
         }
 
         private static bool LooksLikeAnOption(string s) {
@@ -181,7 +189,7 @@ namespace NDepCheck {
                 sb.AppendLine(v);
             }
 
-            while (!value.EndsWith("}")) {
+            while (!IsOptionGroupEnd(value)) {
                 if (i >= args.Length - 1) {
                     throw new ArgumentException("Missing } at end of options");
                 }
@@ -197,7 +205,7 @@ namespace NDepCheck {
                 return null;
             } else {
                 string value = args[++i];
-                if (value.StartsWith("{")) {
+                if (IsOptionGroupStart(value)) {
                     return CollectMultipleArgs(args, ref i, value);
                 } else if (!allowOptionValue && LooksLikeAnOption(value)) {
                     --i;
@@ -216,7 +224,7 @@ namespace NDepCheck {
             string[] args;
             if (string.IsNullOrWhiteSpace(argsAsString)) {
                 args = new string[0];
-            } else if (argsAsString.Trim().StartsWith("{")) {
+            } else if (IsOptionGroupStart(argsAsString.Trim())) {
                 var list = new List<string>();
                 using (var sr = new StringReader(argsAsString.TrimStart('{', ' ', '\t', '\r', '\n').TrimEnd('}', ' ', '\t', '\r', '\n'))) {
                     for (;;) {

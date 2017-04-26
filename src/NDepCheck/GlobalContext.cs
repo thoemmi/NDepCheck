@@ -90,7 +90,7 @@ namespace NDepCheck {
             get;
         }
 
-        public TimeSpan TimeLongerThan { get; set; } = TimeSpan.FromSeconds(60);
+        public TimeSpan TimeLongerThan { get; set; } = TimeSpan.FromSeconds(10);
 
         private static int _cxtId = 0;
         public GlobalContext() {
