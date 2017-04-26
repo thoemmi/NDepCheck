@@ -205,7 +205,7 @@ Examples:
                 }
 
                 var p = new Projection(sourceItemType, targetItemType, pattern, targetSegments, ignoreCase, forLeftSide,
-                    forRightSide, ruleFileName + "/" + lineNo);
+                                       forRightSide, ruleFileName + "/" + lineNo);
 
                 if (Log.IsChattyEnabled) {
                     Log.WriteInfo("Reg.exps used for projecting " + pattern +

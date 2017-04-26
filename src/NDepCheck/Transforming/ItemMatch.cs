@@ -13,8 +13,7 @@ namespace NDepCheck.Transforming {
             _markerPattern = new MarkerPattern(patternParts.Length > 1 ? patternParts[1] : "", ignoreCase);
         }
 
-        public static ItemMatch CreateItemMatchWithGenericType([NotNull] string pattern, bool ignoreCase) {
-            return new ItemMatch(null, pattern, ignoreCase);
+        public ItemMatch([NotNull] string pattern, bool ignoreCase) : this(null, pattern, ignoreCase) {
         }
 
         public ItemPattern ItemPattern => _itemPattern;

@@ -444,7 +444,7 @@ namespace NDepCheck {
         public void LogAboutNDependencies(int maxCount, [CanBeNull] string pattern) {
             ReadAllNotYetReadIn();
 
-            DependencyMatch m = pattern == null ? null : new DependencyMatch(pattern, IgnoreCase);
+            DependencyMatch m = pattern == null ? null : DependencyMatch.Create(pattern, IgnoreCase);
             InputContext[] nonEmptyInputContexts = _inputContexts.Values.Where(ic => ic.Dependencies.Any()).ToArray();
             maxCount = Math.Max(3 * nonEmptyInputContexts.Length, maxCount);
             int depsPerContext = maxCount / (nonEmptyInputContexts.Length + 1);
@@ -474,7 +474,7 @@ namespace NDepCheck {
         public void LogDependencyCount(string pattern) {
             ReadAllNotYetReadIn();
 
-            DependencyMatch m = pattern == null ? null : new DependencyMatch(pattern, IgnoreCase);
+            DependencyMatch m = pattern == null ? null : DependencyMatch.Create(pattern, IgnoreCase);
             int sum = DependenciesWithoutInputContext.Count(d => m == null || m.IsMatch(d));
             foreach (var ic in _inputContexts.Values) {
                 sum += ic.Dependencies.Count(d => m == null || m.IsMatch(d));
@@ -497,7 +497,7 @@ namespace NDepCheck {
         }
 
         private IEnumerable<Item> LogOnlyDependencyCount(string pattern) {
-            ItemMatch m = pattern == null ? null : ItemMatch.CreateItemMatchWithGenericType(pattern, IgnoreCase);
+            ItemMatch m = pattern == null ? null : new ItemMatch(pattern, IgnoreCase);
             IEnumerable<Item> allItems = new HashSet<Item>(GetAllDependencies().SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
             IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.IsMatch(m, i));
             Log.WriteInfo(matchingItems.Count() + " items" + (m == null ? "" : " matching " + pattern));

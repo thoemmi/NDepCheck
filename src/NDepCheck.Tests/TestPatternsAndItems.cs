@@ -1,5 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.Reading;
+using NDepCheck.Transforming;
 using NDepCheck.Transforming.Projecting;
 using NDepCheck.Transforming.ViolationChecking;
 
@@ -365,6 +366,19 @@ namespace NDepCheck.Tests {
 
             var r = new DependencyRule(itemType, "**", itemType, "ASSEMBLY.NAME=mscorlib:CLASS=Object", new DependencyRuleRepresentation("rules.dep", 0, "...", false), IGNORECASE);
             Assert.IsTrue(r.IsMatch(d));
+        }
+
+        [TestMethod]
+        public void TestItemDependencyItemMatch() {
+            DependencyMatch.Create("a--b->c", false);
+            DependencyMatch.Create("b->c", false);
+            DependencyMatch.Create("a--b", false);
+            DependencyMatch.Create("'b", false);
+
+            DependencyMatch.Create(" a --  b -> c ", false);
+            DependencyMatch.Create("      'b -> c ", false);
+            DependencyMatch.Create(" a -- 'b      ", false);
+            DependencyMatch.Create("      'b      ", false);
         }
     }
 }

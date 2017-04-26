@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
 
@@ -70,7 +70,7 @@ Examples:
         public int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
             [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
-            var matches = new List<ItemDependencyItemMatch>();
+            var matches = new List<DependencyMatch>();
 
             var markersToAddOnLeft = new List<string>();
             var markersToAddOnDep = new List<string>();
@@ -83,7 +83,7 @@ Examples:
             Option.Parse(globalContext, transformOptions,
                 DependencyMatchOption.Action((args, j) => {
                     string pattern = Option.ExtractRequiredOptionValue(args, ref j, "missing dependency match pattern");
-                    matches.Add(ItemDependencyItemMatch.Create(pattern, _ignoreCase));
+                    matches.Add(DependencyMatch.Create(pattern, _ignoreCase));
                     return j;
                 }),
                 MarkLeftItemOption.Action((args, j) => {

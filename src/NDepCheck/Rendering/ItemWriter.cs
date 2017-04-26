@@ -45,7 +45,7 @@ namespace NDepCheck.Rendering {
             ItemMatch itemMatch = null;
             Option.Parse(globalContext, argsAsString,
                 MatchOption.Action((args, j) => {
-                    itemMatch = ItemMatch.CreateItemMatchWithGenericType(Option.ExtractRequiredOptionValue(args, ref j, "Missing item match"), globalContext.IgnoreCase);
+                    itemMatch = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item match"), globalContext.IgnoreCase);
                     return j;
                 }));
             using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(globalContext, argsAsString, baseFileName))) {

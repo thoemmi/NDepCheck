@@ -37,7 +37,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
             Option.Parse(globalContext, transformOptions,
                 DependencyMatchOption.Action((args, j) => {
-                    dependencyMatches.Add(new DependencyMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), _ignoreCase));
+                    dependencyMatches.Add(DependencyMatch.Create(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), _ignoreCase));
                     return j;
                 }),
                 IdempotentOption.Action((args, j) => {
@@ -53,7 +53,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     return j;
                 }));
 
-            DependencyMatch idempotentMatch = markerToAdd == null ? null : new DependencyMatch("'" + markerToAdd, _ignoreCase);
+            DependencyPattern idempotentPattern = markerToAdd == null ? null : new DependencyPattern("'" + markerToAdd, _ignoreCase);
             Dictionary<FromTo, Dependency> fromTos = idempotent ? FromTo.AggregateAllEdges(dependencies) : null;
 
             foreach (var d in dependencies) {
@@ -62,7 +62,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 }
                 if (!dependencyMatches.Any() || dependencyMatches.Any(m => m.IsMatch(d))) {
                     if (fromTos == null ||
-                        !FromTo.ContainsMatchingDependency(fromTos, d.UsedItem, d.UsingItem, idempotentMatch)) {
+                        !FromTo.ContainsMatchingDependency(fromTos, d.UsedItem, d.UsingItem, idempotentPattern)) {
                         var newDependency = new Dependency(d.UsedItem, d.UsingItem, d.Source, d.Markers, d.Ct,
                             d.QuestionableCt, d.BadCt, d.ExampleInfo, d.InputContext);
                         if (markerToAdd != null) {
