@@ -40,7 +40,7 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void WriteAndReadDotNetDependencies() {
             string dipFileName = Path.GetTempFileName() + ".dip";
-            using (var dipFile = new TempFileProvider(dipFileName).Keep) {
+            using (var dipFile = new TempFileProvider(dipFileName)) {
                 int result =
                     Program.Main(new[] {
                         MainTests.TestAssemblyPath,
