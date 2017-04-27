@@ -15,7 +15,7 @@ namespace NDepCheck {
 
         protected ObjectWithMarkers(bool ignoreCase, [CanBeNull] IEnumerable<string> markers) {
             _ignoreCase = ignoreCase;
-            IEnumerable<string> cleanMarkers = (markers ?? Enumerable.Empty<string>()).Select(s => s.Trim()).Where(s => s != "");
+            IEnumerable<string> cleanMarkers = (markers ?? Enumerable.Empty<string>()).Select(s => s.Trim()).Where(s => s != "").Select(s => s.Contains("/") ? s : string.Intern(s));
             _markersOrNull = cleanMarkers.Any() ? CreateHashSet(cleanMarkers) : null;
         }
 

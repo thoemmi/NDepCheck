@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using JetBrains.Annotations;
+using NDepCheck.Transforming.Modifying;
 
 namespace NDepCheck.Transforming.DependencyCreating {
     public class AddReverseDeps : ITransformer {
@@ -65,7 +66,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 }));
 
             DependencyPattern idempotentPattern = markerToAdd == null ? null : new DependencyPattern("'" + markerToAdd, _ignoreCase);
-            Dictionary<FromTo, Dependency> fromTos = idempotent ? FromTo.AggregateAllEdges(dependencies) : null;
+            Dictionary<FromTo, Dependency> fromTos = idempotent ? FromTo.AggregateAllDependencies(dependencies) : null;
 
             foreach (var d in dependencies) {
                 if (!removeOriginal) {

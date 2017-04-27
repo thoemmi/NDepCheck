@@ -176,7 +176,7 @@ namespace NDepCheck.Tests {
 
             var aggregated = new Dictionary<FromTo, Dependency>();
             foreach (var d in dependencies.Where(d => !Equals(d.UsingItem, d.UsedItem))) {
-                new FromTo(d.UsingItem, d.UsedItem).AggregateEdge(d, aggregated);
+                new FromTo(d.UsingItem, d.UsedItem).AggregateDependency(d, aggregated);
             }
 
             var aggregatedCounts = new MatrixDictionary<Item, int>((s, i) => s + i, (s, i) => s - i);

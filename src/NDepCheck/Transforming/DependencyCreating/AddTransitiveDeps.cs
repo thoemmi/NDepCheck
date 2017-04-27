@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using NDepCheck.Transforming.Modifying;
 
 namespace NDepCheck.Transforming.DependencyCreating {
     public class AddTransitiveDeps : ITransformer {
@@ -80,7 +81,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 }));
 
             DependencyPattern idempotentPattern = new DependencyPattern("'" + string.Join("+", markersToAdd), _ignoreCase);
-            Dictionary<FromTo, Dependency> checkPresence = idempotent ? FromTo.AggregateAllEdges(dependencies) : new Dictionary<FromTo, Dependency>();
+            Dictionary<FromTo, Dependency> checkPresence = idempotent ? FromTo.AggregateAllDependencies(dependencies) : new Dictionary<FromTo, Dependency>();
             Dictionary<Item, IEnumerable<Dependency>> outgoing = Item.CollectOutgoingDependenciesMap(dependencies);
             var matchingFroms = outgoing.Keys.Where(i => IsMatch(fromItemMatches, i));
 

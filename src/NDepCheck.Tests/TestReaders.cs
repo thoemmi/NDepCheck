@@ -46,7 +46,7 @@ namespace NDepCheck.Tests {
                         MainTests.TestAssemblyPath,
                         Program.WriteDipOption.Opt, dipFile.Filename,
                         Program.DoResetOption.Opt, dipFile.Filename,
-                        Program.InteractiveDependencyMatchOption.Opt
+                        Program.CountDependenciesOption.Opt
                     });
                 Assert.AreEqual(Program.OK_RESULT, result);
 

@@ -479,7 +479,18 @@ namespace NDepCheck {
                 }
             }
 
-            LogOnlyDependencyCount(pattern);
+            LogOnlyItemCount(pattern);
+        }
+
+        public void LogAboutNItems(int maxCount, [CanBeNull] string pattern) {
+            ReadAllNotYetReadIn();
+
+            List<Item> matchingItems = LogOnlyItemCount(pattern).ToList();
+            matchingItems.Sort((i1,i2) => string.Compare(i1.Name, i2.Name, IgnoreCase ? StringComparison.InvariantCultureIgnoreCase : StringComparison.InvariantCulture));
+            foreach (var i in matchingItems.Take(maxCount)) {
+                Log.WriteInfo(i.AsFullString());
+            }
+            TransformingDone = true;
         }
 
         public void LogDependencyCount(string pattern) {
@@ -500,14 +511,14 @@ namespace NDepCheck {
         public void LogItemCount(string pattern) {
             ReadAllNotYetReadIn();
 
-            IEnumerable<Item> matchingItems = LogOnlyDependencyCount(pattern);
+            IEnumerable<Item> matchingItems = LogOnlyItemCount(pattern);
             foreach (var i in matchingItems.Take(3)) {
                 Log.WriteInfo(i.AsFullString());
             }
             TransformingDone = true;
         }
 
-        private IEnumerable<Item> LogOnlyDependencyCount(string pattern) {
+        private IEnumerable<Item> LogOnlyItemCount(string pattern) {
             ItemMatch m = pattern == null ? null : new ItemMatch(pattern, IgnoreCase);
             IEnumerable<Item> allItems = new HashSet<Item>(GetAllDependencies().SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
             IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.IsMatch(m, i));

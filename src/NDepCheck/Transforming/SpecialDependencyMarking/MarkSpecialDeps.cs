@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using NDepCheck.Transforming.Modifying;
 
 namespace NDepCheck.Transforming.SpecialDependencyMarking {
     public class MarkSpecialDeps : ITransformer {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 
 namespace NDepCheck {
@@ -231,7 +232,12 @@ namespace NDepCheck {
                 args = new string[0];
             } else if (IsOptionGroupStart(argsAsString.Trim())) {
                 var list = new List<string>();
-                using (var sr = new StringReader(argsAsString.TrimStart('{', ' ', '\t', '\r', '\n').TrimEnd('}', ' ', '\t', '\r', '\n'))) {
+
+                Match prefixMatch = Regex.Match(argsAsString, @"^([{]|\s|<[.])*");
+                Match suffixMatch = Regex.Match(argsAsString, @"([}]|\s|[.]>)*$");
+                string trimmedArgs = argsAsString.Substring(prefixMatch.Length, Math.Max(0, argsAsString.Length - prefixMatch.Length - suffixMatch.Length));
+
+                using (var sr = new StringReader(trimmedArgs)) {
                     for (;;) {
                         string line = sr.ReadLine();
                         if (line == null) {

@@ -312,7 +312,7 @@ Examples:
                 // ignore this edge!
                 return null;
             } else {
-                return new FromTo(usingItem, usedItem).AggregateEdge(d, localCollector);
+                return new FromTo(usingItem, usedItem).AggregateDependency(d, localCollector);
             }
         }
 
