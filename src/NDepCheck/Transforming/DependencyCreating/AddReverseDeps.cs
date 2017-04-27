@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using JetBrains.Annotations;
-using NDepCheck.Transforming.Modifying;
 
 namespace NDepCheck.Transforming.DependencyCreating {
     public class AddReverseDeps : ITransformer {

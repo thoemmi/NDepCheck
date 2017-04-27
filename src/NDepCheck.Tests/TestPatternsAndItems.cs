@@ -370,15 +370,15 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestItemDependencyItemMatch() {
-            DependencyMatch.Create("a--b->c", false);
-            DependencyMatch.Create("b->c", false);
-            DependencyMatch.Create("a--b", false);
+            DependencyMatch.Create("a--'b->c", false);
+            DependencyMatch.Create("!->c", false);
+            DependencyMatch.Create("a--#'b", false);
             DependencyMatch.Create("'b", false);
 
-            DependencyMatch.Create(" a --  b -> c ", false);
-            DependencyMatch.Create("      'b -> c ", false);
-            DependencyMatch.Create(" a -- 'b      ", false);
-            DependencyMatch.Create("      'b      ", false);
+            DependencyMatch.Create(" a -- ?'b -> c ", false);
+            DependencyMatch.Create("       'b -> c ", false);
+            DependencyMatch.Create(" a --  'b      ", false);
+            DependencyMatch.Create("       'b      ", false);
         }
     }
 }
