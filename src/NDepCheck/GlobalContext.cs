@@ -445,7 +445,7 @@ namespace NDepCheck {
         public void LogAboutNDependencies(int maxCount, [CanBeNull] string pattern) {
             ReadAllNotYetReadIn();
 
-            ItemDependencyItemMatch m = pattern == null ? null : ItemDependencyItemMatch.Create(pattern, IgnoreCase);
+            DependencyMatch m = pattern == null ? null : DependencyMatch.Create(pattern, IgnoreCase);
             InputContext[] nonEmptyInputContexts = _inputContexts.Values.Where(ic => ic.Dependencies.Any()).ToArray();
             maxCount = Math.Max(3 * nonEmptyInputContexts.Length, maxCount);
             int depsPerContext = maxCount / (nonEmptyInputContexts.Length + 1);
@@ -486,7 +486,7 @@ namespace NDepCheck {
         public void LogDependencyCount(string pattern) {
             ReadAllNotYetReadIn();
 
-            ItemDependencyItemMatch m = pattern == null ? null : ItemDependencyItemMatch.Create(pattern, IgnoreCase);
+            DependencyMatch m = pattern == null ? null : DependencyMatch.Create(pattern, IgnoreCase);
             int sum = DependenciesWithoutInputContext.Count(d => m == null || m.IsMatch(d));
             foreach (var ic in _inputContexts.Values) {
                 sum += ic.Dependencies.Count(d => m == null || m.IsMatch(d));

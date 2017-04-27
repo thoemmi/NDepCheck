@@ -6,14 +6,15 @@ using NDepCheck.Transforming.Modifying;
 
 namespace NDepCheck.Transforming.SpecialDependencyMarking {
     public class MarkSpecialDeps : ITransformer {
-        public static readonly Option MatchOption = new Option("dm", "dependency-match", "&", "Match to select dependencies to check", @default: "select all", multiple: true);
+        public static readonly Option DependencyMatchOption = new Option("dm", "dependency-match", "&", "Match to select dependencies", @default: "select all", multiple: true);
+        public static readonly Option NoMatchOption = new Option("nm", "dont-match", "&", "Match to exclude dependencies", @default: "do not exclude any", multiple: true);
         public static readonly Option MarkerToAddOption = new Option("ma", "marker-to-add", "&", "Marker added to identified items", @default: null);
         //public static readonly Option RecursiveMarkOption = new Option("mr", "mark-recursively", "", "Repeat marking", @default: false);
         public static readonly Option MarkTransitiveDependenciesOption = new Option("mt", "mark-transitive", "", "Marks transitive dependencies", @default: false);
         public static readonly Option MarkSingleCyclesOption = new Option("mi", "mark-single-loops", "", "Mark single cycles", @default: false);
 
         private static readonly Option[] _transformOptions = {
-            MatchOption, MarkerToAddOption, MarkTransitiveDependenciesOption, MarkSingleCyclesOption
+            DependencyMatchOption, NoMatchOption, MarkerToAddOption, MarkTransitiveDependenciesOption, MarkSingleCyclesOption
         };
 
         private bool _ignoreCase;
@@ -35,33 +36,41 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         public int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
             [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
-            var matches = new List<ItemDependencyItemMatch>();
+            var matches = new List<DependencyMatch>();
+            var excludes = new List<DependencyMatch>();
             bool markSingleCycleNodes = false;
             //bool recursive = false;
             bool markTransitiveDependencies = false;
             string markerToAdd = null;
 
             Option.Parse(globalContext, transformOptions,
-                MatchOption.Action((args, j) => {
-                    matches.Add(ItemDependencyItemMatch.Create(Option.ExtractOptionValue(args, ref j), _ignoreCase));
+                DependencyMatchOption.Action((args, j) => {
+                    string pattern = Option.ExtractRequiredOptionValue(args, ref j, "dependency pattern missing", allowOptionValue: true);
+                    matches.Add(DependencyMatch.Create(pattern, _ignoreCase));
                     return j;
-                }), MarkSingleCyclesOption.Action((args, j) => {
+                }),
+                NoMatchOption.Action((args, j) => {
+                    string pattern = Option.ExtractRequiredOptionValue(args, ref j, "dependency pattern missing", allowOptionValue: true);
+                    excludes.Add(DependencyMatch.Create(pattern, _ignoreCase));
+                    return j;
+                }),
+                MarkSingleCyclesOption.Action((args, j) => {
                     markSingleCycleNodes = true;
                     return j;
                     //}), RecursiveMarkOption.Action((args, j) => {
                     //    recursive = true;
                     //    return j;
-                }), MarkTransitiveDependenciesOption.Action((args, j) => {
+                }),
+                MarkTransitiveDependenciesOption.Action((args, j) => {
                     markTransitiveDependencies = true;
                     return j;
-                }), MarkerToAddOption.Action((args, j) => {
+                }),
+                MarkerToAddOption.Action((args, j) => {
                     markerToAdd = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim();
                     return j;
                 }));
 
-            Dependency[] matchingDependencies = dependencies
-                .Where(d => !matches.Any() || matches.Any(m => m.IsMatch(d)))
-                .ToArray();
+            Dependency[] matchingDependencies = dependencies.Where(d => d.IsMatch(matches, excludes)).ToArray();
 
             if (markSingleCycleNodes) {
                 foreach (var d in matchingDependencies) {
@@ -88,7 +97,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                         if (itemsAtDistance1FromRoot.Count == 0) {
                             break;
                         }
-                        RemoveReachableItems(itemAtDistance2FromRoot, new HashSet<Item> {root}, outgoing,
+                        RemoveReachableItems(itemAtDistance2FromRoot, new HashSet<Item> { root }, outgoing,
                             itemsAtDistance1FromRoot, markerToAdd);
                     }
                 }

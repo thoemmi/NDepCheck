@@ -42,10 +42,10 @@ namespace NDepCheck.Transforming {
         }
 
         public static bool ContainsMatchingDependency(Dictionary<FromTo, Dependency> fromTos, Item from, Item to,
-            DependencyMatch matchOrNull = null) {
+            DependencyPattern patternOrNull = null) {
             Dependency fromTo;
-            return fromTos.TryGetValue(new FromTo(from, to), out fromTo) &&
-                   (matchOrNull == null || matchOrNull.IsMatch(fromTo));
+            return fromTos.TryGetValue(new FromTo(@from, to), out fromTo) &&
+                   (patternOrNull == null || patternOrNull.IsMatch(fromTo));
         }
     }
 }

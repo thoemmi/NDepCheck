@@ -118,11 +118,11 @@
     <Compile Include="Gibraltar\StringReference.cs" />
     <Compile Include="Transforming\CycleChecking\FindCycleDeps.cs" />
     <Compile Include="Transforming\DependencyCreating\AddTransitiveDeps.cs" />
-    <Compile Include="Transforming\DependencyMatch.cs" />
+    <Compile Include="Transforming\DependencyPattern.cs" />
     <Compile Include="Transforming\EffectOptions.cs" />
     <Compile Include="Transforming\ExtendedDependencyEffectOptions.cs" />
     <Compile Include="Transforming\ItemMatch.cs" />
-    <Compile Include="Transforming\Modifying\ItemDependencyItemMatch.cs" />
+    <Compile Include="Transforming\DependencyMatch.cs" />
     <Compile Include="Transforming\Modifying\MarkDeps.cs" />
     <Compile Include="Transforming\Projecting\ProjectItems.AbstractProjector.cs" />
     <Compile Include="Transforming\Projecting\ProjectItems.SelfOptimizingFirstLetterProjector.cs" />

@@ -8,7 +8,7 @@ namespace NDepCheck.Transforming.Modifying {
         // Group indexes                             1           2           3           4
         private const string PATTERN_PATTERN = @"^\s*(.*)\s*--\s*(.*)\s*->\s*(.*)\s*=>\s*(.*)\s*$";
 
-        private readonly ItemDependencyItemMatch _match;
+        private readonly DependencyMatch _match;
         private readonly IEnumerable<Action<Dependency>> _effects;
 
         public DependencyAction(string line, bool ignoreCase, string fullConfigFileName, int startLineNo) {
@@ -17,7 +17,7 @@ namespace NDepCheck.Transforming.Modifying {
                 throw new ArgumentException($"Unexpected dependency pattern '{line}' at {fullConfigFileName}/{startLineNo}");
             } else {
                 GroupCollection groups = match.Groups;
-                _match = new ItemDependencyItemMatch(groups[1].Value, groups[2].Value, groups[3].Value, ignoreCase);
+                _match = new DependencyMatch(groups[1].Value, groups[2].Value, groups[3].Value, ignoreCase);
                 if (groups[4].Value != "-" && groups[4].Value != "delete") {
                     var effects = new List<Action<Dependency>>();
                     var effectOptions =

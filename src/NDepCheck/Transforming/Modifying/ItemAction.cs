@@ -9,9 +9,9 @@ namespace NDepCheck.Transforming.Modifying {
         // Group indexes                             1               2               3               4
         private const string PATTERN_PATTERN = @"^\s*([^\s]*)\s*->\s*([^\s]*)\s*--\s*([^\s]*)\s*=>\s*(.*)\s*$";
 
-        private readonly DependencyMatch _atLeastOneIncomingDependencyMatch;
+        private readonly DependencyPattern _atLeastOneIncomingDependencyPattern;
         private readonly ItemMatch _itemMatch;
-        private readonly DependencyMatch _atLeastOneOutgoingDependencyMatch;
+        private readonly DependencyPattern _atLeastOneOutgoingDependencyPattern;
         private readonly IEnumerable<Action<Item>> _effects;
 
         public ItemAction(string line, bool ignoreCase, string fullConfigFileName, int startLineNo) {
@@ -22,13 +22,13 @@ namespace NDepCheck.Transforming.Modifying {
             } else {
                 GroupCollection groups = match.Groups;
                 if (groups[1].Value != "") {
-                    _atLeastOneIncomingDependencyMatch = new DependencyMatch(groups[1].Value, ignoreCase);
+                    _atLeastOneIncomingDependencyPattern = new DependencyPattern(groups[1].Value, ignoreCase);
                 }
                 if (groups[2].Value != "") {
-                    _itemMatch = ItemMatch.CreateItemMatchWithGenericType(groups[2].Value, ignoreCase);
+                    _itemMatch = new ItemMatch(groups[2].Value, ignoreCase);
                 }
                 if (groups[3].Value != "") {
-                    _atLeastOneOutgoingDependencyMatch = new DependencyMatch(groups[3].Value, ignoreCase);
+                    _atLeastOneOutgoingDependencyPattern = new DependencyPattern(groups[3].Value, ignoreCase);
                 }
                 if (groups[4].Value != "-" && groups[4].Value != "delete") {
                     var effects = new List<Action<Item>>();
@@ -54,11 +54,11 @@ namespace NDepCheck.Transforming.Modifying {
         }
 
         public bool Matches([CanBeNull] IEnumerable<Dependency> incoming, Item i, [CanBeNull] IEnumerable<Dependency> outgoing) {
-            return (_atLeastOneIncomingDependencyMatch == null
-                    || incoming != null && incoming.Any(d => _atLeastOneIncomingDependencyMatch.IsMatch(d)))
+            return (_atLeastOneIncomingDependencyPattern == null
+                    || incoming != null && incoming.Any(d => _atLeastOneIncomingDependencyPattern.IsMatch(d)))
                 && ItemMatch.IsMatch(_itemMatch, i)
-                && (_atLeastOneOutgoingDependencyMatch == null
-                    || outgoing != null && outgoing.Any(d => _atLeastOneOutgoingDependencyMatch.IsMatch(d)));
+                && (_atLeastOneOutgoingDependencyPattern == null
+                    || outgoing != null && outgoing.Any(d => _atLeastOneOutgoingDependencyPattern.IsMatch(d)));
         }
 
         public bool Apply(Item i) {

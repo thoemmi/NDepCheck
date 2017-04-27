@@ -1,50 +1,37 @@
-using JetBrains.Annotations;
+using System;
 
 namespace NDepCheck.Transforming {
-    public sealed class DependencyMatch {
-        [NotNull]
-        private readonly MarkerPattern _markerPattern;
+    public class DependencyMatch {
+        private readonly ItemMatch _usingMatch;
+        private readonly DependencyPattern _dependencyPattern;
+        private readonly ItemMatch _usedMatch;
 
-        private readonly bool? _ctZero;
-        private readonly bool? _badCtZero;
-        private readonly bool? _questionableCtZero;
-        private readonly bool? _isSingleCycle;
-
-        public DependencyMatch(string pattern, bool ignoreCase) {
-            string[] patternParts = pattern.Split('\'');
-            string ctPattern = patternParts[0];
-            if (ctPattern.Contains("#")) {
-                _ctZero = !ctPattern.Contains("~#");
-            }
-            if (ctPattern.Contains("!")) {
-                _badCtZero = !ctPattern.Contains("~!");
-            }
-            if (ctPattern.Contains("?")) {
-                _questionableCtZero = !ctPattern.Contains("~?");
-            }
-            if (ctPattern.Contains("=")) {
-                _isSingleCycle = !ctPattern.Contains("~=");
-            }
-            _markerPattern = new MarkerPattern(patternParts.Length > 1 ? patternParts[1] : "", ignoreCase);
+        public DependencyMatch(string left, string dep, string right, bool ignoreCase) {
+            _usingMatch = left != "" ? new ItemMatch(left, ignoreCase) : null;
+            _dependencyPattern = dep != "" ? new DependencyPattern(dep, ignoreCase) : null;
+            _usedMatch = right != "" ? new ItemMatch(right, ignoreCase) : null;
         }
 
-        public bool IsMatch(Dependency dependency) {
-            if (!_markerPattern.IsMatch(dependency)) {
-                return false;
-            } else if (_ctZero.HasValue && _ctZero.Value != dependency.Ct > 0) {
-                return false;
-            } else if (_questionableCtZero.HasValue && _questionableCtZero.Value != dependency.QuestionableCt > 0) {
-                return false;
-            } else if (_badCtZero.HasValue && _badCtZero.Value != dependency.BadCt > 0) {
-                return false;
-            } else if (_isSingleCycle.HasValue && _isSingleCycle.Value != Equals(dependency.UsingItem, dependency.UsedItem)) {
-                return false;
-            } else {
-                return true;
-            }
+        public static DependencyMatch Create(string pattern, bool ignoreCase) {
+            int l = pattern.IndexOf("--", StringComparison.InvariantCulture);
+            string left = l < 0 ? "" : pattern.Substring(0, l);
+            int r = pattern.LastIndexOf("->", StringComparison.InvariantCulture);
+            string right = r < 0 || r < l ? "" : pattern.Substring(r + 2);
+
+            int ldep = l < 0 ? 0 : l + 2;
+            int rdep = r < 0 || r < l ? pattern.Length : r;
+
+            string dep = pattern.Substring(ldep, rdep - ldep);
+            return new DependencyMatch(left.Trim(), dep.Trim(), right.Trim(), ignoreCase);
         }
 
-        public static readonly string DEPENDENCY_MATCH_HELP = $@"
+        public bool IsMatch(Dependency d) {
+            return ItemMatch.IsMatch(_usingMatch, d.UsingItem)
+                   && (_dependencyPattern == null || _dependencyPattern.IsMatch(d))
+                   && ItemMatch.IsMatch(_usedMatch, d.UsedItem);
+        }
+
+        public static readonly string DEPENDENCY_MATCH_HELP = @"
 TBD
 
 A dependency match is a string that is matched against dependencies for various

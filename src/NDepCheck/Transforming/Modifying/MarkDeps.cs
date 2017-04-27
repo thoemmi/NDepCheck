@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.Modifying {
     public class MarkDeps : ITransformer {
-        public static readonly Option DependencyMatchOption = new Option("dm", "dependency-match", "pattern", "Pattern for dependencies", @default: "all dependencies", multiple: true);
+        public static readonly Option DependencyMatchOption = new Option("dm", "dependency-match", "pattern", "Pattern for included dependencies", @default: "all dependencies included", multiple: true);
+        public static readonly Option NoMatchOption = new Option("nm", "dont-match", "pattern", "Pattern for excluded dependencies", @default: "no exclusion", multiple: true);
 
         public static readonly Option MarkLeftItemOption = new Option("ml", "mark-left", "marker", "Marker to add to item on left", @default: "", multiple: true);
         public static readonly Option MarkDependencyItemOption = new Option("md", "mark-dependency", "marker", "Marker to add to dependency", @default: "", multiple: true);
@@ -18,9 +19,11 @@ namespace NDepCheck.Transforming.Modifying {
         public static readonly Option ClearDependencyItemOption = new Option("cd", "clear-dependency", "", "Remove all markersdependency", @default: false);
         public static readonly Option ClearRightItemOption = new Option("cr", "clear-right", "", "Remove all markers from item on right", @default: false);
 
-        private static readonly Option[] _configOptions = { DependencyMatchOption,
+        private static readonly Option[] _configOptions = {
+            DependencyMatchOption, NoMatchOption,
             MarkLeftItemOption, MarkDependencyItemOption, MarkRightItemOption,
-            UnmarkLeftItemOption, UnmarkDependencyItemOption, UnmarkRightItemOption
+            UnmarkLeftItemOption, UnmarkDependencyItemOption, UnmarkRightItemOption,
+            ClearLeftItemOption, ClearDependencyItemOption, ClearRightItemOption
         };
 
         public string GetHelp(bool detailedHelp, string filter) {
@@ -74,7 +77,8 @@ Examples:
         public int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
             [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
 
-            var matches = new List<ItemDependencyItemMatch>();
+            var matches = new List<DependencyMatch>();
+            var excludes = new List<DependencyMatch>();
 
             bool clearLeft = false;
             bool clearDependency = false;
@@ -91,7 +95,12 @@ Examples:
             Option.Parse(globalContext, transformOptions,
                 DependencyMatchOption.Action((args, j) => {
                     string pattern = Option.ExtractRequiredOptionValue(args, ref j, "missing dependency match pattern", allowOptionValue: true);
-                    matches.Add(ItemDependencyItemMatch.Create(pattern, _ignoreCase));
+                    matches.Add(DependencyMatch.Create(pattern, _ignoreCase));
+                    return j;
+                }),
+                NoMatchOption.Action((args, j) => {
+                    string pattern = Option.ExtractRequiredOptionValue(args, ref j, "missing dependency match pattern", allowOptionValue: true);
+                    excludes.Add(DependencyMatch.Create(pattern, _ignoreCase));
                     return j;
                 }),
                 MarkLeftItemOption.Action((args, j) => {
@@ -138,8 +147,8 @@ Examples:
                 })
             );
 
-            var leftMatches = new List<Item>();
-            var rightMatches = new List<Item>();
+            var leftMatches = new HashSet<Item>();
+            var rightMatches = new HashSet<Item>();
 
             // If no matches are provided, we match all - this is a special case for ease of use
             IEnumerable<Dependency> matchingDependencies = matches.Any() ? dependencies.Where(d => matches.Any(m => m.IsMatch(d))) : dependencies;
