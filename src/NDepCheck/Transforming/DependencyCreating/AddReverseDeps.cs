@@ -66,7 +66,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 }));
 
             DependencyPattern idempotentPattern = markerToAdd == null ? null : new DependencyPattern("'" + markerToAdd, _ignoreCase);
-            Dictionary<FromTo, Dependency> fromTos = idempotent ? FromTo.AggregateAllEdges(dependencies) : null;
+            Dictionary<FromTo, Dependency> fromTos = idempotent ? FromTo.AggregateAllDependencies(dependencies) : null;
 
             foreach (var d in dependencies) {
                 if (!removeOriginal) {

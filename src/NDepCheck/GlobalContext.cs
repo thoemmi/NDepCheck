@@ -11,7 +11,6 @@ using NDepCheck.Calculating;
 using NDepCheck.Reading;
 using NDepCheck.Rendering;
 using NDepCheck.Transforming;
-using NDepCheck.Transforming.Modifying;
 
 namespace NDepCheck {
     public class NamedTextWriter : IDisposable {
@@ -509,7 +508,7 @@ namespace NDepCheck {
         }
 
         private IEnumerable<Item> LogOnlyItemCount(string pattern) {
-            ItemMatch m = pattern == null ? null : ItemMatch.CreateItemMatchWithGenericType(pattern, IgnoreCase);
+            ItemMatch m = pattern == null ? null : new ItemMatch(pattern, IgnoreCase);
             IEnumerable<Item> allItems = new HashSet<Item>(GetAllDependencies().SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
             IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.IsMatch(m, i));
             Log.WriteInfo(matchingItems.Count() + " items" + (m == null ? "" : " matching " + pattern));

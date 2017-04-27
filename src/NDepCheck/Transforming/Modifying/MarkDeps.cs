@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
 
@@ -150,10 +150,8 @@ Examples:
             var leftMatches = new HashSet<Item>();
             var rightMatches = new HashSet<Item>();
 
-            // If no matches are provided, we match all - this is a special case for ease of use
-            IEnumerable<Dependency> matchingDependencies = matches.Any() ? dependencies.Where(d => matches.Any(m => m.IsMatch(d))) : dependencies;
             int n = 0;
-            foreach (var d in matchingDependencies) {
+            foreach (var d in dependencies.Where(d => d.IsMatch(matches, excludes))) {
                 leftMatches.Add(d.UsingItem);
                 rightMatches.Add(d.UsedItem);
                 if (clearDependency) {
@@ -167,10 +165,10 @@ Examples:
             Log.WriteInfo($"Marked {n} dependencies");
 
             // Items are modified afterwards - match loop above uses unchanged values
-            foreach (var left in new HashSet<Item>(leftMatches)) {
+            foreach (var left in leftMatches) {
                 MarkItem(clearLeft, left, markersToAddOnLeft, markersToRemoveOnLeft);
             }
-            foreach (var right in new HashSet<Item>(rightMatches)) {
+            foreach (var right in rightMatches) {
                 MarkItem(clearRight, right, markersToAddOnRight, markersToRemoveOnRight);
             }
 
