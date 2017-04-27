@@ -232,14 +232,14 @@ namespace NDepCheck.Rendering {
             var vkf = Item.New(amo, "VKF:VKF:0400".Split(':'));
             var vkf1_mi = Item.New(amo, "Vkf1.MI:VKF:0401".Split(':'));
             var vkf2_mi = Item.New(amo, "Vkf2.MI:VKF:0402".Split(':'));
-            var vkf3_mi = Item.New(amo, "Vkf3.MI:VKF:0402".Split(':'));
-            var vkf4_mi = Item.New(amo, "Vkf4.MI:VKF:0402".Split(':'));
+            //var vkf3_mi = Item.New(amo, "Vkf3.MI:VKF:0402".Split(':'));
+            //var vkf4_mi = Item.New(amo, "Vkf4.MI:VKF:0402".Split(':'));
             var wlg = Item.New(amo, "WLG:WLG:0500".Split(':'));
             var wlg1_mi = Item.New(amo, "Wlg1.MI:WLG:0501".Split(':'));
             var wlg2_mi = Item.New(amo, "Wlg2.MI:WLG:0502".Split(':'));
-            var imp = Item.New(amo, "IMP:IMP:0600".Split(':'));
+            //var imp = Item.New(amo, "IMP:IMP:0600".Split(':'));
             var imp_mi = Item.New(amo, "Imp.MI:IMP:0601".Split(':'));
-            var top = Item.New(amo, "Top:TOP:0700".Split(':'));
+            //var top = Item.New(amo, "Top:TOP:0700".Split(':'));
 
             return new[] {
                     FromTo(kst, bac), FromTo(kst, kah_mi), FromTo(kst, vkf1_mi), FromTo(kst, vkf2_mi), FromTo(kst, wlg1_mi), FromTo(kst, wlg2_mi),
