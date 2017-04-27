@@ -55,9 +55,13 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             DependencyPattern idempotentPattern = markerToAdd == null ? null : new DependencyPattern("'" + markerToAdd, _ignoreCase);
             Dictionary<FromTo, Dependency> fromTos = idempotent ? FromTo.AggregateAllDependencies(dependencies) : null;
 
+            int added = 0;
+            int removed = 0;
             foreach (var d in dependencies) {
                 if (!removeOriginal) {
                     transformedDependencies.Add(d);
+                } else {
+                    removed++;
                 }
                 if (d.IsMatch(matches, excludes)) {
                     if (fromTos == null ||
@@ -68,9 +72,11 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                             newDependency.AddMarker(markerToAdd);
                         }
                         transformedDependencies.Add(newDependency);
+                        added++;
                     }
                 }
             }
+            Log.WriteInfo($"... added {added}{(removed > 0 ? " removed " + removed : "")} dependencies");
             return Program.OK_RESULT;
         }
 

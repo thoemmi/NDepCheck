@@ -322,7 +322,7 @@ namespace NDepCheck {
                         newDependenciesCollector.Where(d => d.InputContext == null).ToArray());
                 TransformingDone = true;
 
-                Log.WriteInfo($" ... now {sum} dependencies");
+                Log.WriteInfo($"... now {sum} dependencies");
 
                 return result;
             }

@@ -127,7 +127,9 @@ namespace NDepCheck {
             if (!markersToAdd.Any()) {
                 var fromPart = FirstReadableName(fromItemMatches) ?? defaultName;
                 var toPart = FirstReadableName(toItemMatches) ?? defaultName;
-                markersToAdd.Add(fromPart + "_" + toPart);
+                string marker = fromPart + "_" + toPart;
+                markersToAdd.Add(marker);
+                Log.WriteInfo($"... adding marker '{marker}'");
             }
         }
 

@@ -85,6 +85,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
             transformedDependencies.AddRange(dependencies);
             transformedDependencies.AddRange(result);
+            Log.WriteInfo($"... added {result.Count} new dependencies");
 
             return Program.OK_RESULT;
         }

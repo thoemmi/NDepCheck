@@ -16,6 +16,8 @@ namespace NDepCheck.Rendering {
         public static readonly Option IndegreeNoMatchOption = new Option("ni", "indegree-no-match", "&", "Match to exclude dependencies for indegree counting", @default: "no incoming dependencies are excluded", multiple: true);
         public static readonly Option OutdegreeMatchOption = new Option("do", "outdegree-match", "&", "Match to select dependencies for outdegree counting", @default: "all incoming dependencies are counted", multiple: true);
         public static readonly Option OutdegreeNoMatchOption = new Option("no", "outdegree-no-match", "&", "Match to exclude dependencies for outdegree counting", @default: "no incoming dependencies are excluded", multiple: true);
+        public static readonly Option IndegreeNotZeroOption = new Option("ei", "exist-in", "", "Write item only if indegree is > 0", @default: false);
+        public static readonly Option OutdegreeNotZeroOption = new Option("eo", "exist-out", "", "Write item only if outdegree is > 0", @default: false);
 
         public static readonly Option ShowMarkersOption = new Option("sm", "show-markers", "", "Show markers on written items", @default: false);
         public static readonly Option ProjectionOption = new Option("pi", "project-item", "&", "Project item for writing", @default: "all fields are shown", multiple: true);
@@ -36,6 +38,8 @@ namespace NDepCheck.Rendering {
             var outdegreeMatches = new List<DependencyMatch>();
             var outdegreeExcludes = new List<DependencyMatch>();
 
+            bool writeOnlyIfIndegreeNotZero = false;
+            bool writeOnlyIfOutdegreeNotZero = false;
             bool showMarkers = false;
 
             Option.Parse(globalContext, argsAsString,
@@ -63,6 +67,14 @@ namespace NDepCheck.Rendering {
                     outdegreeExcludes.Add(DependencyMatch.Create(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), globalContext.IgnoreCase));
                     return j;
                 }),
+                IndegreeNotZeroOption.Action((args, j) => {
+                    writeOnlyIfIndegreeNotZero = true;
+                    return j;
+                }),
+                OutdegreeNotZeroOption.Action((args, j) => {
+                    writeOnlyIfOutdegreeNotZero = true;
+                    return j;
+                }),
                 ShowMarkersOption.Action((args, j) => {
                     showMarkers = true;
                     return j;
@@ -78,20 +90,23 @@ namespace NDepCheck.Rendering {
                 }
 
                 Write(dependencies, sw, itemMatches, itemExcludes, indegreeMatches, indegreeExcludes,
-                      outdegreeMatches, outdegreeExcludes, showMarkers, ignoreCase);
+                      outdegreeMatches, outdegreeExcludes, writeOnlyIfIndegreeNotZero, writeOnlyIfOutdegreeNotZero,
+                      showMarkers, ignoreCase);
             }
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
             using (var sw = new StreamWriter(output)) {
                 Write(dependencies, sw, itemMatches: null, itemExcludes: null, indegreeMatches: null, indegreeExcludes: null,
-                      outdegreeMatches: null, outdegreeExcludes: null, showMarkers: true, ignoreCase: false);
+                      outdegreeMatches: null, outdegreeExcludes: null, 
+                      writeOnlyIfIndegreeNotZero: false, writeOnlyIfOutdegreeNotZero: false, showMarkers: true, ignoreCase: false);
             }
         }
 
         private void Write(IEnumerable<Dependency> dependencies, TextWriter sw, List<ItemMatch> itemMatches, List<ItemMatch> itemExcludes,
                             List<DependencyMatch> indegreeMatches, List<DependencyMatch> indegreeExcludes,
-                            List<DependencyMatch> outdegreeMatches, List<DependencyMatch> outdegreeExcludes, bool showMarkers, bool ignoreCase) {
+                            List<DependencyMatch> outdegreeMatches, List<DependencyMatch> outdegreeExcludes,
+                            bool writeOnlyIfIndegreeNotZero, bool writeOnlyIfOutdegreeNotZero, bool showMarkers, bool ignoreCase) {
             ISet<Item> items = Dependency.GetAllItems(dependencies, i => i.IsMatch(itemMatches, itemExcludes));
 
             Dictionary<Item, IEnumerable<Dependency>> incoming = Item.CollectIncomingDependenciesMap(dependencies,
@@ -106,6 +121,7 @@ namespace NDepCheck.Rendering {
                         ignoreCase ? StringComparison.InvariantCultureIgnoreCase : StringComparison.InvariantCulture));
 
             var writtenTypes = new HashSet<ItemType>();
+            int n = 0;
             foreach (var i in itemsAsList) {
                 ItemType itemType = i.Type;
                 if (writtenTypes.Add(itemType)) {
@@ -116,10 +132,17 @@ namespace NDepCheck.Rendering {
                 int ict = GetCount(incoming, i, indegreeMatches, indegreeExcludes);
                 int oct = GetCount(outgoing, i, outdegreeMatches, outdegreeExcludes);
 
-                sw.WriteLine($"{"--" + ict,7}->*--{oct + "->",-7} {(showMarkers ? i.AsFullString() : i.AsString())}");
+                if (ict == 0 && writeOnlyIfIndegreeNotZero) {
+                    // dont write
+                } else if (oct == 0 && writeOnlyIfOutdegreeNotZero) {
+                    // dont write
+                } else {
+                    n++;
+                    sw.WriteLine($"{"--" + ict,7}->*--{oct + "->",-7} {(showMarkers ? i.AsFullString() : i.AsString())}");
+                }
             }
 
-            Log.WriteInfo($"... written {itemsAsList.Count} items");
+            Log.WriteInfo($"... written {n} items");
         }
 
         private int GetCount(Dictionary<Item, IEnumerable<Dependency>> adjacency, Item i, List<DependencyMatch> matches, List<DependencyMatch> excludes) {
