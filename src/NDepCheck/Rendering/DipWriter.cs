@@ -1,26 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using NDepCheck.Transforming;
 
 namespace NDepCheck.Rendering {
     /// <summary>
     /// Writer for dependencies ("Edges") in standard "DIP" format
     /// </summary>
     public class DipWriter : IRenderer {
+        public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions();
         public static readonly Option NoExampleInfoOption = new Option("ne", "no-example", "", "Does not write example info", @default: false);
 
         private static readonly Option[] _allOptions = { NoExampleInfoOption };
 
-        public static void Write(IEnumerable<Dependency> dependencies, TextWriter sw, bool withExampleInfo) {
+        public static int Write(IEnumerable<Dependency> dependencies, TextWriter sw, bool withExampleInfo, IEnumerable<DependencyMatch> matches, IEnumerable<DependencyMatch> excludes) {
             var writtenTypes = new HashSet<ItemType>();
 
             sw.WriteLine($"// Written {DateTime.Now} by {typeof(DipWriter).Name} in NDepCheck {Program.VERSION}");
-            foreach (var e in dependencies) {
-                WriteItemType(writtenTypes, e.UsingItem.Type, sw);
-                WriteItemType(writtenTypes, e.UsedItem.Type, sw);
+            int n = 0;
+            foreach (var d in dependencies.Where(d => d.IsMatch(matches, excludes))) {
+                WriteItemType(writtenTypes, d.UsingItem.Type, sw);
+                WriteItemType(writtenTypes, d.UsedItem.Type, sw);
 
-                sw.WriteLine(e.AsDipStringWithTypes(withExampleInfo));
+                sw.WriteLine(d.AsDipStringWithTypes(withExampleInfo));
+                n++;
             }
+            return n;
         }
 
         private static void WriteItemType(HashSet<ItemType> writtenTypes, ItemType itemType, TextWriter sw) {
@@ -35,22 +41,22 @@ namespace NDepCheck.Rendering {
         public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount,
                            string argsAsString, string baseFileName, bool ignoreCase) {
             bool noExampleInfo = false;
-            Option.Parse(globalContext, argsAsString,
+            var matches = new List<DependencyMatch>();
+            var excludes = new List<DependencyMatch>();
+            DependencyMatchOptions.Parse(globalContext, argsAsString, globalContext.IgnoreCase, matches, excludes,
                 NoExampleInfoOption.Action((args, j) => {
                     noExampleInfo = true;
                     return j;
                 }));
             using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(globalContext, argsAsString, baseFileName))) {
-                Write(dependencies, sw.Writer, !noExampleInfo);
-                if (dependenciesCount.HasValue) {
-                    Log.WriteInfo($"... written {dependenciesCount} dependencies");
-                }
+                int n = Write(dependencies, sw.Writer, !noExampleInfo, matches, excludes);
+                Log.WriteInfo($"... written {n} dependencies");
             }
         }
 
         public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
             using (var sw = new StreamWriter(output)) {
-                Write(dependencies, sw, true);
+                Write(dependencies, sw, withExampleInfo: true, matches: null, excludes: null);
             }
         }
 
@@ -62,7 +68,7 @@ namespace NDepCheck.Rendering {
             var kah = Item.New(amo, "KAH:KAH:0300".Split(':'));
             var kah_mi = Item.New(amo, "Kah.MI:KAH:0301".Split(':'));
             var vkf = Item.New(amo, "VKF:VKF:0400".Split(':'));
-            
+
             return new[] {
                     FromTo(kst, bac), FromTo(kst, kah_mi), FromTo(kah, bac), FromTo(vkf, bac), FromTo(vkf, kst), FromTo(vkf, kah, 3), FromTo(vkf, kah_mi, 2, 2)
                     // ... more to come

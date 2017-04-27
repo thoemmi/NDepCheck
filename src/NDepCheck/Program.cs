@@ -16,7 +16,7 @@ using NDepCheck.WebServing;
 
 namespace NDepCheck {
     public class Program {
-        public const string VERSION = "V.3.72";
+        public const string VERSION = "V.3.73";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 1;
@@ -118,7 +118,7 @@ namespace NDepCheck {
             WatchFilesOption, UnwatchFilesOption, UnwatchTriggersOption,
             HttpRunOption, HttpStopOption,
             IgnoreCaseOption,
-            InteractiveOption, InteractiveStopOption, ListItemsOption, CountDependenciesOption, CountItemsOption,
+            InteractiveOption, InteractiveStopOption, ListDependenciesOption, ListItemsOption, CountDependenciesOption, CountItemsOption,
             CurrentDirectoryOption, ListFilesOption, GarbageCollectionOption, LogVerboseOption, LogChattyOption, LogReducedOption, LazyOption,
         };
 
