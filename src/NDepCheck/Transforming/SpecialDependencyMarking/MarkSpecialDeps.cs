@@ -5,16 +5,16 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.SpecialDependencyMarking {
     public class MarkSpecialDeps : ITransformer {
-        public static readonly Option DependencyMatchOption = new Option("dm", "dependency-match", "&", "Match to select dependencies", @default: "select all", multiple: true);
-        public static readonly Option NoMatchOption = new Option("nm", "dont-match", "&", "Match to exclude dependencies", @default: "do not exclude any", multiple: true);
+        public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions();
+
         public static readonly Option AddMarkerOption = new Option("am", "add-marker", "&", "Marker added to identified items", @default: null);
         //public static readonly Option RecursiveMarkOption = new Option("mr", "mark-recursively", "", "Repeat marking", @default: false);
         public static readonly Option MarkTransitiveDependenciesOption = new Option("mt", "mark-transitive", "", "Marks transitive dependencies", @default: false);
         public static readonly Option MarkSingleCyclesOption = new Option("mi", "mark-single-loops", "", "Mark single cycles", @default: false);
 
-        private static readonly Option[] _transformOptions = {
-            DependencyMatchOption, NoMatchOption, AddMarkerOption, MarkTransitiveDependenciesOption, MarkSingleCyclesOption
-        };
+        private static readonly Option[] _transformOptions = DependencyMatchOptions.WithOptions(
+            AddMarkerOption, MarkTransitiveDependenciesOption, MarkSingleCyclesOption
+        );
 
         private bool _ignoreCase;
 
@@ -42,17 +42,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             bool markTransitiveDependencies = false;
             string markerToAdd = null;
 
-            Option.Parse(globalContext, transformOptions,
-                DependencyMatchOption.Action((args, j) => {
-                    string pattern = Option.ExtractRequiredOptionValue(args, ref j, "dependency pattern missing", allowOptionValue: true);
-                    matches.Add(DependencyMatch.Create(pattern, _ignoreCase));
-                    return j;
-                }),
-                NoMatchOption.Action((args, j) => {
-                    string pattern = Option.ExtractRequiredOptionValue(args, ref j, "dependency pattern missing", allowOptionValue: true);
-                    excludes.Add(DependencyMatch.Create(pattern, _ignoreCase));
-                    return j;
-                }),
+            DependencyMatchOptions.Parse(globalContext, transformOptions, _ignoreCase, matches, excludes,
                 MarkSingleCyclesOption.Action((args, j) => {
                     markSingleCycleNodes = true;
                     return j;

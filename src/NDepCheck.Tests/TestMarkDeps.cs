@@ -14,8 +14,8 @@ namespace NDepCheck.Tests {
                     Program.Main(new[] {
                         Program.DoResetOption.Opt,
                         Program.TransformTestDataOption.Opt, ".", typeof(MarkDeps).Name, "{",
-                            MarkDeps.DependencyMatchOption.Opt, "'M--->'N",
-                            MarkDeps.DependencyMatchOption.Opt, "A--->A",
+                            MarkDeps.DependencyMatchOptions.DependencyMatchOption.Opt, "'M--->'N",
+                            MarkDeps.DependencyMatchOptions.DependencyMatchOption.Opt, "A--->A",
 
                             MarkDeps.MarkLeftItemOption.Opt, "LeftMatch",
                             MarkDeps.MarkRightItemOption.Opt, "RightMatch",
@@ -47,8 +47,8 @@ namespace NDepCheck.Tests {
                     Program.Main(new[] {
                         Program.DoResetOption.Opt,
                         Program.TransformTestDataOption.Opt, ".", typeof(MarkDeps).Name, "{",
-                            MarkDeps.DependencyMatchOption.Opt, "'M--",
-                            MarkDeps.NoMatchOption.Opt, "->B",
+                            MarkDeps.DependencyMatchOptions.DependencyMatchOption.Opt, "'M--",
+                            MarkDeps.DependencyMatchOptions.NoMatchOption.Opt, "->B",
 
                             MarkDeps.MarkLeftItemOption.Opt, "LeftMatch",
                             MarkDeps.MarkRightItemOption.Opt, "RightMatch",

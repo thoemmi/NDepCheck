@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using JetBrains.Annotations;
+using NDepCheck.Transforming;
 using NDepCheck.Transforming.CycleChecking;
 using NDepCheck.Transforming.DependencyCreating;
 using NDepCheck.Transforming.Modifying;
@@ -15,7 +17,7 @@ namespace NDepCheck {
 
         protected ObjectWithMarkers(bool ignoreCase, [CanBeNull] IEnumerable<string> markers) {
             _ignoreCase = ignoreCase;
-            IEnumerable<string> cleanMarkers = (markers ?? Enumerable.Empty<string>()).Select(s => s.Trim()).Where(s => s != "").Select(s => s.Contains("/") ? s : string.Intern(s));
+            IEnumerable<string> cleanMarkers = (markers ?? Enumerable.Empty<string>()).Select(s => s.Trim()).Where(s => s != "").Select(s => s.Contains("/") ? s : String.Intern(s));
             _markersOrNull = cleanMarkers.Any() ? CreateHashSet(cleanMarkers) : null;
         }
 
@@ -119,6 +121,21 @@ namespace NDepCheck {
                 }
             }
             return result;
+        }
+
+        public static void AddComputedMarkerIfNoMarkers(List<string> markersToAdd, List<ItemMatch> fromItemMatches, List<ItemMatch> toItemMatches, string defaultName) {
+            if (!markersToAdd.Any()) {
+                var fromPart = FirstReadableName(fromItemMatches) ?? defaultName;
+                var toPart = FirstReadableName(toItemMatches) ?? defaultName;
+                markersToAdd.Add(fromPart + "_" + toPart);
+            }
+        }
+
+        private static string FirstReadableName(List<ItemMatch> itemMatches) {
+            return itemMatches
+                .SelectMany(m => m.ItemPattern.Matchers)
+                .Select(m => Regex.Replace(m.ToString(), @"[^\p{L}\p{N}_]", "")) // Replace anything not letter, number or _ with nothing
+                .FirstOrDefault(s => !String.IsNullOrWhiteSpace(s));
         }
 
         public static readonly string MARKER_HELP = $@"

@@ -2,51 +2,44 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace NDepCheck.Transforming.Modifying {
-    public class KeepOnlyDeps : DependencyMatchingTransformer {
+    public class KeepOnlyDeps : ITransformer {
+        private static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions();
+
         private bool _ignoreCase;
 
-        public override string GetHelp(bool detailedHelp, string filter) {
+        public string GetHelp(bool detailedHelp, string filter) {
             return $@"Keep only matching dependencies.
 
 Configuration options: None
 
-Transformer options: {Option.CreateHelp(_matchingOptions, detailedHelp, filter)}";
+Transformer options: {Option.CreateHelp(DependencyMatchOptions.WithOptions(), detailedHelp, filter)}";
         }
 
-        public override bool RunsPerInputContext => true;
+        public bool RunsPerInputContext => true;
 
-        public override void Configure(GlobalContext globalContext, string configureOptions, bool forceReload) {
+        public void Configure(GlobalContext globalContext, string configureOptions, bool forceReload) {
             _ignoreCase = globalContext.IgnoreCase;
         }
 
-        public override int Transform(GlobalContext globalContext, string dependenciesFilename,
+        public int Transform(GlobalContext globalContext, string dependenciesFilename,
             IEnumerable<Dependency> dependencies, string transformOptions, string dependencySourceForLogging,
             List<Dependency> transformedDependencies) {
+
             var matches = new List<DependencyMatch>();
             var excludes = new List<DependencyMatch>();
 
-            Option.Parse(globalContext, transformOptions, DependencyMatchOption.Action((args, j) => {
-                string pattern = Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency pattern",
-                    allowOptionValue: true);
-                matches.Add(DependencyMatch.Create(pattern, _ignoreCase));
-                return j;
-            }), NoMatchOption.Action((args, j) => {
-                string pattern = Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency pattern",
-                    allowOptionValue: true);
-                excludes.Add(DependencyMatch.Create(pattern, _ignoreCase));
-                return j;
-            }));
+            DependencyMatchOptions.Parse(globalContext, transformOptions, _ignoreCase, matches, excludes);
 
             transformedDependencies.AddRange(dependencies.Where(d => d.IsMatch(matches, excludes)));
 
             return Program.OK_RESULT;
         }
 
-        public override void AfterAllTransforms(GlobalContext globalContext) {
+        public void AfterAllTransforms(GlobalContext globalContext) {
             // empty
         }
 
-        public override IEnumerable<Dependency> GetTestDependencies() {
+        public IEnumerable<Dependency> GetTestDependencies() {
             Item a = Item.New(ItemType.SIMPLE, "A");
             Item b = Item.New(ItemType.SIMPLE, "B");
             return new[] {

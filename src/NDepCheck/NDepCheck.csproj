@@ -123,7 +123,7 @@
     <Compile Include="Transforming\ExtendedDependencyEffectOptions.cs" />
     <Compile Include="Transforming\ItemMatch.cs" />
     <Compile Include="Transforming\DependencyMatch.cs" />
-    <Compile Include="Transforming\Modifying\DependencyMatchingTransformer.cs" />
+    <Compile Include="Transforming\DependencyMatchOptions.cs" />
     <Compile Include="Transforming\Modifying\KeepOnlyDeps.cs" />
     <Compile Include="Transforming\Modifying\MarkDeps.cs" />
     <Compile Include="Transforming\Projecting\ProjectItems.AbstractProjector.cs" />

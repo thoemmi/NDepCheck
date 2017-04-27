@@ -16,7 +16,7 @@ using NDepCheck.WebServing;
 
 namespace NDepCheck {
     public class Program {
-        public const string VERSION = "V.3.71";
+        public const string VERSION = "V.3.72";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 1;

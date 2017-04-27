@@ -4,8 +4,7 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.Modifying {
     public class MarkDeps : ITransformer {
-        public static readonly Option DependencyMatchOption = new Option("dm", "dependency-match", "pattern", "Pattern for included dependencies", @default: "all dependencies included", multiple: true);
-        public static readonly Option NoMatchOption = new Option("nm", "dont-match", "pattern", "Pattern for excluded dependencies", @default: "no exclusion", multiple: true);
+        public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions();
 
         public static readonly Option MarkLeftItemOption = new Option("ml", "mark-left", "marker", "Marker to add to item on left", @default: "", multiple: true);
         public static readonly Option MarkDependencyItemOption = new Option("md", "mark-dependency", "marker", "Marker to add to dependency", @default: "", multiple: true);
@@ -19,12 +18,11 @@ namespace NDepCheck.Transforming.Modifying {
         public static readonly Option ClearDependencyItemOption = new Option("cd", "clear-dependency", "", "Remove all markersdependency", @default: false);
         public static readonly Option ClearRightItemOption = new Option("cr", "clear-right", "", "Remove all markers from item on right", @default: false);
 
-        private static readonly Option[] _configOptions = {
-            DependencyMatchOption, NoMatchOption,
+        private static readonly Option[] _configOptions = DependencyMatchOptions.WithOptions(
             MarkLeftItemOption, MarkDependencyItemOption, MarkRightItemOption,
             UnmarkLeftItemOption, UnmarkDependencyItemOption, UnmarkRightItemOption,
             ClearLeftItemOption, ClearDependencyItemOption, ClearRightItemOption
-        };
+        );
 
         public string GetHelp(bool detailedHelp, string filter) {
             string result = $@"Modify counts and markers on dependencies, delete or keep dependencies.
@@ -92,17 +90,7 @@ Examples:
             var markersToRemoveOnDep = new List<string>();
             var markersToRemoveOnRight = new List<string>();
 
-            Option.Parse(globalContext, transformOptions,
-                DependencyMatchOption.Action((args, j) => {
-                    string pattern = Option.ExtractRequiredOptionValue(args, ref j, "missing dependency match pattern", allowOptionValue: true);
-                    matches.Add(DependencyMatch.Create(pattern, _ignoreCase));
-                    return j;
-                }),
-                NoMatchOption.Action((args, j) => {
-                    string pattern = Option.ExtractRequiredOptionValue(args, ref j, "missing dependency match pattern", allowOptionValue: true);
-                    excludes.Add(DependencyMatch.Create(pattern, _ignoreCase));
-                    return j;
-                }),
+            DependencyMatchOptions.Parse(globalContext, transformOptions, _ignoreCase, matches, excludes,
                 MarkLeftItemOption.Action((args, j) => {
                     string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
                     markersToAddOnLeft.Add(marker.TrimStart('\''));

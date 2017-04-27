@@ -35,6 +35,7 @@ namespace NDepCheck.Tests {
                 Program.TransformTestDataOption.Opt, ".", typeof(AddTransitiveDeps).Name, "{",
                     AddTransitiveDeps.FromItemsOption.Opt, "S*",
                     AddTransitiveDeps.ToItemsOption.Opt, "T*",
+                    AddTransitiveDeps.AddMarkerOption.Opt, "D",
                     AddTransitiveDeps.IdempotentOption.Opt,
                 "}",
                 Program.WriteDipOption.Opt, outFile

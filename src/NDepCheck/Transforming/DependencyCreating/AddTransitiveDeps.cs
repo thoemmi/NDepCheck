@@ -4,8 +4,7 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.DependencyCreating {
     public class AddTransitiveDeps : ITransformer {
-        public static readonly Option DependencyMatchOption = new Option("dm", "dependency-match", "&", "Match to select dependencies to traverse", @default: "traverse all dependencies", multiple: true);
-        public static readonly Option NoMatchOption = new Option("nm", "no-match", "&", "Exclude from traversal ", @default: "no excluded dependencies", multiple: true);
+        public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions();
 
         //public static readonly Option RemoveOriginalOption = new Option("ro", "remove-original", "", "If present, original dependency of a newly created reverse dependency is removed", @default: false);
         public static readonly Option AddMarkerOption = new Option("am", "add-marker", "&", "Marker added to newly created transitive dependencies", @default: "none");
@@ -14,12 +13,13 @@ namespace NDepCheck.Transforming.DependencyCreating {
         public static readonly Option ToItemsOption = new Option("ti", "to-items-match", "&", "Match for items where added transitive dependencies are to end", @default: "all items are matched", multiple: true);
         //public static readonly Option MaxSpanLengthOption = new Option("ml", "max-length", "#", "maximum number of edges collapsed", @default: "arbitrary length");
 
-        private static readonly Option[] _transformOptions = {
-            DependencyMatchOption, NoMatchOption, /*RemoveOriginalOption,*/
+        private static readonly Option[] _transformOptions = DependencyMatchOptions.WithOptions(
             AddMarkerOption, IdempotentOption, FromItemsOption, ToItemsOption
-        };
+        );
 
         private bool _ignoreCase;
+
+        private int _transformRunCt = 0;
 
         public string GetHelp(bool detailedHelp, string filter) {
             return $@"Add transitive edges.
@@ -47,17 +47,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             //bool removeOriginal = false;
             bool idempotent = false;
 
-            Option.Parse(globalContext, transformOptions,
-                DependencyMatchOption.Action((args, j) => {
-                    string pattern = Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency pattern", allowOptionValue: true);
-                    matches.Add(DependencyMatch.Create(pattern, _ignoreCase));
-                    return j;
-                }),
-                NoMatchOption.Action((args, j) => {
-                    string pattern = Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency pattern", allowOptionValue: true);
-                    excludes.Add(DependencyMatch.Create(pattern, _ignoreCase));
-                    return j;
-                }),
+            DependencyMatchOptions.Parse(globalContext, transformOptions, _ignoreCase, matches, excludes,
                 FromItemsOption.Action((args, j) => {
                     fromItemMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing 'from' match"), _ignoreCase));
                     return j;
@@ -78,6 +68,9 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     markersToAdd.Add(Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim());
                     return j;
                 }));
+
+            _transformRunCt++;
+            ObjectWithMarkers.AddComputedMarkerIfNoMarkers(markersToAdd, fromItemMatches, toItemMatches, "" + _transformRunCt);
 
             DependencyPattern idempotentPattern = new DependencyPattern("'" + string.Join("+", markersToAdd), _ignoreCase);
             Dictionary<FromTo, Dependency> checkPresence = idempotent ? FromTo.AggregateAllDependencies(dependencies) : new Dictionary<FromTo, Dependency>();

@@ -14,7 +14,7 @@ namespace NDepCheck.Tests {
             Assert.AreEqual(0, Program.Main(new[] {
                 Program.TransformTestDataOption.Opt, ".", typeof(AddReverseDeps).Name, "{",
                     // Do not remove original: AddReverseDeps.RemoveOriginalOption.Opt,
-                    AddReverseDeps.DependencyMatchOption.Opt, "'inherit",
+                    AddReverseDeps.DependencyMatchOptions.DependencyMatchOption.Opt, "'inherit",
                     AddReverseDeps.AddMarkerOption.Opt, "derived",
                 "}",
                 Program.ConfigureOption.Opt, typeof(ModifyDeps).Name, "{",
@@ -39,7 +39,7 @@ namespace NDepCheck.Tests {
             Assert.AreEqual(0, Program.Main(new[] {
                 Program.TransformTestDataOption.Opt, ".", typeof(AddReverseDeps).Name, "{",
                     AddReverseDeps.RemoveOriginalOption.Opt, 
-                    AddReverseDeps.DependencyMatchOption.Opt, "'inherit",
+                    AddReverseDeps.DependencyMatchOptions.DependencyMatchOption.Opt, "'inherit",
                     AddReverseDeps.AddMarkerOption.Opt, "derived",
                 "}",
                 Program.ConfigureOption.Opt, typeof(ModifyDeps).Name, "{",
