@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 namespace NDepCheck.Transforming.SpecialNodeMarking {
     public class MarkSpecialItems : ITransformer {
         public static readonly Option MatchOption = new Option("im", "item-match", "&", "Match to select items to check", @default: "select all", multiple: true);
-        public static readonly Option MarkerToAddOption = new Option("ma", "marker-to-add", "&", "Marker added to identified items", @default: null);
+        public static readonly Option AddMarkerOption = new Option("am", "add-marker", "&", "Marker added to identified items", @default: null);
         public static readonly Option RecursiveMarkOption = new Option("mr", "mark-recursively", "", "Repeat marking", @default: false);
         public static readonly Option MarkSinksOption = new Option("md", "mark-drains", "", "Marks sinks (or drains)", @default: false);
         public static readonly Option MarkSourcesOption = new Option("ms", "mark-sources", "", "Mark sources", @default: false);
@@ -14,7 +14,7 @@ namespace NDepCheck.Transforming.SpecialNodeMarking {
         public static readonly Option MarkSingleCyclesOption = new Option("mi", "mark-single-loops", "", "Mark single cycles", @default: false);
 
         private static readonly Option[] _transformOptions = {
-            MatchOption, MarkerToAddOption, RecursiveMarkOption,
+            MatchOption, AddMarkerOption, RecursiveMarkOption,
             MarkSinksOption, MarkSourcesOption, IgnoreSingleCyclesOption, MarkSingleCyclesOption
         };
 
@@ -64,7 +64,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 }), MarkSinksOption.Action((args, j) => {
                     markSinks = true;
                     return j;
-                }), MarkerToAddOption.Action((args, j) => {
+                }), AddMarkerOption.Action((args, j) => {
                     markerToAdd = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim();
                     return j;
                 }));

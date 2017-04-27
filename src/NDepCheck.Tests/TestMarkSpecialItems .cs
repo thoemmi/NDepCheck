@@ -30,7 +30,7 @@ namespace NDepCheck.Tests {
         public void TestMarkSources() {
             const string mark = "MARK";
             IEnumerable<Item> result = Run($"{{ {MarkSpecialItems.MarkSourcesOption} " +
-                                           $"{MarkSpecialItems.MarkerToAddOption} {mark} }}", mark);
+                                           $"{MarkSpecialItems.AddMarkerOption} {mark} }}", mark);
             AssertResult(result, 'A');
         }
 
@@ -39,7 +39,7 @@ namespace NDepCheck.Tests {
             const string mark = "MARK";
             IEnumerable<Item> result = Run($"{{ {MarkSpecialItems.MarkSourcesOption} " +
                                            $"{MarkSpecialItems.RecursiveMarkOption} " +
-                                           $"{MarkSpecialItems.MarkerToAddOption} {mark} }}", mark);
+                                           $"{MarkSpecialItems.AddMarkerOption} {mark} }}", mark);
             AssertResult(result, 'A', 'B');
         }
 
@@ -47,7 +47,7 @@ namespace NDepCheck.Tests {
         public void TestMarkSinks() {
             const string mark = "MARK";
             IEnumerable<Item> result = Run($"{{ {MarkSpecialItems.MarkSinksOption} " +
-                                           $"{MarkSpecialItems.MarkerToAddOption} {mark} }}", mark);
+                                           $"{MarkSpecialItems.AddMarkerOption} {mark} }}", mark);
             AssertResult(result, 'I', 'J');
         }
 
@@ -56,7 +56,7 @@ namespace NDepCheck.Tests {
             const string mark = "MARK";
             IEnumerable<Item> result = Run($"{{ {MarkSpecialItems.MarkSinksOption} " +
                                            $"{MarkSpecialItems.RecursiveMarkOption} " +
-                                           $"{MarkSpecialItems.MarkerToAddOption} {mark} }}", mark);
+                                           $"{MarkSpecialItems.AddMarkerOption} {mark} }}", mark);
             AssertResult(result, 'F', 'G', 'H', 'I', 'J');
         }
 
@@ -66,7 +66,7 @@ namespace NDepCheck.Tests {
             IEnumerable<Item> result = Run($"{{ {MarkSpecialItems.MarkSinksOption} " +
                                            $"{MarkSpecialItems.RecursiveMarkOption} " +
                                            $"{MarkSpecialItems.IgnoreSingleCyclesOption} " +
-                                           $"{MarkSpecialItems.MarkerToAddOption} {mark} }}", mark);
+                                           $"{MarkSpecialItems.AddMarkerOption} {mark} }}", mark);
             AssertResult(result, 'E', 'F', 'G', 'H', 'I', 'J');
         }
     }

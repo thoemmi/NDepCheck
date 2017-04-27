@@ -7,12 +7,12 @@ namespace NDepCheck.Transforming.DependencyCreating {
         public static readonly Option NoMatchOption = new Option("nm", "dont-match", "&", "Match to exclude dependencies", @default: "do not exclude any", multiple: true);
 
         public static readonly Option RemoveOriginalOption = new Option("ro", "remove-original", "", "If present, original dependency of a newly created reverse dependency is removed", @default:false);
-        public static readonly Option MarkerToAddOption = new Option("ma", "marker-to-add", "&", "Marker added to newly created reverse dependencies", @default: "none");
+        public static readonly Option AddMarkerOption = new Option("am", "add-marker", "&", "Marker added to newly created reverse dependencies", @default: "none");
         public static readonly Option IdempotentOption = new Option("ip", "idempotent", "", "Do not add if dependency with provided marker already exists", @default: false);
 
         private static readonly Option[] _transformOptions = {
             DependencyMatchOption, NoMatchOption,
-            RemoveOriginalOption, MarkerToAddOption, IdempotentOption
+            RemoveOriginalOption, AddMarkerOption, IdempotentOption
         };
 
         private bool _ignoreCase;
@@ -59,7 +59,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     removeOriginal = true;
                     return j;
                 }), 
-                MarkerToAddOption.Action((args, j) => {
+                AddMarkerOption.Action((args, j) => {
                     markerToAdd = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim();
                     return j;
                 }));

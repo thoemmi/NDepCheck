@@ -8,15 +8,15 @@ namespace NDepCheck.Transforming.DependencyCreating {
         public static readonly Option NoMatchOption = new Option("nm", "no-match", "&", "Exclude from traversal ", @default: "no excluded dependencies", multiple: true);
 
         //public static readonly Option RemoveOriginalOption = new Option("ro", "remove-original", "", "If present, original dependency of a newly created reverse dependency is removed", @default: false);
-        public static readonly Option MarkerToAddOption = new Option("ma", "marker-to-add", "&", "Marker added to newly created reverse dependencies", @default: "none");
+        public static readonly Option AddMarkerOption = new Option("am", "add-marker", "&", "Marker added to newly created transitive dependencies", @default: "none");
         public static readonly Option IdempotentOption = new Option("ip", "idempotent", "", "Do not add if dependency with provided marker already exists", @default: false);
-        public static readonly Option FromItemsOption = new Option("fi", "from-items-match", "&", "If present, original dependency of a newly created reverse dependency is removed", @default: "all items are matched", multiple: true);
-        public static readonly Option ToItemsOption = new Option("ti", "to-items-match", "&", "If present, original dependency of a newly created reverse dependency is removed", @default: "all items are matched", multiple: true);
+        public static readonly Option FromItemsOption = new Option("fi", "from-items-match", "&", "Match for items where added transitive dependencies are to start", @default: "all items are matched", multiple: true);
+        public static readonly Option ToItemsOption = new Option("ti", "to-items-match", "&", "Match for items where added transitive dependencies are to end", @default: "all items are matched", multiple: true);
         //public static readonly Option MaxSpanLengthOption = new Option("ml", "max-length", "#", "maximum number of edges collapsed", @default: "arbitrary length");
 
         private static readonly Option[] _transformOptions = {
             DependencyMatchOption, NoMatchOption, /*RemoveOriginalOption,*/
-            MarkerToAddOption, IdempotentOption, FromItemsOption, ToItemsOption
+            AddMarkerOption, IdempotentOption, FromItemsOption, ToItemsOption
         };
 
         private bool _ignoreCase;
@@ -74,7 +74,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 //    removeOriginal = true;
                 //    return j;
                 //}),
-                MarkerToAddOption.Action((args, j) => {
+                AddMarkerOption.Action((args, j) => {
                     markersToAdd.Add(Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim());
                     return j;
                 }));

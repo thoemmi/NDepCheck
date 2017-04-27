@@ -95,32 +95,32 @@ Examples:
                     return j;
                 }),
                 MarkLeftItemOption.Action((args, j) => {
-                    string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker");
+                    string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
                     markersToAddOnLeft.Add(marker);
                     return j;
                 }),
                 MarkDependencyItemOption.Action((args, j) => {
-                    string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker");
+                    string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
                     markersToAddOnDep.Add(marker);
                     return j;
                 }),
                 MarkRightItemOption.Action((args, j) => {
-                    string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker");
+                    string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
                     markersToAddOnRight.Add(marker);
                     return j;
                 }),
                 UnmarkLeftItemOption.Action((args, j) => {
-                    string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker");
+                    string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
                     markersToRemoveOnLeft.Add(marker);
                     return j;
                 }),
                 UnmarkDependencyItemOption.Action((args, j) => {
-                    string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker");
+                    string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
                     markersToRemoveOnDep.Add(marker);
                     return j;
                 }),
                 UnmarkRightItemOption.Action((args, j) => {
-                    string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker");
+                    string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
                     markersToRemoveOnRight.Add(marker);
                     return j;
                 })

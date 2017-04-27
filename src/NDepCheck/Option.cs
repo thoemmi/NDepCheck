@@ -101,7 +101,7 @@ namespace NDepCheck {
             return new OptionAction(this, action);
         }
 
-        public static bool ArgMatches(string arg, params string[] option) {
+        public static bool ArgMatches([NotNull] string arg, params string[] option) {
             return option.Any(o => {
                 string lower = arg.ToLowerInvariant();
                 if (lower.StartsWith("/" + o) || lower.StartsWith("-" + o)) {
@@ -166,10 +166,15 @@ namespace NDepCheck {
         }
 
         private static bool LooksLikeAnOption(string s) {
-            return s.Length > 1
+            return !IsHelpOption(s) 
+                   &&  s.Length > 1
                    && (s.StartsWith("-")
                        || s.StartsWith("/") && !s.Substring(1).Contains("/") // this allows some paths with / as option value
                    );
+        }
+
+        public static bool IsHelpOption([CanBeNull] string s) {
+            return ArgMatches(s ?? "", "?", "help") || s?.ToUpperInvariant() == "HELP";
         }
 
         public static int ExtractIntOptionValue(string[] args, ref int j, string msg) {

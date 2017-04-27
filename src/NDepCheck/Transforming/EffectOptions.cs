@@ -24,12 +24,12 @@ namespace NDepCheck.Transforming {
             var result = new List<Action<T>>();
             Option.Parse(globalContext, argsAsString, new[] {
                 AddMarkerOption.Action((args, j) => {
-                    string marker = Option.ExtractOptionValue(args, ref j);
+                    string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
                     result.Add(item => item.AddMarker(marker));
                     return j;
                 }),
                 RemoveMarkerOption.Action((args, j) => {
-                    string marker = Option.ExtractOptionValue(args, ref j);
+                    string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
                     result.Add(item => item.RemoveMarker(marker));
                     return j;
                 }),

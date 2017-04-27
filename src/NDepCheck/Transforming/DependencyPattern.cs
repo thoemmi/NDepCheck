@@ -1,3 +1,5 @@
+using System;
+using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming {
@@ -13,6 +15,9 @@ namespace NDepCheck.Transforming {
         public DependencyPattern(string pattern, bool ignoreCase) {
             string[] patternParts = pattern.Split('\'');
             string ctPattern = patternParts[0];
+            if (Regex.IsMatch(ctPattern, "[^~#!?=]")) {
+                throw new ArgumentException($"Count pattern can only contain #, ~#, !, ~!, ?, ~? , = and ~=, but is '{ctPattern}'; maybe a ' is missing before the marker pattern");
+            }
             if (ctPattern.Contains("#")) {
                 _ctZero = !ctPattern.Contains("~#");
             }

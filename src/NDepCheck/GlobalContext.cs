@@ -114,7 +114,7 @@ namespace NDepCheck {
         public static string ExpandHexChars([CanBeNull] string s) {
             return s != null && s.Contains('%')
                 ? Regex.Replace(s, "%[0-9a-fA-F][0-9a-fA-F]",
-                    m => "" + (char) int.Parse(m.Value.Substring(1), NumberStyles.HexNumber))
+                    m => "" + (char)int.Parse(m.Value.Substring(1), NumberStyles.HexNumber))
                 : s;
         }
 
@@ -135,20 +135,26 @@ namespace NDepCheck {
         }
 
         public string RenderToFile([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName, [CanBeNull] string rendererOptions, [CanBeNull] string fileName) {
-            IRenderer renderer = GetOrCreatePlugin<IRenderer>(assemblyName, rendererClassName);
-
-            ReadAllNotYetReadIn();
-
-            Dependency[] allDependencies = GetAllDependencies().ToArray();
-            string masterFileName = renderer.GetMasterFileName(this, rendererOptions, fileName);
-            if (WorkLazily && File.Exists(masterFileName)) {
-                // we dont do anything - TODO check change dates of input files vs. the master file's last update date
+            if (Option.IsHelpOption(rendererOptions)) {
+                ShowDetailedHelp<ITransformer>(assemblyName, rendererClassName, "");
+                return null;
             } else {
-                renderer.Render(this, allDependencies, allDependencies.Length, rendererOptions ?? "", fileName, IgnoreCase);
-            }
-            RenderingDone = true;
+                IRenderer renderer = GetOrCreatePlugin<IRenderer>(assemblyName, rendererClassName);
 
-            return masterFileName;
+                ReadAllNotYetReadIn();
+
+                Dependency[] allDependencies = GetAllDependencies().ToArray();
+                string masterFileName = renderer.GetMasterFileName(this, rendererOptions, fileName);
+                if (WorkLazily && File.Exists(masterFileName)) {
+                    // we dont do anything - TODO check change dates of input files vs. the master file's last update date
+                } else {
+                    renderer.Render(this, allDependencies, allDependencies.Length, rendererOptions ?? "", fileName,
+                        IgnoreCase);
+                }
+                RenderingDone = true;
+
+                return masterFileName;
+            }
         }
 
         private IEnumerable<Dependency> GetAllDependencies() {
@@ -173,9 +179,9 @@ namespace NDepCheck {
             }
             try {
                 // plugins can have state, therefore we must manage them
-                T result = (T) _plugins.FirstOrDefault(t => t.GetType() == pluginType);
+                T result = (T)_plugins.FirstOrDefault(t => t.GetType() == pluginType);
                 if (result == null) {
-                    _plugins.Add(result = (T) Activator.CreateInstance(pluginType));
+                    _plugins.Add(result = (T)Activator.CreateInstance(pluginType));
                 }
                 return result;
             } catch (Exception ex) {
@@ -186,14 +192,14 @@ namespace NDepCheck {
         }
 
         private static string ShowAssemblyName(string assemblyName) {
-            return String.IsNullOrWhiteSpace(assemblyName)
+            return string.IsNullOrWhiteSpace(assemblyName)
                 ? typeof(GlobalContext).Assembly.GetName().Name
                 : assemblyName;
         }
 
         private static IOrderedEnumerable<Type> GetPluginTypes<T>([CanBeNull] string assemblyName) {
             try {
-                Assembly pluginAssembly = String.IsNullOrWhiteSpace(assemblyName) || assemblyName == "."
+                Assembly pluginAssembly = string.IsNullOrWhiteSpace(assemblyName) || assemblyName == "."
                     ? typeof(GlobalContext).Assembly
                     : Assembly.LoadFrom(assemblyName);
 
@@ -228,11 +234,11 @@ namespace NDepCheck {
             }
         }
 
-        public void CreateInputOption(string[] args, ref int i, string filePattern, string assembly, string readerFactoryClass) {
+        public void CreateInputOption(string[] args, ref int i, string filePattern, string assemblyName, string readerFactoryClass) {
             if (readerFactoryClass == null) {
                 throw new ApplicationException($"No reader class found for file pattern '{filePattern}'");
             }
-            IReaderFactory readerFactory = GetOrCreatePlugin<IReaderFactory>(assembly, readerFactoryClass);
+            IReaderFactory readerFactory = GetOrCreatePlugin<IReaderFactory>(assemblyName, readerFactoryClass);
             _inputSpecs.Add(new InputFileOption(filePattern, readerFactory).AddNegative(i + 2 < args.Length && args[i + 1] == "-" ? args[i += 2] : null));
             InputFilesOrTestDataSpecified = true;
         }
@@ -242,7 +248,7 @@ namespace NDepCheck {
             var matched = new Dictionary<Type, string>();
             foreach (var t in pluginTypes) {
                 try {
-                    T renderer = (T) Activator.CreateInstance(t);
+                    T renderer = (T)Activator.CreateInstance(t);
                     string help = t.FullName + ":\r\n" + renderer.GetHelp(detailedHelp: false, filter: "");
                     if (help.IndexOf(filter ?? "", StringComparison.InvariantCultureIgnoreCase) >= 0) {
                         matched.Add(t, HELP_SEPARATOR + "\r\n" + help + "\r\n");
@@ -267,8 +273,8 @@ namespace NDepCheck {
             Log.WriteInfo(HELP_SEPARATOR);
         }
 
-        public void TransformTestData(string assembly, string transformerClass, string transformerOptions) {
-            ITransformer transformer = GetOrCreatePlugin<ITransformer>(assembly, transformerClass);
+        public void TransformTestData(string assemblyName, string transformerClass, string transformerOptions) {
+            ITransformer transformer = GetOrCreatePlugin<ITransformer>(assemblyName, transformerClass);
             _dependenciesWithoutInputContextStack.Push(transformer.GetTestDependencies());
 
             var newDependenciesCollector = new List<Dependency>();
@@ -281,41 +287,46 @@ namespace NDepCheck {
             _dependenciesWithoutInputContextStack.Push(newDependenciesCollector);
         }
 
-        public int Transform([CanBeNull] string assembly, [NotNull] string transformerClass,
+        public int Transform([CanBeNull] string assemblyName, [NotNull] string transformerClass,
             [CanBeNull] string transformerOptions) {
-            ReadAllNotYetReadIn();
-
-            ITransformer transformer = GetOrCreatePlugin<ITransformer>(assembly, transformerClass);
-            Log.WriteInfo($"Transforming with {assembly}.{transformerClass}");
-
-            var newDependenciesCollector = new List<Dependency>();
-            int result = Program.OK_RESULT;
-            if (transformer.RunsPerInputContext) {
-                foreach (var ic in _inputContexts.Values) {
-                    result = Transform(transformerOptions, transformer, ic.Filename, ic.Dependencies, "dependencies in file " + ic.Filename, newDependenciesCollector, result);
-                }
-                result = Transform(transformerOptions, transformer, "", DependenciesWithoutInputContext, "generated dependencies", newDependenciesCollector, result);
+            if (Option.IsHelpOption(transformerOptions)) {
+                ShowDetailedHelp<ITransformer>(assemblyName, transformerClass, "");
+                return Program.OPTIONS_PROBLEM;
             } else {
-                result = transformer.Transform(this, "", GetAllDependencies().ToArray(), transformerOptions, "all dependencies",
-                    newDependenciesCollector);
+                ReadAllNotYetReadIn();
+
+                ITransformer transformer = GetOrCreatePlugin<ITransformer>(assemblyName, transformerClass);
+                Log.WriteInfo($"Transforming with {assemblyName}.{transformerClass}");
+
+                var newDependenciesCollector = new List<Dependency>();
+                int result = Program.OK_RESULT;
+                if (transformer.RunsPerInputContext) {
+                    foreach (var ic in _inputContexts.Values) {
+                        result = Transform(transformerOptions, transformer, ic.Filename, ic.Dependencies, "dependencies in file " + ic.Filename, newDependenciesCollector, result);
+                    }
+                    result = Transform(transformerOptions, transformer, "", DependenciesWithoutInputContext, "generated dependencies", newDependenciesCollector, result);
+                } else {
+                    result = transformer.Transform(this, "", GetAllDependencies().ToArray(), transformerOptions, "all dependencies",
+                        newDependenciesCollector);
+                }
+
+                if (newDependenciesCollector.Contains(null)) {
+                    throw new NullReferenceException("newDependenciesCollector contains null dependency");
+                }
+
+                transformer.AfterAllTransforms(this);
+                int sum = 0;
+                foreach (var ic in _inputContexts.Values) {
+                    sum += ic.PushDependencies(newDependenciesCollector.Where(d => d.InputContext == ic));
+                }
+                sum += PushDependenciesWithoutInputContext(
+                        newDependenciesCollector.Where(d => d.InputContext == null).ToArray());
+                TransformingDone = true;
+
+                Log.WriteInfo($" ... now {sum} dependencies");
+
+                return result;
             }
-
-            if (newDependenciesCollector.Contains(null)) {
-                throw new NullReferenceException("newDependenciesCollector contains null dependency");
-            }
-
-            transformer.AfterAllTransforms(this);
-            int sum = 0;
-            foreach (var ic in _inputContexts.Values) {
-                sum += ic.PushDependencies(newDependenciesCollector.Where(d => d.InputContext == ic));
-            }
-            sum += PushDependenciesWithoutInputContext(
-                    newDependenciesCollector.Where(d => d.InputContext == null).ToArray());
-            TransformingDone = true;
-
-            Log.WriteInfo($" ... now {sum} dependencies");
-
-            return result;
         }
 
         private int Transform(string transformerOptions, ITransformer transformer, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
@@ -385,7 +396,7 @@ namespace NDepCheck {
             return result;
         }
 
-        public void ShowDetailedHelp<T>([CanBeNull] string assemblyName, [NotNull] string pluginClassName,
+        public void ShowDetailedHelp<T>([CanBeNull] string assemblyName, [CanBeNull] string pluginClassName,
             [CanBeNull] string filter) where T : IPlugin {
             try {
                 T plugin = GetOrCreatePlugin<T>(assemblyName, pluginClassName);
@@ -431,7 +442,7 @@ namespace NDepCheck {
         }
 
         public static bool IsConsoleOutFileName(string fileName) {
-            return String.IsNullOrWhiteSpace(fileName) || fileName == "-";
+            return string.IsNullOrWhiteSpace(fileName) || fileName == "-";
         }
 
         public ItemType GetItemType(string definition) {
@@ -509,13 +520,18 @@ namespace NDepCheck {
             _localParameters.ShowAllValues("Local parameters:");
         }
 
-        public void Calculate(string valueKey, string assembly, string calculatorClass, IEnumerable<string> input) {
-            ICalculator calculator = GetOrCreatePlugin<ICalculator>(assembly, calculatorClass);
-            try {
-                string value = calculator.Calculate(input.ToArray());
-                _globalValues.SetDefine(valueKey, value, "Computed by " + calculatorClass);
-            } catch (Exception ex) {
-                Log.WriteError($"Cannot compute value with ${calculatorClass}; reason: {ex.GetType().Name} '{ex.Message}'");
+        public void Calculate(string valueKey, string assemblyName, string calculatorClass, IEnumerable<string> input) {
+            if (Option.IsHelpOption(input.FirstOrDefault())) {
+                ShowDetailedHelp<ITransformer>(assemblyName, calculatorClass, "");
+            } else {
+                ICalculator calculator = GetOrCreatePlugin<ICalculator>(assemblyName, calculatorClass);
+                try {
+                    string value = calculator.Calculate(input.ToArray());
+                    _globalValues.SetDefine(valueKey, value, "Computed by " + calculatorClass);
+                } catch (Exception ex) {
+                    Log.WriteError(
+                        $"Cannot compute value with ${calculatorClass}; reason: {ex.GetType().Name} '{ex.Message}'");
+                }
             }
         }
 
@@ -523,6 +539,10 @@ namespace NDepCheck {
             ValuesFrame previousValue = _localParameters;
             _localParameters = locals;
             return previousValue;
+        }
+
+        public bool IsInternalPlugin<T>(string name) where T : IPlugin {
+            return GetPluginTypes<T>("").Any(t => t.Name == name);
         }
     }
 }

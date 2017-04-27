@@ -7,6 +7,7 @@ using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.Rendering;
 using NDepCheck.TestRenderer;
+using NDepCheck.Transforming.Modifying;
 using NDepCheck.Transforming.Projecting;
 using NDepCheck.Transforming.ViolationChecking;
 
@@ -126,8 +127,11 @@ NDepCheck:Tests ---> **
                     TextWriter oldOut = Console.Out;
                     Console.SetOut(tw);
                     string[] args = {
-                        Program.LogVerboseOption.Opt, Program.ConfigureOption.Opt, typeof(CheckDeps).Name,
-                        "{", CheckDeps.DefaultRuleFileOption.Opt, ruleFile.Filename, "}", Program.ReadOption.Opt,
+                        Program.LogVerboseOption.Opt,
+                        typeof(CheckDeps).Name, "<.",
+                            CheckDeps.DefaultRuleFileOption.Opt, ruleFile.Filename,
+                        ".>",
+                        Program.ReadOption.Opt,
                         TestAssemblyPath
                     };
                     result = Program.Main(args);
@@ -560,6 +564,11 @@ NDepCheck:Tests ---> **
         public void TestHelpForAllTransformers() {
             Assert.AreEqual(1, Program.Main(new[] { Program.TransformPluginHelpOption.Opt, "." }));
             Assert.AreEqual(1, Program.Main(new[] { Program.TransformHelpOption.Opt }));
+        }
+
+        [TestMethod]
+        public void TestHelpForSingleInternalTransformer() {
+            Assert.AreEqual(1, Program.Main(new[] {typeof(MarkDeps).Name, "help" }));
         }
 
         [TestMethod]

@@ -236,10 +236,10 @@ namespace NDepCheck {
                         Debugger.Launch();
                     } else if (ReadPluginOption.IsMatch(arg)) {
                         // -rp    assembly reader filepattern [- filepattern]
-                        string assembly = ExtractOptionValue(globalContext, args, ref i);
+                        string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string reader = ExtractNextValue(globalContext, args, ref i);
                         string filePattern = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.CreateInputOption(args, ref i, filePattern, assembly, reader);
+                        globalContext.CreateInputOption(args, ref i, filePattern, assemblyName, reader);
                     } else if (ReadFileOption.IsMatch(arg)) {
                         // -rf    reader filepattern [- filepattern]
                         string reader = ExtractOptionValue(globalContext, args, ref i);
@@ -261,19 +261,19 @@ namespace NDepCheck {
 
                     } else if (ReadPluginHelpOption.IsMatch(arg)) {
                         // -ra?    assembly [filter]
-                        string assembly = ExtractOptionValue(globalContext, args, ref i);
+                        string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string filter = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.ShowAllPluginsAndTheirHelp<IReaderFactory>(assembly, filter);
+                        globalContext.ShowAllPluginsAndTheirHelp<IReaderFactory>(assemblyName, filter);
                     } else if (ReadHelpOption.IsMatch(arg)) {
                         // -rf? [filter]
                         string filter = ExtractOptionValue(globalContext, args, ref i);
                         globalContext.ShowAllPluginsAndTheirHelp<IReaderFactory>("", filter);
                     } else if (ReadPluginDetailedHelpOption.IsMatch(arg)) {
                         // -ra!    assembly reader
-                        string assembly = ExtractOptionValue(globalContext, args, ref i);
+                        string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string reader = ExtractNextValue(globalContext, args, ref i);
                         string filter = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.ShowDetailedHelp<IReaderFactory>(assembly, reader, filter);
+                        globalContext.ShowDetailedHelp<IReaderFactory>(assemblyName, reader, filter);
                     } else if (ReadDetailedHelpOption.IsMatch(arg)) {
                         // -rf!    reader
                         string reader = ExtractOptionValue(globalContext, args, ref i);
@@ -281,10 +281,10 @@ namespace NDepCheck {
                         globalContext.ShowDetailedHelp<IReaderFactory>("", reader, filter);
                     } else if (ConfigurePluginOption.IsMatch(arg)) {
                         // -cp    assembly transformer { options }
-                        string assembly = ExtractOptionValue(globalContext, args, ref i);
+                        string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string transformer = ExtractNextValue(globalContext, args, ref i);
                         string transformerOptions = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.ConfigureTransformer(assembly, transformer, transformerOptions,
+                        globalContext.ConfigureTransformer(assemblyName, transformer, transformerOptions,
                                                            forceReloadConfiguration: _interactiveLogFile != null);
                     } else if (ConfigureOption.IsMatch(arg)) {
                         // -cf    transformer  { options }
@@ -294,10 +294,10 @@ namespace NDepCheck {
                                                            forceReloadConfiguration: _interactiveLogFile != null);
                     } else if (TransformPluginOption.IsMatch(arg)) {
                         // -tp    assembly transformer [{ options }]
-                        string assembly = ExtractOptionValue(globalContext, args, ref i);
+                        string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string transformer = ExtractNextValue(globalContext, args, ref i);
                         string transformerOptions = ExtractNextValue(globalContext, args, ref i);
-                        result = globalContext.Transform(assembly, transformer, transformerOptions);
+                        result = globalContext.Transform(assemblyName, transformer, transformerOptions);
                     } else if (TransformOption.IsMatch(arg)) {
                         // -tf    transformer  [{ options }]
                         string transformer = ExtractOptionValue(globalContext, args, ref i);
@@ -308,26 +308,26 @@ namespace NDepCheck {
                         globalContext.UndoTransform();
                     } else if (TransformTestDataOption.IsMatch(arg)) {
                         // -tt    assembly transformer [{ options }]
-                        string assembly = ExtractOptionValue(globalContext, args, ref i);
+                        string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string transformer = ExtractNextValue(globalContext, args, ref i);
                         string transformerOptions = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.TransformTestData(assembly, transformer, transformerOptions);
+                        globalContext.TransformTestData(assemblyName, transformer, transformerOptions);
                         globalContext.InputFilesOrTestDataSpecified = true;
                     } else if (TransformPluginHelpOption.IsMatch(arg)) {
                         // -tp?    assembly
-                        string assembly = ExtractOptionValue(globalContext, args, ref i);
+                        string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string filter = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.ShowAllPluginsAndTheirHelp<ITransformer>(assembly, filter);
+                        globalContext.ShowAllPluginsAndTheirHelp<ITransformer>(assemblyName, filter);
                     } else if (TransformHelpOption.IsMatch(arg)) {
                         // -tf?
                         string filter = ExtractOptionValue(globalContext, args, ref i);
                         globalContext.ShowAllPluginsAndTheirHelp<ITransformer>("", filter);
                     } else if (TransformPluginDetailedHelpOption.IsMatch(arg)) {
                         // -ta!    assembly transformer
-                        string assembly = ExtractOptionValue(globalContext, args, ref i);
+                        string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string transformer = ExtractNextValue(globalContext, args, ref i);
                         string filter = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.ShowDetailedHelp<ITransformer>(assembly, transformer, filter);
+                        globalContext.ShowDetailedHelp<ITransformer>(assemblyName, transformer, filter);
                     } else if (TransformDetailedHelpOption.IsMatch(arg)) {
                         // -tf!    transformer
                         string transformer = ExtractOptionValue(globalContext, args, ref i);
@@ -335,11 +335,11 @@ namespace NDepCheck {
                         globalContext.ShowDetailedHelp<ITransformer>("", transformer, filter);
                     } else if (WritePluginOption.IsMatch(arg)) {
                         // -wp    assembly writer [{ options }] filename
-                        string assembly = ExtractOptionValue(globalContext, args, ref i);
+                        string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string writer = ExtractNextValue(globalContext, args, ref i);
                         string s = ExtractNextValue(globalContext, args, ref i);
                         string masterFileName = Write(globalContext, s, args, ref i,
-                            (writerOptions, fileName) => globalContext.RenderToFile(assembly, writer, writerOptions, fileName));
+                            (writerOptions, fileName) => globalContext.RenderToFile(assemblyName, writer, writerOptions, fileName));
                         writtenMasterFiles?.Add(masterFileName);
                     } else if (WriteFileOption.IsMatch(arg)) {
                         // -wr    writer  [{ options }] filename
@@ -355,26 +355,26 @@ namespace NDepCheck {
                         writtenMasterFiles?.Add(masterFileName);
                     } else if (WriteTestDataOption.IsMatch(arg)) {
                         // -wt    assembly writer [{ options }] filename
-                        string assembly = ExtractOptionValue(globalContext, args, ref i);
+                        string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string writer = ExtractNextValue(globalContext, args, ref i);
                         string s = ExtractNextValue(globalContext, args, ref i);
                         Write(globalContext, s, args, ref i,
-                            (writerOptions, fileName) => globalContext.RenderTestData(assembly, writer, writerOptions, fileName));
+                            (writerOptions, fileName) => globalContext.RenderTestData(assemblyName, writer, writerOptions, fileName));
                     } else if (WritePluginHelpOption.IsMatch(arg)) {
                         // -wp?    assembly
-                        string assembly = ExtractOptionValue(globalContext, args, ref i);
+                        string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string filter = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.ShowAllPluginsAndTheirHelp<IRenderer>(assembly, filter);
+                        globalContext.ShowAllPluginsAndTheirHelp<IRenderer>(assemblyName, filter);
                     } else if (WriteHelpOption.IsMatch(arg)) {
                         // -wr?
                         string filter = ExtractOptionValue(globalContext, args, ref i);
                         globalContext.ShowAllPluginsAndTheirHelp<IRenderer>("", filter);
                     } else if (WritePluginDetailedHelpOption.IsMatch(arg)) {
                         // -wp!    assembly reader
-                        string assembly = ExtractOptionValue(globalContext, args, ref i);
+                        string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string writer = ExtractNextValue(globalContext, args, ref i);
                         string filter = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.ShowDetailedHelp<IRenderer>(assembly, writer, filter);
+                        globalContext.ShowDetailedHelp<IRenderer>(assemblyName, writer, filter);
                     } else if (WriteDetailedHelpOption.IsMatch(arg)) {
                         // -wr!    reader
                         string writer = ExtractOptionValue(globalContext, args, ref i);
@@ -383,10 +383,10 @@ namespace NDepCheck {
                     } else if (CalculatePluginOption.IsMatch(arg)) {
                         // -xp    varname assembly calculator [varname ...]
                         string varname = ExtractOptionValue(globalContext, args, ref i);
-                        string assembly = ExtractNextValue(globalContext, args, ref i);
+                        string assemblyName = ExtractNextValue(globalContext, args, ref i);
                         string calculator = ExtractNextValue(globalContext, args, ref i);
                         List<string> input = ExtractInputVars(globalContext, args, ref i);
-                        globalContext.Calculate(varname, assembly, calculator, input);
+                        globalContext.Calculate(varname, assemblyName, calculator, input);
                     } else if (CalculateOption.IsMatch(arg)) {
                         // -xf    varname calculator [varname ...]
                         string varname = ExtractOptionValue(globalContext, args, ref i);
@@ -395,19 +395,19 @@ namespace NDepCheck {
                         globalContext.Calculate(varname, "", calculator, input);
                     } else if (CalculatePluginHelpOption.IsMatch(arg)) {
                         // -xa?    assembly [filter]
-                        string assembly = ExtractOptionValue(globalContext, args, ref i);
+                        string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string filter = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.ShowAllPluginsAndTheirHelp<ICalculator>(assembly, filter);
+                        globalContext.ShowAllPluginsAndTheirHelp<ICalculator>(assemblyName, filter);
                     } else if (CalculateHelpOption.IsMatch(arg)) {
                         // -xf? [filter]
                         string filter = ExtractOptionValue(globalContext, args, ref i);
                         globalContext.ShowAllPluginsAndTheirHelp<ICalculator>("", filter);
                     } else if (CalculatePluginDetailedHelpOption.IsMatch(arg)) {
                         // -xa!    assembly calculator
-                        string assembly = ExtractOptionValue(globalContext, args, ref i);
+                        string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string calculator = ExtractNextValue(globalContext, args, ref i);
                         string filter = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.ShowDetailedHelp<IRenderer>(assembly, calculator, filter);
+                        globalContext.ShowDetailedHelp<IRenderer>(assemblyName, calculator, filter);
                     } else if (CalculateDetailedHelpOption.IsMatch(arg)) {
                         // -xf!    calculator
                         string calculator = ExtractOptionValue(globalContext, args, ref i);
@@ -481,7 +481,7 @@ namespace NDepCheck {
 
                         string fileName = ExtractNextValue(globalContext, args, ref i);
                         if (fileName != null && IsDipFile(fileName)) {
-                            globalContext.CreateInputOption(args, ref i, fileName, assembly: "",
+                            globalContext.CreateInputOption(args, ref i, fileName, assemblyName: "",
                                 readerFactoryClass: typeof(DipReaderFactory).FullName);
                         }
                     } else if (DoTimeOption.IsMatch(arg)) {
@@ -588,15 +588,18 @@ namespace NDepCheck {
                         // (lazy reading and transforming NOT YET IMPLEMENTED)
                         globalContext.WorkLazily = true;
                     } else if (IsDllOrExeFile(arg)) {
-                        globalContext.CreateInputOption(args, ref i, arg, assembly: "",
+                        globalContext.CreateInputOption(args, ref i, arg, assemblyName: "",
                             readerFactoryClass: typeof(DotNetAssemblyDependencyReaderFactory).FullName);
                     } else if (IsDipFile(arg)) {
-                        globalContext.CreateInputOption(args, ref i, arg, assembly: "",
+                        globalContext.CreateInputOption(args, ref i, arg, assemblyName: "",
                             readerFactoryClass: typeof(DipReaderFactory).FullName);
                     } else if (IsNdFile(arg)) {
                         string[] paramValues = GetParamsList(globalContext, args, ref i);
                         result = RunFrom(arg, paramValues, globalContext, writtenMasterFiles, logCommands: false, showParameters: false);
                         globalContext.InputFilesOrTestDataSpecified = true;
+                    } else if (IsInternalTransformPlugin(globalContext, arg)) {
+                        string transformerOptions = ExtractNextValue(globalContext, args, ref i);
+                        result = globalContext.Transform("", arg, transformerOptions);
                     } else {
                         return UsageAndExit(message: "Unsupported option '" + arg + "'", globalContext: globalContext);
                     }
@@ -622,7 +625,7 @@ namespace NDepCheck {
                 if (result == OK_RESULT && !globalContext.TransformingDone && !globalContext.RenderingDone) {
                     // Default action at end if nothing was done
                     globalContext.ReadAllNotYetReadIn();
-                    result = globalContext.Transform(assembly: "", transformerClass: typeof(CheckDeps).FullName,
+                    result = globalContext.Transform(assemblyName: "", transformerClass: typeof(CheckDeps).FullName,
                         transformerOptions: "");
                     globalContext.RenderToFile(assemblyName: "",
                         rendererClassName: typeof(RuleViolationRenderer).FullName, rendererOptions: "", fileName: null);
@@ -740,6 +743,10 @@ namespace NDepCheck {
 
         private static bool IsNdFile(string arg) {
             return arg.EndsWith(value: ".nd", comparisonType: StringComparison.InvariantCultureIgnoreCase);
+        }
+
+        private static bool IsInternalTransformPlugin(GlobalContext globalContext, string arg) {
+            return globalContext.IsInternalPlugin<ITransformer>(arg);
         }
 
         internal int RunFrom([NotNull] string fileName, [NotNull, ItemNotNull] string[] passedValues, [NotNull] GlobalContext globalContext,

@@ -65,8 +65,8 @@ Examples:
                                    Keep only depedencies starting at assembly Some.Assembly
 ";
 
-            
-}
+
+            }
             return result;
         }
 
@@ -86,7 +86,7 @@ Examples:
                 }),
                 ModificationsOption.Action((args, j) => {
                     _orderedActions = GetOrReadChildConfiguration(globalContext,
-                        () => new StringReader(string.Join("\r\n", args.Skip(j + 1))), 
+                        () => new StringReader(string.Join("\r\n", args.Skip(j + 1))),
                         ModificationsOption.ShortName, globalContext.IgnoreCase, "????", forceReload: true);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;
@@ -103,7 +103,7 @@ Examples:
                 forceReloadConfiguration,
                 onIncludedConfiguration: (e, n) => actions.AddRange(e),
                 onLineWithLineNo: (line, lineNo) => {
-                    actions.Add(new DependencyAction(line.Trim(), ignoreCase, 
+                    actions.Add(new DependencyAction(line.Trim(), ignoreCase,
                                 fullConfigFileName, startLineNo));
                     return null;
                 }, configValueCollector: configValueCollector);
