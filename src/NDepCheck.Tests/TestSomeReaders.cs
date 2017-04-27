@@ -7,8 +7,7 @@ using NDepCheck.Reading;
 
 namespace NDepCheck.Tests {
     [TestClass]
-    public class TestReaders {
-
+    public class TestSomeReaders {
         [TestMethod]
         public void TestDipWithProxies() {
             string inFile = Path.GetTempFileName() + ".dip";

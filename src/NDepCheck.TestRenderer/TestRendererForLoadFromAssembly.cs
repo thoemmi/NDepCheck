@@ -38,12 +38,11 @@ namespace NDepCheck.TestRenderer {
             }
         }
 
-        public override void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies() {
             ItemType simple = ItemType.New("SIMPLE(Name)");
             Item[] localItems = Enumerable.Range(0, 5).Select(i => Item.New(simple, "Item " + i)).ToArray();
-            dependencies = localItems.SelectMany(
+            return localItems.SelectMany(
                     (from, i) => localItems.Skip(i).Select(to => new Dependency(from, to, new TextFileSource("Test", i), "Test", ct: 10 * i))).ToArray();
-            items = localItems;
         }
 
         public override string GetHelp(bool detailedHelp, string filter) {

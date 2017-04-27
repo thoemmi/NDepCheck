@@ -24,6 +24,6 @@ namespace NDepCheck.Rendering {
         /// </summary>
         void RenderToStreamForUnitTests([ItemNotNull, NotNull] IEnumerable<Dependency> dependencies, [NotNull] Stream stream);
 
-        void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies);
+        IEnumerable<Dependency> CreateSomeTestDependencies();
     }
 }

@@ -26,6 +26,8 @@ namespace NDepCheck {
             get;
         }
 
+        public bool IsConsole => FileName == null;
+
         public void Dispose() {
             Writer?.Dispose();
         }
@@ -216,10 +218,7 @@ namespace NDepCheck {
         public string RenderTestData([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName, string rendererOptions, [NotNull] string baseFileName) {
             IRenderer renderer = GetOrCreatePlugin<IRenderer>(assemblyName, rendererClassName);
 
-            IEnumerable<Item> items;
-            IEnumerable<Dependency> dependencies;
-
-            renderer.CreateSomeTestItems(out items, out dependencies);
+            IEnumerable<Dependency> dependencies = renderer.CreateSomeTestDependencies();
             renderer.Render(this, dependencies, dependencies.Count(), rendererOptions, baseFileName, IgnoreCase);
 
             RenderingDone = true;
@@ -437,8 +436,14 @@ namespace NDepCheck {
         }
 
         public static NamedTextWriter CreateTextWriter(string fullFileName) {
-            Log.WriteInfo("Writing " + fullFileName);
-            return new NamedTextWriter(fullFileName == "-" ? Console.Out : new StreamWriter(fullFileName), fullFileName);
+            if (fullFileName == "-") {
+                Log.WriteInfo("Writing to console");
+                return new NamedTextWriter(Console.Out, null);
+            } else {
+                Log.WriteInfo("Writing " + fullFileName);
+                return new NamedTextWriter(new StreamWriter(fullFileName), fullFileName);
+
+            }
         }
 
         public static bool IsConsoleOutFileName(string fileName) {
@@ -486,7 +491,7 @@ namespace NDepCheck {
             ReadAllNotYetReadIn();
 
             List<Item> matchingItems = LogOnlyItemCount(pattern).ToList();
-            matchingItems.Sort((i1,i2) => string.Compare(i1.Name, i2.Name, IgnoreCase ? StringComparison.InvariantCultureIgnoreCase : StringComparison.InvariantCulture));
+            matchingItems.Sort((i1, i2) => string.Compare(i1.Name, i2.Name, IgnoreCase ? StringComparison.InvariantCultureIgnoreCase : StringComparison.InvariantCulture));
             foreach (var i in matchingItems.Take(maxCount)) {
                 Log.WriteInfo(i.AsFullString());
             }

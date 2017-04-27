@@ -13,8 +13,8 @@ namespace NDepCheck.Rendering {
 
         private static readonly Option[] _allOptions = { MaxNameWidthOption, WriteBadCountOption, InnerMatchOption };
 
-        public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
-            SomeRendererTestData.CreateSomeTestItems(out items, out dependencies);
+        public IEnumerable<Dependency> CreateSomeTestDependencies() {
+            return SomeRendererTestData.CreateSomeTestItems();
         }
 
         public string GetHelp(bool detailedHelp, string filter) {

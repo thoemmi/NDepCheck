@@ -148,7 +148,7 @@ namespace NDepCheck.Rendering {
             return dependencies.Where(filter).Sum(d => d.Ct);
         }
 
-        public override void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies() {
             ItemType ar = ItemType.New("AR(Assembly:Ref)");
 
             var wlg = Item.New(ar, "WLG:1".Split(':'));
@@ -159,9 +159,7 @@ namespace NDepCheck.Rendering {
             var impC = Item.New(ar, "IMP.C:6".Split(':'));
             var impD = Item.New(ar, "IMP.D:".Split(':'));
 
-            items = new[] { vkf, kst, wlg, impA, impB, impC, impD };
-
-            dependencies = new[] {
+            return new[] {
                     FromTo(vkf, impA), FromTo(vkf, impD),
                     FromTo(wlg, impB), FromTo(wlg, impD),
                     FromTo(kst, impA), FromTo(kst, impB), FromTo(kst, impC)

@@ -13,12 +13,12 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestSimpleDAG() {
-            Item[] nodes;
-            Dependency[] edges;
-            SetupDAG(out nodes, out edges);
+            Item[] items;
+            Dependency[] dependencies;
+            SetupDAG(out items, out dependencies);
 
             using (var s = new MemoryStream()) {
-                new MatrixRenderer1().RenderToStreamForUnitTests(edges, s);
+                new MatrixRenderer1().RenderToStreamForUnitTests(dependencies, s);
 
                 Assert.AreEqual(@"Id;Name;1;  ;2;  ;3;  
 1;n3  ; 1;  ;  ;  ;  ;  
@@ -45,18 +45,18 @@ namespace NDepCheck.Tests {
             }
         }
 
-        private static void SetupDAG(out Item[] nodes, out Dependency[] edges) {
-            nodes = new[] {
+        private static void SetupDAG(out Item[] items, out Dependency[] dependencies) {
+            items = new[] {
                 Item.New(ItemType.SIMPLE, new[] {"n1"}),
                 Item.New(ItemType.SIMPLE, new[] {"n2"}),
                 Item.New(ItemType.SIMPLE, new[] {"n3"})
             };
-            edges = new[] {
-                CreateDependency(nodes[2], nodes[1]),
-                CreateDependency(nodes[2], nodes[0]),
-                CreateDependency(nodes[1], nodes[0]),
+            dependencies = new[] {
+                CreateDependency(items[2], items[1]),
+                CreateDependency(items[2], items[0]),
+                CreateDependency(items[1], items[0]),
                 // a loop on the lowest
-                CreateDependency(nodes[2], nodes[2])
+                CreateDependency(items[2], items[2])
             };
         }
 

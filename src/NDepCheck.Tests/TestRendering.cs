@@ -27,12 +27,11 @@ namespace NDepCheck.Tests {
                 _placeObjects(this);
             }
 
-            public override void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
+            public override IEnumerable<Dependency> CreateSomeTestDependencies() {
                 ItemType simple = ItemType.New("SIMPLE(Name)");
                 Item i1 = Item.New(simple, "I1");
                 Item i2 = Item.New(simple, "I2");
-                items = new[] { i1, Item.New(simple, "I2") };
-                dependencies = new[] { new Dependency(i1, i1, new TextFileSource("Test", 1), "Test", ct: 1),
+                return new[] { new Dependency(i1, i1, new TextFileSource("Test", 1), "Test", ct: 1),
                                        new Dependency(i1, i2, new TextFileSource("Test", 2), "Test", ct: 1) };
             }
 
@@ -259,17 +258,15 @@ namespace NDepCheck.Tests {
                 }
             }
 
-            public static void CreateSomeTestItems(int n, string prefix, out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
+            public static IEnumerable<Dependency> CreateSomeTestItems(int n, string prefix) {
                 ItemType simple = ItemType.New("SIMPLE(Name)");
                 var localItems = Enumerable.Range(0, n).Select(i => Item.New(simple, prefix + i)).ToArray();
-                dependencies =
-                    localItems.SelectMany(
+                return localItems.SelectMany(
                         (from, i) => localItems.Skip(i).Select(to => new Dependency(from, to, new TextFileSource(prefix, i), "Use", 10 * i))).ToArray();
-                items = localItems;
             }
 
-            public override void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
-                CreateSomeTestItems(5, "spiral", out items, out dependencies);
+            public override IEnumerable<Dependency> CreateSomeTestDependencies() {
+                return CreateSomeTestItems(5, "spiral");
             }
 
             public override string GetHelp(bool extensiveHelp, string filter) {

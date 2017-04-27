@@ -960,7 +960,7 @@ namespace NDepCheck.Rendering {
 
         protected abstract void PlaceObjects(IEnumerable<Dependency> dependencies);
 
-        public abstract void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies);
+        public abstract IEnumerable<Dependency> CreateSomeTestDependencies();
 
         public abstract string GetHelp(bool detailedHelp, string filter);
 

@@ -222,7 +222,7 @@ namespace NDepCheck.Rendering {
             return _interfaceSelector.IsMatch(GetName(mi));
         }
 
-        public override void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies() {
             ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
 
             var bac = Item.New(amo, "BAC:BAC:0100".Split(':'));
@@ -241,9 +241,7 @@ namespace NDepCheck.Rendering {
             var imp_mi = Item.New(amo, "Imp.MI:IMP:0601".Split(':'));
             var top = Item.New(amo, "Top:TOP:0700".Split(':'));
 
-            items = new[] { bac, kst, kah, kah_mi, vkf, vkf1_mi, vkf2_mi, vkf3_mi, vkf4_mi, wlg, wlg1_mi, wlg2_mi, imp, imp_mi, top };
-
-            dependencies = new[] {
+            return new[] {
                     FromTo(kst, bac), FromTo(kst, kah_mi), FromTo(kst, vkf1_mi), FromTo(kst, vkf2_mi), FromTo(kst, wlg1_mi), FromTo(kst, wlg2_mi),
                     FromTo(kah, bac), FromTo(kah, vkf1_mi), FromTo(kah, vkf2_mi), FromTo(kah, wlg, 4, 3) /* ===> */,
                     FromTo(vkf, bac), FromTo(vkf, kst), FromTo(vkf, kah, 3), FromTo(vkf, kah_mi, 2, 2) /* <:: */, FromTo(vkf, imp_mi), FromTo(vkf1_mi, bac), FromTo(vkf2_mi, bac),

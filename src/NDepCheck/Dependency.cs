@@ -258,9 +258,14 @@ namespace NDepCheck {
             // empty
         }
 
-        public bool IsMatch(List<DependencyMatch> matches, List<DependencyMatch> excludes) {
-            return (matches.Count == 0 || matches.Any(m => m.IsMatch(this))) &&
-                   (excludes.Count == 0 || !excludes.Any(m => m.IsMatch(this)));
+        public bool IsMatch([CanBeNull] IEnumerable<DependencyMatch> matches, [CanBeNull] IEnumerable<DependencyMatch> excludes) {
+            return (matches == null || !matches.Any() || matches.Any(m => m.IsMatch(this))) &&
+                   (excludes == null || !excludes.Any() || !excludes.Any(m => m.IsMatch(this)));
+        }
+
+        public static ISet<Item> GetAllItems(IEnumerable<Dependency> dependencies, Func<Item, bool> selectItem) {
+            var items = new HashSet<Item>(dependencies.SelectMany(d => new[] {d.UsingItem, d.UsedItem}));
+            return selectItem == null ? items : new HashSet<Item>(items.Where(i => selectItem(i)));
         }
     }
 }

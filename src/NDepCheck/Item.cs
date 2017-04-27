@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using Gibraltar;
 using JetBrains.Annotations;
+using NDepCheck.Transforming;
 
 namespace NDepCheck {
     public abstract class ItemSegment : ObjectWithMarkers {
@@ -174,26 +175,30 @@ namespace NDepCheck {
             return additionalValues == null ? this : new Item(additionalValues.Type, Values.Concat(additionalValues.Values.Skip(Type.Length)).ToArray()).SetOrder(Order);
         }
 
-        public static Dictionary<Item, IEnumerable<Dependency>> CollectIncomingDependenciesMap(IEnumerable<Dependency> dependencies) {
-            return CollectMap(dependencies, d => d.UsedItem, d => d)
+        public static Dictionary<Item, IEnumerable<Dependency>> CollectIncomingDependenciesMap(
+                        IEnumerable<Dependency> dependencies, Func<Item,bool> selectItem = null) {
+            return CollectMap(dependencies, d => selectItem == null || selectItem(d.UsedItem)? d.UsedItem : null, d => d)
                     .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<Dependency>) kvp.Value);
         }
 
-        public static Dictionary<Item, IEnumerable<Dependency>> CollectOutgoingDependenciesMap(IEnumerable<Dependency> dependencies) {
-            return CollectMap(dependencies, d => d.UsingItem, d => d)
+        public static Dictionary<Item, IEnumerable<Dependency>> CollectOutgoingDependenciesMap(
+                        IEnumerable<Dependency> dependencies, Func<Item, bool> selectItem = null) {
+            return CollectMap(dependencies, d => selectItem == null || selectItem(d.UsingItem) ? d.UsingItem : null, d => d)
                     .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<Dependency>) kvp.Value);
         }
 
-        public static Dictionary<Item, List<T>> CollectMap<T>(IEnumerable<Dependency> dependencies,
-                                            Func<Dependency, Item> getItem, Func<Dependency, T> createT) {
+        public static Dictionary<Item, List<T>> CollectMap<T>([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
+                                            [NotNull] Func<Dependency, Item> getItem, [NotNull] Func<Dependency, T> createT) {
             var result = new Dictionary<Item, List<T>>();
             foreach (var d in dependencies) {
-                List<T> list;
                 Item key = getItem(d);
-                if (!result.TryGetValue(key, out list)) {
-                    result.Add(key, list = new List<T>());
+                if (key != null) {
+                    List<T> list;
+                    if (!result.TryGetValue(key, out list)) {
+                        result.Add(key, list = new List<T>());
+                    }
+                    list.Add(createT(d));
                 }
-                list.Add(createT(d));
             }
             return result;
         }
@@ -207,7 +212,12 @@ namespace NDepCheck {
             _asFullString = null;
         }
 
-        public static readonly string ITEM_HELP = $@"
+        public bool IsMatch([CanBeNull] IEnumerable<ItemMatch> matches, [CanBeNull] IEnumerable<ItemMatch> excludes) {
+            return (matches == null || !matches.Any() || matches.Any(m => m.Matches(this) != null)) &&
+                   (excludes == null || !excludes.Any() || excludes.All(m => m.Matches(this) == null));
+        }
+
+        public static readonly string ITEM_HELP = @"
 TBD
 
 Item matches

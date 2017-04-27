@@ -9,20 +9,101 @@ namespace NDepCheck.Rendering {
     /// Writer for items in standard "DIP" format
     /// </summary>
     public class ItemWriter : IRenderer {
-        public static readonly Option MatchOption = new Option("im", "item-match", "&", "Match to select items to write", @default: "all items are written");
+        public static readonly Option MatchOption = new Option("im", "item-match", "&", "Match to select items to write", @default: "all items are written", multiple: true);
+        public static readonly Option NoMatchOption = new Option("nm", "no-match", "&", "Match to exclude items", @default: "no items are excluded", multiple: true);
 
-        private static readonly Option[] _allOptions = { MatchOption };
+        public static readonly Option IndegreeMatchOption = new Option("di", "indegree-match", "&", "Match to select dependencies for indegree counting", @default: "all incoming dependencies are counted", multiple: true);
+        public static readonly Option IndegreeNoMatchOption = new Option("ni", "indegree-no-match", "&", "Match to exclude dependencies for indegree counting", @default: "no incoming dependencies are excluded", multiple: true);
+        public static readonly Option OutdegreeMatchOption = new Option("do", "outdegree-match", "&", "Match to select dependencies for outdegree counting", @default: "all incoming dependencies are counted", multiple: true);
+        public static readonly Option OutdegreeNoMatchOption = new Option("no", "outdegree-no-match", "&", "Match to exclude dependencies for outdegree counting", @default: "no incoming dependencies are excluded", multiple: true);
 
-        private static int Write(IEnumerable<Dependency> dependencies, TextWriter sw, ItemMatch itemMatch, bool ignoreCase) {
-            var items = new HashSet<Item>(
-                dependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }).Where(i => ItemMatch.IsMatch(itemMatch, i))
-                );
+        public static readonly Option ShowMarkersOption = new Option("sm", "show-markers", "", "Show markers on written items", @default: false);
+        public static readonly Option ProjectionOption = new Option("pi", "project-item", "&", "Project item for writing", @default: "all fields are shown", multiple: true);
+
+        private static readonly Option[] _allOptions = {
+            MatchOption, NoMatchOption,
+            IndegreeMatchOption, IndegreeNoMatchOption, OutdegreeMatchOption, OutdegreeNoMatchOption,
+            ShowMarkersOption, ProjectionOption
+        };
+
+        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount,
+                           string argsAsString, string baseFileName, bool ignoreCase) {
+            var itemMatches = new List<ItemMatch>();
+            var itemExcludes = new List<ItemMatch>();
+
+            var indegreeMatches = new List<DependencyMatch>();
+            var indegreeExcludes = new List<DependencyMatch>();
+            var outdegreeMatches = new List<DependencyMatch>();
+            var outdegreeExcludes = new List<DependencyMatch>();
+
+            bool showMarkers = false;
+
+            Option.Parse(globalContext, argsAsString,
+                MatchOption.Action((args, j) => {
+                    itemMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item match"), globalContext.IgnoreCase));
+                    return j;
+                }),
+                NoMatchOption.Action((args, j) => {
+                    itemExcludes.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item match"), globalContext.IgnoreCase));
+                    return j;
+                }),
+                IndegreeMatchOption.Action((args, j) => {
+                    indegreeMatches.Add(DependencyMatch.Create(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), globalContext.IgnoreCase));
+                    return j;
+                }),
+                IndegreeNoMatchOption.Action((args, j) => {
+                    indegreeExcludes.Add(DependencyMatch.Create(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), globalContext.IgnoreCase));
+                    return j;
+                }),
+                OutdegreeMatchOption.Action((args, j) => {
+                    outdegreeMatches.Add(DependencyMatch.Create(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), globalContext.IgnoreCase));
+                    return j;
+                }),
+                OutdegreeNoMatchOption.Action((args, j) => {
+                    outdegreeExcludes.Add(DependencyMatch.Create(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), globalContext.IgnoreCase));
+                    return j;
+                }),
+                ShowMarkersOption.Action((args, j) => {
+                    showMarkers = true;
+                    return j;
+                }));
+
+            using (var nsw = GlobalContext.CreateTextWriter(GetMasterFileName(globalContext, argsAsString, baseFileName))) {
+                TextWriter sw = nsw.Writer;
+
+                bool writeHeader = nsw.IsConsole;
+                if (!writeHeader) {
+                    sw.WriteLine($"// Written {DateTime.Now} by {typeof(ItemWriter).Name} in NDepCheck {Program.VERSION}");
+                    sw.WriteLine();
+                }
+
+                Write(dependencies, sw, itemMatches, itemExcludes, indegreeMatches, indegreeExcludes,
+                      outdegreeMatches, outdegreeExcludes, showMarkers, ignoreCase);
+            }
+        }
+
+        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
+            using (var sw = new StreamWriter(output)) {
+                Write(dependencies, sw, itemMatches: null, itemExcludes: null, indegreeMatches: null, indegreeExcludes: null,
+                      outdegreeMatches: null, outdegreeExcludes: null, showMarkers: true, ignoreCase: false);
+            }
+        }
+
+        private void Write(IEnumerable<Dependency> dependencies, TextWriter sw, List<ItemMatch> itemMatches, List<ItemMatch> itemExcludes,
+                            List<DependencyMatch> indegreeMatches, List<DependencyMatch> indegreeExcludes,
+                            List<DependencyMatch> outdegreeMatches, List<DependencyMatch> outdegreeExcludes, bool showMarkers, bool ignoreCase) {
+            ISet<Item> items = Dependency.GetAllItems(dependencies, i => i.IsMatch(itemMatches, itemExcludes));
+
+            Dictionary<Item, IEnumerable<Dependency>> incoming = Item.CollectIncomingDependenciesMap(dependencies,
+                i => items.Contains(i));
+            Dictionary<Item, IEnumerable<Dependency>> outgoing = Item.CollectOutgoingDependenciesMap(dependencies,
+                i => items.Contains(i));
+
             List<Item> itemsAsList = items.ToList();
-            itemsAsList.Sort((i1, i2) => string.Compare(i1.AsFullString(), i2.AsFullString(),
-                ignoreCase ? StringComparison.InvariantCultureIgnoreCase : StringComparison.InvariantCulture));
-
-            sw.WriteLine($"// Written {DateTime.Now} by {typeof(ItemWriter).Name} in NDepCheck {Program.VERSION}");
-            sw.WriteLine();
+            itemsAsList.Sort(
+                (i1, i2) =>
+                    string.Compare(i1.AsFullString(), i2.AsFullString(),
+                        ignoreCase ? StringComparison.InvariantCultureIgnoreCase : StringComparison.InvariantCulture));
 
             var writtenTypes = new HashSet<ItemType>();
             foreach (var i in itemsAsList) {
@@ -31,47 +112,32 @@ namespace NDepCheck.Rendering {
                     sw.Write("$ ");
                     sw.WriteLine(itemType);
                 }
-            }
-            sw.WriteLine();
-            foreach (var i in itemsAsList) {
-                sw.WriteLine(i.AsFullString());
+
+                int ict = GetCount(incoming, i, indegreeMatches, indegreeExcludes);
+                int oct = GetCount(outgoing, i, outdegreeMatches, outdegreeExcludes);
+
+                sw.WriteLine($"{"--" + ict,7}->*--{oct + "->",-7} {(showMarkers ? i.AsFullString() : i.AsString())}");
             }
 
-            return itemsAsList.Count;
+            Log.WriteInfo($"... written {itemsAsList.Count} items");
         }
 
-        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount,
-                           string argsAsString, string baseFileName, bool ignoreCase) {
-            ItemMatch itemMatch = null;
-            Option.Parse(globalContext, argsAsString,
-                MatchOption.Action((args, j) => {
-                    itemMatch = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item match"), globalContext.IgnoreCase);
-                    return j;
-                }));
-            using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(globalContext, argsAsString, baseFileName))) {
-                int n = Write(dependencies, sw.Writer, itemMatch, globalContext.IgnoreCase);
-                Log.WriteInfo($"... written {n} items");
-            }
+        private int GetCount(Dictionary<Item, IEnumerable<Dependency>> adjacency, Item i, List<DependencyMatch> matches, List<DependencyMatch> excludes) {
+            IEnumerable<Dependency> dependencies;
+            return adjacency.TryGetValue(i, out dependencies) ? dependencies.Count(d => d.IsMatch(matches, excludes)) : 0;
         }
 
-        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
-            using (var sw = new StreamWriter(output)) {
-                Write(dependencies, sw, itemMatch: null, ignoreCase: false);
-            }
-        }
-
-        public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
+        public IEnumerable<Dependency> CreateSomeTestDependencies() {
             ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
 
-            var bac = Item.New(amo, "BAC:BAC:0100".Split(':'));
-            var kst = Item.New(amo, "KST:KST:0200".Split(':'));
-            var kah = Item.New(amo, "KAH:KAH:0300".Split(':'));
-            var kah_mi = Item.New(amo, "Kah.MI:KAH:0301".Split(':'));
-            var vkf = Item.New(amo, "VKF:VKF:0400".Split(':'));
+            var bac = Item.New(amo, "BAC:BAC:0100".Split(':'), "area".Split(','));
+            var kst = Item.New(amo, "KST:KST:0200".Split(':'), "area".Split(','));
+            var kah = Item.New(amo, "KAH:KAH:0300".Split(':'), "area".Split(','));
+            var kah_mi = Item.New(amo, "Kah.MI:KAH:0301".Split(':'), "area,mi".Split(','));
+            var vkf = Item.New(amo, "VKF:VKF:0400".Split(':'), "area".Split(','));
 
-            items = new[] { bac, kst, kah, kah_mi, vkf };
 
-            dependencies = new[] {
+            return new[] {
                     FromTo(kst, bac), FromTo(kst, kah_mi), FromTo(kah, bac), FromTo(vkf, bac), FromTo(vkf, kst), FromTo(vkf, kah, 3), FromTo(vkf, kah_mi, 2, 2)
                     // ... more to come
                 };

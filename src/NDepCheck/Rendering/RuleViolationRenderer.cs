@@ -82,14 +82,13 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
+        public IEnumerable<Dependency> CreateSomeTestDependencies() {
             ItemType simple = ItemType.New("SIMPLE(Name)");
             Item root = Item.New(simple, "root");
             Item ok = Item.New(simple, "ok");
             Item questionable = Item.New(simple, "questionable");
             Item bad = Item.New(simple, "bad");
-            items = new[] { root, ok, questionable, bad };
-            dependencies = new[] {
+            return new[] {
                 new Dependency(root, ok, new TextFileSource("Test", 1), "Use", 4, 0, 0, "to root"),
                 new Dependency(root, questionable, new TextFileSource("Test", 1), "Use", 4, 1, 0, "to questionable"),
                 new Dependency(root, bad, new TextFileSource("Test", 1), "Use", 4, 2, 1, "to bad")

@@ -54,7 +54,7 @@ namespace NDepCheck.Rendering {
             }
         }
 
-        public void CreateSomeTestItems(out IEnumerable<Item> items, out IEnumerable<Dependency> dependencies) {
+        public IEnumerable<Dependency> CreateSomeTestDependencies() {
             ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
 
             var bac = Item.New(amo, "BAC:BAC:0100".Split(':'));
@@ -62,10 +62,8 @@ namespace NDepCheck.Rendering {
             var kah = Item.New(amo, "KAH:KAH:0300".Split(':'));
             var kah_mi = Item.New(amo, "Kah.MI:KAH:0301".Split(':'));
             var vkf = Item.New(amo, "VKF:VKF:0400".Split(':'));
-
-            items = new[] { bac, kst, kah, kah_mi, vkf };
-
-            dependencies = new[] {
+            
+            return new[] {
                     FromTo(kst, bac), FromTo(kst, kah_mi), FromTo(kah, bac), FromTo(vkf, bac), FromTo(vkf, kst), FromTo(vkf, kah, 3), FromTo(vkf, kah_mi, 2, 2)
                     // ... more to come
                 };
