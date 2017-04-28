@@ -172,8 +172,7 @@ namespace NDepCheck.Reading {
             } else {
                 string[] values = prefixAndValues.Length > 1 ? prefixAndValues[1].Split(':', ';') : new string[0];
 
-                Item result = values.Contains("?") ? new ItemProxy(foundType, values, markers) : Item.New(foundType, values, markers);
-                return prefix.Length > 1 ? result.SetOrder(prefix[1]) : result;
+                return values.Contains("?") ? new ItemProxy(foundType, values, markers) : Item.New(foundType, values, markers);
             }
         }
 

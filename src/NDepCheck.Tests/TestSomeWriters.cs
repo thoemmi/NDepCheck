@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Linq;
 using System.Text;
-using NDepCheck.Reading;
 using NDepCheck.Rendering;
 
 namespace NDepCheck.Tests {

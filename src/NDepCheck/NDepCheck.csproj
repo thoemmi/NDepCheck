@@ -103,6 +103,7 @@
     <Compile Include="Reading\DipReaderFactory.cs" />
     <Compile Include="IPlugin.cs" />
     <Compile Include="Rendering\ItemWriter.cs" />
+    <Compile Include="Rendering\OrderSupport.cs" />
     <Compile Include="SourceLocation.cs" />
     <Compile Include="Rendering\RuleViolationRenderer.cs" />
     <Compile Include="Rendering\MatrixGraphicsRenderer.cs" />

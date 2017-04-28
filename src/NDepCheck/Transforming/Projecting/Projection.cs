@@ -77,9 +77,8 @@ namespace NDepCheck.Transforming.Projecting {
                         int matchResultIndex = i;
                         targets = targets.Select(s => s.Replace("\\" + (matchResultIndex + 1), matchResultGroups[matchResultIndex]));
                     }
-                    targets = targets.Select(s => s.Replace("\\>", item.Order ?? ""));
                     _matchCount++;
-                    return Item.New(_targetItemType, targets.Select(t => GlobalContext.ExpandHexChars(t)).ToArray()).SetOrder(item.Order);
+                    return Item.New(_targetItemType, targets.Select(t => GlobalContext.ExpandHexChars(t)).ToArray());
                 }
             }
         }

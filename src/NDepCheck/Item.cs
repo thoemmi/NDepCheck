@@ -95,7 +95,6 @@ namespace NDepCheck {
     public class Item : ItemSegment {
         private string _asString;
         private string _asFullString;
-        private string _order;
 
         protected Item([NotNull] ItemType type, string[] values)
             : base(type, values) {
@@ -118,18 +117,13 @@ namespace NDepCheck {
             return New(type, reducedName.Split(':'));
         }
 
-        [CanBeNull]
-        public string Order => _order;
-
-        public Item SetOrder([CanBeNull] string order) {
-            _order = order;
-            _asFullString = null;
-            return this;
-        }
-
         public string Name => AsString();
 
         public bool IsEmpty() => Values.All(s => s == "");
+
+        public string GetCasedValue(int i) {
+            return i < 0 || i >= CasedValues.Length ? null : CasedValues[i];
+        }
 
         [DebuggerStepThrough]
         public override bool Equals(object obj) {
@@ -150,7 +144,7 @@ namespace NDepCheck {
         public string AsFullString() {
             if (_asFullString == null) {
                 string markers = Markers.Any() ? "'" + string.Join("+", Markers.OrderBy(s => s)) : "";
-                _asFullString = Type.Name + (string.IsNullOrEmpty(Order) ? "" : ";" + Order) + ":" + AsString() + markers;
+                _asFullString = Type.Name + ":" + AsString() + markers;
             }
             return _asFullString;
         }
@@ -172,7 +166,7 @@ namespace NDepCheck {
 
         [NotNull]
         public Item Append([CanBeNull] ItemTail additionalValues) {
-            return additionalValues == null ? this : new Item(additionalValues.Type, Values.Concat(additionalValues.Values.Skip(Type.Length)).ToArray()).SetOrder(Order);
+            return additionalValues == null ? this : new Item(additionalValues.Type, Values.Concat(additionalValues.Values.Skip(Type.Length)).ToArray());
         }
 
         public static Dictionary<Item, IEnumerable<Dependency>> CollectIncomingDependenciesMap(

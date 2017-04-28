@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using NDepCheck.ConstraintSolving;
+using NDepCheck.Transforming;
 
 namespace NDepCheck.Rendering {
     public class MatrixGraphicsRenderer : GraphicsRenderer {
@@ -20,17 +20,14 @@ namespace NDepCheck.Rendering {
             return i.Values.Length > 2 ? i.Values[2] : null;
         }
 
-        [NotNull]
-        private string GetOrder(Item i) {
-            return (_orderField < 0 || i.Values.Length <= _orderField ? i.Order : i.Values[_orderField]) ?? "";
-        }
-
         private static readonly Font _boxFont = new Font(FontFamily.GenericSansSerif, 10);
         private static readonly Font _lineFont = new Font(FontFamily.GenericSansSerif, 3);
 
-        // TODO: Replace with ItemMatcher
-        private Regex _bottomRegex = null;
-        private int _orderField = 0;
+        [CanBeNull]
+        private ItemPattern _bottomItemPattern = null;
+
+        [NotNull]
+        private OrderSupport _orderSupport = new OrderSupport(item => null);
         private bool _showOnlyReferencedOnBottom = false;
         private bool _showOnlyReferencingOnLeft = false;
 
@@ -71,7 +68,7 @@ namespace NDepCheck.Rendering {
 
             List<Item> yItems = dependencies.Select(e => e.UsingItem).Distinct().ToList();
             List<Item> xItems = dependencies.Select(e => e.UsedItem).Distinct().
-                Where(i => _bottomRegex == null || _bottomRegex.IsMatch(GetName(i))).
+                Where(i => _bottomItemPattern == null || _bottomItemPattern.Matches(i) != null).
                 ToList();
 
             Dependency[] relevantDependencies = dependencies.Where(d => yItems.Contains(d.UsingItem) && xItems.Contains(d.UsedItem)).ToArray();
@@ -82,8 +79,8 @@ namespace NDepCheck.Rendering {
                 yItems.RemoveAll(iy => !relevantDependencies.Any(d => d.UsingItem.Equals(iy)));
             }
 
-            Sort(xItems, relevantDependencies, (i, d) => d.UsedItem.Equals(i));
-            Sort(yItems, relevantDependencies, (i, d) => d.UsingItem.Equals(i));
+            _orderSupport.SortWithEdgeCount(xItems, relevantDependencies, (i, d) => d.UsedItem.Equals(i));
+            _orderSupport.SortWithEdgeCount(yItems, relevantDependencies, (i, d) => d.UsingItem.Equals(i));
 
             double x = 100;
             var xBoxes = new Dictionary<Item, IBox>();
@@ -133,20 +130,10 @@ namespace NDepCheck.Rendering {
             // TODO: Add option and computation to split this into .,?,!
         }
 
-        private void Sort(List<Item> list, Dependency[] relevantDependencies, Func<Item, Dependency, bool> filter) {
-            list.Sort((i1, i2) => GetOrder(i1) != GetOrder(i2)
-                        ? string.Compare(GetOrder(i1), GetOrder(i2), StringComparison.Ordinal)
-                        : Sum(relevantDependencies, d => filter(i2, d)) - Sum(relevantDependencies, d => filter(i1, d)));
-        }
-
         //private string SumAsString(IEnumerable<Dependency> dependencies, Func<Dependency, bool> filter) {
         //    int ct = Sum(dependencies, filter);
         //    return ct >= 1000000 ? ct / 1000 + "M" : ct >= 1000 ? ct / 1000 + "K" : "" + ct;
         //}
-
-        private static int Sum(IEnumerable<Dependency> dependencies, Func<Dependency, bool> filter) {
-            return dependencies.Where(filter).Sum(d => d.Ct);
-        }
 
         public override IEnumerable<Dependency> CreateSomeTestDependencies() {
             ItemType ar = ItemType.New("AR(Assembly:Ref)");
@@ -173,7 +160,7 @@ namespace NDepCheck.Rendering {
         }
 
         public static readonly Option BottomRegexOption = new Option("pb", "place-on-bottom", "&", "Regex to select elements to place on bottom", @default: "all items on both axes");
-        public static readonly Option OrderFieldOption = new Option("of", "order-field", "#", "Field on which items are sorted, counted from 1 up. Items with equal order are sorted by edge count", @default: "internal order field, then edge count.");
+        public static readonly Option OrderFieldOption = OrderSupport.CreateOption();
         public static readonly Option NoEmptiesOnBottomOption = new Option("nb", "no-empties-on-bottom", "", "Do not show non-referenced items on bottom", @default: "show all");
         public static readonly Option NoEmptiesOnLeftOption = new Option("nl", "no-empties-on-left", "", "Do not show non-referenced items on left side", @default: "show all");
 
@@ -183,14 +170,13 @@ namespace NDepCheck.Rendering {
         public override void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
             DoRender(globalContext, dependencies, argsAsString, baseFileName,
                 BottomRegexOption.Action((args, j) => {
-                    _bottomRegex = new Regex(Option.ExtractRequiredOptionValue(args, ref j, "Regex for selection of bottom items missing"));
+                    string pattern = Option.ExtractRequiredOptionValue(args, ref j, "Regex for selection of bottom items missing");
+                    _bottomItemPattern = new ItemPattern(null, pattern, 0, ignoreCase);
                     return j;
                 }),
                 OrderFieldOption.Action((args, j) => {
-                    string orderField = Option.ExtractOptionValue(args, ref j);
-                    if (!int.TryParse(orderField, out _orderField) || _orderField < 0) {
-                        Option.ThrowArgumentException($"No valid field index after {OrderFieldOption}", string.Join(" ", args));
-                    }
+                    string orderPattern = Option.ExtractRequiredOptionValue(args, ref j, "order field missing");
+                    _orderSupport = OrderSupport.Create(orderPattern, ignoreCase);
                     return j;
                 }),
                 NoEmptiesOnBottomOption.Action((args, j) => {

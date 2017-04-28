@@ -3,18 +3,21 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Text.RegularExpressions;
+using JetBrains.Annotations;
 using NDepCheck.ConstraintSolving;
 
 namespace NDepCheck.Rendering {
     public class ModulesAndInterfacesRenderer : GraphicsRenderer {
         public static readonly Option InterfaceSelectorOption = new Option("si", "select-interface", "&", "Regexp for interface marker, i.e., items that are drawn as vertical bars", @default: null);
-        public static readonly Option OrderFieldOption = new Option("of", "order-field", "#", "Field on which items are sorted, counted from 1 up. Items with equal order are sorted by edge count.", @default: "internal order field, then edge count.");
+        public static readonly Option OrderFieldOption = OrderSupport.CreateOption();
 
         private static readonly Font _boxFont = new Font(FontFamily.GenericSansSerif, 10);
         private static readonly Font _interfaceFont = new Font(FontFamily.GenericSansSerif, 7);
         private static readonly Font _lineFont = new Font(FontFamily.GenericSansSerif, 5);
 
-        private int _orderField = -1;
+        [NotNull]
+        private OrderSupport _orderSupport = new OrderSupport(item => null);
+
         // TODO: Replace with ItemMatcher
         private Regex _interfaceSelector = new Regex("^I");
 
@@ -24,10 +27,6 @@ namespace NDepCheck.Rendering {
 
         private static string GetModule(Item i) {
             return i.Values[1];
-        }
-
-        private string GetOrder(Item i) {
-            return (_orderField < 0 || i.Values.Length <= _orderField ? i.Order : i.Values[_orderField]) ?? "";
         }
 
         protected override void PlaceObjects(IEnumerable<Dependency> dependencies) {
@@ -121,7 +120,9 @@ namespace NDepCheck.Rendering {
             var mainItems = new Dictionary<Item, Item>();
 
             // Main modules along diagonal, separated by itemDistance
-            foreach (var i in parents.Concat(misWithoutParent).OrderBy(GetOrder)) {
+
+
+            foreach (var i in parents.Concat(misWithoutParent).OrderBy(_orderSupport.OrderSelector)) {
                 string name = GetName(i);
 
                 string countText = "\n<" + Sum(dependencies, d => d.UsingItem.Equals(i) && !d.UsedItem.Equals(i))
@@ -153,7 +154,7 @@ namespace NDepCheck.Rendering {
 
                 NumericVariable interfacePos = Solver.CreateConstant("", 18);
 
-                foreach (var mi in items.Where(mi => IsMI(mi) && GetModule(mi) == GetModule(i)).OrderBy(GetOrder)) {
+                foreach (var mi in items.Where(mi => IsMI(mi) && GetModule(mi) == GetModule(i)).OrderBy(_orderSupport.OrderSelector)) {
                     VariableVector miPos = new VariableVector(name + _interfaceSelector, Solver).SetX(mainBox.CenterLeft.X + interfacePos);
 
                     var miBox = Box(miPos, text: GetName(mi), boxAnchoring: BoxAnchoring.UpperLeft,
@@ -260,7 +261,8 @@ namespace NDepCheck.Rendering {
                     return j;
                 }),
                 OrderFieldOption.Action((args, j) => {
-                    _orderField = Option.ExtractIntOptionValue(args, ref j, "No valid order");
+                    string orderPattern = Option.ExtractRequiredOptionValue(args, ref j, "order field missing");
+                    _orderSupport = OrderSupport.Create(orderPattern, ignoreCase);
                     return j;
                 }));
         }

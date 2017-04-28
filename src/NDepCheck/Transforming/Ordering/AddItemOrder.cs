@@ -5,6 +5,7 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.Ordering {
     public class AddItemOrder : ITransformer {
+        public static readonly Option AddMarkerOption = new Option("am", "add-marker", "&", "Marker prefix for order markers", @default: "#");
         public static readonly Option OrderByQuestionableCount = new Option("oq", "order-by-questionable", "", "Order by sum of questionable counts", @default: "Order by count");
         public static readonly Option OrderByBadCount = new Option("ob", "order-by-bad", "", "Order by sum of bad counts", @default: "Order by count");
         public static readonly Option OrderByIncomingValues = new Option("oi", "order-by-incoming", "", "Order by incoming values", @default: "Order by ratio incoming/(incoming+outgoing)");
@@ -31,6 +32,7 @@ Transform options: {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
 
             Func<int, int, decimal> getSortValue = (incoming, outgoing) => incoming / (incoming + outgoing + 0.0001m);
             Func<Dependency, int> orderBy = d => d.Ct;
+            string orderMarkerPrefix = "#";
 
             Option.Parse(globalContext, transformOptions,
                 OrderByBadCount.Action((args, j) => {
@@ -47,6 +49,9 @@ Transform options: {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
                 }),
                 OrderByOutgoingValues.Action((args, j) => {
                     getSortValue = (incoming, outgoing) => outgoing;
+                    return j;
+                }), AddMarkerOption.Action((args, j) => {
+                    orderMarkerPrefix = Option.ExtractRequiredOptionValue(args, ref j, "missing marker prefix").Trim('\'').Trim();
                     return j;
                 }));
 
@@ -74,7 +79,7 @@ Transform options: {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
 
                 aggregatedCounts.RemoveColumn(minItem);
 
-                minItem.SetOrder(i.ToString("D4"));
+                minItem.AddMarker(orderMarkerPrefix + i.ToString("D4"));
             }
             return Program.OK_RESULT;
         }
