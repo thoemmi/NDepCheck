@@ -145,7 +145,8 @@ Examples:
                 if (clearDependency) {
                     d.ClearMarkers();
                 } else {
-                    d.UnionWithMarkers(markersToAddOnDep).RemoveMarkers(markersToRemoveOnDep, _ignoreCase);
+                    d.UnionWithMarkers(markersToAddOnDep);
+                    d.RemoveMarkers(markersToRemoveOnDep, _ignoreCase);
                 }
                 n++;
             }
@@ -168,7 +169,8 @@ Examples:
             if (clear) {
                 item.ClearMarkers();
             } else {
-                item.UnionWithMarkers(markersToAdd).RemoveMarkers(markersToRemove, ignoreCase);
+                item.UnionWithMarkers(markersToAdd);
+                item.RemoveMarkers(markersToRemove, ignoreCase);
             }
         }
 

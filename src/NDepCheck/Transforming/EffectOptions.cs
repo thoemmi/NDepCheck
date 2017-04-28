@@ -4,7 +4,7 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming {
-    public abstract class EffectOptions<T> where T : ObjectWithMarkers {
+    public abstract class EffectOptions<T> where T : IMutableMarkerSet {
         public readonly Option AddMarkerOption;
         public readonly Option RemoveMarkerOption;
         public readonly Option DeleteOption;
@@ -25,12 +25,12 @@ namespace NDepCheck.Transforming {
             Option.Parse(globalContext, argsAsString, new[] {
                 AddMarkerOption.Action((args, j) => {
                     string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
-                    result.Add(item => item.AddMarker(marker));
+                    result.Add(obj => obj.AddMarker(marker));
                     return j;
                 }),
                 RemoveMarkerOption.Action((args, j) => {
                     string markerpattern = Option.ExtractRequiredOptionValue(args, ref j, "missing marker pattern");
-                    result.Add(item => item.RemoveMarkers(markerpattern, ignoreCase));
+                    result.Add(obj => obj.RemoveMarkers(markerpattern, ignoreCase));
                     return j;
                 }),
                 DeleteOption.Action((args, j) => {

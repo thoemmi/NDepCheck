@@ -70,7 +70,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 }));
 
             _transformRunCt++;
-            ObjectWithMarkers.AddComputedMarkerIfNoMarkers(markersToAdd, fromItemMatches, toItemMatches, "" + _transformRunCt);
+            MutableMarkerSet.AddComputedMarkerIfNoMarkers(markersToAdd, fromItemMatches, toItemMatches, "" + _transformRunCt);
 
             DependencyPattern idempotentPattern = new DependencyPattern("'" + string.Join("+", markersToAdd), _ignoreCase);
             Dictionary<FromTo, Dependency> checkPresence = idempotent ? FromTo.AggregateAllDependencies(dependencies) : new Dictionary<FromTo, Dependency>();
@@ -105,7 +105,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                         Dependency rootToTarget = collectedEdge == null
                             ? d
                             : new Dependency(root, target, d.Source,
-                                markersToAddOrNull ?? ObjectWithMarkers.ConcatOrUnionWithMarkers(collectedEdge.Markers, d.Markers, _ignoreCase),
+                                markersToAddOrNull ?? MutableMarkerSet.ConcatOrUnionWithMarkers(collectedEdge.Markers, d.Markers, _ignoreCase),
                                 collectedEdge.Ct + d.Ct, collectedEdge.QuestionableCt + d.QuestionableCt,
                                 collectedEdge.BadCt + d.BadCt, d.ExampleInfo, d.InputContext);
 

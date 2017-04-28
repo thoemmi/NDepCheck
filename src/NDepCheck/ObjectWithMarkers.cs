@@ -10,94 +10,30 @@ using NDepCheck.Transforming.Modifying;
 using NDepCheck.Transforming.Projecting;
 
 namespace NDepCheck {
-    public abstract class ObjectWithMarkers {
-        private readonly bool _ignoreCase;
+    public interface IMarkerSet {
+        IEnumerable<string> Markers { get; }
+        bool IsMatch(IEnumerable<IMatcher> present, IEnumerable<IMatcher> absent);
+    }
+
+    public abstract class AbstractMarkerSet : IMarkerSet {
+        protected readonly bool _ignoreCase;
+        // TODO: Replace with sharing implementation of string sets to safve space and maybe time
         [CanBeNull]
-        private HashSet<string> _markersOrNull;
+        protected abstract /*IReadOnlySet<string>*/ ISet<string> MarkersOrNull { get; }
 
-        protected ObjectWithMarkers(bool ignoreCase, [CanBeNull] IEnumerable<string> markers) {
+        protected AbstractMarkerSet(bool ignoreCase) {
             _ignoreCase = ignoreCase;
-            IEnumerable<string> cleanMarkers = (markers ?? Enumerable.Empty<string>()).Select(s => s.Trim()).Where(s => s != "").Select(s => s.Contains("/") ? s : String.Intern(s));
-            _markersOrNull = cleanMarkers.Any() ? CreateHashSet(cleanMarkers) : null;
         }
 
-        private HashSet<string> CreateHashSet(IEnumerable<string> cleanMarkers) {
-            return new HashSet<string>(cleanMarkers, GetComparer());
+        protected static HashSet<string> CreateSet(bool ignoreCase, [CanBeNull] IEnumerable<string> markers) {
+            IEnumerable<string> cleanMarkers =
+                (markers ?? Enumerable.Empty<string>()).Select(s => s.Trim())
+                .Where(s => s != "")
+                .Select(s => s.Contains("/") ? s : String.Intern(s));
+            return cleanMarkers.Any() ? new HashSet<string>(cleanMarkers, GetComparer(ignoreCase)) : null;
         }
 
-        public IEnumerable<string> Markers => _markersOrNull ?? Enumerable.Empty<string>();
-
-        protected abstract void MarkersHaveChanged();
-
-        internal ObjectWithMarkers UnionWithMarkers([CanBeNull] IEnumerable<string> markers) {
-            if (markers != null && markers.Any()) {
-                if (_markersOrNull == null) {
-                    _markersOrNull = CreateHashSet(markers);
-                } else {
-                    _markersOrNull.UnionWith(markers);
-                }
-                MarkersHaveChanged();
-            }
-            return this;
-        }
-
-        internal bool IsMatch(IEnumerable<IMatcher> present, IEnumerable<IMatcher> absent) {
-            if (_markersOrNull == null) {
-                return !present.Any();
-            } else {
-                foreach (var m in present) {
-                    if (_markersOrNull.All(s => m.Matches(s) == null)) {
-                        return false;
-                    }
-                }
-                foreach (var m in absent) {
-                    if (_markersOrNull.Any(s => m.Matches(s) != null)) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-        }
-
-        public ObjectWithMarkers AddMarker([NotNull] string marker) {
-            if (_markersOrNull == null) {
-                _markersOrNull = CreateHashSet(new[] { marker });
-                MarkersHaveChanged();
-            } else {
-                if (_markersOrNull.Add(marker)) {
-                    MarkersHaveChanged();
-                }
-            }
-            return this;
-        }
-
-        public ObjectWithMarkers RemoveMarkers(string markerPattern, bool ignoreCase) {
-            return RemoveMarkers(new[] { markerPattern }, ignoreCase);
-        }
-
-        public ObjectWithMarkers RemoveMarkers([CanBeNull] IEnumerable<string> markerPatterns, bool ignoreCase) {
-            if (markerPatterns != null && _markersOrNull != null) {
-                IEnumerable<IMatcher> matchers = markerPatterns.Select(p => MarkerMatch.CreateMatcher(p, ignoreCase)).ToArray();
-                _markersOrNull.RemoveWhere(m => matchers.Any(ma => ma.Matches(m) != null));
-                NormalizeMarkersOrNullAndSignalChange();
-            }
-            return this;
-        }
-
-        private void NormalizeMarkersOrNullAndSignalChange() {
-            if (_markersOrNull != null && _markersOrNull.Count == 0) {
-                _markersOrNull = null;
-            }
-            MarkersHaveChanged();
-        }
-
-        public ObjectWithMarkers ClearMarkers() {
-            if (_markersOrNull != null) {
-                MarkersHaveChanged();
-                _markersOrNull = null;
-            }
-            return this;
-        }
+        public IEnumerable<string> Markers => MarkersOrNull ?? Enumerable.Empty<string>();
 
         public static StringComparer GetComparer(bool ignoreCase) {
             return ignoreCase ? StringComparer.InvariantCultureIgnoreCase : StringComparer.InvariantCulture;
@@ -108,7 +44,108 @@ namespace NDepCheck {
         }
 
         protected StringComparer GetComparer() {
-            return _ignoreCase ? StringComparer.InvariantCultureIgnoreCase : StringComparer.InvariantCulture;
+            return GetComparer(_ignoreCase);
+        }
+
+        public bool IsMatch(IEnumerable<IMatcher> present, IEnumerable<IMatcher> absent) {
+            if (MarkersOrNull == null) {
+                return !present.Any();
+            } else {
+                foreach (var m in present) {
+                    if (MarkersOrNull.All(s => m.Matches(s) == null)) {
+                        return false;
+                    }
+                }
+                foreach (var m in absent) {
+                    if (MarkersOrNull.Any(s => m.Matches(s) != null)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+    }
+
+    public class ReadOnlyMarkerSet : AbstractMarkerSet {
+        [CanBeNull]
+        private readonly HashSet<string> _markersOrNull;
+
+        protected override ISet<string> MarkersOrNull => _markersOrNull;
+
+        public ReadOnlyMarkerSet(bool ignoreCase, [CanBeNull] IEnumerable<string> markers) : base(ignoreCase) {
+            _markersOrNull = CreateSet(ignoreCase, markers);
+        }
+    }
+
+    public interface IMutableMarkerSet : IMarkerSet {
+        bool AddMarker(string marker);
+        bool UnionWithMarkers(IEnumerable<string> markerPatterns);
+        bool RemoveMarkers(string markerPattern, bool ignoreCase);
+        bool RemoveMarkers(IEnumerable<string> markerPatterns, bool ignoreCase);
+        bool ClearMarkers();
+    }
+
+    public class MutableMarkerSet : AbstractMarkerSet, IMutableMarkerSet {
+        [CanBeNull]
+        private HashSet<string> _markersOrNull;
+
+        protected override ISet<string> MarkersOrNull => _markersOrNull;
+
+        public MutableMarkerSet(bool ignoreCase, [CanBeNull] IEnumerable<string> markers) : base(ignoreCase) {
+            _markersOrNull = CreateSet(ignoreCase, markers);
+        }
+
+        public bool UnionWithMarkers([CanBeNull] IEnumerable<string> markers) {
+            if (markers != null && markers.Any()) {
+                if (_markersOrNull == null) {
+                    _markersOrNull = CreateSet(_ignoreCase, markers);
+                } else {
+                    _markersOrNull.UnionWith(markers);
+                }
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        public bool AddMarker([NotNull] string marker) {
+            if (_markersOrNull == null) {
+                _markersOrNull = CreateSet(_ignoreCase, new[] { marker });
+                return true;
+            } else {
+                return _markersOrNull.Add(marker);
+            }
+        }
+
+        public bool RemoveMarkers(string markerPattern, bool ignoreCase) {
+            return RemoveMarkers(new[] { markerPattern }, ignoreCase);
+        }
+
+        public bool RemoveMarkers([CanBeNull] IEnumerable<string> markerPatterns, bool ignoreCase) {
+            if (markerPatterns != null && _markersOrNull != null) {
+                IEnumerable<IMatcher> matchers =
+                    markerPatterns.Select(p => MarkerMatch.CreateMatcher(p, ignoreCase)).ToArray();
+                _markersOrNull.RemoveWhere(m => matchers.Any(ma => ma.Matches(m) != null));
+                return NormalizeMarkersOrNullAndSignalChange();
+            } else {
+                return false;
+            }
+        }
+
+        private bool NormalizeMarkersOrNullAndSignalChange() {
+            if (_markersOrNull != null && _markersOrNull.Count == 0) {
+                _markersOrNull = null;
+            }
+            return true;
+        }
+
+        public bool ClearMarkers() {
+            if (_markersOrNull != null) {
+                _markersOrNull = null;
+                return true;
+            } else {
+                return false;
+            }
         }
 
         public static IEnumerable<string> ConcatOrUnionWithMarkers(IEnumerable<string> left, IEnumerable<string> right, bool ignoreCase) {

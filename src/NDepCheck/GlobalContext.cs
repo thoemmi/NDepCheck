@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -12,45 +13,78 @@ using NDepCheck.Reading;
 using NDepCheck.Rendering;
 using NDepCheck.Transforming;
 
+////namespace NDepCheck.Try {
+////    public class IMarkerSet { }
+
+////    public struct Item {
+////        private readonly ItemType Type;
+////        private readonly string[] Values;
+////        private readonly IMarkerSet Markers;
+////    }
+
+////    public struct Dependency {
+////        private int UsingItemIndex;
+////        private int Ct, BadCt, QuestionableCt;
+////        private int UsedItemIndex;
+////    }
+
+////    public class ImmtuableReferences<T> : IEnumerable<T> {
+////        private ImmutableCollection<T> Referenced;
+////        private int[] Indices;
+
+////        private IEnumerator<T> GetAll() {
+////            foreach (var i in Indices) {
+////                yield return Referenced.LocalElements[i];
+////            }
+////        }
+
+////        public IEnumerator<T> GetEnumerator() {
+////            return GetAll();
+////        }
+
+////        IEnumerator IEnumerable.GetEnumerator() {
+////            return GetAll();
+////        }
+////    }
+
+////    public class ImmutableCollection<T> : IEnumerable<T> {
+////        public readonly T[] LocalElements;
+////        private readonly List<ImmtuableReferences<T>> References;
+
+////        private IEnumerator<T> GetAll() {
+////            foreach (var t in LocalElements) {
+////                yield return t;
+////            }
+////            foreach (var r in References) {
+////                foreach (var t in r) {
+////                    yield return t;
+////                }
+////            }
+////        }
+
+////        public IEnumerator<T> GetEnumerator() {
+////            return GetAll();
+////        }
+
+////        IEnumerator IEnumerable.GetEnumerator() {
+////            return GetAll();
+////        }
+////    }
+
+
+
+////}
+
 namespace NDepCheck {
-    public class NamedTextWriter : IDisposable {
-        public NamedTextWriter(TextWriter writer, string fileName) {
-            Writer = writer;
-            FileName = fileName;
-        }
-
-        public TextWriter Writer {
-            get;
-        }
-        public string FileName {
-            get;
-        }
-
-        public bool IsConsole => FileName == null;
-
-        public void Dispose() {
-            Writer?.Dispose();
-        }
-    }
 
     public class GlobalContext {
         private const string HELP_SEPARATOR = "=============================================";
-        internal bool RenderingDone {
-            get; set;
-        }
-        internal bool TransformingDone {
-            get; set;
-        }
-        internal bool InputFilesOrTestDataSpecified {
-            get; set;
-        }
-        internal bool HelpShown {
-            get; private set;
-        }
+        internal bool RenderingDone { get; set; }
+        internal bool TransformingDone { get; set; }
+        internal bool InputFilesOrTestDataSpecified { get; set; }
+        internal bool HelpShown { get; private set; }
 
-        public bool IgnoreCase {
-            get; set;
-        }
+        public bool IgnoreCase { get; set; }
 
         [NotNull]
         private readonly List<InputOption> _inputSpecs = new List<InputOption>();
@@ -59,14 +93,19 @@ namespace NDepCheck {
         private ValuesFrame _localParameters = new ValuesFrame();
 
         [NotNull]
-        private readonly Dictionary<string, InputContext> _inputContexts = new Dictionary<string, InputContext>();
+        private readonly Dictionary<string, InputContext> _inputContexts =
+            new Dictionary<string, InputContext>();
 
-        private readonly Stack<IEnumerable<Dependency>> _dependenciesWithoutInputContextStack = new Stack<IEnumerable<Dependency>>();
-        private IEnumerable<Dependency> DependenciesWithoutInputContext => _dependenciesWithoutInputContextStack.Peek();
+        private readonly Stack<IEnumerable<Dependency>> _dependenciesWithoutInputContextStack =
+            new Stack<IEnumerable<Dependency>>();
+
+        private IEnumerable<Dependency> DependenciesWithoutInputContext
+            => _dependenciesWithoutInputContextStack.Peek();
 
         public int BadDependenciesCountWithoutInputContext => DependenciesWithoutInputContext.Sum(d => d.BadCt);
 
-        public int QuestionableDependenciesCountWithoutInputContext => DependenciesWithoutInputContext.Sum(d => d.QuestionableCt);
+        public int QuestionableDependenciesCountWithoutInputContext
+            => DependenciesWithoutInputContext.Sum(d => d.QuestionableCt);
 
         [NotNull]
         private readonly List<IPlugin> _plugins = new List<IPlugin>();
@@ -84,17 +123,14 @@ namespace NDepCheck {
         [NotNull]
         public List<InputOption> InputSpecs => _inputSpecs;
 
-        public bool WorkLazily {
-            get; set;
-        }
+        public bool WorkLazily { get; set; }
 
-        public string Name {
-            get;
-        }
+        public string Name { get; }
 
         public TimeSpan TimeLongerThan { get; set; } = TimeSpan.FromSeconds(10);
 
         private static int _cxtId = 0;
+
         public GlobalContext() {
             Name = "[" + ++_cxtId + "]";
             _dependenciesWithoutInputContextStack.Push(Enumerable.Empty<Dependency>());
@@ -105,8 +141,11 @@ namespace NDepCheck {
         }
 
         [ContractAnnotation("s:null => null; s:notnull => notnull")]
-        public string ExpandDefinesAndHexChars([CanBeNull] string s, [CanBeNull] Dictionary<string, string> configValueCollector) {
-            return ExpandHexChars(_globalValues.ExpandDefines(_localParameters.ExpandDefines(s, configValueCollector), configValueCollector));
+        public string ExpandDefinesAndHexChars([CanBeNull] string s,
+            [CanBeNull] Dictionary<string, string> configValueCollector) {
+            return
+                ExpandHexChars(_globalValues.ExpandDefines(_localParameters.ExpandDefines(s, configValueCollector),
+                    configValueCollector));
         }
 
         public string GetValue(string valueName) {
@@ -124,7 +163,9 @@ namespace NDepCheck {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
             IEnumerable<AbstractDependencyReader> allReaders =
-                _inputSpecs.SelectMany(i => i.CreateOrGetReaders(this, false)).OrderBy(r => r.FullFileName).ToArray();
+                _inputSpecs.SelectMany(i => i.CreateOrGetReaders(this, false))
+                    .OrderBy(r => r.FullFileName)
+                    .ToArray();
 
             foreach (var r in allReaders) {
                 InputContext inputContext;
@@ -136,7 +177,8 @@ namespace NDepCheck {
             Program.LogElapsedTime(this, stopwatch, "Reading");
         }
 
-        public string RenderToFile([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName, [CanBeNull] string rendererOptions, [CanBeNull] string fileName) {
+        public string RenderToFile([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName,
+            [CanBeNull] string rendererOptions, [CanBeNull] string fileName) {
             if (Option.IsHelpOption(rendererOptions)) {
                 ShowDetailedHelp<ITransformer>(assemblyName, rendererClassName, "");
                 return null;
@@ -172,7 +214,9 @@ namespace NDepCheck {
             IEnumerable<Type> pluginTypes = GetPluginTypes<T>(assemblyName);
             Type pluginType =
                 pluginTypes.FirstOrDefault(
-                    t => String.Compare(t.FullName, pluginClassName, StringComparison.InvariantCultureIgnoreCase) == 0) ??
+                    t =>
+                        String.Compare(t.FullName, pluginClassName, StringComparison.InvariantCultureIgnoreCase) ==
+                        0) ??
                 pluginTypes.FirstOrDefault(
                     t => String.Compare(t.Name, pluginClassName, StringComparison.InvariantCultureIgnoreCase) == 0);
             if (pluginType == null) {
@@ -215,7 +259,8 @@ namespace NDepCheck {
             }
         }
 
-        public string RenderTestData([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName, string rendererOptions, [NotNull] string baseFileName) {
+        public string RenderTestData([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName,
+            string rendererOptions, [NotNull] string baseFileName) {
             IRenderer renderer = GetOrCreatePlugin<IRenderer>(assemblyName, rendererClassName);
 
             IEnumerable<Dependency> dependencies = renderer.CreateSomeTestDependencies();
@@ -233,12 +278,17 @@ namespace NDepCheck {
             }
         }
 
-        public void CreateInputOption(string[] args, ref int i, string filePattern, string assemblyName, string readerFactoryClass) {
+        public void CreateInputOption(string[] args, ref int i, string filePattern, string assemblyName,
+            string readerFactoryClass) {
             if (readerFactoryClass == null) {
                 throw new ApplicationException($"No reader class found for file pattern '{filePattern}'");
             }
             IReaderFactory readerFactory = GetOrCreatePlugin<IReaderFactory>(assemblyName, readerFactoryClass);
-            _inputSpecs.Add(new InputFileOption(filePattern, readerFactory).AddNegative(i + 2 < args.Length && args[i + 1] == "-" ? args[i += 2] : null));
+            _inputSpecs.Add(
+                new InputFileOption(filePattern, readerFactory).AddNegative(i + 2 < args.Length &&
+                                                                            args[i + 1] == "-"
+                    ? args[i += 2]
+                    : null));
             InputFilesOrTestDataSpecified = true;
         }
 
@@ -258,7 +308,8 @@ namespace NDepCheck {
             }
             switch (matched.Count) {
                 case 0:
-                    Log.WriteWarning($"Found no {typeof(T).Name} types in '{ShowAssemblyName(assemblyName)}' matching '{filter}'");
+                    Log.WriteWarning(
+                        $"Found no {typeof(T).Name} types in '{ShowAssemblyName(assemblyName)}' matching '{filter}'");
                     break;
                 case 1:
                     ShowDetailedHelp<T>(assemblyName, matched.Single().Key.FullName, "");
@@ -301,12 +352,14 @@ namespace NDepCheck {
                 int result = Program.OK_RESULT;
                 if (transformer.RunsPerInputContext) {
                     foreach (var ic in _inputContexts.Values) {
-                        result = Transform(transformerOptions, transformer, ic.Filename, ic.Dependencies, "dependencies in file " + ic.Filename, newDependenciesCollector, result);
+                        result = Transform(transformerOptions, transformer, ic.Filename, ic.Dependencies,
+                            "dependencies in file " + ic.Filename, newDependenciesCollector, result);
                     }
-                    result = Transform(transformerOptions, transformer, "", DependenciesWithoutInputContext, "generated dependencies", newDependenciesCollector, result);
+                    result = Transform(transformerOptions, transformer, "", DependenciesWithoutInputContext,
+                        "generated dependencies", newDependenciesCollector, result);
                 } else {
-                    result = transformer.Transform(this, "", GetAllDependencies().ToArray(), transformerOptions, "all dependencies",
-                        newDependenciesCollector);
+                    result = transformer.Transform(this, "", GetAllDependencies().ToArray(), transformerOptions,
+                        "all dependencies", newDependenciesCollector);
                 }
 
                 if (newDependenciesCollector.Contains(null)) {
@@ -318,7 +371,8 @@ namespace NDepCheck {
                 foreach (var ic in _inputContexts.Values) {
                     sum += ic.PushDependencies(newDependenciesCollector.Where(d => d.InputContext == ic));
                 }
-                sum += PushDependenciesWithoutInputContext(
+                sum +=
+                    PushDependenciesWithoutInputContext(
                         newDependenciesCollector.Where(d => d.InputContext == null).ToArray());
                 TransformingDone = true;
 
@@ -328,14 +382,16 @@ namespace NDepCheck {
             }
         }
 
-        private int Transform(string transformerOptions, ITransformer transformer, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
+        private int Transform(string transformerOptions, ITransformer transformer,
+            [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
             string dependencySourceForLogging, List<Dependency> newDependenciesCollector, int result) {
             try {
                 int r = transformer.Transform(this, dependenciesFilename, dependencies, transformerOptions,
                     dependencySourceForLogging, newDependenciesCollector);
                 result = Math.Max(result, r);
             } catch (Exception ex) {
-                Log.WriteError($"Error while transforming '{dependencySourceForLogging}': {ex.GetType().Name} - {ex.Message}");
+                Log.WriteError(
+                    $"Error while transforming '{dependencySourceForLogging}': {ex.GetType().Name} - {ex.Message}");
                 result = Program.EXCEPTION_RESULT;
             }
             return result;
@@ -461,11 +517,13 @@ namespace NDepCheck {
             ReadAllNotYetReadIn();
 
             DependencyMatch m = pattern == null ? null : DependencyMatch.Create(pattern, IgnoreCase);
-            InputContext[] nonEmptyInputContexts = _inputContexts.Values.Where(ic => ic.Dependencies.Any()).ToArray();
+            InputContext[] nonEmptyInputContexts =
+                _inputContexts.Values.Where(ic => ic.Dependencies.Any()).ToArray();
             maxCount = Math.Max(3 * nonEmptyInputContexts.Length, maxCount);
             int depsPerContext = maxCount / (nonEmptyInputContexts.Length + 1);
             foreach (var ic in nonEmptyInputContexts) {
-                IEnumerable<Dependency> matchingDependencies = ic.Dependencies.Where(d => m == null || m.IsMatch(d)).Take(depsPerContext + 1);
+                IEnumerable<Dependency> matchingDependencies =
+                    ic.Dependencies.Where(d => m == null || m.IsMatch(d)).Take(depsPerContext + 1);
                 foreach (var d in matchingDependencies.Take(depsPerContext)) {
                     maxCount--;
                     Log.WriteInfo(d.AsDipStringWithTypes(false));
@@ -475,7 +533,8 @@ namespace NDepCheck {
                 }
             }
             {
-                IEnumerable<Dependency> matchingDependencies = DependenciesWithoutInputContext.Where(d => m == null || m.IsMatch(d)).Take(maxCount + 1);
+                IEnumerable<Dependency> matchingDependencies =
+                    DependenciesWithoutInputContext.Where(d => m == null || m.IsMatch(d)).Take(maxCount + 1);
                 foreach (var d in matchingDependencies.Take(maxCount)) {
                     Log.WriteInfo(d.AsDipStringWithTypes(false));
                 }
@@ -491,7 +550,10 @@ namespace NDepCheck {
             ReadAllNotYetReadIn();
 
             List<Item> matchingItems = LogOnlyItemCount(pattern).ToList();
-            matchingItems.Sort((i1, i2) => string.Compare(i1.Name, i2.Name, IgnoreCase ? StringComparison.InvariantCultureIgnoreCase : StringComparison.InvariantCulture));
+            matchingItems.Sort(
+                (i1, i2) =>
+                    string.Compare(i1.Name, i2.Name,
+                        IgnoreCase ? StringComparison.InvariantCultureIgnoreCase : StringComparison.InvariantCulture));
             foreach (var i in matchingItems.Take(maxCount)) {
                 Log.WriteInfo(i.AsFullString());
             }
@@ -525,7 +587,8 @@ namespace NDepCheck {
 
         private IEnumerable<Item> LogOnlyItemCount(string pattern) {
             ItemMatch m = pattern == null ? null : new ItemMatch(pattern, IgnoreCase);
-            IEnumerable<Item> allItems = new HashSet<Item>(GetAllDependencies().SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
+            IEnumerable<Item> allItems =
+                new HashSet<Item>(GetAllDependencies().SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
             IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.IsMatch(m, i));
             Log.WriteInfo(matchingItems.Count() + " items" + (m == null ? "" : " matching " + pattern));
             return matchingItems;
@@ -536,7 +599,8 @@ namespace NDepCheck {
             _localParameters.ShowAllValues("Local parameters:");
         }
 
-        public void Calculate(string valueKey, string assemblyName, string calculatorClass, IEnumerable<string> input) {
+        public void Calculate(string valueKey, string assemblyName, string calculatorClass,
+            IEnumerable<string> input) {
             if (Option.IsHelpOption(input.FirstOrDefault())) {
                 ShowDetailedHelp<ITransformer>(assemblyName, calculatorClass, "");
             } else {

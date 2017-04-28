@@ -862,7 +862,7 @@ namespace NDepCheck {
                 Console.WriteLine(DependencyMatch.DEPENDENCY_MATCH_HELP);
                 return exitValue;
             } else if (filter.StartsWith("marker")) {
-                Console.WriteLine(ObjectWithMarkers.MARKER_HELP);
+                Console.WriteLine(MutableMarkerSet.MARKER_HELP);
                 return exitValue;
             } else if (filter.StartsWith("type")) {
                 Console.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck item types");

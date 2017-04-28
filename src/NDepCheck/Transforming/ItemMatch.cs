@@ -18,11 +18,11 @@ namespace NDepCheck.Transforming {
 
         public ItemPattern ItemPattern => _itemPattern;
 
-        public string[] Matches(Item item) {
-            return _markerPattern.IsMatch(item) ? _itemPattern.Matches(item) : null;
+        public string[] Matches(AbstractItem item) {
+            return _markerPattern.IsMatch(item.MarkerSet) ? _itemPattern.Matches(item) : null;
         }
 
-        public static bool IsMatch(ItemMatch matchOrNull, Item item) {
+        public static bool IsMatch(ItemMatch matchOrNull, AbstractItem item) {
             return matchOrNull == null || matchOrNull.Matches(item) != null;
         }
     }

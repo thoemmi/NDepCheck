@@ -25,7 +25,7 @@ namespace NDepCheck.Transforming {
             return new DependencyMatch(left.Trim(), dep.Trim(), right.Trim(), ignoreCase);
         }
 
-        public bool IsMatch(Dependency d) {
+        public bool IsMatch<TItem>(AbstractDependency<TItem> d) where TItem : AbstractItem {
             return ItemMatch.IsMatch(_usingMatch, d.UsingItem)
                    && (_dependencyPattern == null || _dependencyPattern.IsMatch(d))
                    && ItemMatch.IsMatch(_usedMatch, d.UsedItem);

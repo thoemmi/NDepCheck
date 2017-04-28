@@ -92,7 +92,7 @@ namespace NDepCheck.Transforming {
             _matchers = matchers;
         }
 
-        public string[] Matches([NotNull] Item item) {
+        public string[] Matches([NotNull] AbstractItem item) {
             if (item.Type.CommonType(_itemType) == null) {
                 return null;
             }

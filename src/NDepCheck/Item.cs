@@ -10,7 +10,7 @@ using JetBrains.Annotations;
 using NDepCheck.Transforming;
 
 namespace NDepCheck {
-    public abstract class ItemSegment : ObjectWithMarkers {
+    public abstract class ItemSegment {
         [NotNull]
         private readonly ItemType _type;
         [NotNull]
@@ -18,7 +18,7 @@ namespace NDepCheck {
         [NotNull]
         public readonly string[] CasedValues;
 
-        protected ItemSegment([NotNull] ItemType type, [NotNull] string[] values) : base(type.IgnoreCase, markers: null) {
+        protected ItemSegment([NotNull] ItemType type, [NotNull] string[] values) {
             if (type == null) {
                 throw new ArgumentNullException(nameof(type));
             }
@@ -61,6 +61,7 @@ namespace NDepCheck {
             }
             return h;
         }
+
     }
 
     public sealed class ItemTail : ItemSegment {
@@ -83,38 +84,23 @@ namespace NDepCheck {
         public override int GetHashCode() {
             return SegmentHashCode();
         }
-
-        protected override void MarkersHaveChanged() {
-            // empty
-        }
     }
 
-    /// <remarks>
-    /// A token representing a complex name. 
-    /// </remarks>
-    public class Item : ItemSegment {
+    public abstract class AbstractItem : ItemSegment {
         private string _asString;
         private string _asFullString;
 
-        protected Item([NotNull] ItemType type, string[] values)
-            : base(type, values) {
+        [NotNull]
+        public abstract IMarkerSet MarkerSet { get; }
+
+        public IEnumerable<string> Markers => MarkerSet.Markers;
+
+        protected AbstractItem([NotNull] ItemType type, string[] values) : base(type, values) {
             if (type.Length < values.Length) {
-                throw new ArgumentException($"ItemType '{type.Name}' is defined as '{type}' with {type.Length} fields, but item is created with {values.Length} fields '{string.Join(":", values)}'", nameof(values));
+                throw new ArgumentException(
+                    $"ItemType '{type.Name}' is defined as '{type}' with {type.Length} fields, but item is created with {values.Length} fields '{string.Join(":", values)}'",
+                    nameof(values));
             }
-        }
-
-        public static Item New([NotNull]ItemType type, [ItemNotNull] params string[] values) {
-            return Intern<Item>.GetReference(new Item(type, values));
-        }
-
-        public static Item New([NotNull]ItemType type, [ItemNotNull] string[] values, [ItemNotNull] string[] markers) {
-            Item item = Intern<Item>.GetReference(new Item(type, values));
-            item.UnionWithMarkers(markers);
-            return item;
-        }
-
-        public static Item New([NotNull]ItemType type, [NotNull]string reducedName) {
-            return New(type, reducedName.Split(':'));
         }
 
         public string Name => AsString();
@@ -143,10 +129,20 @@ namespace NDepCheck {
         [NotNull]
         public string AsFullString() {
             if (_asFullString == null) {
-                string markers = Markers.Any() ? "'" + string.Join("+", Markers.OrderBy(s => s)) : "";
+                // TODO --> MarkerSet!!
+                string markers = MarkerSet.Markers.Any() ? "'" + string.Join("+", MarkerSet.Markers.OrderBy(s => s)) : "";
                 _asFullString = Type.Name + ":" + AsString() + markers;
             }
             return _asFullString;
+        }
+
+        protected bool MarkersHaveChanged() {
+            _asFullString = null;
+            return true;
+        }
+
+        public bool IsMatch(IEnumerable<IMatcher> present, IEnumerable<IMatcher> absent) {
+            return MarkerSet.IsMatch(present, absent);
         }
 
         [NotNull]
@@ -164,25 +160,23 @@ namespace NDepCheck {
             return _asString;
         }
 
-        [NotNull]
-        public Item Append([CanBeNull] ItemTail additionalValues) {
-            return additionalValues == null ? this : new Item(additionalValues.Type, Values.Concat(additionalValues.Values.Skip(Type.Length)).ToArray());
-        }
-
         public static Dictionary<Item, IEnumerable<Dependency>> CollectIncomingDependenciesMap(
-                        IEnumerable<Dependency> dependencies, Func<Item,bool> selectItem = null) {
-            return CollectMap(dependencies, d => selectItem == null || selectItem(d.UsedItem)? d.UsedItem : null, d => d)
-                    .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<Dependency>) kvp.Value);
+            IEnumerable<Dependency> dependencies, Func<Item, bool> selectItem = null) {
+            return
+                CollectMap(dependencies, d => selectItem == null || selectItem(d.UsedItem) ? d.UsedItem : null, d => d)
+                    .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<Dependency>)kvp.Value);
         }
 
         public static Dictionary<Item, IEnumerable<Dependency>> CollectOutgoingDependenciesMap(
-                        IEnumerable<Dependency> dependencies, Func<Item, bool> selectItem = null) {
-            return CollectMap(dependencies, d => selectItem == null || selectItem(d.UsingItem) ? d.UsingItem : null, d => d)
-                    .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<Dependency>) kvp.Value);
+            IEnumerable<Dependency> dependencies, Func<Item, bool> selectItem = null) {
+            return
+                CollectMap(dependencies, d => selectItem == null || selectItem(d.UsingItem) ? d.UsingItem : null, d => d)
+                    .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<Dependency>)kvp.Value);
         }
 
-        public static Dictionary<Item, List<T>> CollectMap<T>([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
-                                            [NotNull] Func<Dependency, Item> getItem, [NotNull] Func<Dependency, T> createT) {
+        public static Dictionary<Item, List<T>> CollectMap<T>(
+            [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, [NotNull] Func<Dependency, Item> getItem,
+            [NotNull] Func<Dependency, T> createT) {
             var result = new Dictionary<Item, List<T>>();
             foreach (var d in dependencies) {
                 Item key = getItem(d);
@@ -202,13 +196,71 @@ namespace NDepCheck {
             Intern<Item>.Reset();
         }
 
-        protected override void MarkersHaveChanged() {
-            _asFullString = null;
-        }
-
         public bool IsMatch([CanBeNull] IEnumerable<ItemMatch> matches, [CanBeNull] IEnumerable<ItemMatch> excludes) {
             return (matches == null || !matches.Any() || matches.Any(m => m.Matches(this) != null)) &&
                    (excludes == null || !excludes.Any() || excludes.All(m => m.Matches(this) == null));
+        }
+    }
+
+    public class ReadOnlyItem : AbstractItem, IMarkerSet {
+        [NotNull] private readonly ReadOnlyMarkerSet _markerSet;
+
+        protected ReadOnlyItem([NotNull] ItemType type, string[] values) : base(type, values) {
+            _markerSet = new ReadOnlyMarkerSet(type.IgnoreCase, markers: null);
+        }
+
+        public override IMarkerSet MarkerSet => _markerSet;
+    }
+
+    public class Item : AbstractItem, IMutableMarkerSet {
+        [NotNull]
+        private readonly MutableMarkerSet _markerSet;
+
+        protected Item([NotNull] ItemType type, string[] values) : base(type, values) {
+            _markerSet = new MutableMarkerSet(type.IgnoreCase, markers: null);
+        }
+
+        public static Item New([NotNull] ItemType type, [ItemNotNull] params string[] values) {
+            return Intern<Item>.GetReference(new Item(type, values));
+        }
+
+        public static Item New([NotNull] ItemType type, [ItemNotNull] string[] values, [ItemNotNull] string[] markers) {
+            Item item = Intern<Item>.GetReference(new Item(type, values));
+            item.UnionWithMarkers(markers);
+            return item;
+        }
+
+        public static Item New([NotNull] ItemType type, [NotNull] string reducedName) {
+            return New(type, reducedName.Split(':'));
+        }
+
+        public override IMarkerSet MarkerSet => _markerSet;
+
+        [NotNull]
+        public Item Append([CanBeNull] ItemTail additionalValues) {
+            return additionalValues == null
+                ? this
+                : new Item(additionalValues.Type, Values.Concat(additionalValues.Values.Skip(Type.Length)).ToArray());
+        }
+
+        public bool UnionWithMarkers(IEnumerable<string> markers) {
+            return _markerSet.UnionWithMarkers(markers) && MarkersHaveChanged();
+        }
+
+        public bool AddMarker(string marker) {
+            return _markerSet.AddMarker(marker) && MarkersHaveChanged();
+        }
+
+        public bool RemoveMarkers(string markerPattern, bool ignoreCase) {
+            return _markerSet.RemoveMarkers(markerPattern, ignoreCase) && MarkersHaveChanged();
+        }
+
+        public bool RemoveMarkers(IEnumerable<string> markerPatterns, bool ignoreCase) {
+            return _markerSet.RemoveMarkers(markerPatterns, ignoreCase) && MarkersHaveChanged();
+        }
+
+        public bool ClearMarkers() {
+            return _markerSet.ClearMarkers() && MarkersHaveChanged();
         }
 
         public static readonly string ITEM_HELP = @"

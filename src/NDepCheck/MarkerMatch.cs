@@ -34,7 +34,7 @@ namespace NDepCheck {
             _absent = absent.Select(s => CreateMatcher(s, 0, ignoreCase));
         }
 
-        public bool IsMatch(ObjectWithMarkers obj) {
+        public bool IsMatch(IMarkerSet obj) {
             return obj.IsMatch(_present, _absent);
         }
     }
