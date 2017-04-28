@@ -40,7 +40,7 @@ namespace NDepCheck.Transforming.Modifying {
                         } else if (effect.StartsWith("+")) {
                             effects.Add(i => i.AddMarker(effect.Substring(1)));
                         } else if (effect.StartsWith("-")) {
-                            effects.Add(i => i.RemoveMarker(effect.Substring(1)));
+                            effects.Add(i => i.RemoveMarkers(effect.Substring(1), ignoreCase));
                         } else {
                             throw new ArgumentException(
                                 $"Unexpected item directive '{effect}' at {fullConfigFileName}/{startLineNo}");

@@ -41,6 +41,24 @@ namespace NDepCheck {
             return this;
         }
 
+        internal bool IsMatch(IEnumerable<IMatcher> present, IEnumerable<IMatcher> absent) {
+            if (_markersOrNull == null) {
+                return !present.Any();
+            } else {
+                foreach (var m in present) {
+                    if (_markersOrNull.All(s => m.Matches(s) == null)) {
+                        return false;
+                    }
+                }
+                foreach (var m in absent) {
+                    if (_markersOrNull.Any(s => m.Matches(s) != null)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+
         public ObjectWithMarkers AddMarker([NotNull] string marker) {
             if (_markersOrNull == null) {
                 _markersOrNull = CreateHashSet(new[] { marker });
@@ -53,27 +71,24 @@ namespace NDepCheck {
             return this;
         }
 
-        public ObjectWithMarkers RemoveMarker(string marker) {
-            if (_markersOrNull != null) {
-                if (_markersOrNull.Remove(marker)) {
-                    if (_markersOrNull.Count == 0) {
-                        _markersOrNull = null;
-                    }
-                    MarkersHaveChanged();
-                }
+        public ObjectWithMarkers RemoveMarkers(string markerPattern, bool ignoreCase) {
+            return RemoveMarkers(new[] { markerPattern }, ignoreCase);
+        }
+
+        public ObjectWithMarkers RemoveMarkers([CanBeNull] IEnumerable<string> markerPatterns, bool ignoreCase) {
+            if (markerPatterns != null && _markersOrNull != null) {
+                IEnumerable<IMatcher> matchers = markerPatterns.Select(p => MarkerMatch.CreateMatcher(p, ignoreCase)).ToArray();
+                _markersOrNull.RemoveWhere(m => matchers.Any(ma => ma.Matches(m) != null));
+                NormalizeMarkersOrNullAndSignalChange();
             }
             return this;
         }
 
-        public ObjectWithMarkers RemoveMarkers([CanBeNull] IEnumerable<string> markers) {
-            if (markers != null && _markersOrNull != null) {
-                _markersOrNull.ExceptWith(markers);
-                if (_markersOrNull.Count == 0) {
-                    _markersOrNull = null;
-                }
-                MarkersHaveChanged();
+        private void NormalizeMarkersOrNullAndSignalChange() {
+            if (_markersOrNull != null && _markersOrNull.Count == 0) {
+                _markersOrNull = null;
             }
-            return this;
+            MarkersHaveChanged();
         }
 
         public ObjectWithMarkers ClearMarkers() {
@@ -82,14 +97,6 @@ namespace NDepCheck {
                 _markersOrNull = null;
             }
             return this;
-        }
-
-        public bool IsMatch(MarkerPattern pattern) {
-            if (_markersOrNull == null) {
-                return pattern.Present.Count == 0;
-            } else {
-                return pattern.Present.IsSubsetOf(_markersOrNull) && !pattern.Absent.Overlaps(_markersOrNull);
-            }
         }
 
         public static StringComparer GetComparer(bool ignoreCase) {

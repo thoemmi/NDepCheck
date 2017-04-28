@@ -25,9 +25,10 @@ namespace NDepCheck.Transforming {
                 IncrementQuestionableOption, ResetQuestionableOption
             });
 
-        protected internal override IEnumerable<Action<Dependency>> Parse(GlobalContext globalContext, [CanBeNull] string argsAsString, [NotNull] [ItemNotNull] IEnumerable<OptionAction> moreOptions) {
+        protected internal override IEnumerable<Action<Dependency>> Parse(GlobalContext globalContext, [CanBeNull] string argsAsString, 
+            bool ignoreCase, [NotNull] [ItemNotNull] IEnumerable<OptionAction> moreOptions) {
             var localResult = new List<Action<Dependency>>();
-            IEnumerable<Action<Dependency>> baseResult = base.Parse(globalContext, argsAsString, new[] {
+            IEnumerable<Action<Dependency>> baseResult = base.Parse(globalContext, argsAsString, ignoreCase, new[] {
                 SetBadOption.Action((args, j) => {
                     localResult.Add(d => d.MarkAsBad());
                     return j;

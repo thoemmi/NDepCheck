@@ -82,30 +82,30 @@ namespace NDepCheck.Reading {
         }
 
         private static readonly MarkerGenerator<TypeDefinition>[] _typeDefinitionMarkers = {
-            CreateCheck<TypeDefinition>(t => t.IsAbstract, "abstract"),
-            CreateCheck<TypeDefinition>(t => t.IsClass, "class"),
-            CreateCheck<TypeDefinition>(t => t.IsEnum, "enum"),
-            CreateCheck<TypeDefinition>(t => t.IsInterface, "interface"),
-            CreateCheck<TypeDefinition>(t => t.IsPrimitive, "primitive"),
-            CreateCheck<TypeDefinition>(t => t.IsPublic, "public"),
-            CreateCheck<TypeDefinition>(t => t.IsSealed, "sealed"),
-            CreateCheck<TypeDefinition>(t => t.IsValueType, "valuetype"),
-            CreateCheck<TypeDefinition>(t => t.IsNotPublic, "notpublic"),
-            CreateCheck<TypeDefinition>(t => t.IsArray, "array"),
+            CreateCheck<TypeDefinition>(t => t.IsAbstract, "_abstract"),
+            CreateCheck<TypeDefinition>(t => t.IsClass, "_class"),
+            CreateCheck<TypeDefinition>(t => t.IsEnum, "_enum"),
+            CreateCheck<TypeDefinition>(t => t.IsInterface, "_interface"),
+            CreateCheck<TypeDefinition>(t => t.IsPrimitive, "_primitive"),
+            CreateCheck<TypeDefinition>(t => t.IsPublic, "_public"),
+            CreateCheck<TypeDefinition>(t => t.IsSealed, "_sealed"),
+            CreateCheck<TypeDefinition>(t => t.IsValueType, "_valuetype"),
+            CreateCheck<TypeDefinition>(t => t.IsNotPublic, "_notpublic"),
+            CreateCheck<TypeDefinition>(t => t.IsArray, "_array"),
             // and 1000s more
         };
 
         private static readonly MarkerGenerator<MethodDefinition>[] _methodDefinitionMarkers = {
-            CreateCheck<MethodDefinition>(t => t.IsAbstract, "abstract"),
-            CreateCheck<MethodDefinition>(t => t.IsConstructor, "ctor"),
-            CreateCheck<MethodDefinition>(t => t.IsFinal, "sealed"),
-            CreateCheck<MethodDefinition>(t => t.IsDefinition, "definition"),
-            CreateCheck<MethodDefinition>(t => t.IsPublic, "public"),
-            CreateCheck<MethodDefinition>(t => t.IsVirtual, "virtual"),
-            CreateCheck<MethodDefinition>(t => t.IsGetter, "get"),
-            CreateCheck<MethodDefinition>(t => t.IsSetter, "set"),
-            CreateCheck<MethodDefinition>(t => t.IsPrivate, "private"),
-            CreateCheck<MethodDefinition>(t => t.IsStatic, "static"),
+            CreateCheck<MethodDefinition>(t => t.IsAbstract, "_abstract"),
+            CreateCheck<MethodDefinition>(t => t.IsConstructor, "_ctor"),
+            CreateCheck<MethodDefinition>(t => t.IsFinal, "_sealed"),
+            CreateCheck<MethodDefinition>(t => t.IsDefinition, "_definition"),
+            CreateCheck<MethodDefinition>(t => t.IsPublic, "_public"),
+            CreateCheck<MethodDefinition>(t => t.IsVirtual, "_virtual"),
+            CreateCheck<MethodDefinition>(t => t.IsGetter, "_get"),
+            CreateCheck<MethodDefinition>(t => t.IsSetter, "_set"),
+            CreateCheck<MethodDefinition>(t => t.IsPrivate, "_private"),
+            CreateCheck<MethodDefinition>(t => t.IsStatic, "_static"),
             // and 1000s more
         };
 
@@ -113,7 +113,7 @@ namespace NDepCheck.Reading {
             //CreateCheck<PropertyDefinition>(t => t.IsAbstract, "abstract"),
             //CreateCheck<PropertyDefinition>(t => t.IsConstructor, "ctor"),
             //CreateCheck<PropertyDefinition>(t => t.IsFinal, "sealed"),
-            CreateCheck<PropertyDefinition>(t => t.IsDefinition, "definition"),
+            CreateCheck<PropertyDefinition>(t => t.IsDefinition, "_definition"),
             //CreateCheck<PropertyDefinition>(t => t.IsPublic, "public"),
             //CreateCheck<PropertyDefinition>(t => t.IsVirtual, "virtual"),
             //CreateCheck<PropertyDefinition>(t => t.IsGetter, "get"),
@@ -124,31 +124,31 @@ namespace NDepCheck.Reading {
         };
 
         private static readonly MarkerGenerator<FieldDefinition>[] _fieldDefinitionMarkers = {
-            CreateCheck<FieldDefinition>(t => t.IsDefinition, "definition"),
-            CreateCheck<FieldDefinition>(t => t.IsPublic, "public"),
-            CreateCheck<FieldDefinition>(t => t.IsPrivate, "private"),
-            CreateCheck<FieldDefinition>(t => t.IsStatic, "static"),
-            CreateCheck<FieldDefinition>(t => t.IsLiteral, "const"),
-            CreateCheck<FieldDefinition>(t => t.IsInitOnly, "readonly"),
-            CreateCheck<FieldDefinition>(t => t.IsNotSerialized, "notserialized"),
+            CreateCheck<FieldDefinition>(t => t.IsDefinition, "_definition"),
+            CreateCheck<FieldDefinition>(t => t.IsPublic, "_public"),
+            CreateCheck<FieldDefinition>(t => t.IsPrivate, "_private"),
+            CreateCheck<FieldDefinition>(t => t.IsStatic, "_static"),
+            CreateCheck<FieldDefinition>(t => t.IsLiteral, "_const"),
+            CreateCheck<FieldDefinition>(t => t.IsInitOnly, "_readonly"),
+            CreateCheck<FieldDefinition>(t => t.IsNotSerialized, "_notserialized"),
             // and 1000s more
         };
 
         private static readonly MarkerGenerator<EventDefinition>[] _eventDefinitionMarkers = {
-            CreateCheck<EventDefinition>(t => t.IsDefinition, "definition"),
+            CreateCheck<EventDefinition>(t => t.IsDefinition, "_definition"),
             // and 1000s more
         };
 
         private static readonly MarkerGenerator<ParameterDefinition>[] _parameterDefinitionMarkers = {
-            CreateCheck<ParameterDefinition>(t => t.IsIn, "in"),
-            CreateCheck<ParameterDefinition>(t => t.IsOptional, "optional"),
-            CreateCheck<ParameterDefinition>(t => t.IsOut, "out"),
-            CreateCheck<ParameterDefinition>(t => t.IsReturnValue, "return"),
+            CreateCheck<ParameterDefinition>(t => t.IsIn, "_in"),
+            CreateCheck<ParameterDefinition>(t => t.IsOptional, "_optional"),
+            CreateCheck<ParameterDefinition>(t => t.IsOut, "_out"),
+            CreateCheck<ParameterDefinition>(t => t.IsReturnValue, "_return"),
             // and 1000s more
         };
 
         private static readonly MarkerGenerator<VariableDefinition>[] _variableDefinitionMarkers = {
-            CreateCheck<VariableDefinition>(t => t.IsPinned, "pinned"),
+            CreateCheck<VariableDefinition>(t => t.IsPinned, "_pinned"),
         };
 
         private static string[] GetVariableMarkers(VariableDefinition t, MarkerGenerator<VariableDefinition>[] markerGenerators) {
@@ -186,7 +186,7 @@ namespace NDepCheck.Reading {
 
                 if (type.BaseType != null && !IsLinked(type.BaseType, type.DeclaringType)) {
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
-                        GetMemberMarkers(type, _typeDefinitionMarkers), type.BaseType, usage: Usage.inherits, sequencePoint: null)) {
+                        GetMemberMarkers(type, _typeDefinitionMarkers), type.BaseType, usage: Usage._inherits, sequencePoint: null)) {
                         yield return dependency_;
                     }
                 }
@@ -194,7 +194,7 @@ namespace NDepCheck.Reading {
                 foreach (TypeReference interfaceRef in type.Interfaces) {
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
                         GetMemberMarkers(Resolve(interfaceRef), _typeDefinitionMarkers),
-                        interfaceRef, usage: Usage.implements, sequencePoint: null)) {
+                        interfaceRef, usage: Usage._implements, sequencePoint: null)) {
                         yield return dependency_;
                     }
                 }
@@ -205,7 +205,7 @@ namespace NDepCheck.Reading {
                     // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, field.Name, "", fieldCustomSections), null, null);
 
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(field, _fieldDefinitionMarkers),
-                             field.FieldType, usage: Usage.declaresfield, sequencePoint: null)) {
+                             field.FieldType, usage: Usage._declaresfield, sequencePoint: null)) {
                         yield return dependency_;
                     }
                     //}
@@ -216,7 +216,7 @@ namespace NDepCheck.Reading {
                     // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, @event.Name, "", eventCustomSections), null, null);
 
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(@event, _eventDefinitionMarkers),
-                             @event.EventType, usage: Usage.declaresevent, sequencePoint: null)) {
+                             @event.EventType, usage: Usage._declaresevent, sequencePoint: null)) {
                         yield return dependency_;
                     }
                 }
@@ -259,14 +259,14 @@ namespace NDepCheck.Reading {
 
             foreach (ParameterDefinition parameter in property.Parameters) {
                 foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetParameterMarkers(parameter, _parameterDefinitionMarkers),
-                         parameter.ParameterType, usage: Usage.declaresparameter, sequencePoint: null)) {
+                         parameter.ParameterType, usage: Usage._declaresparameter, sequencePoint: null)) {
                     yield return dependency_;
                 }
             }
 
             if (property.PropertyType != null) {
                 foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(property, _propertyDefinitionMarkers),
-                         property.PropertyType, usage: Usage.declaresreturntype, sequencePoint: null)) {
+                         property.PropertyType, usage: Usage._declaresreturntype, sequencePoint: null)) {
                     yield return dependency_;
                 }
             }
@@ -284,11 +284,11 @@ namespace NDepCheck.Reading {
                                                                    [NotNull] IEnumerable<CustomAttribute> customAttributes) {
             foreach (CustomAttribute customAttribute in customAttributes) {
                 foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, null, customAttribute.Constructor.DeclaringType,
-                         usage: Usage.declares, sequencePoint: null)) {
+                         usage: Usage._declares, sequencePoint: null)) {
                     yield return dependency_;
                 }
                 foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, null, customAttribute.Constructor.DeclaringType,
-                         usage: Usage.uses, sequencePoint: null, memberName: customAttribute.Constructor.Name)) {
+                         usage: Usage._uses, sequencePoint: null, memberName: customAttribute.Constructor.Name)) {
                     yield return dependency_;
                 }
             }
@@ -316,7 +316,7 @@ namespace NDepCheck.Reading {
             foreach (ParameterDefinition parameter in method.Parameters) {
                 foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
                          GetParameterMarkers(parameter, _parameterDefinitionMarkers), parameter.ParameterType,
-                         usage: Usage.declaresparameter, sequencePoint: null)) {
+                         usage: Usage._declaresparameter, sequencePoint: null)) {
                     yield return dependency_;
                 }
             }
@@ -324,7 +324,7 @@ namespace NDepCheck.Reading {
             if (method.ReturnType != null && !IsLinked(method.ReturnType, method.DeclaringType.DeclaringType)) {
                 foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
                          GetMemberMarkers(Resolve(method.ReturnType), _typeDefinitionMarkers),
-                         method.ReturnType, usage: Usage.declaresreturntype, sequencePoint: null)) {
+                         method.ReturnType, usage: Usage._declaresreturntype, sequencePoint: null)) {
                     yield return dependency_;
                 }
             }
@@ -333,7 +333,7 @@ namespace NDepCheck.Reading {
                 foreach (var variable in method.Body.Variables) {
                     if (!IsLinked(variable.VariableType, method.DeclaringType.DeclaringType)) {
                         foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
-                                 GetVariableMarkers(variable, _variableDefinitionMarkers), variable.VariableType, usage: Usage.declaresvar, sequencePoint: null)) {
+                                 GetVariableMarkers(variable, _variableDefinitionMarkers), variable.VariableType, usage: Usage._declaresvar, sequencePoint: null)) {
                             yield return dependency_;
                         }
                     }
@@ -363,13 +363,13 @@ namespace NDepCheck.Reading {
                 if (methodReference != null && !IsLinked(methodReference.DeclaringType, owner)) {
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
                                 GetMemberMarkers(Resolve(methodReference.DeclaringType), _typeDefinitionMarkers),
-                                methodReference.DeclaringType, usage: Usage.uses, sequencePoint: sequencePoint,
+                                methodReference.DeclaringType, usage: Usage._uses, sequencePoint: sequencePoint,
                                 memberName: methodReference.Name)) {
                         yield return dependency_;
                     }
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
                                 GetMemberMarkers(Resolve(methodReference.ReturnType), _typeDefinitionMarkers),
-                                methodReference.ReturnType, usage: Usage.uses, sequencePoint: sequencePoint)) {
+                                methodReference.ReturnType, usage: Usage._uses, sequencePoint: sequencePoint)) {
                         yield return dependency_;
                     }
                 }
@@ -378,12 +378,12 @@ namespace NDepCheck.Reading {
                 var field = instruction.Operand as FieldDefinition;
                 if (field != null && !IsLinked(field.DeclaringType, owner)) {
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, 
-                                GetMemberMarkers(field, _fieldDefinitionMarkers), field.FieldType, usage: Usage.uses, 
+                                GetMemberMarkers(field, _fieldDefinitionMarkers), field.FieldType, usage: Usage._uses, 
                                 sequencePoint: sequencePoint)) {
                         yield return dependency_;
                     }
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(field, _fieldDefinitionMarkers), 
-                                field.DeclaringType, usage: Usage.uses, sequencePoint: sequencePoint, memberName: field.Name)) {
+                                field.DeclaringType, usage: Usage._uses, sequencePoint: sequencePoint, memberName: field.Name)) {
                         yield return dependency_;
                     }
                 }
@@ -392,11 +392,11 @@ namespace NDepCheck.Reading {
                 var property = instruction.Operand as PropertyDefinition;
                 if (property != null && !IsLinked(property.DeclaringType, owner)) {
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(property, _propertyDefinitionMarkers), 
-                                property.PropertyType, usage: Usage.uses, sequencePoint: sequencePoint)) {
+                                property.PropertyType, usage: Usage._uses, sequencePoint: sequencePoint)) {
                         yield return dependency_;
                     }
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(property, _propertyDefinitionMarkers), 
-                                property.DeclaringType, usage: Usage.uses, sequencePoint: sequencePoint, memberName: property.Name)) {
+                                property.DeclaringType, usage: Usage._uses, sequencePoint: sequencePoint, memberName: property.Name)) {
                         yield return dependency_;
                     }
                 }
@@ -406,7 +406,7 @@ namespace NDepCheck.Reading {
                 if (typeref != null && !IsLinked(typeref, owner)) {
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
                                 GetMemberMarkers(Resolve(typeref), _typeDefinitionMarkers),
-                                typeref, usage: Usage.uses, sequencePoint: sequencePoint)) {
+                                typeref, usage: Usage._uses, sequencePoint: sequencePoint)) {
                         yield return dependency_;
                     }
                 }
@@ -472,7 +472,7 @@ namespace NDepCheck.Reading {
                 foreach (TypeReference genericArgument in genericInstanceType.GenericArguments) {
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
                              GetMemberMarkers(Resolve(genericArgument), _typeDefinitionMarkers), genericArgument,
-                             usage: Usage.usesasgenericargument, sequencePoint: sequencePoint)) {
+                             usage: Usage._usesasgenericargument, sequencePoint: sequencePoint)) {
                         yield return dependency_;
                     }
                 }

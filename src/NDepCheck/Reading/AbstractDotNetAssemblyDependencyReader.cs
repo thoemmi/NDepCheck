@@ -267,16 +267,16 @@ The files are read with Mono.Cecil.
         }
 
         protected enum Usage {
-            declaresfield,
-            declaresevent,
-            declaresparameter,
-            declaresreturntype,
-            declares,
-            declaresvar,
-            uses,
-            inherits,
-            implements,
-            usesasgenericargument,
+            _declaresfield,
+            _declaresevent,
+            _declaresparameter,
+            _declaresreturntype,
+            _declares,
+            _declaresvar,
+            _uses,
+            _inherits,
+            _implements,
+            _usesasgenericargument,
         }
 
         protected sealed class RawDependency {

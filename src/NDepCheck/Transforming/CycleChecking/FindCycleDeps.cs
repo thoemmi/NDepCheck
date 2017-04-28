@@ -55,15 +55,14 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         }
 
         public int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, string dependencySourceForLogging,
-            List<Dependency> transformedDependencies) {
+            [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
             bool ignoreSelfCycles = false;
             bool keepOnlyCycleEdges = false;
             int maxCycleLength = int.MaxValue;
             ItemMatch cycleAnchorsMatch = null;
 
             IEnumerable<Action<Dependency>> effects = EffectOptions.Parse(globalContext: globalContext, 
-                argsAsString: transformOptions, moreOptions: new[] {
+                argsAsString: transformOptions, ignoreCase: _ignoreCase, moreOptions: new[] {
                 IgnoreSelfCyclesOption.Action((args, j) => {
                     ignoreSelfCycles = true;
                     return j;

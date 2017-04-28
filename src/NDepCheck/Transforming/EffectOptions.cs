@@ -13,13 +13,13 @@ namespace NDepCheck.Transforming {
 
         protected EffectOptions([NotNull] string sort) {
             AddMarkerOption = new Option("am", "add-marker", "marker", "add a marker to the " + sort, @default: "", multiple: true);
-            RemoveMarkerOption = new Option("rm", "remove-marker", "marker", "remove a marker from the " + sort, @default: "", multiple: true);
+            RemoveMarkerOption = new Option("rm", "remove-marker", "markerpattern", "remove matching markers from the " + sort, @default: "", multiple: true);
             DeleteOption = new Option("d" + sort.First(), "delete-" + sort, "", "delete the " + sort, @default: "keep " + sort);
         }
 
         protected IEnumerable<Option> BaseOptions => new[] { AddMarkerOption, RemoveMarkerOption, DeleteOption };
 
-        protected internal virtual IEnumerable<Action<T>> Parse([NotNull] GlobalContext globalContext, [CanBeNull] string argsAsString, 
+        protected internal virtual IEnumerable<Action<T>> Parse([NotNull] GlobalContext globalContext, [CanBeNull] string argsAsString, bool ignoreCase,
                                                                 [NotNull] [ItemNotNull] IEnumerable<OptionAction> moreOptions) {
             var result = new List<Action<T>>();
             Option.Parse(globalContext, argsAsString, new[] {
@@ -29,8 +29,8 @@ namespace NDepCheck.Transforming {
                     return j;
                 }),
                 RemoveMarkerOption.Action((args, j) => {
-                    string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
-                    result.Add(item => item.RemoveMarker(marker));
+                    string markerpattern = Option.ExtractRequiredOptionValue(args, ref j, "missing marker pattern");
+                    result.Add(item => item.RemoveMarkers(markerpattern, ignoreCase));
                     return j;
                 }),
                 DeleteOption.Action((args, j) => {
@@ -65,9 +65,9 @@ namespace NDepCheck.Transforming {
 
         public virtual IEnumerable<Option> AllOptions => BaseOptions.Concat(new[] { SetBadOption });
 
-        protected internal override IEnumerable<Action<Dependency>> Parse(GlobalContext globalContext, [CanBeNull] string argsAsString, [NotNull] [ItemNotNull] IEnumerable<OptionAction> moreOptions) {
+        protected internal override IEnumerable<Action<Dependency>> Parse(GlobalContext globalContext, [CanBeNull] string argsAsString, bool ignoreCase, [NotNull] [ItemNotNull] IEnumerable<OptionAction> moreOptions) {
             var localResult = new List<Action<Dependency>>();
-            IEnumerable<Action<Dependency>> baseResult = base.Parse(globalContext, argsAsString, new[] {
+            IEnumerable<Action<Dependency>> baseResult = base.Parse(globalContext, argsAsString, ignoreCase, new[] {
                 SetBadOption.Action((args, j) => {
                     localResult.Add(d => d.MarkAsBad());
                     return j;

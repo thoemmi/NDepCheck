@@ -5,12 +5,12 @@ namespace NDepCheck.Transforming {
         [NotNull]
         private readonly ItemPattern _itemPattern;
         [NotNull]
-        private readonly MarkerPattern _markerPattern;
+        private readonly MarkerMatch _markerPattern;
 
         public ItemMatch([CanBeNull] ItemType itemTypeOrNull, [NotNull] string pattern, bool ignoreCase) {
             string[] patternParts = pattern.Split('\'');
             _itemPattern = new ItemPattern(itemTypeOrNull, patternParts[0], 0, ignoreCase);
-            _markerPattern = new MarkerPattern(patternParts.Length > 1 ? patternParts[1] : "", ignoreCase);
+            _markerPattern = new MarkerMatch(patternParts.Length > 1 ? patternParts[1] : "", ignoreCase);
         }
 
         public ItemMatch([NotNull] string pattern, bool ignoreCase) : this(null, pattern, ignoreCase) {

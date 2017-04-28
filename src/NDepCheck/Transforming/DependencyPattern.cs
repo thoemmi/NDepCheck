@@ -5,7 +5,7 @@ using JetBrains.Annotations;
 namespace NDepCheck.Transforming {
     public sealed class DependencyPattern {
         [NotNull]
-        private readonly MarkerPattern _markerPattern;
+        private readonly MarkerMatch _markerPattern;
 
         private readonly bool? _ctZero;
         private readonly bool? _badCtZero;
@@ -30,7 +30,7 @@ namespace NDepCheck.Transforming {
             if (ctPattern.Contains("=")) {
                 _isSingleCycle = !ctPattern.Contains("~=");
             }
-            _markerPattern = new MarkerPattern(patternParts.Length > 1 ? patternParts[1] : "", ignoreCase);
+            _markerPattern = new MarkerMatch(patternParts.Length > 1 ? patternParts[1] : "", ignoreCase);
         }
 
         public bool IsMatch(Dependency dependency) {

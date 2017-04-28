@@ -145,7 +145,7 @@ Examples:
                 if (clearDependency) {
                     d.ClearMarkers();
                 } else {
-                    d.UnionWithMarkers(markersToAddOnDep).RemoveMarkers(markersToRemoveOnDep);
+                    d.UnionWithMarkers(markersToAddOnDep).RemoveMarkers(markersToRemoveOnDep, _ignoreCase);
                 }
                 n++;
             }
@@ -154,21 +154,21 @@ Examples:
 
             // Items are modified afterwards - match loop above uses unchanged values
             foreach (var left in leftMatches) {
-                MarkItem(clearLeft, left, markersToAddOnLeft, markersToRemoveOnLeft);
+                MarkItem(clearLeft, left, markersToAddOnLeft, markersToRemoveOnLeft, _ignoreCase);
             }
             foreach (var right in rightMatches) {
-                MarkItem(clearRight, right, markersToAddOnRight, markersToRemoveOnRight);
+                MarkItem(clearRight, right, markersToAddOnRight, markersToRemoveOnRight, _ignoreCase);
             }
 
             transformedDependencies.AddRange(dependencies);
             return Program.OK_RESULT;
         }
 
-        private static void MarkItem(bool clear, Item item, List<string> markersToAdd, List<string> markersToRemove) {
+        private static void MarkItem(bool clear, Item item, List<string> markersToAdd, List<string> markersToRemove, bool ignoreCase) {
             if (clear) {
                 item.ClearMarkers();
             } else {
-                item.UnionWithMarkers(markersToAdd).RemoveMarkers(markersToRemove);
+                item.UnionWithMarkers(markersToAdd).RemoveMarkers(markersToRemove, ignoreCase);
             }
         }
 
