@@ -271,11 +271,13 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         }
 
         public override void AfterAllTransforms(GlobalContext globalContext) {
-            foreach (var r in _allCheckedGroups.SelectMany(g => g.AllRules)
-                                               .Select(r => r.Representation)
-                                               .Distinct()
-                                               .OrderBy(r => r.RuleFileName)
-                                               .ThenBy(r => r.LineNo)) {
+            foreach (
+                var r in
+                _allCheckedGroups.SelectMany(g => g.AllRules)
+                    .Select(r => r.Representation)
+                    .Distinct()
+                    .OrderBy(r => r.RuleFileName)
+                    .ThenBy(r => r.LineNo)) {
                 if (_showUnusedQuestionableRules && r.IsQuestionableRule && !r.WasHit) {
                     Log.WriteInfo("Questionable rule " + r + " was never matched - maybe you can remove it!");
                 } else if (_showUnusedRules && !r.WasHit) {
@@ -291,8 +293,20 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             foreach (var ic in contexts) {
                 WriteCounts(ic.Filename, ic.BadDependenciesCount, ic.QuestionableDependenciesCount);
             }
-            WriteCounts("Dependencies not assigned to file", globalContext.BadDependenciesCountWithoutInputContext, globalContext.QuestionableDependenciesCountWithoutInputContext);
-            Log.WriteInfo($"{contexts.Count(ctx => ctx.BadDependenciesCount == 0 && ctx.QuestionableDependenciesCount == 0)} input files are without violations.");
+            WriteCounts("Dependencies not assigned to file", globalContext.BadDependenciesCountWithoutInputContext,
+                globalContext.QuestionableDependenciesCountWithoutInputContext);
+            int okFilesCt =
+                contexts.Count(ctx => ctx.BadDependenciesCount == 0 && ctx.QuestionableDependenciesCount == 0);
+            int allFileCt = contexts.Count();
+            if (allFileCt == 1) {
+                if (okFilesCt == 1) {
+                    Log.WriteInfo("Input file is without violations.");
+                }
+            } else {
+                Log.WriteInfo(okFilesCt == 1
+                    ? "One input file is without violations."
+                    : $"{okFilesCt} input files are without violations.");
+            }
         }
 
         private static void WriteCounts(string input, int badDependenciesCount, int questionableDependenciesCount) {

@@ -7,7 +7,6 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using NDepCheck.Matching;
-using NDepCheck.Reading;
 
 ////namespace NDepCheck.Try {
 ////    public class IMarkerSet { }

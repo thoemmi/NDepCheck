@@ -8,7 +8,6 @@ using Gibraltar;
 using JetBrains.Annotations;
 using NDepCheck.Markers;
 using NDepCheck.Matching;
-using NDepCheck.Rendering;
 using NDepCheck.Rendering.TextWriting;
 using NDepCheck.Transforming.ViolationChecking;
 using NDepCheck.WebServing;
@@ -284,12 +283,12 @@ namespace NDepCheck {
                         string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string transformer = ExtractNextValue(globalContext, args, ref i);
                         string transformerOptions = ExtractNextValue(globalContext, args, ref i);
-                        result = globalContext.Transform(assemblyName, transformer, transformerOptions);
+                        SetResult(ref result, globalContext.Transform(assemblyName, transformer, transformerOptions));
                     } else if (TransformOption.IsMatch(arg)) {
                         // -tf    transformer  [{ options }]
                         string transformer = ExtractOptionValue(globalContext, args, ref i);
                         string transformerOptions = ExtractNextValue(globalContext, args, ref i);
-                        result = globalContext.Transform("", transformer, transformerOptions);
+                        SetResult(ref result, globalContext.Transform("", transformer, transformerOptions));
                     } else if (TransformUndo.IsMatch(arg)) {
                         // -tu
                         globalContext.UndoTransform();
@@ -440,15 +439,15 @@ namespace NDepCheck {
                         }
                     } else if (DoScriptHelpOption.IsMatch(arg)) {
                         string fileName = ExtractOptionValue(globalContext, args, ref i);
-                        result = RunFromFile(fileName, new string[0], globalContext, writtenMasterFiles,
-                                         logCommands: false, showParameters: true);
+                        SetResult(ref result, RunFromFile(fileName, new string[0], globalContext, writtenMasterFiles,
+                                         logCommands: false, showParameters: true));
                     } else if (DoScriptOption.IsMatch(arg) || DoScriptLoggedOption.IsMatch(arg)) {
                         // -dp    filename
                         // -dl    filename
                         string fileName = ExtractOptionValue(globalContext, args, ref i);
                         string[] paramValues = GetParamsList(globalContext, args, ref i);
-                        result = RunFromFile(fileName, paramValues, globalContext, writtenMasterFiles,
-                                         logCommands: DoScriptLoggedOption.IsMatch(arg), showParameters: false);
+                        SetResult(ref result, RunFromFile(fileName, paramValues, globalContext, writtenMasterFiles,
+                                              logCommands: DoScriptLoggedOption.IsMatch(arg), showParameters: false));
                         // file is also an input file - and if there are no input files in -o, the error will come up there.
                         globalContext.InputFilesOrTestDataSpecified = true;
                     } else if (FormalParametersOption.IsMatch(arg)) {
@@ -581,13 +580,13 @@ namespace NDepCheck {
                         globalContext.WorkLazily = true;
                     } else if (IsNdFile(arg)) {
                         string[] paramValues = GetParamsList(globalContext, args, ref i);
-                        result = RunFromFile(arg, paramValues, globalContext, writtenMasterFiles, logCommands: false, showParameters: false);
+                        SetResult(ref result, RunFromFile(arg, paramValues, globalContext, writtenMasterFiles, logCommands: false, showParameters: false));
                         globalContext.InputFilesOrTestDataSpecified = true;
                     } else if (globalContext.GetSuitableInternalReader("", new[] { arg }) != null) {
                         globalContext.ReadFiles(args, ref i, "", null, arg);
                     } else if (IsInternalTransformPlugin(arg)) {
                         string transformerOptions = ExtractNextValue(globalContext, args, ref i);
-                        result = globalContext.Transform("", arg, transformerOptions);
+                        SetResult(ref result, globalContext.Transform("", arg, transformerOptions));
                     } else {
                         return UsageAndExit(message: "Unsupported option '" + arg + "'", globalContext: globalContext);
                     }
@@ -614,7 +613,7 @@ namespace NDepCheck {
 
                 if (result == OK_RESULT && !globalContext.TransformingDone && !globalContext.RenderingDone) {
                     // Default action at end if nothing was done
-                    result = globalContext.Transform(assemblyName: "", transformerClass: typeof(CheckDeps).FullName, transformerOptions: "");
+                    SetResult(ref result, globalContext.Transform(assemblyName: "", transformerClass: typeof(CheckDeps).FullName, transformerOptions: ""));
                     globalContext.RenderToFile(assemblyName: "",
                         rendererClassName: typeof(RuleViolationWriter).FullName, rendererOptions: "", fileName: null);
                 }
@@ -627,6 +626,10 @@ namespace NDepCheck {
             }
 
             return result;
+        }
+
+        private void SetResult(ref int result, int localResult) {
+            result = Math.Max(result, localResult);
         }
 
         [CanBeNull]
