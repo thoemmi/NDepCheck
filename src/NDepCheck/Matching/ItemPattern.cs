@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
 
-namespace NDepCheck.Transforming {
+namespace NDepCheck.Matching {
     public sealed class ItemPattern : Pattern {
         internal static readonly string[] NO_GROUPS = new string[0];
 

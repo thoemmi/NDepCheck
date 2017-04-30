@@ -4,27 +4,25 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using Gibraltar;
 using JetBrains.Annotations;
-using NDepCheck.Calculating;
-using NDepCheck.Reading;
+using NDepCheck.Markers;
+using NDepCheck.Matching;
 using NDepCheck.Rendering;
-using NDepCheck.Transforming;
 using NDepCheck.Transforming.ViolationChecking;
 using NDepCheck.WebServing;
 
 namespace NDepCheck {
     public class Program {
-        public const string VERSION = "V.3.73";
+        public const string VERSION = "V.3.74";
 
         public const int OK_RESULT = 0;
-        public const int OPTIONS_PROBLEM = 1;
-        public const int DEPENDENCIES_NOT_OK = 3;
-        public const int FILE_NOT_FOUND_RESULT = 4;
-        public const int NO_RULE_GROUPS_FOUND = 5;
-        public const int NO_RULE_SET_FOUND_FOR_FILE = 6;
-        public const int EXCEPTION_RESULT = 7;
+        public const int OPTIONS_PROBLEM = 180;
+        public const int DEPENDENCIES_NOT_OK = 181;
+        public const int FILE_NOT_FOUND_RESULT = 182;
+        public const int NO_RULE_GROUPS_FOUND = 183;
+        public const int NO_RULE_SET_FOUND_FOR_FILE = 184;
+        public const int EXCEPTION_RESULT = 185;
 
         private class ProgramOption : Option {
             public ProgramOption(string shortname, string name, string usage, string description, string[] moreNames = null)
@@ -37,9 +35,9 @@ namespace NDepCheck {
         public static readonly Option HelpDetailedHelpOption = new ProgramOption(shortname: "!", name: "help-detail", usage: "[filter]", description: "write extensive help", moreNames: new[] { "man" });
         public static readonly Option DebugOption = new ProgramOption(shortname: "debug", name: "debug", usage: "", description: "start .Net debugger");
 
-        public static readonly Option ReadPluginOption = new ProgramOption(shortname: "rp", name: "read-plugin", usage: "assembly reader filepattern [- filepattern]", description: "Use <assembly.reader> to read files matching filepattern, but not second filepattern");
-        public static readonly Option ReadFileOption = new ProgramOption(shortname: "rf", name: "read-file", usage: "reader filepattern [- filepattern]", description: "Use predefined reader to read files matching filepattern, but not second filepattern");
-        public static readonly Option ReadOption = new ProgramOption(shortname: "rd", name: "read", usage: "[filepattern] [- filepattern]", description: "Use reader derived from file extension to read files matching filepattern, but not second filepattern");
+        public static readonly Option ReadPluginOption = new ProgramOption(shortname: "rp", name: "read-plugin", usage: "assembly reader filepattern [ +|- filepattern ...]", description: "Use <assembly.reader> to read files matching filepattern, but not second filepattern");
+        public static readonly Option ReadFileOption = new ProgramOption(shortname: "rf", name: "read-file", usage: "reader filepattern [ +|- filepattern ...]", description: "Use predefined reader to read files matching filepattern, but not second filepattern");
+        public static readonly Option ReadOption = new ProgramOption(shortname: "rd", name: "read", usage: "[filepattern] [ +|- filepattern ...]", description: "Use reader derived from file extension to read files matching filepattern, but not second filepattern");
         public static readonly Option ReadPluginHelpOption = new ProgramOption(shortname: "ra?", name: "read-plugin-help", usage: "assembly [filter]", description: "Show help for all readers in assembly");
         public static readonly Option ReadHelpOption = new ProgramOption(shortname: "rf?", name: "read-help", usage: "[filter]", description: "Show help for all predefined readers");
         public static readonly Option ReadPluginDetailedHelpOption = new ProgramOption(shortname: "ra!", name: "read-plugin-detail", usage: "assembly reader [filter]", description: "Show detailed help for reader in assembly");
@@ -83,7 +81,7 @@ namespace NDepCheck {
         public static readonly Option DoResetOption = new ProgramOption(shortname: "dr", name: "do-reset", usage: "[filename]", description: "reset state; and read file as dip file if provided");
         public static readonly Option DoTimeOption = new ProgramOption(shortname: "dt", name: "do-time", usage: "secs", description: "log execution time for commands running longer than secs seconds; default: 10");
 
-        public static readonly Option WatchFilesOption = new ProgramOption(shortname: "aw", name: "watch-files", usage: "[filepattern [- filepattern]] script", description: "Watch files");
+        public static readonly Option WatchFilesOption = new ProgramOption(shortname: "aw", name: "watch-files", usage: "[filepattern [ +|- filepattern ...]] script", description: "Watch files");
         public static readonly Option UnwatchFilesOption = new ProgramOption(shortname: "au", name: "unwatch-files", usage: "filepattern", description: "Unwatch files specified by filepattern");
         public static readonly Option UnwatchTriggersOption = new ProgramOption(shortname: "an", name: "unwatch-triggers", usage: "script", description: "No longer watch all files triggering script");
 
@@ -131,7 +129,8 @@ namespace NDepCheck {
         }
 
         public static int Main(string[] args) {
-            ItemType.New("DUMMY(DUMMY)"); // For init - TODO - REALLY still necessary??
+            ItemType.ForceLoadingPredefinedSimpleTypes();
+
             Log.SetLevel(Log.Level.Standard);
 
             Log.Logger = new ConsoleLogger();
@@ -232,34 +231,20 @@ namespace NDepCheck {
                         string filter = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true);
                         return UsageAndExit(message: null, globalContext: globalContext, withIntro: true,
                                             detailed: true, filter: filter ?? "");
-                    } else if (arg == "-debug" || arg == "/debug") {
-                        // -debug
+                    } else if (Option.ArgMatches(arg, "debug")) {
                         Debugger.Launch();
                     } else if (ReadPluginOption.IsMatch(arg)) {
-                        // -rp    assembly reader filepattern [- filepattern]
+                        // -rp    assembly reader filepattern [ +|- filepattern ...]
                         string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string reader = ExtractNextValue(globalContext, args, ref i);
-                        string filePattern = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.CreateInputOption(args, ref i, filePattern, assemblyName, reader);
+                        globalContext.ReadFiles(args, ref i, assemblyName, reader);
                     } else if (ReadFileOption.IsMatch(arg)) {
-                        // -rf    reader filepattern [- filepattern]
+                        // -rf    reader filepattern [ +|- filepattern ...]
                         string reader = ExtractOptionValue(globalContext, args, ref i);
-                        string filePattern = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.CreateInputOption(args, ref i, filePattern, "", reader);
+                        globalContext.ReadFiles(args, ref i, "", reader);
                     } else if (ReadOption.IsMatch(arg)) {
-                        // -rd    filepattern [- filepattern]
-                        // -rd    - filepattern
-                        string s = ExtractOptionValue(globalContext, args, ref i);
-                        if (s == "-") {
-                            string filePattern = ExtractRequiredOptionValue(globalContext, args, ref i, "File pattern missing after -");
-                            globalContext.AddNegativeInputOption(filePattern);
-                        } else {
-                            string filePattern = s;
-                            globalContext.CreateInputOption(args, ref i, filePattern, "",
-                                IsDllOrExeFile(filePattern) ? typeof(DotNetAssemblyDependencyReaderFactory).FullName :
-                                IsDipFile(filePattern) ? typeof(DipReaderFactory).FullName : null);
-                        }
-
+                        // -rd    filepattern [ +|- filepattern ...]
+                        globalContext.ReadFiles(args, ref i, "", null);
                     } else if (ReadPluginHelpOption.IsMatch(arg)) {
                         // -ra?    assembly [filter]
                         string assemblyName = ExtractOptionValue(globalContext, args, ref i);
@@ -454,14 +439,14 @@ namespace NDepCheck {
                         }
                     } else if (DoScriptHelpOption.IsMatch(arg)) {
                         string fileName = ExtractOptionValue(globalContext, args, ref i);
-                        result = RunFrom(fileName, new string[0], globalContext, writtenMasterFiles,
+                        result = RunFromFile(fileName, new string[0], globalContext, writtenMasterFiles,
                                          logCommands: false, showParameters: true);
                     } else if (DoScriptOption.IsMatch(arg) || DoScriptLoggedOption.IsMatch(arg)) {
                         // -dp    filename
                         // -dl    filename
                         string fileName = ExtractOptionValue(globalContext, args, ref i);
                         string[] paramValues = GetParamsList(globalContext, args, ref i);
-                        result = RunFrom(fileName, paramValues, globalContext, writtenMasterFiles,
+                        result = RunFromFile(fileName, paramValues, globalContext, writtenMasterFiles,
                                          logCommands: DoScriptLoggedOption.IsMatch(arg), showParameters: false);
                         // file is also an input file - and if there are no input files in -o, the error will come up there.
                         globalContext.InputFilesOrTestDataSpecified = true;
@@ -480,15 +465,15 @@ namespace NDepCheck {
                         // -dr    [filename]
                         globalContext.ResetAll();
 
-                        string fileName = ExtractNextValue(globalContext, args, ref i);
-                        if (fileName != null && IsDipFile(fileName)) {
-                            globalContext.CreateInputOption(args, ref i, fileName, assemblyName: "",
-                                readerFactoryClass: typeof(DipReaderFactory).FullName);
+                        string firstFilePattern = ExtractNextValue(globalContext, args, ref i);
+                        if (firstFilePattern != null) {
+                            // Using Dip
+                            globalContext.ReadFiles(args, ref i, assemblyName: "", readerFactoryClassNameOrNull: null, firstFilePattern: firstFilePattern);
                         }
                     } else if (DoTimeOption.IsMatch(arg)) {
                         globalContext.TimeLongerThan = TimeSpan.FromSeconds(ExtractIntOptionValue(globalContext, args, ref i, "Missing seconds"));
                     } else if (WatchFilesOption.IsMatch(arg)) {
-                        // -aw    [filepattern [- filepattern]] script
+                        // -aw    [filepattern [ +|- filepattern ...]] script
                         string positive = ExtractOptionValue(globalContext, args, ref i);
                         string s = ExtractNextValue(globalContext, args, ref i);
                         string negative, scriptName;
@@ -593,17 +578,13 @@ namespace NDepCheck {
                         // -lz
                         // (lazy reading and transforming NOT YET IMPLEMENTED)
                         globalContext.WorkLazily = true;
-                    } else if (IsDllOrExeFile(arg)) {
-                        globalContext.CreateInputOption(args, ref i, arg, assemblyName: "",
-                            readerFactoryClass: typeof(DotNetAssemblyDependencyReaderFactory).FullName);
-                    } else if (IsDipFile(arg)) {
-                        globalContext.CreateInputOption(args, ref i, arg, assemblyName: "",
-                            readerFactoryClass: typeof(DipReaderFactory).FullName);
                     } else if (IsNdFile(arg)) {
                         string[] paramValues = GetParamsList(globalContext, args, ref i);
-                        result = RunFrom(arg, paramValues, globalContext, writtenMasterFiles, logCommands: false, showParameters: false);
+                        result = RunFromFile(arg, paramValues, globalContext, writtenMasterFiles, logCommands: false, showParameters: false);
                         globalContext.InputFilesOrTestDataSpecified = true;
-                    } else if (IsInternalTransformPlugin(globalContext, arg)) {
+                    } else if (globalContext.GetSuitableInternalReader("", new[] { arg }) != null) {
+                        globalContext.ReadFiles(args, ref i, "", null, arg);
+                    } else if (IsInternalTransformPlugin(arg)) {
                         string transformerOptions = ExtractNextValue(globalContext, args, ref i);
                         result = globalContext.Transform("", arg, transformerOptions);
                     } else {
@@ -618,6 +599,8 @@ namespace NDepCheck {
                 }
             } catch (ArgumentException ex) {
                 return UsageAndExit(ex.Message, globalContext);
+            } catch (FileNotFoundException) {
+                throw;
             } catch (Exception ex) {
                 Log.WriteError($"Could not run previous command; reason: {ex.GetType().Name} {ex.Message}");
                 return EXCEPTION_RESULT;
@@ -630,11 +613,9 @@ namespace NDepCheck {
 
                 if (result == OK_RESULT && !globalContext.TransformingDone && !globalContext.RenderingDone) {
                     // Default action at end if nothing was done
-                    globalContext.ReadAllNotYetReadIn();
-                    result = globalContext.Transform(assemblyName: "", transformerClass: typeof(CheckDeps).FullName,
-                        transformerOptions: "");
+                    result = globalContext.Transform(assemblyName: "", transformerClass: typeof(CheckDeps).FullName, transformerOptions: "");
                     globalContext.RenderToFile(assemblyName: "",
-                        rendererClassName: typeof(RuleViolationRenderer).FullName, rendererOptions: "", fileName: null);
+                        rendererClassName: typeof(RuleViolationWriter).FullName, rendererOptions: "", fileName: null);
                 }
             }
 
@@ -703,7 +684,7 @@ namespace NDepCheck {
             }
         }
 
-        public static void LogElapsedTime(GlobalContext globalContext, Stopwatch stopWatch, string arg) {
+        private static void LogElapsedTime(GlobalContext globalContext, Stopwatch stopWatch, string arg) {
             TimeSpan elapsed = stopWatch.Elapsed;
             if (elapsed >= globalContext.TimeLongerThan) {
                 if (elapsed < TimeSpan.FromMinutes(1)) {
@@ -738,74 +719,31 @@ namespace NDepCheck {
             return action(writerOptions, fileName);
         }
 
-        private static bool IsDipFile(string arg) {
-            return arg.EndsWith(value: ".dip", comparisonType: StringComparison.InvariantCultureIgnoreCase);
-        }
-
-        private static bool IsDllOrExeFile(string arg) {
-            return arg.EndsWith(value: ".dll", comparisonType: StringComparison.InvariantCultureIgnoreCase) ||
-                   arg.EndsWith(value: ".exe", comparisonType: StringComparison.InvariantCultureIgnoreCase);
-        }
-
         private static bool IsNdFile(string arg) {
             return arg.EndsWith(value: ".nd", comparisonType: StringComparison.InvariantCultureIgnoreCase);
         }
 
-        private static bool IsInternalTransformPlugin(GlobalContext globalContext, string arg) {
-            return globalContext.IsInternalPlugin<ITransformer>(arg);
+        private static bool IsInternalTransformPlugin(string arg) {
+            return GlobalContext.IsInternalPlugin<ITransformer>(arg);
         }
 
-        internal int RunFrom([NotNull] string fileName, [NotNull, ItemNotNull] string[] passedValues, [NotNull] GlobalContext globalContext,
-                             [CanBeNull] List<string> writtenMasterFiles, bool logCommands, bool showParameters) {
+        internal int RunFromFile([NotNull] string fileName, [NotNull, ItemNotNull] string[] passedValues, [NotNull] GlobalContext globalContext,
+                                 [CanBeNull] List<string> writtenMasterFiles, bool logCommands, bool showParameters) {
             if (Path.GetExtension(fileName) == "") {
                 fileName = Path.ChangeExtension(fileName, ".nd");
             }
 
-            int lineNo = 0;
+            string[] args = Option.CollectArgsFromFile(fileName);
+
             try {
-                var argsList = new List<string>();
-                bool inBraces = false;
-                using (var sr = new StreamReader(fileName)) {
-                    for (;;) {
-                        lineNo++;
-                        string line = sr.ReadLine();
-                        if (line == null) {
-                            break;
-                        }
-                        string trimmedLine = Regex.Replace(line, pattern: "//.*$", replacement: "").Trim();
-                        string[] splitLine = trimmedLine.Split(' ', '\t').Select(s => s.Trim()).Where(s => s != "").ToArray();
-
-                        if (splitLine.Any(s => Option.IsOptionGroupStart(s))) {
-                            argsList.AddRange(splitLine);
-                            int? groupStart = splitLine
-                                    .Select((s, j) => new { S = s, I = j })
-                                    .FirstOrDefault(sj => Option.IsOptionGroupStart(sj.S))?.I;
-                            int? groupEnd = splitLine
-                                    .Select((s, j) => new { S = s, I = j })
-                                    .FirstOrDefault(sj => Option.IsOptionGroupEnd(sj.S))?.I;
-                            // If there is a } after the {, we are NOT in inBraces mode.
-                            inBraces = !(groupEnd > groupStart);
-                        } else if (splitLine.Any(s => Option.IsOptionGroupEnd(s))) {
-                            inBraces = false;
-                            argsList.AddRange(splitLine);
-                        } else if (!inBraces) {
-                            argsList.AddRange(splitLine);
-                        } else {
-                            argsList.Add(line);
-                        }
-                    }
-                }
-
-                var args = argsList.ToArray();
-
                 ValuesFrame locals = new ValuesFrame();
 
                 var showParametersText = showParameters ? new StringBuilder() : null;
 
                 int i = 0;
                 int passedValueCount = 0;
-                for (; i < argsList.Count; i++) {
-                    string arg = argsList[i];
+                for (; i < args.Length; i++) {
+                    string arg = args[i];
                     if (FormalParametersOption.IsMatch(arg)) {
                         string name = Option.ExtractRequiredOptionValue(args, ref i, $"missing parameter name after {FormalParametersOption}");
                         string defaultValue = locals.ExpandDefines(Option.ExtractNextValue(args, ref i), null);
@@ -840,8 +778,7 @@ namespace NDepCheck {
                     }
                 }
             } catch (Exception ex) {
-                Log.WriteError(msg: $"Cannot run commands in {fileName}; reason: {ex.GetType().Name}: {ex.Message}",
-                    nestedFilenames: fileName, lineNo: lineNo);
+                Log.WriteError(msg: $"Cannot run commands in {fileName}; reason: {ex.GetType().Name}: {ex.Message}");
                 return EXCEPTION_RESULT;
             }
         }
@@ -849,7 +786,6 @@ namespace NDepCheck {
         private int UsageAndExit([CanBeNull] string message, GlobalContext globalContext,
                                  int exitValue = OPTIONS_PROBLEM, bool withIntro = true,
                                  bool detailed = false, [NotNull] string filter = "") {
-
             if (filter.StartsWith("file")) {
                 Console.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck input files (+, //, defines)");
                 return exitValue;
@@ -1162,9 +1098,11 @@ Option overview:
 
         private void AddFileWatchers([NotNull] string positiveFilePattern, [CanBeNull] string negativeFilePattern,
             [NotNull] string scriptName) {
-            IEnumerable<string> files = Option.ExpandFilename(positiveFilePattern).Select(f => Path.GetFullPath(f));
+            string[] noExtensionsInDirectories = new string[0];
+
+            IEnumerable<string> files = Option.ExpandFilePatternToFullFileNames(positiveFilePattern, noExtensionsInDirectories).Select(f => Path.GetFullPath(f));
             if (negativeFilePattern != null) {
-                files = files.Except(Option.ExpandFilename(negativeFilePattern)).Select(f => Path.GetFullPath(f));
+                files = files.Except(Option.ExpandFilePatternToFullFileNames(negativeFilePattern, noExtensionsInDirectories)).Select(f => Path.GetFullPath(f));
             }
             string fullScriptName = Path.GetFullPath(scriptName);
             FileWatcher fw = _fileWatchers.FirstOrDefault(f => f.FullScriptName == fullScriptName);
@@ -1177,7 +1115,9 @@ Option overview:
         }
 
         private void RemoveFileWatchers([NotNull] string filePattern) {
-            IEnumerable<string> files = Option.ExpandFilename(filePattern).Select(f => Path.GetFullPath(f));
+            string[] noExtensionsInDirectories = new string[0];
+
+            IEnumerable<string> files = Option.ExpandFilePatternToFullFileNames(filePattern, noExtensionsInDirectories).Select(f => Path.GetFullPath(f));
             foreach (var fw in _fileWatchers) {
                 foreach (var f in files) {
                     fw.RemoveFile(f);
@@ -1194,7 +1134,7 @@ Option overview:
             }
         }
 
-        public void StartWebServer(Program program, string port, string fileDirectory) {
+        private void StartWebServer(Program program, string port, string fileDirectory) {
             if (_webServer != null) {
                 throw new ApplicationException("Cannot start webserver if one is already running");
             }
@@ -1202,7 +1142,7 @@ Option overview:
             _webServer.Start();
         }
 
-        public void StopWebServer() {
+        private void StopWebServer() {
             _webServer?.Stop();
             _webServer = null;
         }

@@ -9,8 +9,7 @@ namespace NDepCheck.Tests {
     public class TestSomeWriters {
         [TestMethod]
         public void TestItemWriter() {
-            string inFile = Path.GetTempFileName() + ".txt";
-            using (new TempFileProvider(inFile)) {
+            using (DisposingFile.TempFileWithTail(".txt")) {
 
                 using (var s = new MemoryStream()) {
                     var w = new ItemWriter();
@@ -32,8 +31,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void WriteAndReadDotNetDependencies() {
-            string dipFileName = Path.GetTempFileName() + ".dip";
-            using (var dipFile = new TempFileProvider(dipFileName)) {
+            using (DisposingFile dipFile = DisposingFile.TempFileWithTail(".dip")) {
                 int result =
                     Program.Main(new[] {
                         MainTests.TestAssemblyPath,

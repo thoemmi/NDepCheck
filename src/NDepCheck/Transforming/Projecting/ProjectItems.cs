@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
-using NDepCheck.Reading;
+using NDepCheck.Reading.DipReading;
 
 namespace NDepCheck.Transforming.Projecting {
     public partial class ProjectItems : AbstractTransformerWithConfigurationPerInputfile<ProjectionSet> {
@@ -236,7 +236,7 @@ Examples:
             }));
 
             if (fullDipName != null) {
-                // Back projection
+                // Back projection - ProjectItems may use DipReader by design
                 if (_dependenciesForBackProjection == null) {
                     InputContext localContext = new DipReader(fullDipName).ReadDependencies(0, globalContext.IgnoreCase);
                     if (localContext == null) {

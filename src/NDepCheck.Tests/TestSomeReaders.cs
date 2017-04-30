@@ -3,16 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
-using NDepCheck.Reading;
+using NDepCheck.Reading.DipReading;
 
 namespace NDepCheck.Tests {
     [TestClass]
     public class TestSomeReaders {
         [TestMethod]
         public void TestDipWithProxies() {
-            string inFile = Path.GetTempFileName() + ".dip";
-            using (new TempFileProvider(inFile)) {
-                using (TextWriter tw = new StreamWriter(inFile)) {
+            using (var f = DisposingFile.TempFileWithTail(".dip")) {
+                using (TextWriter tw = new StreamWriter(f.Filename)) {
                     tw.Write(@"$ NKK(Name:Key1:Key2)
                         NKK:a:keyA1:?     => ;1;0;0;src.abc|1            => NKK:?:keyA1:?
                         NKK:?:keyA1:?     => ;2;1;0;src.abc|3;example123 => NKK:a:keyA2:?
@@ -24,7 +23,7 @@ namespace NDepCheck.Tests {
                 }
 
                 InputContext inputContext =
-                    new DipReaderFactory().CreateReader(inFile, new GlobalContext(), false).ReadDependencies(0, ignoreCase: false);
+                    new DipReaderFactory().CreateReader(f.Filename, false).ReadDependencies(0, ignoreCase: false);
                 Assert.IsNotNull(inputContext);
                 IEnumerable<Dependency> deps = inputContext.Dependencies;
                 Item[] items = deps.SelectMany(d => new[] { d.UsingItem, d.UsedItem }).Distinct().ToArray();
@@ -38,8 +37,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void WriteAndReadDotNetDependencies() {
-            string dipFileName = Path.GetTempFileName() + ".dip";
-            using (var dipFile = new TempFileProvider(dipFileName)) {
+            using (var dipFile = DisposingFile.TempFileWithTail(".dip")) {
                 int result =
                     Program.Main(new[] {
                         MainTests.TestAssemblyPath,

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -7,7 +8,7 @@ using System.Xml.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Rendering {
-    public class RuleViolationRenderer : IRenderer {
+    public class RuleViolationWriter : IRenderer {
         public static readonly Option XmlOutputOption = new Option("xo", "xml-output", "", "Write output to XML file", @default: false);
 
         private static readonly Option[] _allOptions = { XmlOutputOption };
@@ -71,6 +72,7 @@ namespace NDepCheck.Rendering {
         }
 
         private static void RenderToStreamWriter(IEnumerable<Dependency> dependencies, StreamWriter sw) {
+            sw.WriteLine($"// Written {DateTime.Now} by {typeof(RuleViolationWriter).Name} in NDepCheck {Program.VERSION}");
             foreach (var d in dependencies.Where(d => d.NotOkCt > 0)) {
                 sw.WriteLine(d.NotOkMessage());
             }

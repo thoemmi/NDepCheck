@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using NDepCheck.Transforming;
+using NDepCheck.Matching;
 
 namespace NDepCheck.Rendering {
     public class MatrixRenderer2 : AbstractMatrixRenderer {

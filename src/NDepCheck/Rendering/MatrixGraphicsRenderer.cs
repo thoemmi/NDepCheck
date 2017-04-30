@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Linq;
 using JetBrains.Annotations;
 using NDepCheck.ConstraintSolving;
-using NDepCheck.Transforming;
+using NDepCheck.Matching;
 
 namespace NDepCheck.Rendering {
     public class MatrixGraphicsRenderer : GraphicsRenderer {

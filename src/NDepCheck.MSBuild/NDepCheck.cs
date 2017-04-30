@@ -15,6 +15,10 @@ namespace NDepCheck.MSBuild {
         public string XmlOutput { get; set; }
         public bool CheckOnlyAssemblyDependencies { get; set; }
 
+        public NDepCheck() {
+            throw new NotImplementedException("Options below are no longer valid");
+        }
+
         [Required]
         public ITaskItem[] Assemblies { get; set; }
 
@@ -39,10 +43,6 @@ namespace NDepCheck.MSBuild {
             }
 
             args.Add("/n " + (MaxCpuCount == 0 || MaxCpuCount < -1 ? Environment.ProcessorCount : MaxCpuCount));
-
-            //////Assemblies
-            //////    .Select(item => new InputFileOption(item.ItemSpec, null))
-            //////    .AddTo(options.InputFiles);
 
             if (DefaultRuleSet != null) {
                 args.Add("/x " + DefaultRuleSet.ItemSpec);

@@ -1,23 +1,11 @@
 using System;
-
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Reading {
-    public interface IReaderFactory : IPlugin {
-        AbstractDependencyReader CreateReader(string fileName, GlobalContext options, bool needsOnlyItemTails);
-    }
-
-    public abstract class AbstractReaderFactory : IReaderFactory {
-        [NotNull]
-        public abstract AbstractDependencyReader CreateReader([NotNull]string fileName, [NotNull]GlobalContext options, bool needsOnlyItemTails);
-
-        public abstract string GetHelp(bool detailedHelp, string filter);
-    }
-
-    public abstract class AbstractDependencyReader {
+    public abstract class AbstractDependencyReader : IDependencyReader {
         [NotNull]
         protected readonly string _fullFileName;
 
@@ -49,5 +37,7 @@ namespace NDepCheck.Reading {
             }
             return inputContext;
         }
+
+        public abstract void SetReadersInSameReadFilesBeforeReadDependencies([NotNull] IDependencyReader[] readerGang);
     }
 }

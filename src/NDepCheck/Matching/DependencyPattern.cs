@@ -2,7 +2,7 @@ using System;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 
-namespace NDepCheck.Transforming {
+namespace NDepCheck.Matching {
     public sealed class DependencyPattern {
         [NotNull]
         private readonly MarkerMatch _markerPattern;

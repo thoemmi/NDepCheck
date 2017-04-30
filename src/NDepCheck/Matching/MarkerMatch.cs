@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
-using NDepCheck.Transforming;
+using NDepCheck.Markers;
 
-namespace NDepCheck {
+namespace NDepCheck.Matching {
     public class MarkerMatch : Pattern {
         private readonly IEnumerable<IMatcher> _present;
         private readonly IEnumerable<IMatcher> _absent;

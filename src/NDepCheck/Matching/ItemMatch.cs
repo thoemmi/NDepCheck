@@ -1,6 +1,6 @@
 using JetBrains.Annotations;
 
-namespace NDepCheck.Transforming {
+namespace NDepCheck.Matching {
     public class ItemMatch {
         [NotNull]
         private readonly ItemPattern _itemPattern;

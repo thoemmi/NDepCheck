@@ -1,0 +1,59 @@
+// (c) HMMüller 2017
+
+-cf checkDeps { -rd
+    $DOTNETCALL ---> DOTNETCALL
+
+    // Assembly dependencies
+    ** {
+        :: ---> ::mscorlib
+        :: ---> ::System.**
+        :: ---> ::Microsoft.**    
+        :: ---> ::Mono.Cecil
+        :: ---> ::Mono.Cecil.Pdb
+        :: ---> ::NDepCheck
+    }
+    
+    // Namespace dependencies - CURRENTLY ONLY FOR TOPLEVEL NDepCheck
+    * {
+    		// Compiler-generated types like <>f__AnonymousType1 in top-level namespace
+        : ---> -:
+
+        // using own namespace is always ok
+        (**): ---> \1
+    
+        : ---> System.**
+        : ---> Microsoft.**
+        : ---> Mono.Cecil.**
+            
+        // Copied Gibraltar interning - may be used by anyone (mhm?)
+        : ---> Gibraltar
+
+        // Copied JetBrains.Annotations - may be used by anyone
+				: ---> JetBrains.Annotations
+		
+		    // NDepCheck namespace architecture - CURRENTLY ONLY FOR TOPLEVEL 
+		    // Matching and Markers are "subdrawer" subnamespaces that can be used by everyone
+        : ---> NDepCheck.Matching
+        : ---> NDepCheck.Markers
+
+        // By design (for -wd option), Program can use WebServer
+        :Program ---> NDepCheck.WebServing:WebServer
+
+        // By design (if no othjer options are specified), Program can use transformers and writers for dependency checking
+        :Program ---> NDepCheck.Transforming.ViolationChecking:CheckDeps
+        :Program ---> NDepCheck.Rendering:RuleViolationWriter
+        
+        // By design (for -wd option), Program can use DipWriter
+        :Program ---> NDepCheck.Rendering:DipWriter
+    }
+    
+    // Restricting dependencies - MISSING    
+}
+-tf CheckDeps { -ag }
+
+-wr RuleViolationWriter ..\NDepCheckViolations.txt
+
+-cf ProjectItems { -pl $DOTNETCALL---%NC(Namespace:Class) !(**):(**) }
+-tf ProjectItems
+-tf MarkDeps { -cl -cd -cr }
+-wr RuleViolationWriter ..\NDepCheckViolations~NamespaceClass.txt

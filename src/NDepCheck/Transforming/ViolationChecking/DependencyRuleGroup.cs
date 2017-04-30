@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.ViolationChecking {
     public class DependencyRuleGroup {
@@ -14,6 +15,8 @@ namespace NDepCheck.Transforming.ViolationChecking {
         [NotNull]
         private readonly List<DependencyRule> _forbidden;
 
+        [NotNull]
+        private readonly string _groupName;
         [NotNull]
         private readonly string _group;
         [CanBeNull]
@@ -30,6 +33,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
             _groupType = groupType;
             _group = group;
+            _groupName = group == "" ? "global" : group;
             _groupMatchOrNullForMainGroup = group == "" ? null : new ItemPattern(groupType, group, 0, ignoreCase);
             _allowed = allowed.ToList();
             _questionable = questionable.ToList();
@@ -79,7 +83,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
         }
 
         private IEnumerable<DependencyRule> CreateDependencyRule([NotNull] ItemType usingItemType, [NotNull] ItemType usedItemType, [NotNull] string ruleSourceName, int lineNo,
-            [NotNull] string line, [NotNull] string use, bool questionableRule, bool ignoreCase, 
+            [NotNull] string line, [NotNull] string use, bool questionableRule, bool ignoreCase,
             string previousRawUsingPattern, out string currentRawUsingPattern) {
 
             int i = line.IndexOf(use, StringComparison.Ordinal);
@@ -123,22 +127,33 @@ namespace NDepCheck.Transforming.ViolationChecking {
                 _forbidden.Union(other._forbidden), ignoreCase);
         }
 
-        public bool Check([NotNull] IEnumerable<Dependency> dependencies) {
-            int reorgCount = 0;
-            int nextReorg = 200;
+        public bool Check([NotNull] IEnumerable<Dependency> dependencies, bool addMarker) {
             bool allOk = true;
+            if (_allowed.Any() || _questionable.Any()) {
+                int reorgCount = 0;
+                int nextReorg = 200;
 
-            foreach (Dependency d in dependencies) {
-                if (_groupMatchOrNullForMainGroup == null || _groupMatchOrNullForMainGroup.Matches(d.UsingItem) != null) {
-                    Check(d);
-                    allOk &= d.BadCt == 0;
-                    if (++reorgCount > nextReorg) {
-                        _forbidden.Sort(_sortOnDescendingHitCount);
-                        _allowed.Sort(_sortOnDescendingHitCount);
-                        _questionable.Sort(_sortOnDescendingHitCount);
-                        nextReorg = 6 * nextReorg / 5 + 200;
+                foreach (Dependency d in dependencies) {
+                    if (_groupMatchOrNullForMainGroup == null ||
+                        _groupMatchOrNullForMainGroup.Matches(d.UsingItem) != null) {
+
+                        Check(d);
+                        if (d.BadCt > 0) {
+                            allOk = false;
+                            if (addMarker) {
+                                d.AddMarker(_groupName);
+                            }
+                        }
+                        if (++reorgCount > nextReorg) {
+                            _forbidden.Sort(_sortOnDescendingHitCount);
+                            _allowed.Sort(_sortOnDescendingHitCount);
+                            _questionable.Sort(_sortOnDescendingHitCount);
+                            nextReorg = 6 * nextReorg / 5 + 200;
+                        }
                     }
                 }
+            } else {
+                Log.WriteInfo("No allowed or questionable rules in " + (Group == "" ? "global group" : "group " + Group) + ", therefore no checking done.");
             }
             return allOk;
         }

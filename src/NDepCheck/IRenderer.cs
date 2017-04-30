@@ -2,7 +2,7 @@
 using System.IO;
 using JetBrains.Annotations;
 
-namespace NDepCheck.Rendering {
+namespace NDepCheck {
     public interface IRenderer : IPlugin {
         string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName);
 

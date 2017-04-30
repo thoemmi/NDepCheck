@@ -1,8 +1,14 @@
-namespace NDepCheck.Reading {
+using System.Collections.Generic;
+
+namespace NDepCheck.Reading.DipReading {
     public class DipReaderFactory : AbstractReaderFactory {
-        public override AbstractDependencyReader CreateReader(string fileName, GlobalContext options, bool needsOnlyItemTails) {
+        public override IDependencyReader CreateReader(string fileName, bool needsOnlyItemTails) {
             return new DipReader(fileName);
         }
+
+        private static readonly string[] _supportedFileExtensions = {".dip"};
+
+        public override IEnumerable<string> SupportedFileExtensions => _supportedFileExtensions;
 
         public override string GetHelp(bool detailedHelp, string filter) {
             string result = @"Read data from .dip file. 

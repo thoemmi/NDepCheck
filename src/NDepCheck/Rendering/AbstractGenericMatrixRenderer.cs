@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
-using NDepCheck.Transforming;
+using NDepCheck.Matching;
 
 namespace NDepCheck.Rendering {
     public abstract class AbstractMatrixRenderer : IRenderer {

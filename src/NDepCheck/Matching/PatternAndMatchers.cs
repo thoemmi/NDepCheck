@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 
-namespace NDepCheck.Transforming {
+namespace NDepCheck.Matching {
     public abstract class Pattern {
         // needed so that we can work distinguish user's ("meta") *, . and \ from the ones in replacements ("regex").
         public const string ASTERISK_ESCAPE = "@#@";
@@ -117,6 +117,8 @@ namespace NDepCheck.Transforming {
         private readonly bool _alsoMatchDot;
         private readonly int _groupCount;
 
+        private static readonly string[] NO_STRING = new string[0];
+
         public static readonly AlwaysMatcher ALL = new AlwaysMatcher(alsoMatchDot: true, groupCount: 0);
 
         public AlwaysMatcher(bool alsoMatchDot, int groupCount) {
@@ -125,11 +127,15 @@ namespace NDepCheck.Transforming {
         }
 
         public bool IsMatch(string value, string[] groups) {
+            return IsMatch(value);
+        }
+
+        private bool IsMatch(string value) {
             return _alsoMatchDot || !value.Contains('.');
         }
 
         public string[] Matches(string value) {
-            return Enumerable.Repeat(value, _groupCount).ToArray();
+            return IsMatch(value) ? _groupCount == 0 ? NO_STRING : Enumerable.Repeat(value, _groupCount).ToArray() : null;
         }
 
         public bool MatchesAlike(IMatcher other) {
@@ -347,7 +353,12 @@ namespace NDepCheck.Transforming {
         public RegexMatcher([NotNull]string pattern, bool ignoreCase, int estimatedGroupCount,
                             [CanBeNull] string fixedPrefix, [CanBeNull] string fixedSuffix, int maxSize = 1000) : base(maxSize) {
             _estimatedGroupCount = estimatedGroupCount;
-            _regex = new Regex(pattern, ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
+            try {
+                _regex = new Regex(pattern, ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
+            } catch (ArgumentException) {
+                Log.WriteError($"Cannot parse or interpret '{pattern}' - maybe (...) are missing on left side of rule?");
+                throw;
+            }
             _fixedPrefix = (fixedPrefix ?? "").Replace("(", "").Replace(")", "");
             _fixedSuffix = (fixedSuffix ?? "").Replace("(", "").Replace(")", "");
         }

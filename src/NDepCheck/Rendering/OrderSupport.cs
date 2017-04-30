@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
-using NDepCheck.Transforming;
+using NDepCheck.Matching;
 
 namespace NDepCheck.Rendering {
     public class OrderSupport {

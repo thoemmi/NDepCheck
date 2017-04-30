@@ -58,7 +58,7 @@ namespace NDepCheck {
         }
 
         public bool IsMatch(string arg) {
-            return ArgMatches(arg, ShortName, Name) || ArgMatches(arg, MoreNames);
+            return ArgMatches(arg, OneAndMore(ShortName, OneAndMore(Name, MoreNames)));
         }
 
         [NotNull]
@@ -102,8 +102,19 @@ namespace NDepCheck {
             return new OptionAction(this, action);
         }
 
-        public static bool ArgMatches([NotNull] string arg, params string[] option) {
-            return option.Any(o => {
+        private static IEnumerable<T> OneAndMore<T>(T first, IEnumerable<T> rest) {
+            yield return first;
+            foreach (var e in rest) {
+                yield return e;
+            }
+        }
+
+        public static bool ArgMatches([NotNull] string arg, string firstOption, params string[] moreOptions) {
+            return ArgMatches(arg, OneAndMore(firstOption, moreOptions));
+        }
+
+        private static bool ArgMatches(string arg, IEnumerable<string> options) {
+            return options.Any(o => {
                 string lower = arg.ToLowerInvariant();
                 if (lower.StartsWith("/" + o) || lower.StartsWith("-" + o)) {
                     string rest = arg.Substring(1 + o.Length);
@@ -151,7 +162,7 @@ namespace NDepCheck {
                 return null;
             } else if (IsOptionGroupStart(optionValue)) {
                 i = nextI;
-                return CollectMultipleArgs(args, ref i, optionValue);
+                return CollectMultipleArgs(args, ref i);
             } else {
                 i = nextI;
                 return optionValue;
@@ -167,8 +178,8 @@ namespace NDepCheck {
         }
 
         private static bool LooksLikeAnOption(string s) {
-            return !IsHelpOption(s) 
-                   &&  s.Length > 1
+            return !IsHelpOption(s)
+                   && s.Length > 1
                    && (s.StartsWith("-")
                        || s.StartsWith("/") && !s.Substring(1).Contains("/") // this allows some paths with / as option value
                    );
@@ -187,22 +198,19 @@ namespace NDepCheck {
         }
 
         [NotNull]
-        private static string CollectMultipleArgs(string[] args, ref int i, string value) {
-            // Collect everything up to }
-            var sb = new StringBuilder();
-            var valueArgs = value.Split(' ', '\t', '\r', '\n').Where(s => !string.IsNullOrWhiteSpace(s));
-            foreach (var v in valueArgs) {
-                sb.AppendLine(v);
-            }
-
-            while (!IsOptionGroupEnd(value)) {
-                if (i >= args.Length - 1) {
+        private static string CollectMultipleArgs(string[] args, ref int i) {
+            int inBracesDepth = 0;
+            var argsList = new List<string>();
+            for (; ; i++) {
+                if (i >= args.Length) {
                     throw new ArgumentException("Missing } at end of options");
                 }
-                value = args[++i]; // TODO: Also do split???
-                sb.AppendLine(value);
+                ProcessLine(args[i], ref inBracesDepth, argsList);
+                if (inBracesDepth <= 0) {
+                    break;
+                }
             }
-            return sb.ToString();
+            return string.Join(Environment.NewLine, argsList);
         }
 
         [CanBeNull]
@@ -212,12 +220,63 @@ namespace NDepCheck {
             } else {
                 string value = args[++i];
                 if (IsOptionGroupStart(value)) {
-                    return CollectMultipleArgs(args, ref i, value);
+                    return CollectMultipleArgs(args, ref i);
                 } else if (!allowOptionValue && LooksLikeAnOption(value)) {
                     --i;
                     return null;
                 } else {
                     return value;
+                }
+            }
+        }
+
+        public static string[] CollectArgsFromFile([NotNull] string fileName) {
+            var argsList = new List<string>();
+            int lineNo = 0;
+            try {
+                int inBracesDepth = 0;
+                using (var sr = new StreamReader(fileName)) {
+                    for (;;) {
+                        lineNo++;
+                        string line = sr.ReadLine();
+                        if (line == null) {
+                            break;
+                        }
+                        ProcessLine(line, ref inBracesDepth, argsList);
+                    }
+                }
+                return argsList.ToArray();
+            } catch (Exception ex) {
+                Log.WriteError(msg: $"Cannot run commands in {fileName}; reason: {ex.GetType().Name}: {ex.Message}",
+                    nestedFilenames: fileName, lineNo: lineNo);
+                throw;
+            }
+        }
+
+        private static void ProcessLine(string line, ref int inBracesDepth, List<string> argsList) {
+            string trimmedLine = Regex.Replace(line, pattern: "//.*$", replacement: "").Trim();
+            string[] splitLine = trimmedLine.Split(' ', '\t').Select(s => s.Trim()).Where(s => s != "").ToArray();
+
+            if (trimmedLine == "") {
+                // ignore  
+            } else {
+                if (inBracesDepth > 0) {
+                    // lines are not split
+                    argsList.Add(line);
+                } else {
+                    // on depth 0, lines are not split
+                    argsList.AddRange(splitLine);
+                }
+
+
+                // We traverse the line and manage depth as well as single and concatenated args
+
+                foreach (var s in splitLine) {
+                    if (IsOptionGroupStart(s)) {
+                        ++inBracesDepth;
+                    } else if (IsOptionGroupEnd(s)) {
+                        --inBracesDepth;
+                    }
                 }
             }
         }
@@ -286,7 +345,7 @@ namespace NDepCheck {
         }
 
         [NotNull, ItemNotNull]
-        public static IEnumerable<string> ExpandFilename(string pattern, params string[] extensions) {
+        public static IEnumerable<string> ExpandFilePatternToFullFileNames(string pattern, IEnumerable<string> extensionsForDirectoryReading) {
             if (pattern.StartsWith("@")) {
                 using (TextReader nameFile = new StreamReader(pattern.Substring(1))) {
                     for (;;) {
@@ -296,7 +355,7 @@ namespace NDepCheck {
                         }
                         name = name.Trim();
                         if (name != "") {
-                            yield return name;
+                            yield return Path.GetFullPath(name);
                         }
                     }
                 }
@@ -310,12 +369,12 @@ namespace NDepCheck {
                 }
 
                 foreach (string name in Directory.GetFiles(dir, filePattern)) {
-                    yield return name;
+                    yield return Path.GetFullPath(name);
                 }
             } else if (Directory.Exists(pattern)) {
-                foreach (var ext in extensions) {
+                foreach (var ext in extensionsForDirectoryReading) {
                     foreach (string name in Directory.GetFiles(pattern, "*" + ext)) {
-                        yield return name;
+                        yield return Path.GetFullPath(name);
                     }
                 }
             } else {

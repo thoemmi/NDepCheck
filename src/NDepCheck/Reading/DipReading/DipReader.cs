@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 
-namespace NDepCheck.Reading {
+namespace NDepCheck.Reading.DipReading {
     internal class DipReader : AbstractDependencyReader {
         private class DipReaderException : Exception {
             public DipReaderException(string msg)
@@ -178,6 +178,10 @@ namespace NDepCheck.Reading {
 
         private static void WriteError(string fileName, int lineNo, string msg, string line) {
             Log.WriteError(fileName + "/" + lineNo + ": " + msg + " - '" + line + "'");
+        }
+
+        public override void SetReadersInSameReadFilesBeforeReadDependencies(IDependencyReader[] readerGang) {
+            // empty - we do not need knowledge about neighboring readers
         }
     }
 }

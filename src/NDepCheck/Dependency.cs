@@ -5,29 +5,40 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using JetBrains.Annotations;
+using NDepCheck.Markers;
+using NDepCheck.Matching;
 using NDepCheck.Transforming;
 
 namespace NDepCheck {
     public abstract class AbstractDependency<TItem> : IMarkerSet, IWithCt where TItem : AbstractItem {
+        protected AbstractDependency([NotNull] TItem usingItem, [NotNull] TItem usedItem, ISourceLocation source) {
+            UsingItem = usingItem;
+            UsedItem = usedItem;
+            Source = source;
+        }
+
         public const string DIP_ARROW = "=>";
 
         [NotNull]
-        public abstract TItem UsingItem { get; }
+        public TItem UsingItem { get; }
         [NotNull]
-        public abstract TItem UsedItem { get; }
+        public TItem UsedItem { get; }
         [NotNull]
         protected abstract IMarkerSet MarkerSet { get; }
         
         public abstract int Ct { get; }
-        public abstract int OkCt { get; }
-        public abstract int NotOkCt { get; }
         public abstract int QuestionableCt { get; }
         public abstract int BadCt { get; }
-        public abstract ISourceLocation Source { get; }
+        public ISourceLocation Source { get; }
+        /// <value>
+        /// A guess where the use occurs in the
+        /// original source file.
+        /// </value>
+        [CanBeNull]
         public abstract string ExampleInfo { get; }
 
-
         public IEnumerable<string> Markers => MarkerSet.Markers;
+
         public bool IsMatch(IEnumerable<IMatcher> present, IEnumerable<IMatcher> absent) {
             return MarkerSet.IsMatch(present, absent);
         }
@@ -49,6 +60,10 @@ namespace NDepCheck {
         public override string ToString() {
             return UsingItem + " ---> " + UsedItem;
         }
+
+        public int NotOkCt => QuestionableCt + BadCt;
+
+        public int OkCt => Ct - QuestionableCt - BadCt;
 
         public bool IsMatch([CanBeNull] IEnumerable<DependencyMatch> matches, [CanBeNull] IEnumerable<DependencyMatch> excludes) {
             return (matches == null || !matches.Any() || matches.Any(m => m.IsMatch(this))) &&
@@ -72,7 +87,8 @@ namespace NDepCheck {
             string ct = BadCt > 0
                 ? QuestionableCt > 0 ? $"{BadCt};{QuestionableCt}" : $"{BadCt}"
                 : QuestionableCt > 0 ? $";{QuestionableCt}" : "";
-            return $"{prefix}{nounTail} {UsingItem} --{ct}-> {UsedItem}" + (Source != null ? (Ct > 1 ? " (e.g. at " : " (at") + Source + ")" : "");
+            string markers = Markers.Any() ? "'" + string.Join("+", Markers) : "";
+            return $"{prefix}{nounTail} {UsingItem} --{ct}{markers}-> {UsedItem}" + (Source != null ? (Ct > 1 ? " (e.g. at " : " (at ") + Source + ")" : "");
         }
 
         public string GetDotRepresentation(int? stringLengthForIllegalEdges) {
@@ -120,6 +136,23 @@ namespace NDepCheck {
         }
     }
 
+    public class ReadOnlyDependency : AbstractDependency<ReadOnlyItem> {
+        public ReadOnlyDependency(ReadOnlyItem usingItem, ReadOnlyItem usedItem, ISourceLocation source, IMarkerSet markerSet, 
+                                   int ct, int questionableCt, int badCt, string exampleInfo) : base(usingItem, usedItem, source) {
+            MarkerSet = markerSet;
+            Ct = ct;
+            QuestionableCt = questionableCt;
+            BadCt = badCt;
+            ExampleInfo = exampleInfo;
+        }
+
+        protected override IMarkerSet MarkerSet { get; }
+        public override int Ct { get; }
+        public override int QuestionableCt { get; }
+        public override int BadCt { get; }
+        public override string ExampleInfo { get; }
+    }
+
     public class Dependency : AbstractDependency<Item>, IMutableMarkerSet {
         [NotNull]
         private readonly MutableMarkerSet _markerSet;
@@ -161,18 +194,15 @@ namespace NDepCheck {
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem,
             [CanBeNull] ISourceLocation source, [CanBeNull] IEnumerable<string> markers,
             int ct, int questionableCt = 0, int badCt = 0, [CanBeNull] string exampleInfo = null,
-            [CanBeNull] InputContext inputContext = null, bool? ignoreCase = null) {
+            [CanBeNull] InputContext inputContext = null, bool? ignoreCase = null) : base(usingItem, usedItem, source) {
             if (usingItem == null) {
                 throw new ArgumentNullException(nameof(usingItem));
             }
             if (usedItem == null) {
                 throw new ArgumentNullException(nameof(usedItem));
             }
-            UsingItem = usingItem;
-            UsedItem = usedItem;
             InputContext = inputContext;
             inputContext?.AddDependency(this);
-            Source = source; // != null ? string.Intern(fileName) : null;
             _ct = ct;
             _questionableCt = questionableCt;
             _badCt = badCt;
@@ -180,27 +210,7 @@ namespace NDepCheck {
             _markerSet = new MutableMarkerSet(ignoreCase ?? usingItem.Type.IgnoreCase | usedItem.Type.IgnoreCase, markers);
         }
 
-
-        /// <value>
-        /// A guess where the use occurs in the
-        /// original source file.
-        /// </value>
-        [CanBeNull]
-        public override ISourceLocation Source {
-            get;
-        }
-
-        [NotNull]
-        public override Item UsingItem { get; }
-
-        [NotNull]
-        public override Item UsedItem { get; }
-
         public override int Ct => _ct;
-
-        public override int NotOkCt => _questionableCt + _badCt;
-
-        public override int OkCt => _ct - _questionableCt - _badCt;
 
         public override int QuestionableCt => _questionableCt;
 

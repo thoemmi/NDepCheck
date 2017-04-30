@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.Modifying {
     public class KeepOnlyDeps : ITransformer {

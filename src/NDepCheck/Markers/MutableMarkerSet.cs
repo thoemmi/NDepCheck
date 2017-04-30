@@ -3,88 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
-using NDepCheck.Transforming;
-using NDepCheck.Transforming.CycleChecking;
-using NDepCheck.Transforming.DependencyCreating;
-using NDepCheck.Transforming.Modifying;
-using NDepCheck.Transforming.Projecting;
+using NDepCheck.Matching;
 
-namespace NDepCheck {
-    public interface IMarkerSet {
-        IEnumerable<string> Markers { get; }
-        bool IsMatch(IEnumerable<IMatcher> present, IEnumerable<IMatcher> absent);
-    }
-
-    public abstract class AbstractMarkerSet : IMarkerSet {
-        protected readonly bool _ignoreCase;
-        // TODO: Replace with sharing implementation of string sets to safve space and maybe time
-        [CanBeNull]
-        protected abstract /*IReadOnlySet<string>*/ ISet<string> MarkersOrNull { get; }
-
-        protected AbstractMarkerSet(bool ignoreCase) {
-            _ignoreCase = ignoreCase;
-        }
-
-        protected static HashSet<string> CreateSet(bool ignoreCase, [CanBeNull] IEnumerable<string> markers) {
-            IEnumerable<string> cleanMarkers =
-                (markers ?? Enumerable.Empty<string>()).Select(s => s.Trim())
-                .Where(s => s != "")
-                .Select(s => s.Contains("/") ? s : String.Intern(s));
-            return cleanMarkers.Any() ? new HashSet<string>(cleanMarkers, GetComparer(ignoreCase)) : null;
-        }
-
-        public IEnumerable<string> Markers => MarkersOrNull ?? Enumerable.Empty<string>();
-
-        public static StringComparer GetComparer(bool ignoreCase) {
-            return ignoreCase ? StringComparer.InvariantCultureIgnoreCase : StringComparer.InvariantCulture;
-        }
-
-        protected StringComparison GetComparison() {
-            return _ignoreCase ? StringComparison.InvariantCultureIgnoreCase : StringComparison.InvariantCulture;
-        }
-
-        protected StringComparer GetComparer() {
-            return GetComparer(_ignoreCase);
-        }
-
-        public bool IsMatch(IEnumerable<IMatcher> present, IEnumerable<IMatcher> absent) {
-            if (MarkersOrNull == null) {
-                return !present.Any();
-            } else {
-                foreach (var m in present) {
-                    if (MarkersOrNull.All(s => m.Matches(s) == null)) {
-                        return false;
-                    }
-                }
-                foreach (var m in absent) {
-                    if (MarkersOrNull.Any(s => m.Matches(s) != null)) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-        }
-    }
-
-    public class ReadOnlyMarkerSet : AbstractMarkerSet {
-        [CanBeNull]
-        private readonly HashSet<string> _markersOrNull;
-
-        protected override ISet<string> MarkersOrNull => _markersOrNull;
-
-        public ReadOnlyMarkerSet(bool ignoreCase, [CanBeNull] IEnumerable<string> markers) : base(ignoreCase) {
-            _markersOrNull = CreateSet(ignoreCase, markers);
-        }
-    }
-
-    public interface IMutableMarkerSet : IMarkerSet {
-        bool AddMarker(string marker);
-        bool UnionWithMarkers(IEnumerable<string> markerPatterns);
-        bool RemoveMarkers(string markerPattern, bool ignoreCase);
-        bool RemoveMarkers(IEnumerable<string> markerPatterns, bool ignoreCase);
-        bool ClearMarkers();
-    }
-
+namespace NDepCheck.Markers {
     public class MutableMarkerSet : AbstractMarkerSet, IMutableMarkerSet {
         [CanBeNull]
         private HashSet<string> _markersOrNull;
@@ -193,14 +114,14 @@ This is useful
 * to add additional information to read-in dependencies (e.g., dependencies read in
   from .Net assemblies have markers like 'inherit' or 'call')
 * to add additional information in dep-checking algorithms that can be used later
-  (e.g., {typeof(FindCycleDeps).Name}  adds a marker to each dependency on a cycle; later,
-  {typeof(ModifyDeps).Name}  can use that marker to delete or modify the dependency, e.g. set the 
+  (e.g., FindCycleDeps adds a marker to each dependency on a cycle; later,
+  ModifyDeps can use that marker to delete or modify the dependency, e.g. set the 
   questionable count).
 
 Markers on items and dependencies are persistent information that is written into Dip files.
 
-If dependencies are aggregated into a simpler graph, e.g. by {typeof(ProjectItems).Name} or
-by {typeof(AddTransitiveDeps).Name}, the markers of the source dependencies are combined into
+If dependencies are aggregated into a simpler graph, e.g. by ProjectItems or
+by AddTransitiveDeps, the markers of the source dependencies are combined into
 a new marker set on the resulting dependency. This combination handles markers 
 differently, based on whether they contain a dash ('/' - 'path markers') or not:
 * If a 'left' dependency (where 'left' is defined by the plugin) contains

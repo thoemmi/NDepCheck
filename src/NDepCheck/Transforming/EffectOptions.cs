@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using NDepCheck.Markers;
 
 namespace NDepCheck.Transforming {
     public abstract class EffectOptions<T> where T : IMutableMarkerSet {

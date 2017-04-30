@@ -2,7 +2,7 @@
 using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.Reading;
+using NDepCheck.Reading.DipReading;
 using NDepCheck.Transforming.DependencyCreating;
 
 namespace NDepCheck.Tests {
@@ -20,7 +20,7 @@ namespace NDepCheck.Tests {
                 Program.WriteDipOption.Opt, outFile
             }));
 
-            IEnumerable<Dependency> result = new DipReaderFactory().CreateReader(outFile, new GlobalContext(), false).ReadDependencies(0, ignoreCase: false)?.Dependencies;
+            IEnumerable<Dependency> result = new DipReaderFactory().CreateReader(outFile, false).ReadDependencies(0, ignoreCase: false)?.Dependencies;
             Assert.IsNotNull(result);
 
             IEnumerable<Dependency> s2t = result.Where(d => d.UsingItem.Name.StartsWith("S") && d.UsedItem.Name.StartsWith("T"));
@@ -41,7 +41,7 @@ namespace NDepCheck.Tests {
                 Program.WriteDipOption.Opt, outFile
             }));
 
-            IEnumerable<Dependency> result = new DipReaderFactory().CreateReader(outFile, new GlobalContext(), false).ReadDependencies(0, ignoreCase: false)?.Dependencies;
+            IEnumerable<Dependency> result = new DipReaderFactory().CreateReader(outFile, false).ReadDependencies(0, ignoreCase: false)?.Dependencies;
             Assert.IsNotNull(result);
 
             IEnumerable<Dependency> s2t = result.Where(d => d.UsingItem.Name.StartsWith("S") && d.UsedItem.Name.StartsWith("T"));

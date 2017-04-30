@@ -1,6 +1,6 @@
 using System;
 
-namespace NDepCheck.Transforming {
+namespace NDepCheck.Matching {
     public class DependencyMatch {
         private readonly ItemMatch _usingMatch;
         private readonly DependencyPattern _dependencyPattern;

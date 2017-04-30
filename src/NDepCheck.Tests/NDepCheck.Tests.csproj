@@ -72,7 +72,7 @@
     <Compile Include="EnumerableComparer.cs" />
     <Compile Include="FileHandlingTests.cs" />
     <Compile Include="AttributeTests.cs" />
-    <Compile Include="TempFileProvider.cs" />
+    <Compile Include="DisposingFile.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="MainTests.cs" />
     <Compile Include="StringTests.cs" />
@@ -83,6 +83,7 @@
     <Compile Include="TestHideTransitiveEdges.cs" />
     <Compile Include="TestMarkDeps.cs" />
     <Compile Include="TestMarkMinimalCutDeps.cs" />
+    <Compile Include="TestOption.cs" />
     <Compile Include="TestProjectItems.cs" />
     <Compile Include="TestSomeWriters.cs" />
     <Compile Include="TestSomeReaders.cs" />

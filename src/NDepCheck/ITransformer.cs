@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using JetBrains.Annotations;
 
-namespace NDepCheck.Transforming {
+namespace NDepCheck {
     public interface ITransformer : IPlugin {
         bool RunsPerInputContext { get; }
 

@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using JetBrains.Annotations;
 using Mono.Cecil;
 
-namespace NDepCheck.Reading {
+namespace NDepCheck.Reading.AssemblyReading {
     public class ItemsOnlyDotNetAssemblyDependencyReader : AbstractDotNetAssemblyDependencyReader {
-        public ItemsOnlyDotNetAssemblyDependencyReader(DotNetAssemblyDependencyReaderFactory factory, string fileName, GlobalContext globalContext)
-            : base(factory, fileName, globalContext) {
+        public ItemsOnlyDotNetAssemblyDependencyReader(DotNetAssemblyDependencyReaderFactory factory, string fileName)
+            : base(factory, fileName) {
         }
 
         protected override IEnumerable<Dependency> ReadDependencies(InputContext inputContext, int depth, bool ignoreCase) {
@@ -83,6 +83,10 @@ namespace NDepCheck.Reading {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
             return RawUsingItem.New(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, customSections);
+        }
+
+        public override void SetReadersInSameReadFilesBeforeReadDependencies(IDependencyReader[] readerGang) {
+            // empty
         }
     }
 }

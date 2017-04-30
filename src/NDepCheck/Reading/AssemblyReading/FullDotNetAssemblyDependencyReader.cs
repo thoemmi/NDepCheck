@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
-namespace NDepCheck.Reading {
+namespace NDepCheck.Reading.AssemblyReading {
     public class FullDotNetAssemblyDependencyReader : AbstractDotNetAssemblyDependencyReader {
         private class MarkerGenerator<T> {
             public Func<T, bool> IsTrue { get; }
@@ -18,10 +18,16 @@ namespace NDepCheck.Reading {
             }
         }
 
+        private IDependencyReader[] _readerGang;
+
         private IEnumerable<RawDependency> _rawDependencies;
 
-        public FullDotNetAssemblyDependencyReader(DotNetAssemblyDependencyReaderFactory factory, string fileName, GlobalContext globalContext)
-            : base(factory, fileName, globalContext) {
+        public FullDotNetAssemblyDependencyReader(DotNetAssemblyDependencyReaderFactory factory, string fileName)
+            : base(factory, fileName) {
+        }
+
+        public override void SetReadersInSameReadFilesBeforeReadDependencies(IDependencyReader[] readerGang) {
+            _readerGang = readerGang;
         }
 
         protected override IEnumerable<Dependency> ReadDependencies(InputContext inputContext, int depth, bool ignoreCase) {
@@ -464,7 +470,8 @@ namespace NDepCheck.Reading {
                 // to get a useful Dependency_ for the user.
 
                 RawUsedItem usedItem = GetFullNameItem(usedType, memberName, usedMarkers);
-                yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, usedItem, usage, sequencePoint, _globalContext);
+                yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, usedItem, usage, sequencePoint,
+                    _readerGang.OfType<AbstractDotNetAssemblyDependencyReader>().FirstOrDefault(r => r.AssemblyName == usedItem.AssemblyName));
             }
 
             var genericInstanceType = usedType as GenericInstanceType;

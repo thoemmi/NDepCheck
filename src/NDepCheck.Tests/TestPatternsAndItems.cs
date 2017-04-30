@@ -1,6 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.Reading;
-using NDepCheck.Transforming;
+using NDepCheck.Matching;
+using NDepCheck.Reading.AssemblyReading;
 using NDepCheck.Transforming.Projecting;
 using NDepCheck.Transforming.ViolationChecking;
 

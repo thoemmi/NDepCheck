@@ -15,8 +15,9 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
         public static readonly Option ShowUnusedQuestionableRulesOption = new Option("sq", "show-unused-questionable", "", "Show unused questionable rules", @default: false);
         public static readonly Option ShowAllUnusedRulesOption = new Option("su", "show-unused-rules", "", "Show all unused rules", @default: false);
+        public static readonly Option AddMarkersForBadGroups = new Option("ag", "add-group-marker", "", "Add a marker for each group that marks the dependency as bad", @default: false);
 
-        private static readonly Option[] _transformOptions = { ShowUnusedQuestionableRulesOption, ShowAllUnusedRulesOption };
+        private static readonly Option[] _transformOptions = { ShowUnusedQuestionableRulesOption, ShowAllUnusedRulesOption, AddMarkersForBadGroups };
 
         [NotNull, ItemNotNull]
         private readonly List<DirectoryInfo> _searchRootsForRuleFiles = new List<DirectoryInfo>();
@@ -163,9 +164,10 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
         public override int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFileName, IEnumerable<Dependency> dependencies,
             string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
-            _allCheckedGroups = new HashSet<DependencyRuleGroup>();
+            _allCheckedGroups = new HashSet<DependencyRuleGroup>();            
             if (dependencies.Any()) {
                 transformedDependencies.AddRange(dependencies);
+                bool addMarker = false;
 
                 // Transformation only done if there are any dependencies. This is especially useful for the
                 // typical case that there are no inputcontext-less dependencies; and no default set is specified
@@ -176,6 +178,9 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                         return j;
                     }), ShowAllUnusedRulesOption.Action((args, j) => {
                         _showUnusedRules = true;
+                        return j;
+                    }), AddMarkersForBadGroups.Action((args, j) => {
+                        addMarker = true;
                         return j;
                     }));
 
@@ -228,15 +233,14 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 // (b) reset counts in all rules (that are read in)
                 // (c) keep a callback list of checked rules ...
 
-                return CheckDependencies(globalContext, dependencies, dependencySourceForLogging, ruleSetForAssembly);
+                return CheckDependencies(globalContext, dependencies, dependencySourceForLogging, ruleSetForAssembly, addMarker);
             } else {
                 return Program.OK_RESULT;
             }
         }
 
-        private int CheckDependencies([NotNull] GlobalContext globalContext,
-                    [NotNull] IEnumerable<Dependency> dependencies,
-                    string dependencySourceForLogging, DependencyRuleSet ruleSetForAssembly) {
+        private int CheckDependencies([NotNull] GlobalContext globalContext, [NotNull] IEnumerable<Dependency> dependencies,
+                    string dependencySourceForLogging, DependencyRuleSet ruleSetForAssembly, bool addMarker) {
             if (!dependencies.Any()) {
                 return Program.OK_RESULT;
             }
@@ -250,8 +254,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             if (checkedGroups.Any()) {
                 Log.WriteInfo("Checking " + dependencySourceForLogging);
                 bool result = true;
-                foreach (var g in checkedGroups) {
-                    result &= g.Check(dependencies);
+                foreach (var group in checkedGroups) {
+                    result &= group.Check(dependencies, addMarker);
                 }
                 _allCheckedGroups.UnionWith(checkedGroups);
 

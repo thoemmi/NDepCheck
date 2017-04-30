@@ -2,19 +2,19 @@ using System;
 using System.IO;
 
 namespace NDepCheck.Tests {
-    public class TempFileProvider : IDisposable {
+    public class DisposingFile : IDisposable {
         private bool _doDelete = true;
         public string Filename { get; }
 
-        public TempFileProvider Keep {
+        public DisposingFile Keep {
             get {
                 _doDelete = false;
                 return this;
             }
         }
 
-        public TempFileProvider(string fileName) {
-            Filename = fileName;
+        private DisposingFile(string filename) {
+            Filename = filename;
         }
 
         public override string ToString() {
@@ -25,6 +25,14 @@ namespace NDepCheck.Tests {
             if (_doDelete) {
                 File.Delete(Filename);
             }
+        }
+
+        public static DisposingFile Create(string filename) {
+            return new DisposingFile(filename);
+        }
+
+        public static DisposingFile TempFileWithTail(string tail) {
+            return new DisposingFile(Path.GetTempFileName() + tail);
         }
     }
 }

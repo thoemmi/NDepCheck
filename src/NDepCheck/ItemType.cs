@@ -5,19 +5,21 @@ using System.Linq;
 using System.Text;
 using Gibraltar;
 using JetBrains.Annotations;
-using NDepCheck.Reading;
 
 namespace NDepCheck {
     public class ItemType : IEquatable<ItemType> {
         private static readonly Dictionary<string, ItemType> _allTypes = new Dictionary<string, ItemType>();
 
         [NotNull]
-        public static readonly ItemType SIMPLE = New("SIMPLE", new[] { "Name" }, new[] { "" }, ignoreCase: false, matchesOnFieldNr: true);
+        public static readonly ItemType SIMPLE = New("SIMPLE", new[] { "Name" }, new[] { "" }, 
+                                                     ignoreCase: false, matchesOnFieldNr: true, predefined: true);
 
-        private static void ForceLoadingPredefinedTypes() {
-            _allTypes[SIMPLE.Name] = SIMPLE;
-            _allTypes[DotNetAssemblyDependencyReaderFactory.DOTNETCALL.Name] = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
-            _allTypes[DotNetAssemblyDependencyReaderFactory.DOTNETREF.Name] = DotNetAssemblyDependencyReaderFactory.DOTNETREF;
+        public static void ForceLoadingPredefinedSimpleTypes() {
+            ForceLoadingPredefinedType(SIMPLE);
+        }
+
+        public static void ForceLoadingPredefinedType(ItemType t) {
+            _allTypes[t.Name] = t;
         }
 
         [NotNull]
@@ -40,6 +42,8 @@ namespace NDepCheck {
         /// </summary>
         private readonly bool _matchesOnFieldNr;
 
+        private readonly bool _predefined;
+
         public bool IgnoreCase {
             get;
         }
@@ -50,7 +54,7 @@ namespace NDepCheck {
         [NotNull]
         public readonly string[] SubKeys;
 
-        private ItemType([NotNull] string name, [NotNull] string[] keys, [NotNull] string[] subKeys, bool matchesOnFieldNr, bool ignoreCase) {
+        private ItemType([NotNull] string name, [NotNull] string[] keys, [NotNull] string[] subKeys, bool matchesOnFieldNr, bool ignoreCase, bool predefined) {
             if (keys.Length == 0) {
                 throw new ArgumentException("keys.Length must be > 0", nameof(keys));
             }
@@ -65,6 +69,7 @@ namespace NDepCheck {
             SubKeys = subKeys.Select(s => s?.Trim()).ToArray();
             Name = name;
             _matchesOnFieldNr = matchesOnFieldNr;
+            _predefined = predefined;
             IgnoreCase = ignoreCase;
         }
 
@@ -86,10 +91,10 @@ namespace NDepCheck {
             return result;
         }
 
-        public static ItemType New([NotNull] string name, [NotNull] [ItemNotNull] string[] keys, [NotNull] [ItemNotNull] string[] subKeys, bool ignoreCase, bool matchesOnFieldNr = false) {
+        public static ItemType New([NotNull] string name, [NotNull] [ItemNotNull] string[] keys, [NotNull] [ItemNotNull] string[] subKeys, bool ignoreCase, bool matchesOnFieldNr = false, bool predefined = false) {
             ItemType result;
             if (!_allTypes.TryGetValue(name, out result)) {
-                _allTypes.Add(name, result = new ItemType(name, keys, subKeys, matchesOnFieldNr, ignoreCase));
+                _allTypes.Add(name, result = new ItemType(name, keys, subKeys, matchesOnFieldNr, ignoreCase, predefined));
             }
             return result;
         }
@@ -153,9 +158,14 @@ namespace NDepCheck {
         }
 
         public static void Reset() {
-            _allTypes.Clear();
-            ForceLoadingPredefinedTypes();
+            ItemType[] predefinedTypes = _allTypes.Values.Where(kvp => kvp._predefined).ToArray();
+
             Intern<ItemType>.Reset();
+            _allTypes.Clear();
+
+            foreach (var p in predefinedTypes) {
+                _allTypes.Add(p.Name, Intern<ItemType>.GetReference(p));
+            }
         }
 
         public int IndexOf(string keyAndSubkey) {

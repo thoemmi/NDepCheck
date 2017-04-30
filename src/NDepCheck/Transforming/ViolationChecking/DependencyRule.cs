@@ -3,6 +3,7 @@
 using System;
 using System.Linq;
 using JetBrains.Annotations;
+using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.ViolationChecking {
     /// <remarks>Class <c>DependencyRule_</c> knows enough 

@@ -1,6 +1,6 @@
 using JetBrains.Annotations;
 
-namespace NDepCheck.Transforming {
+namespace NDepCheck.Matching {
     public interface IMatcher {
         bool IsMatch([NotNull] string value, [NotNull] string[] groups);
 

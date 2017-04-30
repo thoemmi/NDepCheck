@@ -101,11 +101,10 @@ namespace NDepCheck.Tests {
             WriteDep1To(@"a\b");
             WriteDefaultSetTo(@"a\c");
 
-            Option rr = CheckDeps.RuleRootDirectoryOption;
             int result = Program.Main(new List<string> {
                     $"{Program.ReadOption}=" + GetPath("NDepCheck.TestAssembly.dll"),
                     $"{Program.ReadOption}=" + "NDepCheck.TestAssemblyÄÖÜß.*.dll", "-", "NDepCheck.TestAssemblyÄÖÜß.dll",
-                    $"{Program.ConfigureOption}=", "CheckDeps", "{", rr.Opt + "=" + _basePath + @"\a", "}"
+                    $"{Program.ConfigureOption}=", "CheckDeps", "{", CheckDeps.RuleRootDirectoryOption.Opt + "=" + _basePath + @"\a", "}"
             }.ToArray());
             Assert.AreEqual(Program.OK_RESULT, result);
         }
