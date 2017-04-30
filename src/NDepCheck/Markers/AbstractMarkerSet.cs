@@ -7,7 +7,7 @@ using NDepCheck.Matching;
 namespace NDepCheck.Markers {
     public abstract class AbstractMarkerSet : IMarkerSet {
         protected readonly bool _ignoreCase;
-        // TODO: Replace with sharing implementation of string sets to safve space and maybe time
+        // TODO: Replace with sharing implementation of string sets to save space and maybe time
         [CanBeNull]
         protected abstract /*IReadOnlySet<string>*/ ISet<string> MarkersOrNull { get; }
 

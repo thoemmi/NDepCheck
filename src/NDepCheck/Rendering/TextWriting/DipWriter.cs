@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using NDepCheck.Matching;
 
-namespace NDepCheck.Rendering {
+namespace NDepCheck.Rendering.TextWriting {
     /// <summary>
-    /// Writer for dependencies ("Edges") in standard "DIP" format
+    /// Writer for dependencies in standard "DIP" format
     /// </summary>
     public class DipWriter : IRenderer {
         public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions();

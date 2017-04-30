@@ -1,0 +1,3 @@
+// Written 30.04.2017 19:18:10 by RuleViolationWriter in NDepCheck V.3.74
+Bad dependency NC:NDepCheck:Program --1-> NC:NDepCheck.Rendering.TextWriting:DipWriter (at C:\PT\github\NDepCheck\src\NDepCheck\Program.cs/341)
+Bad dependency NC:NDepCheck:Program --1-> NC:NDepCheck.Rendering.TextWriting:RuleViolationWriter (at C:\PT\github\NDepCheck\src\NDepCheck\Program.cs/618)

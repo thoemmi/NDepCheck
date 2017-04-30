@@ -82,9 +82,6 @@ namespace NDepCheck {
 
         public bool IgnoreCase { get; set; }
 
-        //[NotNull]
-        //private readonly List<InputOption> _inputSpecs = new List<InputOption>();
-
         private readonly ValuesFrame _globalValues = new ValuesFrame();
         private ValuesFrame _localParameters = new ValuesFrame();
 
@@ -115,9 +112,6 @@ namespace NDepCheck {
 
         [NotNull]
         public IEnumerable<InputContext> InputContexts => _inputContexts.Values;
-
-        //[NotNull]
-        //public List<InputOption> InputSpecs => _inputSpecs;
 
         public bool WorkLazily { get; set; }
 
@@ -271,13 +265,7 @@ namespace NDepCheck {
             }
             Log.WriteInfo(HELP_SEPARATOR);
         }
-
-        //public void AddNegativeInputOption(string filePattern) {
-        //    foreach (var spec in _inputSpecs) {
-        //        spec.AddNegative(filePattern);
-        //    }
-        //}
-
+        
         /// <summary>
         /// Extract file patterns from args and read files
         /// </summary>
@@ -433,22 +421,6 @@ namespace NDepCheck {
             return result;
         }
 
-        //public void CreateInputOption(string[] args, ref int i, string filePattern, string assemblyName,
-        //    string readerFactoryClass) {
-        //    if (readerFactoryClass == null) {
-        //        throw new ApplicationException($"No reader class found for file pattern '{filePattern}'");
-        //    }
-        //    InputFilesOrTestDataSpecified = true;
-
-        //    IReaderFactory readerFactory = GetOrCreatePlugin<IReaderFactory>(assemblyName, readerFactoryClass);
-        //    _inputSpecs.Add(
-        //        new InputFileOption(filePattern, readerFactory).AddNegative(i + 2 < args.Length &&
-        //                                                                    args[i + 1] == "-"
-        //            ? args[i += 2]
-        //            : null));
-        //    InputFilesOrTestDataSpecified = true;
-        //}
-
         public void Calculate(string valueKey, string assemblyName, string calculatorClass,
             IEnumerable<string> input) {
             if (Option.IsHelpOption(input.FirstOrDefault())) {
@@ -540,14 +512,6 @@ namespace NDepCheck {
 
             _globalValues.Clear();
         }
-
-        //////public AbstractDotNetAssemblyDependencyReader GetDotNetAssemblyReaderFor(string usedAssembly) {
-        //////    AbstractDotNetAssemblyDependencyReader result =
-        //////        ((List<InputOption>)_inputSpecs).SelectMany(i => i.CreateOrGetReaders(this, false))
-        //////        .OfType<AbstractDotNetAssemblyDependencyReader>()
-        //////        .FirstOrDefault(r => r.AssemblyName == usedAssembly);
-        //////    return result;
-        //////}
 
         public void ShowDetailedHelp<T>([CanBeNull] string assemblyName, [CanBeNull] string pluginClassName,
             [CanBeNull] string filter) where T : IPlugin {

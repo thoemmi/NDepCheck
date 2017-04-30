@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using NDepCheck.Matching;
 
-namespace NDepCheck.Rendering {
+namespace NDepCheck.Rendering.GraphicsRendering {
     public class MatrixRenderer1 : AbstractMatrixRenderer {
         private class ZeroDependency : IWithCt {
             public int Ct => 0;

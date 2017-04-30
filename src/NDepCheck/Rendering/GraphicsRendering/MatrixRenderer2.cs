@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using NDepCheck.Matching;
 
-namespace NDepCheck.Rendering {
+namespace NDepCheck.Rendering.GraphicsRendering {
     public class MatrixRenderer2 : AbstractMatrixRenderer {
         protected override void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<Item> topItems, string itemFormat,
             Dictionary<Item, int> item2Index, bool withNotOkCt, IEnumerable<Item> sortedItems, string ctFormat, IDictionary<Item, IEnumerable<Dependency>> itemsAndDependencies) {

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
-using NDepCheck.Transforming.SpecialNodeMarking;
+using NDepCheck.Transforming.SpecialItemMarking;
 
 namespace NDepCheck.Tests {
     [TestClass]

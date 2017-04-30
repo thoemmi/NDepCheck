@@ -6,16 +6,6 @@ namespace NDepCheck.Transforming.ViolationChecking {
         [NotNull]
         private readonly IEnumerable<DependencyRuleGroup> _ruleGroups;
 
-        ////[CanBeNull]
-        ////public string FullSourceName {
-        ////    get;
-        ////}
-
-        //[NotNull]
-        //public string FileIncludeStack {
-        //    get;
-        //}
-
         [NotNull]
         private readonly IEnumerable<DependencyRuleSet> _includedRuleSets;
 

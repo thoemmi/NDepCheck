@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.Rendering;
+using NDepCheck.Rendering.GraphicsRendering;
 
 namespace NDepCheck.Tests {
     [TestClass]

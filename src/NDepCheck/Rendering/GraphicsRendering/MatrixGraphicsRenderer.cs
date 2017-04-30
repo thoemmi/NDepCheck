@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 using NDepCheck.ConstraintSolving;
 using NDepCheck.Matching;
 
-namespace NDepCheck.Rendering {
+namespace NDepCheck.Rendering.GraphicsRendering {
     public class MatrixGraphicsRenderer : GraphicsRenderer {
         private static string GetName(Item i) {
             return i.Values[0];

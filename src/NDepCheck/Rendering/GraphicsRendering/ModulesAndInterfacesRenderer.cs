@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using NDepCheck.ConstraintSolving;
 
-namespace NDepCheck.Rendering {
+namespace NDepCheck.Rendering.GraphicsRendering {
     public class ModulesAndInterfacesRenderer : GraphicsRenderer {
         public static readonly Option InterfaceSelectorOption = new Option("si", "select-interface", "&", "Regexp for interface marker, i.e., items that are drawn as vertical bars", @default: null);
         public static readonly Option OrderFieldOption = OrderSupport.CreateOption();

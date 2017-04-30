@@ -5,7 +5,7 @@ using System.Linq;
 using JetBrains.Annotations;
 using NDepCheck.Matching;
 
-namespace NDepCheck.Rendering {
+namespace NDepCheck.Rendering.GraphicsRendering {
     public abstract class AbstractMatrixRenderer : IRenderer {
         public static readonly Option MaxNameWidthOption = new Option("mw", "max-name-width", "#", "Maximal width of an item name", @default: "full length of name");
         public static readonly Option WriteBadCountOption = new Option("wb", "write-bad-count", "", "Also output count of bad dependencies", @default: false);

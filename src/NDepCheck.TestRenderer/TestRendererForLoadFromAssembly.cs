@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using NDepCheck.ConstraintSolving;
-using NDepCheck.Rendering;
+using NDepCheck.Rendering.GraphicsRendering;
 
 namespace NDepCheck.TestRenderer {
     public class TestRendererForLoadFromAssembly : GraphicsRenderer {

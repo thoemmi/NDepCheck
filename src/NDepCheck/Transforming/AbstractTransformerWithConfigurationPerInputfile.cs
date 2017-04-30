@@ -58,16 +58,6 @@ namespace NDepCheck.Transforming {
             return childConfiguration;
         }
 
-        // Maybe necessary ............................. currently unused
-        protected string GetCanonicalName(DirectoryInfo relativeRoot, string fileName) {
-            return GetCanonicalName(Path.Combine(relativeRoot.FullName, fileName));
-        }
-
-        // Maybe necessary ............................. currently unused
-        protected static string GetCanonicalName(string path) {
-            return new Uri(path).LocalPath;
-        }
-
         protected abstract TConfigurationPerInputfile CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
                     int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
                     [CanBeNull] Dictionary<string, string> configValueCollector);

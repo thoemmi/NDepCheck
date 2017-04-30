@@ -8,7 +8,9 @@ using System.Diagnostics;
 
 #endregion File Header
 
-// ReSharper disable once CheckNamespace -- derived from ___
+// ReSharper disable once CheckNamespace -- derived from "Single Instance String Store for .NET" at 
+// https://www.codeproject.com/Articles/38057/Single-Instance-String-Store-for-NET
+
 namespace Gibraltar {
     public class Intern {
         private static readonly List<Dictionary<int, LinkedList<WeakReference>>> _allReferences = new List<Dictionary<int, LinkedList<WeakReference>>> ();

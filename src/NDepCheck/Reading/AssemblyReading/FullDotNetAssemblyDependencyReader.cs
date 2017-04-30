@@ -208,7 +208,7 @@ namespace NDepCheck.Reading.AssemblyReading {
                 foreach (FieldDefinition field in type.Fields) {
                     //if (IsLinked(field.FieldType, type.DeclaringType)) {
                     ItemTail fieldCustomSections = GetCustomSections(field.CustomAttributes, typeCustomSections);
-                    // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, field.Name, "", fieldCustomSections), null, null);
+                    // TODO: WHY??? yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, field.Name, "", fieldCustomSections), null, null);
 
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(field, _fieldDefinitionMarkers),
                              field.FieldType, usage: Usage._declaresfield, sequencePoint: null)) {
@@ -219,7 +219,7 @@ namespace NDepCheck.Reading.AssemblyReading {
 
                 foreach (EventDefinition @event in type.Events) {
                     ItemTail eventCustomSections = GetCustomSections(@event.CustomAttributes, typeCustomSections);
-                    // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, @event.Name, "", eventCustomSections), null, null);
+                    // TODO: WHY??? yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, @event.Name, "", eventCustomSections), null, null);
 
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(@event, _eventDefinitionMarkers),
                              @event.EventType, usage: Usage._declaresevent, sequencePoint: null)) {

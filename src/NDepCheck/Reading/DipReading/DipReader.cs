@@ -36,6 +36,8 @@ namespace NDepCheck.Reading.DipReading {
             }
         }
 
+        private static readonly string[] NO_MARKERS = new string[0];
+
         private readonly Dictionary<string, ItemType> _registeredItemTypes = new Dictionary<string, ItemType>();
 
         public DipReader([NotNull] string fileName) : base(fileName) {
@@ -154,8 +156,6 @@ namespace NDepCheck.Reading.DipReading {
             }
             return foundItem;
         }
-
-        private static readonly string[] NO_MARKERS = new string[0];
 
         [NotNull]
         private Item CreateItem(string s) {

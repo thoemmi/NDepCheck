@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using NDepCheck.Matching;
 
-namespace NDepCheck.Rendering {
+namespace NDepCheck.Rendering.TextWriting {
     /// <summary>
-    /// Writer for items in standard "DIP" format
+    /// Writer for items in standard format
     /// </summary>
     public class ItemWriter : IRenderer {
         public static readonly Option MatchOption = new Option("im", "item-match", "&", "Match to select items to write", @default: "all items are written", multiple: true);

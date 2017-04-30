@@ -1,5 +1,3 @@
-// (c) HMMüller 2006...2017
-
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -7,7 +5,6 @@ using System.Linq;
 using JetBrains.Annotations;
 using NDepCheck.Markers;
 using NDepCheck.Matching;
-using NDepCheck.Transforming;
 
 namespace NDepCheck {
     public abstract class AbstractDependency<TItem> : IMarkerSet, IWithCt where TItem : AbstractItem {

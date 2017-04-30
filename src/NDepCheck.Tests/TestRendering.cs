@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.ConstraintSolving;
-using NDepCheck.Rendering;
+using NDepCheck.Rendering.GraphicsRendering;
 
 namespace NDepCheck.Tests {
 

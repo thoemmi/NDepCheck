@@ -1,0 +1,3 @@
+// Written 30.04.2017 19:18:09 by RuleViolationWriter in NDepCheck V.3.74
+Bad dependency DOTNETCALL:NDepCheck:Program:NDepCheck;3.0.137.0;:Run'_class+_definition+_public --1'_uses+*-> DOTNETCALL:NDepCheck.Rendering.TextWriting:DipWriter:NDepCheck;3.0.137.0;:'_class+_public (at C:\PT\github\NDepCheck\src\NDepCheck\Program.cs/341)
+Bad dependency DOTNETCALL:NDepCheck:Program:NDepCheck;3.0.137.0;:Run'_class+_definition+_public --1'_uses+*-> DOTNETCALL:NDepCheck.Rendering.TextWriting:RuleViolationWriter:NDepCheck;3.0.137.0;:'_class+_public (at C:\PT\github\NDepCheck\src\NDepCheck\Program.cs/618)

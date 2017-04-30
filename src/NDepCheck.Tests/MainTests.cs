@@ -1,11 +1,10 @@
-// (c) HMMüller 2006...2017
-
 using System;
 using System.IO;
 using System.Linq;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.Rendering;
+using NDepCheck.Rendering.GraphicsRendering;
+using NDepCheck.Rendering.TextWriting;
 using NDepCheck.TestRenderer;
 using NDepCheck.Transforming.Modifying;
 using NDepCheck.Transforming.Projecting;

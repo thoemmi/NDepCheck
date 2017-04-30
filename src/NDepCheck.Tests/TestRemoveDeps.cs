@@ -1,8 +1,8 @@
 ﻿using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.Rendering;
 using NDepCheck.Transforming.Modifying;
 using System.Linq;
+using NDepCheck.Rendering.TextWriting;
 
 namespace NDepCheck.Tests {
     [TestClass]

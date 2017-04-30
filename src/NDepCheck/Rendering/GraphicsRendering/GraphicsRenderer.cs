@@ -9,7 +9,7 @@ using System.Text;
 using JetBrains.Annotations;
 using NDepCheck.ConstraintSolving;
 
-namespace NDepCheck.Rendering {
+namespace NDepCheck.Rendering.GraphicsRendering {
     public interface IBox {
         VariableVector Center {
             get;

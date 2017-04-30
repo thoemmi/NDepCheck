@@ -3,8 +3,9 @@ using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
 using NDepCheck.Matching;
+using NDepCheck.Rendering.GraphicsRendering;
 
-namespace NDepCheck.Rendering {
+namespace NDepCheck.Rendering.TextWriting {
     /// <summary>
     /// Class that creates AT&amp;T DOT (graphviz) output from dependencies - see <a href="http://graphviz.org/">http://graphviz.org/</a>.
     /// </summary>

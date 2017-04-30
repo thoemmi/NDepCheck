@@ -9,6 +9,7 @@ using JetBrains.Annotations;
 using NDepCheck.Markers;
 using NDepCheck.Matching;
 using NDepCheck.Rendering;
+using NDepCheck.Rendering.TextWriting;
 using NDepCheck.Transforming.ViolationChecking;
 using NDepCheck.WebServing;
 
@@ -81,7 +82,7 @@ namespace NDepCheck {
         public static readonly Option DoResetOption = new ProgramOption(shortname: "dr", name: "do-reset", usage: "[filename]", description: "reset state; and read file as dip file if provided");
         public static readonly Option DoTimeOption = new ProgramOption(shortname: "dt", name: "do-time", usage: "secs", description: "log execution time for commands running longer than secs seconds; default: 10");
 
-        public static readonly Option WatchFilesOption = new ProgramOption(shortname: "aw", name: "watch-files", usage: "[filepattern [ +|- filepattern ...]] script", description: "Watch files");
+        public static readonly Option WatchFilesOption = new ProgramOption(shortname: "aw", name: "watch-files", usage: "[filepattern [- filepattern] script", description: "Watch files");
         public static readonly Option UnwatchFilesOption = new ProgramOption(shortname: "au", name: "unwatch-files", usage: "filepattern", description: "Unwatch files specified by filepattern");
         public static readonly Option UnwatchTriggersOption = new ProgramOption(shortname: "an", name: "unwatch-triggers", usage: "script", description: "No longer watch all files triggering script");
 
@@ -217,8 +218,8 @@ namespace NDepCheck {
                     if (logCommands) {
                         Log.WriteInfo($">>>> Starting {arg}");
                     }
-                    var stopWatch = new Stopwatch();
-                    stopWatch.Start();
+                    var stopwatch = new Stopwatch();
+                    stopwatch.Start();
                     if (arg == "help") {
                         Log.WriteWarning("For help, use -? or -help");
                     } else if (HelpAllOption.IsMatch(arg)) {
@@ -473,7 +474,7 @@ namespace NDepCheck {
                     } else if (DoTimeOption.IsMatch(arg)) {
                         globalContext.TimeLongerThan = TimeSpan.FromSeconds(ExtractIntOptionValue(globalContext, args, ref i, "Missing seconds"));
                     } else if (WatchFilesOption.IsMatch(arg)) {
-                        // -aw    [filepattern [ +|- filepattern ...]] script
+                        // -aw    [filepattern [- filepattern]] script
                         string positive = ExtractOptionValue(globalContext, args, ref i);
                         string s = ExtractNextValue(globalContext, args, ref i);
                         string negative, scriptName;
@@ -594,8 +595,8 @@ namespace NDepCheck {
                     if (logCommands) {
                         Log.WriteInfo($">>>> Finished {arg}");
                     }
-                    stopWatch.Stop();
-                    LogElapsedTime(globalContext, stopWatch, arg);
+                    stopwatch.Stop();
+                    LogElapsedTime(globalContext, stopwatch, arg);
                 }
             } catch (ArgumentException ex) {
                 return UsageAndExit(ex.Message, globalContext);
@@ -684,8 +685,8 @@ namespace NDepCheck {
             }
         }
 
-        private static void LogElapsedTime(GlobalContext globalContext, Stopwatch stopWatch, string arg) {
-            TimeSpan elapsed = stopWatch.Elapsed;
+        private static void LogElapsedTime(GlobalContext globalContext, Stopwatch stopwatch, string arg) {
+            TimeSpan elapsed = stopwatch.Elapsed;
             if (elapsed >= globalContext.TimeLongerThan) {
                 if (elapsed < TimeSpan.FromMinutes(1)) {
                     Log.WriteInfo($"{arg} took {elapsed.TotalSeconds:F3} s");

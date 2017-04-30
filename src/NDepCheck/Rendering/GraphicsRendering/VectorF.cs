@@ -2,7 +2,7 @@ using System;
 using System.Drawing;
 using NDepCheck.ConstraintSolving;
 
-namespace NDepCheck.Rendering {
+namespace NDepCheck.Rendering.GraphicsRendering {
     public class VectorF {
         private readonly float _x, _y;
 

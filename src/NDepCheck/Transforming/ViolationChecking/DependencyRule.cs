@@ -1,29 +1,15 @@
-// (c) HMMüller 2006...2015
-
 using System;
 using System.Linq;
 using JetBrains.Annotations;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.ViolationChecking {
-    /// <remarks>Class <c>DependencyRule_</c> knows enough 
-    /// about an allowed or forbidden dependency so that it
-    /// can find out whether a <c>Dependency_</c> matches it.
-    /// Internally, the class stores (after an idea of
-    /// Ralf Kretzschmar) the dependency as a single regular
-    /// expression, which allows back-references
-    /// (like \1) between the using and the used
-    /// item.</remarks>
     public class DependencyRule {
         [NotNull]
         private readonly ItemType _usingItemType;
         [NotNull]
         private readonly ItemType _usedItemType;
 
-        //[NotNull]
-        //private readonly IMatcher[] _using;
-        //[NotNull]
-        //private readonly IMatcher[] _used;
         [NotNull]
         private readonly ItemPattern _using;
         [NotNull]
@@ -32,9 +18,6 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
         private int _hitCount;
 
-        // Dependency_ rules are created from lines with
-        // a specific extension algorithm (see CreateDependencyRules()
-        // below. Hence, the constructor is private.
         public DependencyRule([NotNull] ItemType usingItemType, string usingItemPattern, [NotNull] ItemType usedItemType,
             string usedItemPattern, [NotNull] DependencyRuleRepresentation rep, bool ignoreCase)
             : this(usingItemType: usingItemType, @using: new ItemPattern(usingItemType, usingItemPattern, 0, ignoreCase), usedItemType: usedItemType, 

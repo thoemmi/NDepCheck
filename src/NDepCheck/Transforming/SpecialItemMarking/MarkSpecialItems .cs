@@ -4,7 +4,7 @@ using System.Linq;
 using JetBrains.Annotations;
 using NDepCheck.Matching;
 
-namespace NDepCheck.Transforming.SpecialNodeMarking {
+namespace NDepCheck.Transforming.SpecialItemMarking {
     public class MarkSpecialItems : ITransformer {
         public static readonly Option MatchOption = new Option("im", "item-match", "&", "Match to select items to check", @default: "select all", multiple: true);
         public static readonly Option AddMarkerOption = new Option("am", "add-marker", "&", "Marker added to identified items", @default: null);

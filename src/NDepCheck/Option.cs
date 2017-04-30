@@ -264,13 +264,11 @@ namespace NDepCheck {
                     // lines are not split
                     argsList.Add(line);
                 } else {
-                    // on depth 0, lines are not split
+                    // on depth 0, lines are split
                     argsList.AddRange(splitLine);
                 }
 
-
                 // We traverse the line and manage depth as well as single and concatenated args
-
                 foreach (var s in splitLine) {
                     if (IsOptionGroupStart(s)) {
                         ++inBracesDepth;
@@ -290,7 +288,7 @@ namespace NDepCheck {
             if (string.IsNullOrWhiteSpace(argsAsString)) {
                 args = new string[0];
             } else if (IsOptionGroupStart(argsAsString.Trim())) {
-                var list = new List<string>();
+                var argList = new List<string>();
 
                 Match prefixMatch = Regex.Match(argsAsString, @"^([{]|\s|<[.])*");
                 Match suffixMatch = Regex.Match(argsAsString, @"([}]|\s|[.]>)*$");
@@ -305,11 +303,11 @@ namespace NDepCheck {
                         if (line == "") {
                             // ignore;
                         } else {
-                            list.Add(line);
+                            argList.Add(line);
                         }
                     }
                 }
-                args = list.ToArray();
+                args = argList.ToArray();
             } else {
                 args = new[] { argsAsString };
             }

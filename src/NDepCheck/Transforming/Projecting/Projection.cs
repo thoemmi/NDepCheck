@@ -1,4 +1,4 @@
-// (c) HMMüller 2006...2017
+
 
 using System;
 using System.Collections.Generic;
