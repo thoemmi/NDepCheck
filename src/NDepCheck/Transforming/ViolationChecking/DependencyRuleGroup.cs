@@ -159,7 +159,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
                     }
                 }
             } else {
-                Log.WriteInfo("No allowed or questionable rules in " + (GroupPattern == "" ? "global group" : "group " + GroupPattern) + ", therefore no checking done.");
+                Log.WriteInfo("No allowed or questionable rules in " + (GroupPattern == "" ? "global group" : "group " + GroupPattern) + ", therefore no checking done for this group.");
             }
             return allOk;
         }

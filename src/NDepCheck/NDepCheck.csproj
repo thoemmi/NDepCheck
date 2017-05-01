@@ -196,7 +196,7 @@
       <SubType>Designer</SubType>
     </None>
     <None Include="EverythingAllowed.dep" />
-    <None Include="NDepCheck.cd" />
+    <None Include="NDepCheck.nd" />
     <None Include="packages.config" />
     <Compile Include="Transforming\Projecting\ProjectItems.SelfOptimizingPrefixTrieProjector.cs" />
   </ItemGroup>

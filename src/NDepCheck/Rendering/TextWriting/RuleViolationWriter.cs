@@ -16,6 +16,8 @@ namespace NDepCheck.Rendering.TextWriting {
         public void Render([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
             bool xmlOutput = ParseArgs(globalContext, argsAsString);
 
+            int violationsCount = dependencies.Count(d => d.NotOkCt > 0);
+
             if (baseFileName == null || GlobalContext.IsConsoleOutFileName(baseFileName)) {
                 var consoleLogger = new ConsoleLogger();
                 foreach (var d in dependencies.Where(d => d.QuestionableCt > 0 && d.BadCt == 0)) {
@@ -40,13 +42,13 @@ namespace NDepCheck.Rendering.TextWriting {
                         );
                 var settings = new XmlWriterSettings { Encoding = Encoding.UTF8, Indent = true };
                 string fileName = GetXmlFileName(baseFileName);
-                Log.WriteInfo("Writing violations to " + fileName);
+                Log.WriteInfo($"Writing {violationsCount} violations to {fileName}");
                 using (var xmlWriter = XmlWriter.Create(fileName, settings)) {
                     document.Save(xmlWriter);
                 }
             } else {
                 string fileName = GetTextFileName(baseFileName);
-                Log.WriteInfo("Writing violations to " + fileName);
+                Log.WriteInfo($"Writing {violationsCount} violations to {fileName}");
                 using (var sw = new StreamWriter(fileName)) {
                     RenderToStreamWriter(dependencies, sw);
                 }
@@ -94,8 +96,7 @@ namespace NDepCheck.Rendering.TextWriting {
                 new Dependency(root, ok, new TextFileSource("Test", 1), "Use", 4, 0, 0, "to root"),
                 new Dependency(root, questionable, new TextFileSource("Test", 1), "Use", 4, 1, 0, "to questionable"),
                 new Dependency(root, bad, new TextFileSource("Test", 1), "Use", 4, 2, 1, "to bad")
-
-                };
+            };
         }
 
         public string GetHelp(bool detailedHelp, string filter) {
