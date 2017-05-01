@@ -27,10 +27,10 @@ namespace NDepCheck.Transforming.ViolationChecking {
             }
             visited.Add(this);
             foreach (var g in _ruleGroups) {
-                if (result.ContainsKey(g.Group)) {
-                    result[g.Group] = result[g.Group].Combine(g, ignoreCase);
+                if (result.ContainsKey(g.GroupPattern)) {
+                    result[g.GroupPattern] = result[g.GroupPattern].Combine(g, ignoreCase);
                 } else {
-                    result[g.Group] = g;
+                    result[g.GroupPattern] = g;
                 }
             }
             foreach (var includedRuleSet in _includedRuleSets) {

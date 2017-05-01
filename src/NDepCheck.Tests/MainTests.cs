@@ -240,8 +240,10 @@ NDepCheck:Tests ---> **
 
         private static string[] CreateCheckDepsArgs(DisposingFile d) {
             return new[] {
-                Program.ConfigureOption.Opt, typeof(CheckDeps).Name, "{",
-                CheckDeps.DefaultRuleFileOption + "=" + d.Filename, "}", TestAssemblyPath
+                TestAssemblyPath,
+                Program.ConfigureOption.Opt, typeof(CheckDeps).Name, "{", CheckDeps.DefaultRuleFileOption + "=" + d.Filename, "}",
+                Program.TransformOption.Opt, typeof(CheckDeps).Name,
+                Program.WriteDipOption.Opt, "yyy",
             };
         }
 

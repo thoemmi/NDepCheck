@@ -54,7 +54,7 @@ namespace NDepCheck.Transforming.Projecting {
             Source = source;
             _forLeftSide = forLeftSide;
             _forRightSide = forRightSide;
-            ItemMatch = new ItemMatch(sourceItemTypeOrNull, pattern, ignoreCase);
+            ItemMatch = new ItemMatch(sourceItemTypeOrNull, pattern, 0, ignoreCase);
         }
 
         /// <summary>

@@ -1,21 +1,36 @@
 using System;
+using System.Linq;
+using JetBrains.Annotations;
 
 namespace NDepCheck.Matching {
     public class DependencyMatch {
-        private readonly ItemMatch _usingMatch;
-        private readonly DependencyPattern _dependencyPattern;
-        private readonly ItemMatch _usedMatch;
+        [CanBeNull]
+        public ItemMatch UsingMatch { get; }
+        [CanBeNull]
+        public DependencyPattern DependencyPattern { get; }
+        [CanBeNull]
+        public ItemMatch UsedMatch { get; }
 
-        public DependencyMatch(string left, string dep, string right, bool ignoreCase) {
-            _usingMatch = left != "" ? new ItemMatch(left, ignoreCase) : null;
-            _dependencyPattern = dep != "" ? new DependencyPattern(dep, ignoreCase) : null;
-            _usedMatch = right != "" ? new ItemMatch(right, ignoreCase) : null;
+        private static readonly string[] NO_STRINGS = new string[0];
+
+        public DependencyMatch([CanBeNull] ItemMatch usingMatch, [CanBeNull] DependencyPattern dependencyPattern, [CanBeNull] ItemMatch usedMatch) {
+            UsingMatch = usingMatch;
+            DependencyPattern = dependencyPattern;
+            UsedMatch = usedMatch;
         }
 
-        public static DependencyMatch Create(string pattern, bool ignoreCase) {
+        public DependencyMatch(ItemType usingTypeHint, string usingPattern, string dependencyPattern, ItemType usedTypeHint, string usedPattern, bool ignoreCase) : this(
+            usingPattern != "" ? new ItemMatch(usingTypeHint, usingPattern, 0, ignoreCase) : null,
+            dependencyPattern != "" ? new DependencyPattern(dependencyPattern, ignoreCase) : null,
+            usedPattern != "" ? new ItemMatch(usedTypeHint, usedPattern, usingPattern.Count(c => c == '('), ignoreCase) : null) { }
+
+        public DependencyMatch(string usingPattern, string dependencyPattern, string usedPattern, bool ignoreCase) :
+            this(null, usingPattern, dependencyPattern, null, usedPattern, ignoreCase) { }
+
+        public static DependencyMatch Create(string pattern, bool ignoreCase, string arrowTail = "->") {
             int l = pattern.IndexOf("--", StringComparison.InvariantCulture);
             string left = l < 0 ? "" : pattern.Substring(0, l);
-            int r = pattern.LastIndexOf("->", StringComparison.InvariantCulture);
+            int r = pattern.LastIndexOf(arrowTail, StringComparison.InvariantCulture);
             string right = r < 0 || r < l ? "" : pattern.Substring(r + 2);
 
             int ldep = l < 0 ? 0 : l + 2;
@@ -26,9 +41,10 @@ namespace NDepCheck.Matching {
         }
 
         public bool IsMatch<TItem>(AbstractDependency<TItem> d) where TItem : AbstractItem {
-            return ItemMatch.IsMatch(_usingMatch, d.UsingItem)
-                   && (_dependencyPattern == null || _dependencyPattern.IsMatch(d))
-                   && ItemMatch.IsMatch(_usedMatch, d.UsedItem);
+            string[] groups = UsingMatch == null ? NO_STRINGS : UsingMatch.Matches(d.UsingItem, NO_STRINGS);
+            return groups != null
+                   && (DependencyPattern == null || DependencyPattern.IsMatch(d))
+                   && (UsedMatch == null || UsedMatch.Matches(d.UsedItem, groups) != null);
         }
 
         public static readonly string DEPENDENCY_MATCH_HELP = @"

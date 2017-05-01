@@ -26,7 +26,7 @@ namespace NDepCheck {
 
         public void AddFile(string fullFileName) {
             if (!_watchers.ContainsKey(fullFileName)) {
-                var watcher = new FileSystemWatcher(Path.GetDirectoryName(fullFileName));
+                var watcher = new FileSystemWatcher(Path.GetDirectoryName(fullFileName) ?? "");
                 watcher.Changed += (o, e) => Trigger(e.FullPath);
                 watcher.EnableRaisingEvents = true;
                 _watchers.Add(fullFileName, watcher);

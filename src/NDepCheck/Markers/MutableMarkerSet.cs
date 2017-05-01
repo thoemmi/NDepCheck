@@ -10,10 +10,14 @@ namespace NDepCheck.Markers {
         [CanBeNull]
         private HashSet<string> _markersOrNull;
 
-        protected override ISet<string> MarkersOrNull => _markersOrNull;
+        protected override IEnumerable<string> MarkersOrNull => _markersOrNull;
 
         public MutableMarkerSet(bool ignoreCase, [CanBeNull] IEnumerable<string> markers) : base(ignoreCase) {
             _markersOrNull = CreateSet(ignoreCase, markers);
+        }
+
+        protected override bool MarkersContains(string marker) {
+            return _markersOrNull != null && _markersOrNull.Contains(marker);
         }
 
         public bool UnionWithMarkers([CanBeNull] IEnumerable<string> markers) {
@@ -46,7 +50,7 @@ namespace NDepCheck.Markers {
             if (markerPatterns != null && _markersOrNull != null) {
                 IEnumerable<IMatcher> matchers =
                     markerPatterns.Select(p => MarkerMatch.CreateMatcher(p, ignoreCase)).ToArray();
-                _markersOrNull.RemoveWhere(m => matchers.Any(ma => ma.Matches(m) != null));
+                _markersOrNull.RemoveWhere(m => matchers.Any(ma => ma.Matches(m, null) != null));
                 return NormalizeMarkersOrNullAndSignalChange();
             } else {
                 return false;
@@ -105,7 +109,7 @@ namespace NDepCheck.Markers {
                 .FirstOrDefault(s => !String.IsNullOrWhiteSpace(s));
         }
 
-        public static readonly string MARKER_HELP = $@"
+        public static readonly string MARKER_HELP = @"
 Markers
 =======
 

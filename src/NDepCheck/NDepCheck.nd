@@ -46,6 +46,21 @@
         // By design (for -wd option), Program can use DipWriter
         :Program ---> NDepCheck.Rendering.TextWriting:DipWriter
     }
+    
+    // Ensure immutable ("ReadOnly...") classes are really immutable
+    :ReadOnly* {
+        : -- '_declaresfield  -> '_readonly&_primitive
+        : -- '_declaresfield  -> System:String
+        : -- '_declaresfield  -> :IMarkerSet'_readonly
+        : -- '_declaresfield  -> :ReadOnly*'_readonly
+        : -- '_declaresfield  -> :ReadOnly*'_readonly
+        
+        // By design, we have a HashSet in the ReadOnlyMarkerSet; but no method ever changes it after init in the .ctor
+        :ReadOnlyMarkerSet -- '_declaresfield -> :HashSet
+        
+        // Non-declarations are free to do what they want (maybe properties should also be constrained somehow ... "immutable" is a non-trivial concept)
+        : -- '~_declaresfield -> :
+    }
 }
 -tf CheckDeps { -ag }
 

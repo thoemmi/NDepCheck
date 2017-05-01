@@ -66,17 +66,17 @@ namespace NDepCheck.Matching {
         }
 
         [NotNull]
-        protected static IMatcher CreateMatcher([NotNull] string segment, int estimatedGroupCount, bool ignoreCase) {
+        protected static IMatcher CreateMatcher([NotNull] string segment, int upperBoundOfGroupCount, bool ignoreCase) {
             if (Regex.IsMatch(segment, @"^[\(\)-]+$")) { // Examples: (-), ()-, -(), ((-)), ((-))()
                 return new EmptyStringMatcher(groupCount: segment.Count(c => c == '('));
             } else if (string.IsNullOrWhiteSpace(segment) || Regex.IsMatch(segment, @"^\(*\*+\)*$")) { // Examples: empty string, *, **, (**), (((****)))
                 return new AlwaysMatcher(alsoMatchDot: string.IsNullOrWhiteSpace(segment) || segment.Count(c => c == '*') > 1, groupCount: segment.Count(c => c == '('));
             } else if (segment.StartsWith("^")) {
                 string pattern = segment.TrimStart('^');
-                return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(estimatedGroupCount) + pattern, ignoreCase, estimatedGroupCount, null, null);
+                return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(upperBoundOfGroupCount) + pattern, ignoreCase, upperBoundOfGroupCount, null, null);
             } else if (segment.EndsWith("$")) {
-                return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(estimatedGroupCount) + ".*" + segment, ignoreCase, estimatedGroupCount, null, null);
-            } else if (estimatedGroupCount == 0 && HasNoRegexCharsExceptPeriod(segment.TrimStart('(').TrimEnd(')'))) {
+                return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(upperBoundOfGroupCount) + ".*" + segment, ignoreCase, upperBoundOfGroupCount, null, null);
+            } else if (upperBoundOfGroupCount == 0 && HasNoRegexCharsExceptPeriod(segment.TrimStart('(').TrimEnd(')'))) {
                 return new EqualsMatcher(segment, ignoreCase);
             } else if (IsPrefixAndSuffixAsterisksPattern(segment.TrimStart('(').TrimEnd(')'))) {
                 return new ContainsMatcher(segment, ignoreCase);
@@ -89,8 +89,8 @@ namespace NDepCheck.Matching {
                 string fixedSuffix = Regex.Match(segment, @"[^*+\\]*$").Value.TrimStart('.');
 
                 string pattern = ExpandAsterisks(segment, ignoreCase);
-                return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(estimatedGroupCount) + pattern + "$",
-                    ignoreCase, estimatedGroupCount, fixedPrefix, fixedSuffix);
+                return new RegexMatcher("^" + RegexMatcher.CreateGroupPrefix(upperBoundOfGroupCount) + pattern + "$",
+                    ignoreCase, upperBoundOfGroupCount, fixedPrefix, fixedSuffix);
             }
         }
 

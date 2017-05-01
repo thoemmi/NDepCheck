@@ -2,10 +2,8 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Matching {
     public interface IMatcher {
-        bool IsMatch([NotNull] string value, [NotNull] string[] groups);
-
         [CanBeNull]
-        string[] Matches([NotNull] string value);
+        string[] Matches([NotNull] string value, [CanBeNull] string[] references);
 
         bool MatchesAlike(IMatcher other);
 
@@ -17,6 +15,7 @@ namespace NDepCheck.Matching {
         /// string if no fixed prefix exists</returns>
         [NotNull]
         string GetKnownFixedPrefix();
+
         /// <summary>
         /// Function used by self-organzing projectors for projections, e.g.
         /// the "SelfOptimizingProjector" inside the ProjectItems transformer.

@@ -18,20 +18,17 @@ namespace NDepCheck.Matching {
             _groupCount = groupCount;
         }
 
-        public bool IsMatch(string value, string[] groups) {
-            return IsMatch(value);
-        }
-
         private bool IsMatch(string value) {
             return _alsoMatchDot || !value.Contains('.');
         }
 
-        public string[] Matches(string value) {
+        public string[] Matches(string value, string[] ignoredReferences) {
             return IsMatch(value) ? _groupCount == 0 ? NO_STRING : Enumerable.Repeat(value, _groupCount).ToArray() : null;
         }
 
         public bool MatchesAlike(IMatcher other) {
-            return other is AlwaysMatcher;
+            AlwaysMatcher m = other as AlwaysMatcher;
+            return m != null && m._alsoMatchDot == _alsoMatchDot;
         }
 
         public override string ToString() {
@@ -54,11 +51,11 @@ namespace NDepCheck.Matching {
             _groups = Enumerable.Repeat("", groupCount).ToArray();
         }
 
-        public bool IsMatch(string value, string[] groups) {
+        public bool IsMatch(string value, string[] references) {
             return value == "";
         }
 
-        public string[] Matches(string value) {
+        public string[] Matches(string value, string[] ignoredReferences) {
             return value == "" ? _groups : null;
         }
 
@@ -121,11 +118,7 @@ namespace NDepCheck.Matching {
             _ignoreCase = ignoreCase;
         }
 
-        public bool IsMatch(string value, string[] groups) {
-            return Matches(value) != null;
-        }
-
-        public string[] Matches(string value) {
+        public string[] Matches(string value, string[] ignoredReferences) {
             string[] result;
             if (Check(value, out result)) {
                 return result;
@@ -178,6 +171,8 @@ namespace NDepCheck.Matching {
         public override string ToString() {
             return "[" + _segment + "]";
         }
+
+        public string MatchString => _segment;
 
         public override string GetKnownFixedPrefix() {
             return _segment;
@@ -233,18 +228,18 @@ namespace NDepCheck.Matching {
     internal sealed class RegexMatcher : AbstractRememberingMatcher, IMatcher {
         private const char GROUPSEP = '#'; // TODO: Durch nbsp o.ä. ersetzen
 
-        private readonly int _estimatedGroupCount;
+        private readonly int _upperBoundOfGroupCount;
         private readonly Regex _regex;
         private readonly string _fixedPrefix;
         private readonly string _fixedSuffix;
 
-        internal static string CreateGroupPrefix(int estimatedGroupCount) {
-            return string.Join("", Enumerable.Repeat("([^" + GROUPSEP + "]*)" + GROUPSEP, estimatedGroupCount));
+        internal static string CreateGroupPrefix(int upperBoundOfGroupCount) {
+            return string.Join("", Enumerable.Repeat("([^" + GROUPSEP + "]*)" + GROUPSEP, upperBoundOfGroupCount));
         }
 
-        public RegexMatcher([NotNull]string pattern, bool ignoreCase, int estimatedGroupCount,
+        public RegexMatcher([NotNull]string pattern, bool ignoreCase, int upperBoundOfGroupCount,
                             [CanBeNull] string fixedPrefix, [CanBeNull] string fixedSuffix, int maxSize = 1000) : base(maxSize) {
-            _estimatedGroupCount = estimatedGroupCount;
+            _upperBoundOfGroupCount = upperBoundOfGroupCount;
             try {
                 _regex = new Regex(pattern, ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
             } catch (ArgumentException) {
@@ -255,20 +250,21 @@ namespace NDepCheck.Matching {
             _fixedSuffix = (fixedSuffix ?? "").Replace("(", "").Replace(")", "");
         }
 
-        public bool IsMatch(string value, string[] groups) {
-            // Idea: From groups (e.g. a, b, c) and value(\1xy\2) construct the string a#b#c#\1xy\2.
-            // The pattern created (see the constructor calls in CreateMatcher) is ([^#]*)#([^#]*)#([^#]*)#pattern
-            // Thus, the groups prefixed to the string match the prefixed group patterns.
-            int fillupWithArbitraryStringsCount = EstimatedGroupCount() - groups.Length;
-            IEnumerable<string> groupsWithFillUps = groups.Concat(Enumerable.Range(0, fillupWithArbitraryStringsCount).Select(_ => "IGNORE"));
-            string joinedGroupsWithFillUps = string.Join("", groupsWithFillUps.Select(g => g + GROUPSEP));
+        public string[] Matches(string value, string[] references) {
+            string matchValue;
+            if (_upperBoundOfGroupCount > 0 && references != null) {
+                // Idea: From groups (e.g. a, b, c) and value(\1xy\2) construct the string a#b#c#\1xy\2.
+                // The pattern created (see the constructor calls in CreateMatcher) is ([^#]*)#([^#]*)#([^#]*)#pattern
+                // Thus, the groups prefixed to the string match the prefixed group patterns.
+                int fillupWithArbitraryStringsCount = _upperBoundOfGroupCount - references.Length;
+                IEnumerable<string> groupsWithFillUps = references.Concat(Enumerable.Repeat("IGNORE", fillupWithArbitraryStringsCount));
+                string joinedGroupsWithFillUps = string.Join("", groupsWithFillUps.Select(g => g + GROUPSEP));
+                matchValue = joinedGroupsWithFillUps + value;
+            } else {
+                matchValue = value;
+            }
 
-            bool isMatch = _regex.IsMatch(joinedGroupsWithFillUps + value);
-            return isMatch;
-        }
-
-        public string[] Matches(string value) {
-            Match m = _regex.Match(value);
+            Match m = _regex.Match(matchValue);
             if (m.Success) {
                 string[] groups = new string[m.Groups.Count - 1];
                 for (int i = 1; i < m.Groups.Count; i++) {
@@ -284,10 +280,6 @@ namespace NDepCheck.Matching {
             return (other as RegexMatcher)?._regex.Equals(_regex) ?? false;
         }
 
-        public int EstimatedGroupCount() {
-            return _estimatedGroupCount;
-        }
-
         public override string ToString() {
             return "[/" + _regex + "/]";
         }
@@ -298,59 +290,6 @@ namespace NDepCheck.Matching {
 
         public string GetKnownFixedSufffix() {
             return _fixedSuffix;
-        }
-    }
-
-    // TODO: not yet operational ...
-    internal class RegexMatcherWithBackReferences : IMatcher {
-        private const char GROUPSEP = '#'; // TODO: Replace with nbsp or the like?!
-
-        private readonly int _estimatedGroupCount;
-        private readonly Regex _regex;
-
-        public RegexMatcherWithBackReferences(string pattern, bool ignoreCase, int estimatedGroupCount) {
-            _estimatedGroupCount = estimatedGroupCount;
-            _regex = new Regex(pattern, ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
-            throw new NotImplementedException("RegexMatcherWithBackReferences is not yet operational");
-        }
-
-        public bool IsMatch(string value, string[] groups) {
-
-            int fillupWithArbitraryStringsCount = EstimatedGroupCount() - groups.Length;
-            IEnumerable<string> groupsWithFillUps = groups.Concat(Enumerable.Range(0, fillupWithArbitraryStringsCount).Select(_ => "IGNORE"));
-            string joinedGroupsWithFillUps = string.Join("", groupsWithFillUps.Select(g => g + GROUPSEP));
-
-            bool isMatch = _regex.IsMatch(joinedGroupsWithFillUps + value);
-            return isMatch;
-        }
-
-        public string[] Matches(string value) {
-            Match m = _regex.Match(value);
-            if (m.Success) {
-                string[] groups = new string[m.Groups.Count - 1];
-                for (int i = 1; i < m.Groups.Count; i++) {
-                    groups[i - 1] = m.Groups[i].Value;
-                }
-                return groups;
-            } else {
-                return null;
-            }
-        }
-
-        public int EstimatedGroupCount() {
-            return _estimatedGroupCount;
-        }
-
-        public bool MatchesAlike(IMatcher other) {
-            throw new NotImplementedException();
-        }
-
-        public string GetKnownFixedPrefix() {
-            throw new NotImplementedException();
-        }
-
-        public string GetKnownFixedSufffix() {
-            throw new NotImplementedException();
         }
     }
 }

@@ -37,5 +37,16 @@ namespace NDepCheck.Matching {
         public bool IsMatch(IMarkerSet obj) {
             return obj.IsMatch(_present, _absent);
         }
+
+        public bool MatchesAlike(MarkerMatch other) {
+            return MatchAlike(_present, other._present)
+                && MatchAlike(other._present, _present)
+                && MatchAlike(_absent, other._absent)
+                && MatchAlike(other._absent, _absent);
+        }
+
+        private static bool MatchAlike(IEnumerable<IMatcher> left, IEnumerable<IMatcher> right) {
+            return left.All(p => right.Any(q => p.MatchesAlike(q)));
+        }
     }
 }

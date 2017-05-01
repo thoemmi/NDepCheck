@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.Transforming.CycleChecking;
 using NDepCheck.Transforming.ViolationChecking;
 
 namespace NDepCheck.Tests {

@@ -16,7 +16,7 @@ namespace NDepCheck.Matching {
 
         public IMatcher[] Matchers => _matchers;
 
-        public ItemPattern([CanBeNull] ItemType itemTypeHintOrNull, [NotNull] string itemPattern, int estimatedGroupCount, bool ignoreCase) {
+        public ItemPattern([CanBeNull] ItemType itemTypeHintOrNull, [NotNull] string itemPattern, int upperBoundOfGroupCount, bool ignoreCase) {
             const string UNCOLLECTED_GROUP = "(?:";
             const string UNCOLLECTED_GROUP_MASK = "(?#@#";
             IEnumerable<string> parts = itemPattern.Replace(UNCOLLECTED_GROUP, UNCOLLECTED_GROUP_MASK)
@@ -69,7 +69,7 @@ namespace NDepCheck.Matching {
                 int j = 0;
                 foreach (var p in parts) {
                     foreach (var s in p.Split(';')) {
-                        result.Add(CreateMatcher(s, estimatedGroupCount, ignoreCase));
+                        result.Add(CreateMatcher(s, upperBoundOfGroupCount, ignoreCase));
                         j++;
                     }
                     while (j > 0 && j < _itemType.Keys.Length && _itemType.Keys[j - 1] == _itemType.Keys[j]) {
@@ -90,7 +90,7 @@ namespace NDepCheck.Matching {
             _matchers = matchers;
         }
 
-        public string[] Matches([NotNull] AbstractItem item) {
+        public string[] Matches([NotNull] AbstractItem item, string[] references = null) {
             if (item.Type.CommonType(_itemType) == null) {
                 return null;
             }
@@ -100,7 +100,7 @@ namespace NDepCheck.Matching {
             for (int i = 0; i < _matchers.Length; i++) {
                 IMatcher matcher = _matchers[i];
                 string value = item.Values[i];
-                string[] groups = matcher.Matches(value);
+                string[] groups = matcher.Matches(value, references);
                 if (groups == null) {
                     return null;
                 }
@@ -112,6 +112,15 @@ namespace NDepCheck.Matching {
                 }
             }
             return groupsInItem ?? NO_GROUPS;
+        }
+
+        public bool MatchesAlike(ItemPattern other) {
+            for (int i = 0; i < Math.Min(Matchers.Length, other.Matchers.Length); i++) {
+                if (!Matchers[i].MatchesAlike(other.Matchers[i])) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }

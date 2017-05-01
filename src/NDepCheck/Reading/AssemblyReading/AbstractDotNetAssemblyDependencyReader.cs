@@ -197,9 +197,11 @@ namespace NDepCheck.Reading.AssemblyReading {
             _declaresevent,
             _declaresparameter,
             _declaresreturntype,
-            _declares,
-            _declaresvar,
-            _uses,
+            _declaresvariable,
+            _usesmember,
+            //_usesmemberoftype, // requires declarations of "uses that type" rules, which opens up possibility to use ALL of that type.
+                                 // This is not good. Rather, let the user manually add transitive dependencies via the member if this is needed!
+            _usestype,
             _inherits,
             _implements,
             _usesasgenericargument,
@@ -307,6 +309,7 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
         }
 
+        [CanBeNull]
         protected TypeDefinition Resolve(TypeReference typeReference) {
             if (_unresolvableTypeReferences.Contains(typeReference.FullName)) {
                 return null;

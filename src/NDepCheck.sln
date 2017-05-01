@@ -24,6 +24,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NDepCheck.TestAssemblyForAt
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NDepCheck.TestRenderer", "NDepCheck.TestRenderer\NDepCheck.TestRenderer.csproj", "{72A2F47A-4902-47E2-A1AB-3715F3139B53}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NDepCheck.VerySmallExplorativeTestAssembly", "NDepCheck.VerySmallExplorativeTestAssembly\NDepCheck.VerySmallExplorativeTestAssembly.csproj", "{EEFEDA5F-37A0-4B95-B290-F68229E5AE43}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -58,6 +60,10 @@ Global
 		{72A2F47A-4902-47E2-A1AB-3715F3139B53}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{72A2F47A-4902-47E2-A1AB-3715F3139B53}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{72A2F47A-4902-47E2-A1AB-3715F3139B53}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EEFEDA5F-37A0-4B95-B290-F68229E5AE43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EEFEDA5F-37A0-4B95-B290-F68229E5AE43}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EEFEDA5F-37A0-4B95-B290-F68229E5AE43}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EEFEDA5F-37A0-4B95-B290-F68229E5AE43}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

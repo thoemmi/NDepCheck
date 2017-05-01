@@ -25,7 +25,7 @@ namespace NDepCheck.Rendering {
                 return new OrderSupport(item => item.GetCasedValue(field));
             } else {
                 IMatcher orderMatcher = MarkerMatch.CreateMatcher(pattern, ignoreCase);
-                return new OrderSupport(item => item.Markers.FirstOrDefault(m => orderMatcher.Matches(m) != null));
+                return new OrderSupport(item => item.Markers.FirstOrDefault(m => orderMatcher.Matches(m, null) != null));
             }
         }
 

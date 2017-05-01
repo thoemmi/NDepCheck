@@ -9,7 +9,11 @@ namespace NDepCheck.Markers {
         protected readonly bool _ignoreCase;
         // TODO: Replace with sharing implementation of string sets to save space and maybe time
         [CanBeNull]
-        protected abstract /*IReadOnlySet<string>*/ ISet<string> MarkersOrNull { get; }
+        protected abstract /*IReadOnlySet<string>*/ IEnumerable<string> MarkersOrNull { get; }
+
+        // For performance, this is delegated to subclasses which can check an internal set more quickly
+        [Pure]
+        protected abstract bool MarkersContains(string marker);
 
         protected AbstractMarkerSet(bool ignoreCase) {
             _ignoreCase = ignoreCase;
@@ -42,13 +46,29 @@ namespace NDepCheck.Markers {
                 return !present.Any();
             } else {
                 foreach (var m in present) {
-                    if (MarkersOrNull.All(s => m.Matches(s) == null)) {
-                        return false;
+                    // For performance, EqualsMatcher is handled separately - no All loop needed!
+                    EqualsMatcher em = m as EqualsMatcher;
+                    if (em != null) {
+                        if (!MarkersContains(em.MatchString)) {
+                            return false;
+                        }
+                    } else {
+                        if (MarkersOrNull.All(s => m.Matches(s, null) == null)) {
+                            return false;
+                        }
                     }
                 }
                 foreach (var m in absent) {
-                    if (MarkersOrNull.Any(s => m.Matches(s) != null)) {
-                        return false;
+                    // For performance, EqualsMatcher is handled separately - no Any loop needed!
+                    EqualsMatcher em = m as EqualsMatcher;
+                    if (em != null) {
+                        if (MarkersContains(em.MatchString)) {
+                            return false;
+                        }
+                    } else {
+                        if (MarkersOrNull.Any(s => m.Matches(s, null) != null)) {
+                            return false;
+                        }
                     }
                 }
                 return true;

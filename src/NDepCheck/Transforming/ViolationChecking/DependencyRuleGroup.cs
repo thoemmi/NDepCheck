@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using NDepCheck.Matching;
 
@@ -16,120 +17,125 @@ namespace NDepCheck.Transforming.ViolationChecking {
         private readonly List<DependencyRule> _forbidden;
 
         [NotNull]
-        private readonly string _groupName;
-        [NotNull]
-        private readonly string _group;
+        private readonly string _groupPattern;
         [CanBeNull]
-        private readonly ItemPattern _groupMatchOrNullForMainGroup;
-        [NotNull]
-        private readonly ItemType _groupType;
+        private readonly ItemMatch _groupMatchOrNullForMainGroup;
 
-        private DependencyRuleGroup([NotNull] ItemType groupType, [NotNull] string group, [NotNull] IEnumerable<DependencyRule> allowed,
-                [NotNull] IEnumerable<DependencyRule> questionable, [NotNull] IEnumerable<DependencyRule> forbidden,
-                bool ignoreCase) {
-            if (groupType == null && group != "") {
-                throw new ArgumentException("groupType is null, but group is not empty", nameof(groupType));
-            }
-
-            _groupType = groupType;
-            _group = group;
-            _groupName = group == "" ? "global" : group;
-            _groupMatchOrNullForMainGroup = group == "" ? null : new ItemPattern(groupType, group, 0, ignoreCase);
+        private DependencyRuleGroup([NotNull] string groupPattern, [CanBeNull] ItemMatch groupMatchOrNullForMainGroup,
+                [NotNull] IEnumerable<DependencyRule> allowed, [NotNull] IEnumerable<DependencyRule> questionable,
+                [NotNull] IEnumerable<DependencyRule> forbidden) {
+            _groupPattern = groupPattern;
+            _groupMatchOrNullForMainGroup = groupMatchOrNullForMainGroup;
             _allowed = allowed.ToList();
             _questionable = questionable.ToList();
             _forbidden = forbidden.ToList();
         }
 
-        public DependencyRuleGroup([NotNull] ItemType groupType, [NotNull] string group, bool ignoreCase)
-            : this(groupType, group,
+        public DependencyRuleGroup([NotNull] string groupPattern, [CanBeNull] ItemType groupItemTypeHintOrNull, bool ignoreCase)
+            : this(groupPattern, groupPattern == "" ? null : new ItemMatch(groupItemTypeHintOrNull, groupPattern, 0, ignoreCase),
                 Enumerable.Empty<DependencyRule>(),
                 Enumerable.Empty<DependencyRule>(),
-                Enumerable.Empty<DependencyRule>(), ignoreCase) {
+                Enumerable.Empty<DependencyRule>()) {
             // empty
         }
 
         [NotNull]
-        public string Group => _group;
+        public string GroupPattern => _groupPattern;
 
         /// <summary>
         /// Add one or more <c>DependencyRules</c>s from a single input line.
         /// public for testability.
         /// </summary>
-        public bool AddDependencyRules([NotNull] ItemType usingItemType, [NotNull] ItemType usedItemType,
-                                       [NotNull] string ruleSourceName, int lineNo, [NotNull] string line, bool ignoreCase, string previousRawUsingPattern, out string rawUsingPattern) {
-            if (line.Contains(CheckDeps.MAY_USE)) {
-                IEnumerable<DependencyRule> rules = CreateDependencyRule(usingItemType, usedItemType, ruleSourceName, lineNo, line,
-                    CheckDeps.MAY_USE, false, ignoreCase, previousRawUsingPattern, out rawUsingPattern);
+        public bool AddDependencyRules([CanBeNull] ItemType usingItemTypeHint, [CanBeNull] ItemType usedItemTypeHint,
+                                       [NotNull] string ruleSourceName, int lineNo, [NotNull] string line,
+                                       bool ignoreCase, [NotNull] string previousRawUsingPattern, [NotNull] out string rawUsingPattern) {
+            Match match;
+            if (TryMatch(line, "^(.*)--(.*)->(.*)", out match)) {
+                rawUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
+                IEnumerable<DependencyRule> rules = CreateDependencyRules(usingItemTypeHint, usedItemTypeHint, ruleSourceName, lineNo,
+                    rawUsingPattern, match.Groups[2].Value, match.Groups[3].Value, "--", "->",
+                    false, ignoreCase);
                 _allowed.AddRange(rules);
                 return true;
-            } else if (line.Contains(CheckDeps.MAY_USE_RECURSIVE)) {
-                IEnumerable<DependencyRule> rules = CreateDependencyRule(usingItemType, usedItemType, ruleSourceName, lineNo, line,
-                                                           CheckDeps.MAY_USE_RECURSIVE, false, ignoreCase, previousRawUsingPattern, out rawUsingPattern);
-                _allowed.AddRange(rules);
-                return true;
-            } else if (line.Contains(CheckDeps.MAY_USE_WITH_WARNING)) {
-                IEnumerable<DependencyRule> rules = CreateDependencyRule(usingItemType, usedItemType, ruleSourceName, lineNo, line,
-                    CheckDeps.MAY_USE_WITH_WARNING, true, ignoreCase, previousRawUsingPattern, out rawUsingPattern);
+            } else if (TryMatch(line, "^(.*)--(.*)-[?](.*)", out match)) {
+                rawUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
+                IEnumerable<DependencyRule> rules = CreateDependencyRules(usingItemTypeHint, usedItemTypeHint, ruleSourceName, lineNo,
+                    rawUsingPattern, match.Groups[2].Value, match.Groups[3].Value, "--", "-?",
+                    true, ignoreCase);
                 _questionable.AddRange(rules);
                 return true;
-            } else if (line.Contains(CheckDeps.MUST_NOT_USE)) {
-                IEnumerable<DependencyRule> rules = CreateDependencyRule(usingItemType, usedItemType, ruleSourceName, lineNo, line,
-                                                           CheckDeps.MUST_NOT_USE, false, ignoreCase, previousRawUsingPattern, out rawUsingPattern);
+            } else if (TryMatch(line, "^(.*)--(.*)-!(.*)", out match)) {
+                rawUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
+                IEnumerable<DependencyRule> rules = CreateDependencyRules(usingItemTypeHint, usedItemTypeHint, ruleSourceName, lineNo,
+                    rawUsingPattern, match.Groups[2].Value, match.Groups[3].Value, "--", "-!",
+                    false, ignoreCase);
                 _forbidden.AddRange(rules);
+                return true;
+            } else if (TryMatch(line, "^(.*)===>(.*)", out match)) {
+                rawUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
+
+                ItemMatch @using = new ItemMatch(usingItemTypeHint, rawUsingPattern, 0, ignoreCase);
+                ItemMatch used = new ItemMatch(usedItemTypeHint, match.Groups[2].Value, 0, ignoreCase);
+                IEnumerable<DependencyRule> rulesWithMatchingUsingPattern = _allowed.Where(r => r.MatchesUsingPattern(used));
+
+                _allowed.AddRange(rulesWithMatchingUsingPattern
+                    .Select(tail => new DependencyRule(new DependencyMatch(@using, tail.DependencyPattern, tail.Used), tail.Representation)));
                 return true;
             } else {
                 throw new ApplicationException("Unexpected rule at " + ruleSourceName + ":" + lineNo);
             }
         }
 
-        private IEnumerable<DependencyRule> CreateDependencyRule([NotNull] ItemType usingItemType, [NotNull] ItemType usedItemType, [NotNull] string ruleSourceName, int lineNo,
-            [NotNull] string line, [NotNull] string use, bool questionableRule, bool ignoreCase,
-            string previousRawUsingPattern, out string currentRawUsingPattern) {
+        private bool TryMatch(string line, string pattern, out Match match) {
+            match = Regex.Match(line, pattern);
+            return match.Success;
+        }
 
-            int i = line.IndexOf(use, StringComparison.Ordinal);
+        private IEnumerable<DependencyRule> CreateDependencyRules([CanBeNull] ItemType usingItemTypeHint, [CanBeNull] ItemType usedItemTypeHint,
+            [NotNull] string ruleSourceName, int lineNo, [NotNull] string usingPattern, [NotNull] string dependencyPattern, [NotNull] string usedPattern,
+            [NotNull] string leftRepresentationPart, [NotNull] string rightRepresentationPart, bool questionableRule, bool ignoreCase) {
 
-            string rawUsingpattern = line.Substring(0, i).Trim();
-            if (rawUsingpattern == "") {
-                rawUsingpattern = previousRawUsingPattern;
-            }
-            currentRawUsingPattern = rawUsingpattern;
+            string trimmedUsingPattern = usingPattern.Trim();
+            string trimmedDependencyPattern = dependencyPattern.Trim();
+            string trimmedUsedPattern = usedPattern.Trim();
 
-            string usingPattern = rawUsingpattern;
-
-            string rawUsedPattern = line.Substring(i + use.Length).Trim();
-            string usedPattern = rawUsedPattern;
-
-            string repString = rawUsingpattern + " " + use + " " + rawUsedPattern;
+            string repString = trimmedUsingPattern + " " + leftRepresentationPart + trimmedDependencyPattern + rightRepresentationPart + trimmedUsedPattern;
             DependencyRuleRepresentation rep = new DependencyRuleRepresentation(ruleSourceName, lineNo, repString, questionableRule);
 
-            var head = new DependencyRule(usingItemType, usingPattern, usedItemType, usedPattern, rep, ignoreCase);
+            var match = new DependencyMatch(usingItemTypeHint, trimmedUsingPattern, trimmedDependencyPattern, usedItemTypeHint, trimmedUsedPattern, ignoreCase);
+            var head = new DependencyRule(match, rep);
+
             var result = new List<DependencyRule> { head };
 
             if (Log.IsVerboseEnabled) {
                 Log.WriteInfo($"Matchers used for checking {repString} ({ruleSourceName}:{lineNo})");
-                Log.WriteInfo("  Using: " + string.Join<IMatcher>(", ", head.Using.Matchers));
-                Log.WriteInfo("   Used: " + string.Join<IMatcher>(", ", head.Used.Matchers));
-            }
-
-            if (use == CheckDeps.MAY_USE_RECURSIVE) {
-                IEnumerable<DependencyRule> rulesWithMatchingUsingPattern = _allowed.Where(r => r.MatchesUsingPattern(head.Used));
-
-                result.AddRange(rulesWithMatchingUsingPattern.Select(tail => new DependencyRule(usingItemType, head.Using, usedItemType, tail.Used, rep)));
+                // TODO: Put into DependencyMatch constructor
+                ////Log.WriteInfo("  Using: " + string.Join<IMatcher>(", ", head.Using.Matchers));
+                ////Log.WriteInfo("   Used: " + string.Join<IMatcher>(", ", head.Used.Matchers));
             }
 
             return result;
         }
 
+        [NotNull]
+        private static string GetUsingPattern([NotNull] string usingPattern, [NotNull] string previousRawUsingPattern) {
+            if (usingPattern == "") {
+                usingPattern = previousRawUsingPattern;
+            }
+            return usingPattern;
+        }
+
+        [NotNull]
         public DependencyRuleGroup Combine([NotNull] DependencyRuleGroup other, bool ignoreCase) {
-            return new DependencyRuleGroup(_groupType, _group,
+            return new DependencyRuleGroup(_groupPattern, _groupMatchOrNullForMainGroup,
                 _allowed.Union(other._allowed),
                 _questionable.Union(other._questionable),
-                _forbidden.Union(other._forbidden), ignoreCase);
+                _forbidden.Union(other._forbidden));
         }
 
         public bool Check([NotNull] IEnumerable<Dependency> dependencies, bool addMarker) {
             bool allOk = true;
-            if (_allowed.Any() || _questionable.Any()) {
+            if (IsCheckingGroup) {
                 int reorgCount = 0;
                 int nextReorg = 200;
 
@@ -141,7 +147,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
                         if (d.BadCt > 0) {
                             allOk = false;
                             if (addMarker) {
-                                d.AddMarker(_groupName);
+                                d.AddMarker(_groupPattern == "" ? "global" : _groupPattern);
                             }
                         }
                         if (++reorgCount > nextReorg) {
@@ -153,10 +159,12 @@ namespace NDepCheck.Transforming.ViolationChecking {
                     }
                 }
             } else {
-                Log.WriteInfo("No allowed or questionable rules in " + (Group == "" ? "global group" : "group " + Group) + ", therefore no checking done.");
+                Log.WriteInfo("No allowed or questionable rules in " + (GroupPattern == "" ? "global group" : "group " + GroupPattern) + ", therefore no checking done.");
             }
             return allOk;
         }
+
+        public bool IsCheckingGroup => _allowed.Any() || _questionable.Any();
 
         private void Check([NotNull] Dependency d) {
             if (_forbidden.Any(r => r.IsMatch(d))) {

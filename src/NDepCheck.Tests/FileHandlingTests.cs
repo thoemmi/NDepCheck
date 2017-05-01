@@ -33,8 +33,7 @@ namespace NDepCheck.Tests {
         public void TestDOk() {
             WriteDep1To(@"a\b");
             WriteDep2To(@"a\c");
-            Option rr = CheckDeps.RuleRootDirectoryOption;
-            Assert.AreEqual(Program.OK_RESULT, Run($@"{Program.ConfigureOption} CheckDeps {{ {rr} %%\a }}".Split(' ')));
+            Assert.AreEqual(Program.OK_RESULT, Run($@"{Program.ConfigureOption} CheckDeps {{ {CheckDeps.RuleRootDirectoryOption} %%\a }}".Split(' ')));
         }
 
         [TestMethod]
