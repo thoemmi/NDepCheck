@@ -22,7 +22,7 @@ namespace NDepCheck {
         public TItem UsedItem { get; }
         [NotNull]
         protected abstract IMarkerSet MarkerSet { get; }
-        
+
         public abstract int Ct { get; }
         public abstract int QuestionableCt { get; }
         public abstract int BadCt { get; }
@@ -134,7 +134,7 @@ namespace NDepCheck {
     }
 
     public class ReadOnlyDependency : AbstractDependency<ReadOnlyItem> {
-        public ReadOnlyDependency(ReadOnlyItem usingItem, ReadOnlyItem usedItem, ISourceLocation source, IMarkerSet markerSet, 
+        public ReadOnlyDependency(ReadOnlyItem usingItem, ReadOnlyItem usedItem, ISourceLocation source, IMarkerSet markerSet,
                                    int ct, int questionableCt, int badCt, string exampleInfo) : base(usingItem, usedItem, source) {
             MarkerSet = markerSet;
             Ct = ct;

@@ -5,7 +5,8 @@ using JetBrains.Annotations;
 
 namespace NDepCheck {
     public class FileWatcher {
-        [NotNull] private readonly Program _program;
+        [NotNull]
+        private readonly Program _program;
 
         [NotNull]
         public string FullScriptName { get; }

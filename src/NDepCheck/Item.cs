@@ -200,7 +200,8 @@ namespace NDepCheck {
     }
 
     public class ReadOnlyItem : AbstractItem, IMarkerSet {
-        [NotNull] private readonly ReadOnlyMarkerSet _markerSet;
+        [NotNull]
+        private readonly ReadOnlyMarkerSet _markerSet;
 
         protected ReadOnlyItem([NotNull] ItemType type, string[] values) : base(type, values) {
             _markerSet = new ReadOnlyMarkerSet(type.IgnoreCase, markers: null);

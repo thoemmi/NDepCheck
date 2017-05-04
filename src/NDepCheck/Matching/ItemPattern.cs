@@ -57,7 +57,7 @@ namespace NDepCheck.Matching {
 
                 _matchers = Enumerable.Repeat(_alwaysMatcher, _itemType.Keys.Length).ToArray();
                 foreach (var p in parts) {
-                    string[] nameAndPattern = p.Split(new [] { '=' }, 2);
+                    string[] nameAndPattern = p.Split(new[] { '=' }, 2);
                     string keyAndSubkey = nameAndPattern[0].Trim();
                     int i = _itemType.IndexOf(keyAndSubkey);
                     if (i < 0) {

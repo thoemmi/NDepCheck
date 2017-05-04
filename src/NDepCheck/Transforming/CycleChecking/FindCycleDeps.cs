@@ -62,7 +62,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             int maxCycleLength = int.MaxValue;
             ItemMatch cycleAnchorsMatch = null;
 
-            IEnumerable<Action<Dependency>> effects = EffectOptions.Parse(globalContext: globalContext, 
+            IEnumerable<Action<Dependency>> effects = EffectOptions.Parse(globalContext: globalContext,
                 argsAsString: transformOptions, ignoreCase: _ignoreCase, moreOptions: new[] {
                 IgnoreSelfCyclesOption.Action((args, j) => {
                     ignoreSelfCycles = true;
@@ -89,7 +89,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             foreach (var i in outgoing.Keys.Where(i => ItemMatch.IsMatch(cycleAnchorsMatch, i)).OrderBy(i => i.Name)) {
                 var pathHeadFromI = new Stack<Dependency>();
                 var visitedItem2CheckedPathLengthBehindVisitedItem = new Dictionary<Item, int>();
-                FindCyclesFrom(i, i, ignoreSelfCycles, outgoing, visitedItem2CheckedPathLengthBehindVisitedItem, 
+                FindCyclesFrom(i, i, ignoreSelfCycles, outgoing, visitedItem2CheckedPathLengthBehindVisitedItem,
                     maxCycleLength, foundCycleHashs, AddHash(0, i), pathHeadFromI, dependenciesOnCycles);
             }
             Log.WriteInfo($"... found {foundCycleHashs.Count} cycles");

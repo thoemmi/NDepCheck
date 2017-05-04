@@ -96,7 +96,7 @@ namespace NDepCheck {
         public static string ExpandHexChars([CanBeNull] string s) {
             return s != null && s.Contains('%')
                 ? Regex.Replace(s, "%[0-9a-fA-F][0-9a-fA-F]",
-                    m => "" + (char) int.Parse(m.Value.Substring(1), NumberStyles.HexNumber))
+                    m => "" + (char)int.Parse(m.Value.Substring(1), NumberStyles.HexNumber))
                 : s;
         }
 
@@ -124,9 +124,9 @@ namespace NDepCheck {
             }
             try {
                 // plugins can have state, therefore we must manage them
-                T result = (T) _plugins.FirstOrDefault(t => t.GetType() == pluginType);
+                T result = (T)_plugins.FirstOrDefault(t => t.GetType() == pluginType);
                 if (result == null) {
-                    _plugins.Add(result = (T) Activator.CreateInstance(pluginType));
+                    _plugins.Add(result = (T)Activator.CreateInstance(pluginType));
                 }
                 return result;
             } catch (Exception ex) {
@@ -161,7 +161,7 @@ namespace NDepCheck {
         private IEnumerable<T> CreatePlugins<T>(string assemblyName) where T : class, IPlugin {
             return GetPluginTypes<T>(assemblyName).Select(t => {
                 try {
-                    return (T) Activator.CreateInstance(t);
+                    return (T)Activator.CreateInstance(t);
                 } catch (Exception ex) {
                     Log.WriteError($"Cannot get help for renderer '{t.FullName}'; reason: {ex.Message}");
                     return null;
@@ -260,12 +260,12 @@ namespace NDepCheck {
         [CanBeNull]
         public IReaderFactory GetSuitableInternalReader(string assemblyName, IEnumerable<string> filenames) {
             string[] extensions = filenames.Select(p => {
-                    try {
-                        return Path.GetExtension(p);
-                    } catch (ArgumentException) {
-                        return null;
-                    }
-                })
+                try {
+                    return Path.GetExtension(p);
+                } catch (ArgumentException) {
+                    return null;
+                }
+            })
                 .Where(p => p != null)
                 .Distinct()
                 .ToArray();
