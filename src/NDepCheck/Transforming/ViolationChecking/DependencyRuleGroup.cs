@@ -76,7 +76,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
                 ItemMatch @using = new ItemMatch(usingItemTypeHint, rawUsingPattern, 0, ignoreCase);
                 ItemMatch used = new ItemMatch(usedItemTypeHint, match.Groups[2].Value, 0, ignoreCase);
-                IEnumerable<DependencyRule> rulesWithMatchingUsingPattern = _allowed.Where(r => r.MatchesUsingPattern(used));
+                IEnumerable<DependencyRule> rulesWithMatchingUsingPattern = _allowed.Where(r => r.MatchesUsingPattern(used)).ToArray(); // make a copy!
 
                 _allowed.AddRange(rulesWithMatchingUsingPattern
                     .Select(tail => new DependencyRule(new DependencyMatch(@using, tail.DependencyPattern, tail.Used), tail.Representation)));
