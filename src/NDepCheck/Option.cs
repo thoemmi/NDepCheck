@@ -232,25 +232,17 @@ namespace NDepCheck {
 
         public static string[] CollectArgsFromFile([NotNull] string fileName) {
             var argsList = new List<string>();
-            int lineNo = 0;
-            try {
-                int inBracesDepth = 0;
-                using (var sr = new StreamReader(fileName)) {
-                    for (;;) {
-                        lineNo++;
-                        string line = sr.ReadLine();
-                        if (line == null) {
-                            break;
-                        }
-                        ProcessLine(line, ref inBracesDepth, argsList);
+            int inBracesDepth = 0;
+            using (var sr = new StreamReader(fileName)) {
+                for (;;) {
+                    string line = sr.ReadLine();
+                    if (line == null) {
+                        break;
                     }
+                    ProcessLine(line, ref inBracesDepth, argsList);
                 }
-                return argsList.ToArray();
-            } catch (Exception ex) {
-                Log.WriteError(msg: $"Cannot run commands in {fileName}; reason: {ex.GetType().Name}: {ex.Message}",
-                    nestedFilenames: fileName, lineNo: lineNo);
-                throw;
             }
+            return argsList.ToArray();
         }
 
         private static void ProcessLine(string line, ref int inBracesDepth, List<string> argsList) {

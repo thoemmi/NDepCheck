@@ -101,6 +101,8 @@ namespace NDepCheck.Reading.AssemblyReading {
             Log.WriteInfo(new string(' ', 2 * depth) + "Reading " + _fullFileName);
             var resolver = new DefaultAssemblyResolver();
             resolver.AddSearchDirectory(Path.GetDirectoryName(_fullFileName));
+            // TODO: Additional search directories should be specifiable in options
+            resolver.AddSearchDirectory(@"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\Silverlight\v5.0");
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(_fullFileName, new ReaderParameters {
                 AssemblyResolver = resolver
             });
@@ -414,7 +416,7 @@ namespace NDepCheck.Reading.AssemblyReading {
         }
 
         private static bool IsLinked([CanBeNull] TypeReference referringType, [CanBeNull] TypeReference referrer) {
-            // I no longer see the reason why not-linked should be excluded - we know everything we know, so we use it!
+            // I no longer see the reason why not-linked items should be excluded - we know everything we know, so we use it!
 
             ////if (referrer == null || referringType == null) {
             ////    return false;

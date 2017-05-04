@@ -82,8 +82,8 @@ namespace NDepCheck {
                 ? QuestionableCt > 0 ? "Bad and questionable d" : "Bad d"
                 : QuestionableCt > 0 ? "Questionable d" : "D";
             string ct = BadCt > 0
-                ? QuestionableCt > 0 ? $"{BadCt};{QuestionableCt}" : $"{BadCt}"
-                : QuestionableCt > 0 ? $";{QuestionableCt}" : "";
+                ? QuestionableCt > 0 ? $";{QuestionableCt};{BadCt}" : $";;{BadCt}"
+                : QuestionableCt > 0 ? $";{QuestionableCt};" : ";;";
             string markers = Markers.Any() ? "'" + string.Join("+", Markers) : "";
             return $"{prefix}{nounTail} {UsingItem} --{ct}{markers}-> {UsedItem}" + (Source != null ? (Ct > 1 ? " (e.g. at " : " (at ") + Source + ")" : "");
         }

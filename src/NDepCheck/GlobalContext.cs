@@ -8,68 +8,6 @@ using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using NDepCheck.Matching;
 
-////namespace NDepCheck.Try {
-////    public class IMarkerSet { }
-
-////    public struct Item {
-////        private readonly ItemType Type;
-////        private readonly string[] Values;
-////        private readonly IMarkerSet Markers;
-////    }
-
-////    public struct Dependency {
-////        private int UsingItemIndex;
-////        private int Ct, BadCt, QuestionableCt;
-////        private int UsedItemIndex;
-////    }
-
-////    public class ImmtuableReferences<T> : IEnumerable<T> {
-////        private ImmutableCollection<T> Referenced;
-////        private int[] Indices;
-
-////        private IEnumerator<T> GetAll() {
-////            foreach (var i in Indices) {
-////                yield return Referenced.LocalElements[i];
-////            }
-////        }
-
-////        public IEnumerator<T> GetEnumerator() {
-////            return GetAll();
-////        }
-
-////        IEnumerator IEnumerable.GetEnumerator() {
-////            return GetAll();
-////        }
-////    }
-
-////    public class ImmutableCollection<T> : IEnumerable<T> {
-////        public readonly T[] LocalElements;
-////        private readonly List<ImmtuableReferences<T>> References;
-
-////        private IEnumerator<T> GetAll() {
-////            foreach (var t in LocalElements) {
-////                yield return t;
-////            }
-////            foreach (var r in References) {
-////                foreach (var t in r) {
-////                    yield return t;
-////                }
-////            }
-////        }
-
-////        public IEnumerator<T> GetEnumerator() {
-////            return GetAll();
-////        }
-
-////        IEnumerator IEnumerable.GetEnumerator() {
-////            return GetAll();
-////        }
-////    }
-
-
-
-////}
-
 namespace NDepCheck {
 
     public class GlobalContext {
@@ -161,24 +99,6 @@ namespace NDepCheck {
                     m => "" + (char) int.Parse(m.Value.Substring(1), NumberStyles.HexNumber))
                 : s;
         }
-
-        //public void ReadAllNotYetReadIn() {
-        //    var stopwatch = new Stopwatch();
-        //    stopwatch.Start();
-        //    IEnumerable<AbstractDependencyReader> allReaders =
-        //        _inputSpecs.SelectMany(i => i.CreateOrGetReaders(this, false))
-        //            .OrderBy(r => r.FullFileName)
-        //            .ToArray();
-
-        //    foreach (var r in allReaders) {
-        //        InputContext inputContext;
-        //        if (!_inputContexts.TryGetValue(r.FullFileName, out inputContext)) {
-        //            _inputContexts.Add(r.FullFileName, r.ReadDependencies(0, IgnoreCase));
-        //        }
-        //    }
-        //    stopwatch.Stop();
-        //    Program.LogElapsedTime(this, stopwatch, "Reading");
-        //}
 
         private IEnumerable<Dependency> GetAllDependencies() {
             return _inputContexts.Values.SelectMany(ic => ic.Dependencies).Concat(DependenciesWithoutInputContext);
@@ -340,13 +260,14 @@ namespace NDepCheck {
         [CanBeNull]
         public IReaderFactory GetSuitableInternalReader(string assemblyName, IEnumerable<string> filenames) {
             string[] extensions = filenames.Select(p => {
-                try {
-                    return Path.GetExtension(p);
-                } catch (ArgumentException) {
-                    return null;
-                }
-            })
+                    try {
+                        return Path.GetExtension(p);
+                    } catch (ArgumentException) {
+                        return null;
+                    }
+                })
                 .Where(p => p != null)
+                .Distinct()
                 .ToArray();
             return CreatePlugins<IReaderFactory>(assemblyName)
                 .FirstOrDefault(t => t.SupportedFileExtensions.Intersect(extensions).Any());
@@ -354,9 +275,6 @@ namespace NDepCheck {
 
         public void ConfigureTransformer([CanBeNull] string assemblyName, [NotNull] string transformerClass,
             [CanBeNull] string transformerOptions, bool forceReloadConfiguration) {
-            // Reading might define item types that are needed in configuration
-            //ReadAllNotYetReadIn();
-
             try {
                 ITransformer plugin = GetOrCreatePlugin<ITransformer>(assemblyName, transformerClass);
                 plugin.Configure(this, transformerOptions, forceReloadConfiguration);
@@ -387,8 +305,6 @@ namespace NDepCheck {
                 ShowDetailedHelp<ITransformer>(assemblyName, transformerClass, "");
                 return Program.OPTIONS_PROBLEM;
             } else {
-                //ReadAllNotYetReadIn();
-
                 ITransformer transformer = GetOrCreatePlugin<ITransformer>(assemblyName, transformerClass);
                 Log.WriteInfo($"Transforming with {assemblyName}.{transformerClass}");
 
@@ -477,8 +393,6 @@ namespace NDepCheck {
             } else {
                 IRenderer renderer = GetOrCreatePlugin<IRenderer>(assemblyName, rendererClassName);
 
-                ////ReadAllNotYetReadIn();
-
                 Dependency[] allDependencies = GetAllDependencies().ToArray();
                 string masterFileName = renderer.GetMasterFileName(this, rendererOptions, fileName);
                 if (WorkLazily && File.Exists(masterFileName)) {
@@ -521,8 +435,6 @@ namespace NDepCheck {
             _inputContexts.Clear();
             _dependenciesWithoutInputContextStack.Clear();
             _dependenciesWithoutInputContextStack.Push(Enumerable.Empty<Dependency>());
-
-            //_inputSpecs.Clear();
 
             RenderingDone = false;
             TransformingDone = false;
@@ -582,8 +494,6 @@ namespace NDepCheck {
         }
 
         public void LogAboutNDependencies(int maxCount, [CanBeNull] string pattern) {
-            //ReadAllNotYetReadIn();
-
             DependencyMatch m = pattern == null ? null : DependencyMatch.Create(pattern, IgnoreCase);
             InputContext[] nonEmptyInputContexts =
                 _inputContexts.Values.Where(ic => ic.Dependencies.Any()).ToArray();
@@ -629,8 +539,6 @@ namespace NDepCheck {
         }
 
         public void LogDependencyCount(string pattern) {
-            //ReadAllNotYetReadIn();
-
             DependencyMatch m = pattern == null ? null : DependencyMatch.Create(pattern, IgnoreCase);
             int sum = DependenciesWithoutInputContext.Count(d => m == null || m.IsMatch(d));
             foreach (var ic in _inputContexts.Values) {

@@ -63,7 +63,7 @@ namespace NDepCheck {
                 Thread.Sleep(2000);
                 _triggered = false;
                 var writtenMasterFiles = new List<string>();
-                _program.RunFromFile(FullScriptName, new string[0], new GlobalContext(), writtenMasterFiles, logCommands: true, showParameters: false);
+                _program.RunFromFile(FullScriptName, new string[0], new GlobalContext(), writtenMasterFiles, logCommands: true, onlyShowParameters: false);
                 _program.WriteWrittenMasterFiles(writtenMasterFiles);
             }
         }

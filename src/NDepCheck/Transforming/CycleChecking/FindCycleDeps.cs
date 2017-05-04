@@ -92,6 +92,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 FindCyclesFrom(i, i, ignoreSelfCycles, outgoing, visitedItem2CheckedPathLengthBehindVisitedItem, 
                     maxCycleLength, foundCycleHashs, AddHash(0, i), pathHeadFromI, dependenciesOnCycles);
             }
+            Log.WriteInfo($"... found {foundCycleHashs.Count} cycles");
 
             if (effects.Contains(DependencyEffectOptions.DELETE_ACTION_MARKER)) {
                 var deps = new HashSet<Dependency>(dependencies);

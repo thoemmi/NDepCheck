@@ -14,7 +14,7 @@ using NDepCheck.WebServing;
 
 namespace NDepCheck {
     public class Program {
-        public const string VERSION = "V.3.75";
+        public const string VERSION = "V.3.76";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 180;
@@ -438,16 +438,17 @@ namespace NDepCheck {
                             result = EXCEPTION_RESULT;
                         }
                     } else if (DoScriptHelpOption.IsMatch(arg)) {
-                        string fileName = ExtractOptionValue(globalContext, args, ref i);
+                        // -ds?    filename
+                        string fileName = ExtractRequiredOptionValue(globalContext, args, ref i, "Missing script file name");
                         SetResult(ref result, RunFromFile(fileName, new string[0], globalContext, writtenMasterFiles,
-                                         logCommands: false, showParameters: true));
+                                         logCommands: false, onlyShowParameters: true));
                     } else if (DoScriptOption.IsMatch(arg) || DoScriptLoggedOption.IsMatch(arg)) {
-                        // -dp    filename
+                        // -ds    filename
                         // -dl    filename
-                        string fileName = ExtractOptionValue(globalContext, args, ref i);
+                        string fileName = ExtractRequiredOptionValue(globalContext, args, ref i, "Missing script file name");
                         string[] paramValues = GetParamsList(globalContext, args, ref i);
                         SetResult(ref result, RunFromFile(fileName, paramValues, globalContext, writtenMasterFiles,
-                                              logCommands: DoScriptLoggedOption.IsMatch(arg), showParameters: false));
+                                              logCommands: DoScriptLoggedOption.IsMatch(arg), onlyShowParameters: false));
                         // file is also an input file - and if there are no input files in -o, the error will come up there.
                         globalContext.InputFilesOrTestDataSpecified = true;
                     } else if (FormalParametersOption.IsMatch(arg)) {
@@ -580,7 +581,7 @@ namespace NDepCheck {
                         globalContext.WorkLazily = true;
                     } else if (IsNdFile(arg)) {
                         string[] paramValues = GetParamsList(globalContext, args, ref i);
-                        SetResult(ref result, RunFromFile(arg, paramValues, globalContext, writtenMasterFiles, logCommands: false, showParameters: false));
+                        SetResult(ref result, RunFromFile(arg, paramValues, globalContext, writtenMasterFiles, logCommands: false, onlyShowParameters: false));
                         globalContext.InputFilesOrTestDataSpecified = true;
                     } else if (globalContext.GetSuitableInternalReader("", new[] { arg }) != null) {
                         globalContext.ReadFiles(args, ref i, "", null, arg);
@@ -732,17 +733,17 @@ namespace NDepCheck {
         }
 
         internal int RunFromFile([NotNull] string fileName, [NotNull, ItemNotNull] string[] passedValues, [NotNull] GlobalContext globalContext,
-                                 [CanBeNull] List<string> writtenMasterFiles, bool logCommands, bool showParameters) {
+                                 [CanBeNull] List<string> writtenMasterFiles, bool logCommands, bool onlyShowParameters) {
             if (Path.GetExtension(fileName) == "") {
                 fileName = Path.ChangeExtension(fileName, ".nd");
             }
 
-            string[] args = Option.CollectArgsFromFile(fileName);
-
             try {
+                string[] args = Option.CollectArgsFromFile(fileName);
+
                 ValuesFrame locals = new ValuesFrame();
 
-                var showParametersText = showParameters ? new StringBuilder() : null;
+                StringBuilder showParametersText = onlyShowParameters ? new StringBuilder() : null;
 
                 int i = 0;
                 int passedValueCount = 0;
