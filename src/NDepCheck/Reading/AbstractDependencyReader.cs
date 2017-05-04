@@ -31,7 +31,7 @@ namespace NDepCheck.Reading {
         [CanBeNull]
         public InputContext ReadDependencies(int depth, bool ignoreCase) {
             var inputContext = new InputContext(FullFileName);
-            Dependency[] dependencies = ReadDependencies(inputContext, depth, ignoreCase).ToArray();
+            IEnumerable<Dependency> dependencies = ReadDependencies(inputContext, depth, ignoreCase).ToArray();
             if (!dependencies.Any()) {
                 Log.WriteWarning("No dependencies found in " + FullFileName);
             }

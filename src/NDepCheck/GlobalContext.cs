@@ -74,12 +74,22 @@ namespace NDepCheck {
 
     public class GlobalContext {
         private const string HELP_SEPARATOR = "=============================================";
-        internal bool RenderingDone { get; set; }
-        internal bool TransformingDone { get; set; }
-        internal bool InputFilesOrTestDataSpecified { get; set; }
-        internal bool HelpShown { get; private set; }
+        internal bool RenderingDone {
+            get; set;
+        }
+        internal bool TransformingDone {
+            get; set;
+        }
+        internal bool InputFilesOrTestDataSpecified {
+            get; set;
+        }
+        internal bool HelpShown {
+            get; private set;
+        }
 
-        public bool IgnoreCase { get; set; }
+        public bool IgnoreCase {
+            get; set;
+        }
 
         private readonly ValuesFrame _globalValues = new ValuesFrame();
         private ValuesFrame _localParameters = new ValuesFrame();
@@ -112,9 +122,13 @@ namespace NDepCheck {
         [NotNull]
         public IEnumerable<InputContext> InputContexts => _inputContexts.Values;
 
-        public bool WorkLazily { get; set; }
+        public bool WorkLazily {
+            get; set;
+        }
 
-        public string Name { get; }
+        public string Name {
+            get;
+        }
 
         public TimeSpan TimeLongerThan { get; set; } = TimeSpan.FromSeconds(10);
 
@@ -144,7 +158,7 @@ namespace NDepCheck {
         public static string ExpandHexChars([CanBeNull] string s) {
             return s != null && s.Contains('%')
                 ? Regex.Replace(s, "%[0-9a-fA-F][0-9a-fA-F]",
-                    m => "" + (char)int.Parse(m.Value.Substring(1), NumberStyles.HexNumber))
+                    m => "" + (char) int.Parse(m.Value.Substring(1), NumberStyles.HexNumber))
                 : s;
         }
 
@@ -170,6 +184,7 @@ namespace NDepCheck {
             return _inputContexts.Values.SelectMany(ic => ic.Dependencies).Concat(DependenciesWithoutInputContext);
         }
 
+        [NotNull]
         private T GetOrCreatePlugin<T>([CanBeNull] string assemblyName, [CanBeNull] string pluginClassName)
             where T : IPlugin {
             if (pluginClassName == null) {
@@ -189,9 +204,9 @@ namespace NDepCheck {
             }
             try {
                 // plugins can have state, therefore we must manage them
-                T result = (T)_plugins.FirstOrDefault(t => t.GetType() == pluginType);
+                T result = (T) _plugins.FirstOrDefault(t => t.GetType() == pluginType);
                 if (result == null) {
-                    _plugins.Add(result = (T)Activator.CreateInstance(pluginType));
+                    _plugins.Add(result = (T) Activator.CreateInstance(pluginType));
                 }
                 return result;
             } catch (Exception ex) {
@@ -226,7 +241,7 @@ namespace NDepCheck {
         private IEnumerable<T> CreatePlugins<T>(string assemblyName) where T : class, IPlugin {
             return GetPluginTypes<T>(assemblyName).Select(t => {
                 try {
-                    return (T)Activator.CreateInstance(t);
+                    return (T) Activator.CreateInstance(t);
                 } catch (Exception ex) {
                     Log.WriteError($"Cannot get help for renderer '{t.FullName}'; reason: {ex.Message}");
                     return null;
@@ -264,7 +279,7 @@ namespace NDepCheck {
             }
             Log.WriteInfo(HELP_SEPARATOR);
         }
-        
+
         /// <summary>
         /// Extract file patterns from args and read files
         /// </summary>
@@ -291,10 +306,15 @@ namespace NDepCheck {
 
             IReaderFactory readerFactory;
             if (readerFactoryClassNameOrNull == null) {
-                readerFactory = GetSuitableInternalReader(assemblyName, includes.Concat(excludes));
+                IEnumerable<string> allFileNames = includes.Concat(excludes);
+                readerFactory = GetSuitableInternalReader(assemblyName, allFileNames);
+                if (readerFactory == null) {
+                    throw new ApplicationException($"Found no reader for files {string.Join(",", allFileNames)}");
+                }
             } else {
                 readerFactory = GetOrCreatePlugin<IReaderFactory>(assemblyName, readerFactoryClassNameOrNull);
             }
+
 
             InputFilesOrTestDataSpecified = true;
 
@@ -317,14 +337,15 @@ namespace NDepCheck {
             }
         }
 
+        [CanBeNull]
         public IReaderFactory GetSuitableInternalReader(string assemblyName, IEnumerable<string> filenames) {
             string[] extensions = filenames.Select(p => {
-                    try {
-                        return Path.GetExtension(p);
-                    } catch (ArgumentException) {
-                        return null;
-                    }
-                })
+                try {
+                    return Path.GetExtension(p);
+                } catch (ArgumentException) {
+                    return null;
+                }
+            })
                 .Where(p => p != null)
                 .ToArray();
             return CreatePlugins<IReaderFactory>(assemblyName)

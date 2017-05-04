@@ -22,11 +22,9 @@ namespace NDepCheck {
                 throw new ArgumentNullException(nameof(type));
             }
             _type = type;
-            if (values.Length < type.Length) {
-                values = values.Concat(Enumerable.Range(0, type.Length - values.Length).Select(i => "")).ToArray();
-            }
-            Values = values.Select(v => v == null ? null : string.Intern(v)).ToArray();
-            CasedValues = type.IgnoreCase ? values.Select(v => v.ToUpperInvariant()).ToArray() : Values;
+            IEnumerable<string> enoughValues = values.Length < type.Length ? values.Concat(Enumerable.Range(0, type.Length - values.Length).Select(i => "")) : values;
+            Values = enoughValues.Select(v => v == null ? null : string.Intern(v)).ToArray();
+            CasedValues = type.IgnoreCase ? enoughValues.Select(v => v.ToUpperInvariant()).ToArray() : Values;
         }
 
         public ItemType Type => _type;

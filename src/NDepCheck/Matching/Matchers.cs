@@ -22,8 +22,8 @@ namespace NDepCheck.Matching {
             return _alsoMatchDot || !value.Contains('.');
         }
 
-        public string[] Matches(string value, string[] ignoredReferences) {
-            return IsMatch(value) ? _groupCount == 0 ? NO_STRING : Enumerable.Repeat(value, _groupCount).ToArray() : null;
+        public IEnumerable<string> Matches(string value, string[] ignoredReferences) {
+            return IsMatch(value) ? _groupCount == 0 ? NO_STRING : Enumerable.Repeat(value, _groupCount) : null;
         }
 
         public bool MatchesAlike(IMatcher other) {
@@ -55,7 +55,7 @@ namespace NDepCheck.Matching {
             return value == "";
         }
 
-        public string[] Matches(string value, string[] ignoredReferences) {
+        public IEnumerable<string> Matches(string value, string[] ignoredReferences) {
             return value == "" ? _groups : null;
         }
 
@@ -118,7 +118,7 @@ namespace NDepCheck.Matching {
             _ignoreCase = ignoreCase;
         }
 
-        public string[] Matches(string value, string[] ignoredReferences) {
+        public IEnumerable<string> Matches(string value, string[] ignoredReferences) {
             string[] result;
             if (Check(value, out result)) {
                 return result;
@@ -250,7 +250,7 @@ namespace NDepCheck.Matching {
             _fixedSuffix = (fixedSuffix ?? "").Replace("(", "").Replace(")", "");
         }
 
-        public string[] Matches(string value, string[] references) {
+        public IEnumerable<string> Matches(string value, string[] references) {
             string matchValue;
             if (_upperBoundOfGroupCount > 0 && references != null) {
                 // Idea: From groups (e.g. a, b, c) and value(\1xy\2) construct the string a#b#c#\1xy\2.

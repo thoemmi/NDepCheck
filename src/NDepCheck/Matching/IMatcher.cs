@@ -1,9 +1,10 @@
+using System.Collections.Generic;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Matching {
     public interface IMatcher {
         [CanBeNull]
-        string[] Matches([NotNull] string value, [CanBeNull] string[] references);
+        IEnumerable<string> Matches([NotNull] string value, [CanBeNull] string[] references);
 
         bool MatchesAlike(IMatcher other);
 

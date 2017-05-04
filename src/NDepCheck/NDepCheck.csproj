@@ -232,7 +232,7 @@
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Import Project="..\packages\CreateAssemblyInfoFromGit.1.0.0-beta0025\build\CreateAssemblyInfoFromGit.targets" Condition="Exists('..\packages\CreateAssemblyInfoFromGit.1.0.0-beta0025\build\CreateAssemblyInfoFromGit.targets')" />
   <PropertyGroup>
-    <PostBuildEvent>$(TargetPath) -rd $(TargetPath) -ds $(ProjectDir)NDepCheck.nd</PostBuildEvent>
+    <PostBuildEvent>REM $(TargetPath) -rd $(TargetPath) -ds $(ProjectDir)NDepCheck.nd</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

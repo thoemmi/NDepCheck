@@ -1,6 +1,6 @@
-// (c) HMMüller 2017
+// Checkable architectural information for NDepCheck
 
--cf checkDeps { -rd
+-cf CheckDeps { -rd
     $DOTNETCALL ---> DOTNETCALL
 
     // Assembly dependencies
@@ -15,7 +15,7 @@
     
     // Namespace dependencies - CURRENTLY ONLY FOR TOPLEVEL NDepCheck
     * {
-    		// Compiler-generated types like <>f__AnonymousType1 in top-level namespace
+            // Compiler-generated types like <>f__AnonymousType1 in top-level namespace
         : ---> -:
 
         // using own namespace is always ok
@@ -29,10 +29,10 @@
         : ---> Gibraltar
 
         // Copied JetBrains.Annotations - may be used by anyone
-				: ---> JetBrains.Annotations
-		
-		    // NDepCheck namespace architecture - CURRENTLY ONLY FOR TOPLEVEL 
-		    // Matching and Markers are "subdrawer" subnamespaces that can be used by everyone
+                : ---> JetBrains.Annotations
+        
+            // NDepCheck namespace architecture - CURRENTLY ONLY FOR TOPLEVEL 
+            // Matching and Markers are "subdrawer" subnamespaces that can be used by everyone
         : ---> NDepCheck.Matching
         : ---> NDepCheck.Markers
 
@@ -52,7 +52,6 @@
         : -- '_declaresfield  -> '_readonly&_primitive
         : -- '_declaresfield  -> System:String
         : -- '_declaresfield  -> :IMarkerSet'_readonly
-        : -- '_declaresfield  -> :ReadOnly*'_readonly
         : -- '_declaresfield  -> :ReadOnly*'_readonly
         
         // By design, we have a HashSet in the ReadOnlyMarkerSet; but no method ever changes it after init in the .ctor

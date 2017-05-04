@@ -100,14 +100,18 @@ namespace NDepCheck.Matching {
             for (int i = 0; i < _matchers.Length; i++) {
                 IMatcher matcher = _matchers[i];
                 string value = item.Values[i];
-                string[] groups = matcher.Matches(value, references);
+                IEnumerable<string> groups = matcher.Matches(value, references);
                 if (groups == null) {
                     return null;
                 }
-                if (groups.Length > 0) {
-                    var newGroupsInItem = new string[groupsInItem.Length + groups.Length];
+                int ct = groups.Count();
+                if (ct > 0) {
+                    var newGroupsInItem = new string[groupsInItem.Length + ct];
                     Array.Copy(groupsInItem, newGroupsInItem, groupsInItem.Length);
-                    Array.Copy(groups, 0, newGroupsInItem, groupsInItem.Length, groups.Length);
+                    int j = groupsInItem.Length;
+                    foreach (var g in groups) {
+                        newGroupsInItem[j++] = g;
+                    }
                     groupsInItem = newGroupsInItem;
                 }
             }
