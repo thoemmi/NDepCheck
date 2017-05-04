@@ -90,7 +90,7 @@ namespace NDepCheck.Matching {
             _matchers = matchers;
         }
 
-        public string[] Matches([NotNull] AbstractItem item, string[] references = null) {
+        public string[] Matches<TItem>([NotNull] AbstractItem<TItem> item, string[] references = null) where TItem : AbstractItem<TItem> {
             if (item.Type.CommonType(_itemType) == null) {
                 return null;
             }

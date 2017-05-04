@@ -33,7 +33,7 @@ namespace NDepCheck.Matching {
             _markerPattern = new MarkerMatch(patternParts.Length > 1 ? patternParts[1] : "", ignoreCase);
         }
 
-        public bool IsMatch<TItem>(AbstractDependency<TItem> dependency) where TItem : AbstractItem {
+        public bool IsMatch<TItem>(AbstractDependency<TItem> dependency) where TItem : AbstractItem<TItem> {
             if (!_markerPattern.IsMatch(dependency)) {
                 return false;
             } else if (_ctZero.HasValue && _ctZero.Value != dependency.Ct > 0) {

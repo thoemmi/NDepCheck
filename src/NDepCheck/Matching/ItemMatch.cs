@@ -18,11 +18,11 @@ namespace NDepCheck.Matching {
 
         public ItemPattern ItemPattern => _itemPattern;
 
-        public string[] Matches(AbstractItem item, [CanBeNull] string[] references = null) {
+        public string[] Matches<TItem>(AbstractItem<TItem> item, [CanBeNull] string[] references = null) where TItem : AbstractItem<TItem> {
             return _markerPattern.IsMatch(item.MarkerSet) ? _itemPattern.Matches(item, references) : null;
         }
 
-        public static bool IsMatch(ItemMatch matchOrNull, AbstractItem item) {
+        public static bool IsMatch<TItem>(ItemMatch matchOrNull, AbstractItem<TItem> item) where TItem : AbstractItem<TItem> {
             return matchOrNull == null || matchOrNull.Matches(item) != null;
         }
 

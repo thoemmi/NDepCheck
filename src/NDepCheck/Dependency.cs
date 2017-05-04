@@ -7,7 +7,7 @@ using NDepCheck.Markers;
 using NDepCheck.Matching;
 
 namespace NDepCheck {
-    public abstract class AbstractDependency<TItem> : IMarkerSet, IWithCt where TItem : AbstractItem {
+    public abstract class AbstractDependency<TItem> : IMarkerSet, IWithCt where TItem : AbstractItem<TItem> {
         protected AbstractDependency([NotNull] TItem usingItem, [NotNull] TItem usedItem, ISourceLocation source) {
             UsingItem = usingItem;
             UsedItem = usedItem;

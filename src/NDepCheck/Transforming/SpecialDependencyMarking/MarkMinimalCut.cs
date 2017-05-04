@@ -33,12 +33,12 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             _ignoreCase = globalContext.IgnoreCase;
         }
 
-        private class Edge {
+        private class EdgeWithFlow {
             public readonly Dependency Dependency;
             public readonly int Capacity;
             public int Flow;
 
-            public Edge(Dependency dependency, Func<Dependency, int> capacity) {
+            public EdgeWithFlow(Dependency dependency, Func<Dependency, int> capacity) {
                 Dependency = dependency;
                 Capacity = capacity(dependency);
                 Flow = 0;
@@ -61,7 +61,6 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             var sourceMatches = new List<ItemMatch>();
             var targetMatches = new List<ItemMatch>();
             string markerToAddToSourceSide = null;
-            //string markerToAddToTargetSide = null;
             string markerToAddToCut = null;
             Func<Dependency, int> weightForCut = d => d.BadCt;
 
@@ -110,12 +109,12 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
             // Find maximal flow from sources to targets via the Ford-Fulkerson algorithm - see e.g. 
             // http://www.cs.princeton.edu/courses/archive/spr04/cos226/lectures/maxflow.4up.pdf;
-            Dictionary<Dependency, Edge> edges = dependencies.ToDictionary(d => d, d => new Edge(d, weightForCut));
+            Dictionary<Dependency, EdgeWithFlow> edges = dependencies.ToDictionary(d => d, d => new EdgeWithFlow(d, weightForCut));
 
-            Dictionary<Item, List<Edge>> outgoing = Item.CollectMap(dependencies, d => d.UsingItem, d => edges[d]);
+            Dictionary<Item, List<EdgeWithFlow>> outgoing = Item.CollectMap(dependencies, d => d.UsingItem, d => edges[d]);
             SortByFallingCapacity(outgoing);
 
-            Dictionary<Item, List<Edge>> incoming = Item.CollectMap(dependencies, d => d.UsedItem, d => edges[d]);
+            Dictionary<Item, List<EdgeWithFlow>> incoming = Item.CollectMap(dependencies, d => d.UsedItem, d => edges[d]);
             SortByFallingCapacity(incoming);
 
             bool flowIncreased;
@@ -148,20 +147,20 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             return Program.OK_RESULT;
         }
 
-        private static void SortByFallingCapacity(Dictionary<Item, List<Edge>> e) {
+        private static void SortByFallingCapacity(Dictionary<Item, List<EdgeWithFlow>> e) {
             foreach (var li in e.Values) {
                 li.Sort((e1, e2) => e2.Capacity - e1.Capacity);
             }
         }
 
-        private static IEnumerable<Edge> GetList(Dictionary<Item, List<Edge>> dictionary, Item item) {
-            List<Edge> result;
+        private static IEnumerable<EdgeWithFlow> GetList(Dictionary<Item, List<EdgeWithFlow>> dictionary, Item item) {
+            List<EdgeWithFlow> result;
             dictionary.TryGetValue(item, out result);
-            return result ?? Enumerable.Empty<Edge>();
+            return result ?? Enumerable.Empty<EdgeWithFlow>();
         }
 
         private int IncreaseFlow(Item item, int maxPossibleFlowIncreaseAlongPath, HashSet<Item> visited,
-            Dictionary<Item, List<Edge>> outgoing, Dictionary<Item, List<Edge>> incoming, HashSet<Item> targetItems) {
+            Dictionary<Item, List<EdgeWithFlow>> outgoing, Dictionary<Item, List<EdgeWithFlow>> incoming, HashSet<Item> targetItems) {
             if (targetItems.Contains(item)) {
                 return maxPossibleFlowIncreaseAlongPath;
             } else {
@@ -189,8 +188,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             }
         }
 
-        private int ComputeActualIncrease(HashSet<Item> visited, Dictionary<Item, List<Edge>> outgoing,
-            Dictionary<Item, List<Edge>> incoming, HashSet<Item> targetItems, int possibleFlowIncrease, Item nextItem) {
+        private int ComputeActualIncrease(HashSet<Item> visited, Dictionary<Item, List<EdgeWithFlow>> outgoing,
+            Dictionary<Item, List<EdgeWithFlow>> incoming, HashSet<Item> targetItems, int possibleFlowIncrease, Item nextItem) {
             if (possibleFlowIncrease > 0 && visited.Add(nextItem)) {
                 int result = IncreaseFlow(nextItem, possibleFlowIncrease, visited, outgoing, incoming, targetItems);
                 visited.Remove(nextItem);
@@ -201,7 +200,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         }
 
         private void AddReachableInResidualGraph(Item item, HashSet<Item> reachableFromSources,
-            Dictionary<Item, List<Edge>> outgoing, Dictionary<Item, List<Edge>> incoming) {
+            Dictionary<Item, List<EdgeWithFlow>> outgoing, Dictionary<Item, List<EdgeWithFlow>> incoming) {
             foreach (var e in GetList(outgoing, item).Where(e => e.InResidual)) {
                 if (reachableFromSources.Add(e.UsedItem)) {
                     AddReachableInResidualGraph(e.UsedItem, reachableFromSources, outgoing, incoming);

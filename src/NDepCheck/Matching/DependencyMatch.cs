@@ -40,7 +40,7 @@ namespace NDepCheck.Matching {
             return new DependencyMatch(left.Trim(), dep.Trim(), right.Trim(), ignoreCase);
         }
 
-        public bool IsMatch<TItem>(AbstractDependency<TItem> d) where TItem : AbstractItem {
+        public bool IsMatch<TItem>(AbstractDependency<TItem> d) where TItem : AbstractItem<TItem> {
             string[] groups = UsingMatch == null ? NO_STRINGS : UsingMatch.Matches(d.UsingItem, NO_STRINGS);
             return groups != null
                    && (DependencyPattern == null || DependencyPattern.IsMatch(d))

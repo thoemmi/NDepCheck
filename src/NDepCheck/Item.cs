@@ -83,12 +83,14 @@ namespace NDepCheck {
         }
     }
 
-    public abstract class AbstractItem : ItemSegment {
+    public abstract class AbstractItem<TItem> : ItemSegment where TItem : AbstractItem<TItem> {
         private string _asString;
         private string _asFullString;
 
         [NotNull]
-        public abstract IMarkerSet MarkerSet { get; }
+        public abstract IMarkerSet MarkerSet {
+            get;
+        }
 
         public IEnumerable<string> Markers => MarkerSet.Markers;
 
@@ -110,7 +112,7 @@ namespace NDepCheck {
 
         [DebuggerStepThrough]
         public override bool Equals(object obj) {
-            var other = obj as Item;
+            TItem other = obj as TItem;
             return other != null && EqualsSegment(other);
         }
 
@@ -157,30 +159,30 @@ namespace NDepCheck {
             return _asString;
         }
 
-        public static Dictionary<Item, IEnumerable<Dependency>> CollectIncomingDependenciesMap(
-            IEnumerable<Dependency> dependencies, Func<Item, bool> selectItem = null) {
+        public static Dictionary<TItem, IEnumerable<TDependency>> CollectIncomingDependenciesMap<TDependency>(
+            IEnumerable<TDependency> dependencies, Func<TItem, bool> selectItem = null) where TDependency : AbstractDependency<TItem> {
             return
                 CollectMap(dependencies, d => selectItem == null || selectItem(d.UsedItem) ? d.UsedItem : null, d => d)
-                    .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<Dependency>)kvp.Value);
+                    .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<TDependency>) kvp.Value);
         }
 
-        public static Dictionary<Item, IEnumerable<Dependency>> CollectOutgoingDependenciesMap(
-            IEnumerable<Dependency> dependencies, Func<Item, bool> selectItem = null) {
+        public static Dictionary<TItem, IEnumerable<TDependency>> CollectOutgoingDependenciesMap<TDependency>(
+                IEnumerable<TDependency> dependencies, Func<TItem, bool> selectItem = null) where TDependency : AbstractDependency<TItem> {
             return
                 CollectMap(dependencies, d => selectItem == null || selectItem(d.UsingItem) ? d.UsingItem : null, d => d)
-                    .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<Dependency>)kvp.Value);
+                    .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<TDependency>) kvp.Value);
         }
 
-        public static Dictionary<Item, List<T>> CollectMap<T>(
-            [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, [NotNull] Func<Dependency, Item> getItem,
-            [NotNull] Func<Dependency, T> createT) {
-            var result = new Dictionary<Item, List<T>>();
+        public static Dictionary<TItem, List<TResult>> CollectMap<TDependency, TResult>(
+            [NotNull, ItemNotNull] IEnumerable<TDependency> dependencies, [NotNull] Func<TDependency, TItem> getItem,
+            [NotNull] Func<TDependency, TResult> createT) {
+            var result = new Dictionary<TItem, List<TResult>>();
             foreach (var d in dependencies) {
-                Item key = getItem(d);
+                TItem key = getItem(d);
                 if (key != null) {
-                    List<T> list;
+                    List<TResult> list;
                     if (!result.TryGetValue(key, out list)) {
-                        result.Add(key, list = new List<T>());
+                        result.Add(key, list = new List<TResult>());
                     }
                     list.Add(createT(d));
                 }
@@ -199,7 +201,7 @@ namespace NDepCheck {
         }
     }
 
-    public class ReadOnlyItem : AbstractItem, IMarkerSet {
+    public class ReadOnlyItem : AbstractItem<ReadOnlyItem>, IMarkerSet {
         [NotNull]
         private readonly ReadOnlyMarkerSet _markerSet;
 
@@ -210,7 +212,7 @@ namespace NDepCheck {
         public override IMarkerSet MarkerSet => _markerSet;
     }
 
-    public class Item : AbstractItem, IMutableMarkerSet {
+    public class Item : AbstractItem<Item>, IMutableMarkerSet {
         [NotNull]
         private readonly MutableMarkerSet _markerSet;
 
