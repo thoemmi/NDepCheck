@@ -92,9 +92,9 @@ namespace NDepCheck.Matching {
             _matchers = matchers;
         }
 
-        public string[] Matches<TItem>([NotNull] AbstractItem<TItem> item, string[] references = null) where TItem : AbstractItem<TItem> {
+        public MatchResult Matches<TItem>([NotNull] AbstractItem<TItem> item, bool invert, string[] references = null) where TItem : AbstractItem<TItem> {
             if (item.Type.CommonType(_itemType) == null) {
-                return null;
+                return new MatchResult(invert, null);
             }
 
             string[] groupsInItem = NO_GROUPS;
@@ -104,7 +104,7 @@ namespace NDepCheck.Matching {
                 string value = item.Values[i];
                 IEnumerable<string> groups = matcher.Matches(value, references);
                 if (groups == null) {
-                    return null;
+                    return new MatchResult(invert, null);
                 }
                 int ct = groups.Count();
                 if (ct > 0) {
@@ -117,7 +117,7 @@ namespace NDepCheck.Matching {
                     groupsInItem = newGroupsInItem;
                 }
             }
-            return groupsInItem ?? NO_GROUPS;
+            return new MatchResult(!invert, groupsInItem);
         }
 
         public bool MatchesAlike(ItemPattern other) {

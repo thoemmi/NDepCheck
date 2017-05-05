@@ -6,38 +6,59 @@ using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.CycleChecking {
     public class FindCycleDeps : ITransformer {
-        private class FindCycleDepsPathFinder : AbstractDepthFirstPathTraverser {
-            public readonly HashSet<Dependency> DependenciesOnCycles = new HashSet<Dependency>();
+        private class FindCycleDepsPathFinder<TDependency, TItem> : AbstractDepthFirstPathTraverser<TDependency, TItem>
+                where TDependency : AbstractDependency<TItem>
+                where TItem : AbstractItem<TItem> {
+            public readonly HashSet<TDependency> DependenciesOnCycles = new HashSet<TDependency>();
             public readonly HashSet<int> FoundCycleHashs = new HashSet<int>();
 
-            public FindCycleDepsPathFinder(IEnumerable<Dependency> dependencies, ItemMatch cycleAnchorsMatch, bool ignoreSelfCycles, 
-                                           int maxCycleLength) : base(retraverseItems: false) {
-                Dictionary<Item, IEnumerable<Dependency>> outgoing = Item.CollectOutgoingDependenciesMap(dependencies);
+            public FindCycleDepsPathFinder(IEnumerable<TDependency> dependencies, ItemMatch cycleAnchorsMatch, 
+                                           bool ignoreSelfCycles,  int maxCycleLength) : base(retraverseItems: false) {
+                Dictionary<TItem, IEnumerable<TDependency>> outgoing = AbstractItem<TItem>.CollectOutgoingDependenciesMap(dependencies);
 
                 foreach (var i in outgoing.Keys.Where(i => ItemMatch.IsMatch(cycleAnchorsMatch, i)).OrderBy(i => i.Name)) {
-                    var visitedItem2CheckedPathLengthBehindVisitedItem = new Dictionary<Item, int>();
-                    Traverse(i, i, ignoreSelfCycles, outgoing, visitedItem2CheckedPathLengthBehindVisitedItem, maxCycleLength,
-                        FoundCycleHashs, WithAddedItemHash(0, i));
+                    var visitedItem2CheckedPathLengthBehindVisitedItem = new Dictionary<TItem, int>();
+                    Traverse(i, i, ignoreSelfCycles, outgoing, visitedItem2CheckedPathLengthBehindVisitedItem, maxCycleLength);
                 }
             }
 
-            protected override void OnTailLoopsBack(Stack<Dependency> currentPath, Item tail) {
+            protected override void OnTailLoopsBack(Stack<TDependency> currentPath, TItem tail) {
                 // empty
             }
 
-            protected override void AfterPushDependency(Stack<Dependency> currentPath) {
+            protected override void AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath) {
                 // empty
             }
 
-            protected override void OnFoundCycleToRoot(Stack<Dependency> currentPath) {
-                DependenciesOnCycles.UnionWith(currentPath);
+            protected override void OnFoundCycleToRoot(Stack<TDependency> currentPath) {
+                int[] nodeHashes = currentPath.Select(d => d.UsingItem.GetHashCode()).ToArray();
+                int minHashCode = nodeHashes[0];
+                int minPos = 0;
+                for (int i = 1; i < currentPath.Count; i++) {
+                    if (nodeHashes[i] < minHashCode) {
+                        minPos = i;
+                        minHashCode = nodeHashes[i];
+                    }
+                }
+
+                int cycleHash = 0;
+                for (int i = minPos; i < nodeHashes.Length; i++) {
+                    cycleHash = unchecked(cycleHash * 17 + nodeHashes[i]);
+                }
+                for (int i = 0; i < minPos; i++) {
+                    cycleHash = unchecked(cycleHash * 17 + nodeHashes[i]);
+                }
+                if (FoundCycleHashs.Add(cycleHash)) {
+                    // actually a new cycle
+                    DependenciesOnCycles.UnionWith(currentPath);
+                }
             }
 
-            protected override void BeforePopDependency(Stack<Dependency> currentPath) {
+            protected override void BeforePopDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath) {
                 // empty
             }
 
-            protected override void OnPathEnd(Stack<Dependency> currentPath) {
+            protected override void OnPathEnd(Stack<TDependency> currentPath) {
                 // empty
             }
         }
@@ -103,7 +124,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 })
             });
 
-            var cycleFinder = new FindCycleDepsPathFinder(dependencies, cycleAnchorsMatch, ignoreSelfCycles, maxCycleLength);            
+            var cycleFinder = new FindCycleDepsPathFinder<Dependency,Item>(dependencies, cycleAnchorsMatch, ignoreSelfCycles, maxCycleLength);            
             HashSet<Dependency> dependenciesOnCycles = cycleFinder.DependenciesOnCycles;
             HashSet<int> foundCycleHashs = cycleFinder.FoundCycleHashs;
 

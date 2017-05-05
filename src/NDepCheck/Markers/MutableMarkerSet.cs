@@ -94,19 +94,10 @@ namespace NDepCheck.Markers {
 
         public static void AddComputedMarkerIfNoMarkers(List<string> markersToAdd, List<ItemMatch> fromItemMatches, List<ItemMatch> toItemMatches, string defaultName) {
             if (!markersToAdd.Any()) {
-                var fromPart = FirstReadableName(fromItemMatches) ?? defaultName;
-                var toPart = FirstReadableName(toItemMatches) ?? defaultName;
-                string marker = fromPart + "_" + toPart;
+                string marker = CreateReadableDefaultMarker(fromItemMatches, toItemMatches, defaultName);
                 markersToAdd.Add(marker);
                 Log.WriteInfo($"... adding marker '{marker}'");
             }
-        }
-
-        private static string FirstReadableName(List<ItemMatch> itemMatches) {
-            return itemMatches
-                .SelectMany(m => m.ItemPattern.Matchers)
-                .Select(m => Regex.Replace(m.ToString(), @"[^\p{L}\p{N}_]", "")) // Replace anything not letter, number or _ with nothing
-                .FirstOrDefault(s => !String.IsNullOrWhiteSpace(s));
         }
 
         public static readonly string MARKER_HELP = @"

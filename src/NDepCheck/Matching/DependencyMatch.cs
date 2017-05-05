@@ -13,7 +13,8 @@ namespace NDepCheck.Matching {
 
         private static readonly string[] NO_STRINGS = new string[0];
 
-        public DependencyMatch([CanBeNull] ItemMatch usingMatch, [CanBeNull] DependencyPattern dependencyPattern, [CanBeNull] ItemMatch usedMatch) {
+        public DependencyMatch([CanBeNull] ItemMatch usingMatch,
+            [CanBeNull] DependencyPattern dependencyPattern, [CanBeNull] ItemMatch usedMatch) {
             UsingMatch = usingMatch;
             DependencyPattern = dependencyPattern;
             UsedMatch = usedMatch;
@@ -24,10 +25,7 @@ namespace NDepCheck.Matching {
             dependencyPattern != "" ? new DependencyPattern(dependencyPattern, ignoreCase) : null,
             usedPattern != "" ? new ItemMatch(usedTypeHint, usedPattern, usingPattern.Count(c => c == '('), ignoreCase) : null) { }
 
-        public DependencyMatch(string usingPattern, string dependencyPattern, string usedPattern, bool ignoreCase) :
-            this(null, usingPattern, dependencyPattern, null, usedPattern, ignoreCase) { }
-
-        public static DependencyMatch Create(string pattern, bool ignoreCase, string arrowTail = "->") {
+        public static DependencyMatch Create(string pattern, bool ignoreCase, string arrowTail = "->", ItemType usingTypeHint = null, ItemType usedTypeHint = null) {
             int l = pattern.IndexOf("--", StringComparison.InvariantCulture);
             string left = l < 0 ? "" : pattern.Substring(0, l);
             int r = pattern.LastIndexOf(arrowTail, StringComparison.InvariantCulture);
@@ -37,14 +35,14 @@ namespace NDepCheck.Matching {
             int rdep = r < 0 || r < l ? pattern.Length : r;
 
             string dep = pattern.Substring(ldep, rdep - ldep);
-            return new DependencyMatch(left.Trim(), dep.Trim(), right.Trim(), ignoreCase);
+            return new DependencyMatch(usingTypeHint, left.Trim(), dep.Trim(), usedTypeHint, right.Trim(), ignoreCase);
         }
 
         public bool IsMatch<TItem>(AbstractDependency<TItem> d) where TItem : AbstractItem<TItem> {
-            string[] groups = UsingMatch == null ? NO_STRINGS : UsingMatch.Matches(d.UsingItem, NO_STRINGS);
-            return groups != null
+            MatchResult matchLeft = UsingMatch == null ? new MatchResult(true, null) : UsingMatch.Matches(d.UsingItem, NO_STRINGS);
+            return matchLeft.Success
                    && (DependencyPattern == null || DependencyPattern.IsMatch(d))
-                   && (UsedMatch == null || UsedMatch.Matches(d.UsedItem, groups) != null);
+                   && (UsedMatch == null || UsedMatch.Matches(d.UsedItem, matchLeft.Groups).Success);
         }
 
         public static readonly string DEPENDENCY_MATCH_HELP = @"

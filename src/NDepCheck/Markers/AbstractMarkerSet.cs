@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using NDepCheck.Matching;
 
@@ -73,6 +74,25 @@ namespace NDepCheck.Markers {
                 }
                 return true;
             }
+        }
+
+        public static string CreateReadableDefaultMarker(IEnumerable<ItemMatch> fromItemMatches, IEnumerable<ItemMatch> toItemMatches, string defaultName) {
+            string fromPart = FirstReadableName(fromItemMatches) ?? ToMarker(defaultName);
+            string toPart = FirstReadableName(toItemMatches);
+            string marker = fromPart + "_" + toPart;
+            return marker;
+        }
+
+        private static string FirstReadableName(IEnumerable<ItemMatch> itemMatches) {
+            return itemMatches
+                .SelectMany(m => m.ItemPattern.Matchers)
+                .Select(m => ToMarker(m.ToString()))
+                .FirstOrDefault(s => !string.IsNullOrWhiteSpace(s));
+        }
+
+        private static string ToMarker(string m) {
+            // Replace anything not letter, number or _ with nothing
+            return Regex.Replace(m, @"[^\p{L}\p{N}_]", "");
         }
     }
 }

@@ -946,7 +946,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             return GlobalContext.CreateFullFileName(baseFileName, ".gif");
         }
 
-        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream stream) {
+        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
             int width = 1000;
             int height = 1000;
             Bitmap bitMap = Render(dependencies, 15, ref width, ref height, htmlForClicks: null);

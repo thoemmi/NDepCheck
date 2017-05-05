@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
+using NDepCheck.Markers;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.ViolationChecking {
@@ -16,23 +17,27 @@ namespace NDepCheck.Transforming.ViolationChecking {
         [NotNull]
         private readonly List<DependencyRule> _forbidden;
 
-        [NotNull]
-        private readonly string _groupPattern;
         [CanBeNull]
-        private readonly ItemMatch _groupMatchOrNullForMainGroup;
+        private readonly string _groupMarker;
+        [CanBeNull]
+        private readonly DependencyMatch _groupMatchOrNullForMainGroup;
 
-        private DependencyRuleGroup([NotNull] string groupPattern, [CanBeNull] ItemMatch groupMatchOrNullForMainGroup,
-                [NotNull] IEnumerable<DependencyRule> allowed, [NotNull] IEnumerable<DependencyRule> questionable,
+        private DependencyRuleGroup([CanBeNull] string defaultName, DependencyMatch groupMatchOrNullForMainGroup,
+        [NotNull] IEnumerable<DependencyRule> allowed, [NotNull] IEnumerable<DependencyRule> questionable,
                 [NotNull] IEnumerable<DependencyRule> forbidden) {
-            _groupPattern = groupPattern;
             _groupMatchOrNullForMainGroup = groupMatchOrNullForMainGroup;
+            _groupMarker = groupMatchOrNullForMainGroup == null
+                ? null
+                : AbstractMarkerSet.CreateReadableDefaultMarker(
+                        new[] { groupMatchOrNullForMainGroup.UsingMatch },
+                        new[] { groupMatchOrNullForMainGroup.UsedMatch }, defaultName);
             _allowed = allowed.ToList();
             _questionable = questionable.ToList();
             _forbidden = forbidden.ToList();
         }
 
-        public DependencyRuleGroup([NotNull] string groupPattern, [CanBeNull] ItemType groupItemTypeHintOrNull, bool ignoreCase)
-            : this(groupPattern, groupPattern == "" ? null : new ItemMatch(groupItemTypeHintOrNull, groupPattern, 0, ignoreCase),
+        public DependencyRuleGroup([NotNull] string groupPattern, bool ignoreCase, ItemType usingTypeHint, ItemType usedTypeHint, string defaultName)
+            : this(defaultName, groupPattern == "" ? null : DependencyMatch.Create(groupPattern, ignoreCase, usingTypeHint: usingTypeHint, usedTypeHint: usedTypeHint),
                 Enumerable.Empty<DependencyRule>(),
                 Enumerable.Empty<DependencyRule>(),
                 Enumerable.Empty<DependencyRule>()) {
@@ -40,7 +45,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
         }
 
         [NotNull]
-        public string GroupPattern => _groupPattern;
+        public string GroupMarker => _groupMarker ?? "";
 
         /// <summary>
         /// Add one or more <c>DependencyRules</c>s from a single input line.
@@ -48,45 +53,54 @@ namespace NDepCheck.Transforming.ViolationChecking {
         /// </summary>
         public bool AddDependencyRules([CanBeNull] ItemType usingItemTypeHint, [CanBeNull] ItemType usedItemTypeHint,
                                        [NotNull] string ruleSourceName, int lineNo, [NotNull] string line,
-                                       bool ignoreCase, [NotNull] string previousRawUsingPattern, [NotNull] out string rawUsingPattern) {
+                                       bool ignoreCase, [NotNull] string previousRawUsingPattern, [NotNull] out string rawTrimmedUsingPattern) {
             Match match;
             if (TryMatch(line, "^(.*)--(.*)->(.*)", out match)) {
-                rawUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
+                rawTrimmedUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
                 IEnumerable<DependencyRule> rules = CreateDependencyRules(usingItemTypeHint, usedItemTypeHint, ruleSourceName, lineNo,
-                    rawUsingPattern, match.Groups[2].Value, match.Groups[3].Value, "--", "->", questionableRule: false, ignoreCase: ignoreCase);
+                    rawTrimmedUsingPattern, match.Groups[2].Value, match.Groups[3].Value, "--", "->", questionableRule: false, ignoreCase: ignoreCase);
                 _allowed.AddRange(rules);
                 return true;
             } else if (TryMatch(line, "^(.*)--(.*)-[?](.*)", out match)) {
-                rawUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
+                rawTrimmedUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
                 IEnumerable<DependencyRule> rules = CreateDependencyRules(usingItemTypeHint, usedItemTypeHint, ruleSourceName, lineNo,
-                    rawUsingPattern, match.Groups[2].Value, match.Groups[3].Value, "--", "-?", questionableRule: true, ignoreCase: ignoreCase);
+                    rawTrimmedUsingPattern, match.Groups[2].Value, match.Groups[3].Value, "--", "-?", questionableRule: true, ignoreCase: ignoreCase);
                 _questionable.AddRange(rules);
                 return true;
             } else if (TryMatch(line, "^(.*)--(.*)-!(.*)", out match)) {
-                rawUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
+                rawTrimmedUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
                 IEnumerable<DependencyRule> rules = CreateDependencyRules(usingItemTypeHint, usedItemTypeHint, ruleSourceName, lineNo,
-                    rawUsingPattern, match.Groups[2].Value, match.Groups[3].Value, "--", "-!", questionableRule: false, ignoreCase: ignoreCase);
+                    rawTrimmedUsingPattern, match.Groups[2].Value, match.Groups[3].Value, "--", "-!", questionableRule: false, ignoreCase: ignoreCase);
                 _forbidden.AddRange(rules);
                 return true;
             } else if (TryMatch(line, "^(.*)===>(.*)", out match)) {
-                rawUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
+                rawTrimmedUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
                 string rawUsedPattern = match.Groups[2].Value;
+                {
+                    ItemMatch @using = new ItemMatch(usingItemTypeHint, rawTrimmedUsingPattern, 0, ignoreCase);
+                    ItemMatch used = new ItemMatch(usedItemTypeHint, rawUsedPattern.Trim(), 0, ignoreCase);
 
-                ItemMatch @using = new ItemMatch(usingItemTypeHint, rawUsingPattern, 0, ignoreCase);
-                ItemMatch used = new ItemMatch(usedItemTypeHint, rawUsedPattern.Trim(), 0, ignoreCase);
-                IEnumerable<DependencyRule> indirectRulesWithMatchingUsingPattern = _allowed.Where(r => r.MatchesUsingPattern(used)).ToArray(); // make a copy!
+                    CopyRulesWithNewUsing(_allowed, used, @using);
+                    CopyRulesWithNewUsing(_questionable, used, @using);
+                    CopyRulesWithNewUsing(_forbidden, used, @using);
+                }
 
-                _allowed.AddRange(indirectRulesWithMatchingUsingPattern
-                    .Select(tail => new DependencyRule(new DependencyMatch(@using, tail.DependencyPattern, tail.Used), tail.Representation)));
-
-                IEnumerable<DependencyRule> directRules = CreateDependencyRules(usingItemTypeHint, usedItemTypeHint, ruleSourceName, lineNo,
-                    rawUsingPattern, "", rawUsedPattern, "==", "=>", questionableRule: false, ignoreCase: ignoreCase);
-                _allowed.AddRange(directRules);
-
+                // using may also use the right side of ===>; in other words, ===> is an implicit --->.
+                _allowed.AddRange(CreateDependencyRules(usingItemTypeHint, usedItemTypeHint,
+                    ruleSourceName, lineNo, rawTrimmedUsingPattern, "", rawUsedPattern, "==", "=>", questionableRule: false,
+                    ignoreCase: ignoreCase));
                 return true;
             } else {
                 throw new ApplicationException("Unexpected rule at " + ruleSourceName + ":" + lineNo);
             }
+        }
+
+        private static void CopyRulesWithNewUsing(List<DependencyRule> rules, ItemMatch used, ItemMatch @using) {
+            IEnumerable<DependencyRule> indirectRulesWithMatchingUsingPattern =
+                rules.Where(r => r.MatchesUsingPattern(used)).ToArray(); // make a copy!
+
+            rules.AddRange(indirectRulesWithMatchingUsingPattern.Select(
+                    tail => new DependencyRule(new DependencyMatch(@using, tail.DependencyPattern, tail.Used), tail.Representation)));
         }
 
         private bool TryMatch(string line, string pattern, out Match match) {
@@ -122,7 +136,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
         [NotNull]
         private static string GetUsingPattern([NotNull] string usingPattern, [NotNull] string previousRawUsingPattern) {
-            var trimmedUsingPattern = usingPattern.Trim();
+            string trimmedUsingPattern = usingPattern.Trim();
             if (trimmedUsingPattern == "") {
                 trimmedUsingPattern = previousRawUsingPattern;
             }
@@ -131,7 +145,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
         [NotNull]
         public DependencyRuleGroup Combine([NotNull] DependencyRuleGroup other, bool ignoreCase) {
-            return new DependencyRuleGroup(_groupPattern, _groupMatchOrNullForMainGroup,
+            return new DependencyRuleGroup(_groupMarker, _groupMatchOrNullForMainGroup,
                 _allowed.Union(other._allowed),
                 _questionable.Union(other._questionable),
                 _forbidden.Union(other._forbidden));
@@ -139,50 +153,56 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
         public bool Check([NotNull] IEnumerable<Dependency> dependencies, bool addMarker) {
             bool allOk = true;
-            if (IsCheckingGroup) {
-                int reorgCount = 0;
-                int nextReorg = 200;
+            int reorgCount = 0;
+            int nextReorg = 200;
 
-                foreach (Dependency d in dependencies) {
-                    if (_groupMatchOrNullForMainGroup == null ||
-                        _groupMatchOrNullForMainGroup.Matches(d.UsingItem) != null) {
+            bool checkFully = _allowed.Any() || _questionable.Any();
 
+            foreach (Dependency d in dependencies) {
+                if (_groupMatchOrNullForMainGroup == null || _groupMatchOrNullForMainGroup.IsMatch(d)) {
+                    if (checkFully) {
                         Check(d);
-                        if (d.BadCt > 0) {
-                            allOk = false;
-                            if (addMarker) {
-                                d.AddMarker(_groupPattern == "" ? "global" : _groupPattern);
-                            }
-                        }
-                        if (++reorgCount > nextReorg) {
-                            _forbidden.Sort(_sortOnDescendingHitCount);
-                            _allowed.Sort(_sortOnDescendingHitCount);
-                            _questionable.Sort(_sortOnDescendingHitCount);
-                            nextReorg = 6 * nextReorg / 5 + 200;
+                    } else {
+                        CheckBadOnly(d);
+                    }
+                    if (d.BadCt > 0) {
+                        allOk = false;
+                        if (addMarker) {
+                            d.AddMarker(_groupMarker ?? "global");
                         }
                     }
+                    if (++reorgCount > nextReorg) {
+                        _forbidden.Sort(_sortOnDescendingHitCount);
+                        _allowed.Sort(_sortOnDescendingHitCount);
+                        _questionable.Sort(_sortOnDescendingHitCount);
+                        nextReorg = 6 * nextReorg / 5 + 200;
+                    }
                 }
-            } else {
-                Log.WriteInfo("No allowed or questionable rules in " + (GroupPattern == "" ? "global group" : "group " + GroupPattern) + ", therefore no checking done for this group.");
             }
             return allOk;
         }
 
-        public bool IsCheckingGroup => _allowed.Any() || _questionable.Any();
-
         private void Check([NotNull] Dependency d) {
             if (_forbidden.Any(r => r.IsMatch(d))) {
-                // First we check for forbidden - "if it is forbidden, it IS forbidden"
+                // First, we check for forbidden rules - "if it is forbidden, it is definitely forbidden"
                 d.MarkAsBad();
             } else if (_allowed.Any(r => r.IsMatch(d))) {
-                // Then, we check for allwoed - "if it is not forbidden and allowed, then it IS allowed (and never questionable)"
+                // Then we check for allowed - "if it is not forbidden and allowed, it is definitely allowed"
+                // If there is no allowed or questionable rule, then there is an implicit 
             } else if (_questionable.Any(r => r.IsMatch(d))) {
-                // Last, we check for questionable - "if it is questionable, it is questionable"
+                // Last, we check for questionable - "if it is neither allowed nor forbidden, but questionably allowed, well, so be it"
                 d.MarkAsQuestionable();
             } else {
                 // If no rule matches, it is bad!
                 d.MarkAsBad();
             }
+        }
+
+        private void CheckBadOnly([NotNull] Dependency d) {
+            if (_forbidden.Any(r => r.IsMatch(d))) {
+                // First, we check for forbidden rules - "if it is forbidden, it is definitely forbidden"
+                d.MarkAsBad();
+            }   // If there is no allowed or questionable rule, then there is an implicit ** ---> ** rule.
         }
 
         [NotNull]

@@ -24,7 +24,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         private static readonly Font _lineFont = new Font(FontFamily.GenericSansSerif, 3);
 
         [CanBeNull]
-        private ItemPattern _bottomItemPattern = null;
+        private ItemMatch _bottomItemMatch = null;
 
         [NotNull]
         private OrderSupport _orderSupport = new OrderSupport(item => null);
@@ -68,7 +68,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
 
             List<Item> yItems = dependencies.Select(e => e.UsingItem).Distinct().ToList();
             List<Item> xItems = dependencies.Select(e => e.UsedItem).Distinct().
-                Where(i => _bottomItemPattern == null || _bottomItemPattern.Matches(i) != null).
+                Where(i => _bottomItemMatch == null || _bottomItemMatch.Matches(i).Success).
                 ToList();
 
             Dependency[] relevantDependencies = dependencies.Where(d => yItems.Contains(d.UsingItem) && xItems.Contains(d.UsedItem)).ToArray();
@@ -167,11 +167,12 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         protected static readonly Option[] _allOptions = _allGraphicsRendererOptions
                         .Concat(new[] { BottomRegexOption, OrderFieldOption, NoEmptiesOnBottomOption, NoEmptiesOnLeftOption }).ToArray();
 
-        public override void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
+        public override void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, 
+                                    string argsAsString, string baseFileName, bool ignoreCase) {
             DoRender(globalContext, dependencies, argsAsString, baseFileName,
                 BottomRegexOption.Action((args, j) => {
-                    string pattern = Option.ExtractRequiredOptionValue(args, ref j, "Regex for selection of bottom items missing");
-                    _bottomItemPattern = new ItemPattern(null, pattern, 0, ignoreCase);
+                    string pattern = Option.ExtractRequiredOptionValue(args, ref j, "Pattern for selection of bottom items missing");
+                    _bottomItemMatch = new ItemMatch(null, pattern, 0, ignoreCase);
                     return j;
                 }),
                 OrderFieldOption.Action((args, j) => {

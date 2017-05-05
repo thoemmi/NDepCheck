@@ -20,9 +20,10 @@ namespace NDepCheck {
                     int? dependenciesCount, [NotNull] string argsAsString, [CanBeNull] string baseFileName, bool ignoreCase);
 
         /// <summary>
-        /// Render dependencies to stream
+        /// Render dependencies to stream for tests
         /// </summary>
-        void RenderToStreamForUnitTests([ItemNotNull, NotNull] IEnumerable<Dependency> dependencies, [NotNull] Stream stream);
+        void RenderToStreamForUnitTests([ItemNotNull] [NotNull] IEnumerable<Dependency> dependencies, 
+                                        [NotNull] Stream stream, [CanBeNull] string option);
 
         IEnumerable<Dependency> CreateSomeTestDependencies();
     }

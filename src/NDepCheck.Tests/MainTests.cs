@@ -259,7 +259,7 @@ NDepCheck:Tests ---> **
                     ** ---> **
 
                     // Schlägt fehlt, weil eine SpecialMethod auch auf YetAnotherMethod zugreift!
-                    **::*SpecialMethod* {
+                    **::*SpecialMethod* ---> : {
                         ---> System:*
                         ---> **::*SpecialMethod*
                         ---> **::*ExtraordinaryMethod*
@@ -332,10 +332,8 @@ NDepCheck:Tests ---> **
             }
         }
 
-
         [TestMethod]
         public void ExitDependenciesNotOkAspects() {
-
             using (var d = DisposingFile.TempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
@@ -346,9 +344,9 @@ NDepCheck:Tests ---> **
                     -:* ---? System:*
 
                     // Schlägt fehlt, weil eine SpecialMethod auch auf ExtraordinaryMethod zugreift!
-                    :::*SpecialMethod* {
-                        ---> System:*
-                        ---> :::*SpecialMethod*
+                    :::*SpecialMethod* ---> : {
+                       : ---> System:*
+                         ---> :::*SpecialMethod*
                     }
                     ");
                 }

@@ -54,7 +54,7 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
+        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output, string option) {
             using (var sw = new StreamWriter(output)) {
                 Write(dependencies, sw, withExampleInfo: true, matches: null, excludes: null);
             }

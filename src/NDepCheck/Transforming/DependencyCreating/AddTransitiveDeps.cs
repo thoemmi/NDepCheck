@@ -93,7 +93,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         }
 
         private static bool IsMatch(IEnumerable<ItemMatch> itemMatches, Item i) {
-            return !itemMatches.Any() || itemMatches.Any(m => m.Matches(i) != null);
+            return !itemMatches.Any() || itemMatches.Any(m => m.Matches(i).Success);
         }
 
         private void RecursivelyFlood(Item root, Item from, HashSet<Item> visited, Dictionary<FromTo, Dependency> checkPresence,

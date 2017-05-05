@@ -39,7 +39,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             output.WriteLine();
         }
 
-        public override void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream stream) {
+        public override void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream stream, string testOption = null) {
             using (var sw = new StreamWriter(stream)) {
                 Render(dependencies, null, sw, null, true);
             }
