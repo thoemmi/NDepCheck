@@ -14,7 +14,7 @@ using NDepCheck.WebServing;
 
 namespace NDepCheck {
     public class Program {
-        public const string VERSION = "V.3.76";
+        public const string VERSION = "V.3.77";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 180;
@@ -235,16 +235,30 @@ namespace NDepCheck {
                         Debugger.Launch();
                     } else if (ReadPluginOption.IsMatch(arg)) {
                         // -rp    assembly reader filepattern [ +|- filepattern ...]
+
                         string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string reader = ExtractNextValue(globalContext, args, ref i);
-                        globalContext.ReadFiles(args, ref i, assemblyName, reader);
+
+                        var includes = new List<string>();
+                        var excludes = new List<string>();
+                        ExtractFilePatterns(globalContext, args, ref i, null, includes, excludes);
+
+                        globalContext.ReadFiles(includes, excludes, assemblyName, reader);
                     } else if (ReadFileOption.IsMatch(arg)) {
                         // -rf    reader filepattern [ +|- filepattern ...]
                         string reader = ExtractOptionValue(globalContext, args, ref i);
-                        globalContext.ReadFiles(args, ref i, "", reader);
+                        var includes = new List<string>();
+                        var excludes = new List<string>();
+                        ExtractFilePatterns(globalContext, args, ref i, null, includes, excludes);
+
+                        globalContext.ReadFiles(includes, excludes, "", reader);
                     } else if (ReadOption.IsMatch(arg)) {
                         // -rd    filepattern [ +|- filepattern ...]
-                        globalContext.ReadFiles(args, ref i, "", null);
+                        var includes = new List<string>();
+                        var excludes = new List<string>();
+                        ExtractFilePatterns(globalContext, args, ref i, null, includes, excludes);
+
+                        globalContext.ReadFiles(includes, excludes, "", null);
                     } else if (ReadPluginHelpOption.IsMatch(arg)) {
                         // -ra?    assembly [filter]
                         string assemblyName = ExtractOptionValue(globalContext, args, ref i);
@@ -468,8 +482,11 @@ namespace NDepCheck {
 
                         string firstFilePattern = ExtractNextValue(globalContext, args, ref i);
                         if (firstFilePattern != null) {
-                            // Using Dip
-                            globalContext.ReadFiles(args, ref i, assemblyName: "", readerFactoryClassNameOrNull: null, firstFilePattern: firstFilePattern);
+                            var includes = new List<string>();
+                            var excludes = new List<string>();
+                            ExtractFilePatterns(globalContext, args, ref i, firstFilePattern, includes, excludes);
+
+                            globalContext.ReadFiles(includes, excludes, assemblyName: "", readerFactoryClassNameOrNull: null);
                         }
                     } else if (DoTimeOption.IsMatch(arg)) {
                         globalContext.TimeLongerThan = TimeSpan.FromSeconds(ExtractIntOptionValue(globalContext, args, ref i, "Missing seconds"));
@@ -584,7 +601,11 @@ namespace NDepCheck {
                         SetResult(ref result, RunFromFile(arg, paramValues, globalContext, writtenMasterFiles, logCommands: false, onlyShowParameters: false));
                         globalContext.InputFilesOrTestDataSpecified = true;
                     } else if (globalContext.GetSuitableInternalReader("", new[] { arg }) != null) {
-                        globalContext.ReadFiles(args, ref i, "", null, arg);
+                        var includes = new List<string>();
+                        var excludes = new List<string>();
+                        ExtractFilePatterns(globalContext, args, ref i, arg, includes, excludes);
+
+                        globalContext.ReadFiles(includes, excludes, "", null);
                     } else if (IsInternalTransformPlugin(arg)) {
                         string transformerOptions = ExtractNextValue(globalContext, args, ref i);
                         SetResult(ref result, globalContext.Transform("", arg, transformerOptions));
@@ -654,6 +675,21 @@ namespace NDepCheck {
         [NotNull]
         private static string ExtractRequiredOptionValue(GlobalContext globalContext, string[] args, ref int i, string message) {
             return globalContext.ExpandDefinesAndHexChars(Option.ExtractRequiredOptionValue(args, ref i, message), null);
+        }
+
+        private static void ExtractFilePatterns(GlobalContext globalContext, string[] args, ref int i, string firstFilePattern, List<string> includes, List<string> excludes) {
+            includes.Add(firstFilePattern ?? ExtractRequiredOptionValue(globalContext, args, ref i, "missing file pattern"));
+
+            while (i + 1 < args.Length) {
+                string arg = args[++i];
+                if (arg == "-" || arg == "+") {
+                    string pattern = ExtractRequiredOptionValue(globalContext, args, ref i, $"missing file pattern after {arg}");
+                    (arg == "+" ? includes : excludes).Add(pattern);
+                } else {
+                    i--;
+                    break;
+                }
+            }
         }
 
         private static string[] GetParamsList(GlobalContext globalContext, string[] args, ref int i) {

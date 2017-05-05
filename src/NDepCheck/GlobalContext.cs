@@ -84,9 +84,7 @@ namespace NDepCheck {
         [ContractAnnotation("s:null => null; s:notnull => notnull")]
         public string ExpandDefinesAndHexChars([CanBeNull] string s,
             [CanBeNull] Dictionary<string, string> configValueCollector) {
-            return
-                ExpandHexChars(_globalValues.ExpandDefines(_localParameters.ExpandDefines(s, configValueCollector),
-                    configValueCollector));
+            return ExpandHexChars(_globalValues.ExpandDefines(_localParameters.ExpandDefines(s, configValueCollector), configValueCollector));
         }
 
         public string GetValue(string valueName) {
@@ -203,27 +201,11 @@ namespace NDepCheck {
         /// <summary>
         /// Extract file patterns from args and read files
         /// </summary>
-        /// <param name="args"></param>
-        /// <param name="i"></param>
+        /// <param name="includes"></param>
+        /// <param name="excludes"></param>
         /// <param name="assemblyName"></param>
         /// <param name="readerFactoryClassNameOrNull">if null, detect from reader class from first extension in patterns</param>
-        /// <param name="firstFilePattern"></param>
-        public void ReadFiles(string[] args, ref int i, string assemblyName, [CanBeNull] string readerFactoryClassNameOrNull,
-                              [CanBeNull] string firstFilePattern = null) {
-            List<string> includes = new List<string> { firstFilePattern ?? Option.ExtractRequiredOptionValue(args, ref i, "missing file pattern") };
-
-            List<string> excludes = new List<string>();
-            while (i + 1 < args.Length) {
-                string arg = args[++i];
-                if (arg == "-" || arg == "+") {
-                    string pattern = Option.ExtractRequiredOptionValue(args, ref i, $"missing file pattern after {arg}");
-                    (arg == "+" ? includes : excludes).Add(pattern);
-                } else {
-                    i--;
-                    break;
-                }
-            }
-
+        public void ReadFiles(IEnumerable<string> includes, IEnumerable<string> excludes, string assemblyName, [CanBeNull] string readerFactoryClassNameOrNull) {
             IReaderFactory readerFactory;
             if (readerFactoryClassNameOrNull == null) {
                 IEnumerable<string> allFileNames = includes.Concat(excludes);
@@ -234,7 +216,6 @@ namespace NDepCheck {
             } else {
                 readerFactory = GetOrCreatePlugin<IReaderFactory>(assemblyName, readerFactoryClassNameOrNull);
             }
-
 
             InputFilesOrTestDataSpecified = true;
 

@@ -53,33 +53,36 @@ namespace NDepCheck.Transforming.ViolationChecking {
             if (TryMatch(line, "^(.*)--(.*)->(.*)", out match)) {
                 rawUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
                 IEnumerable<DependencyRule> rules = CreateDependencyRules(usingItemTypeHint, usedItemTypeHint, ruleSourceName, lineNo,
-                    rawUsingPattern, match.Groups[2].Value, match.Groups[3].Value, "--", "->",
-                    false, ignoreCase);
+                    rawUsingPattern, match.Groups[2].Value, match.Groups[3].Value, "--", "->", questionableRule: false, ignoreCase: ignoreCase);
                 _allowed.AddRange(rules);
                 return true;
             } else if (TryMatch(line, "^(.*)--(.*)-[?](.*)", out match)) {
                 rawUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
                 IEnumerable<DependencyRule> rules = CreateDependencyRules(usingItemTypeHint, usedItemTypeHint, ruleSourceName, lineNo,
-                    rawUsingPattern, match.Groups[2].Value, match.Groups[3].Value, "--", "-?",
-                    true, ignoreCase);
+                    rawUsingPattern, match.Groups[2].Value, match.Groups[3].Value, "--", "-?", questionableRule: true, ignoreCase: ignoreCase);
                 _questionable.AddRange(rules);
                 return true;
             } else if (TryMatch(line, "^(.*)--(.*)-!(.*)", out match)) {
                 rawUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
                 IEnumerable<DependencyRule> rules = CreateDependencyRules(usingItemTypeHint, usedItemTypeHint, ruleSourceName, lineNo,
-                    rawUsingPattern, match.Groups[2].Value, match.Groups[3].Value, "--", "-!",
-                    false, ignoreCase);
+                    rawUsingPattern, match.Groups[2].Value, match.Groups[3].Value, "--", "-!", questionableRule: false, ignoreCase: ignoreCase);
                 _forbidden.AddRange(rules);
                 return true;
             } else if (TryMatch(line, "^(.*)===>(.*)", out match)) {
                 rawUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
+                string rawUsedPattern = match.Groups[2].Value;
 
                 ItemMatch @using = new ItemMatch(usingItemTypeHint, rawUsingPattern, 0, ignoreCase);
-                ItemMatch used = new ItemMatch(usedItemTypeHint, match.Groups[2].Value, 0, ignoreCase);
-                IEnumerable<DependencyRule> rulesWithMatchingUsingPattern = _allowed.Where(r => r.MatchesUsingPattern(used)).ToArray(); // make a copy!
+                ItemMatch used = new ItemMatch(usedItemTypeHint, rawUsedPattern.Trim(), 0, ignoreCase);
+                IEnumerable<DependencyRule> indirectRulesWithMatchingUsingPattern = _allowed.Where(r => r.MatchesUsingPattern(used)).ToArray(); // make a copy!
 
-                _allowed.AddRange(rulesWithMatchingUsingPattern
+                _allowed.AddRange(indirectRulesWithMatchingUsingPattern
                     .Select(tail => new DependencyRule(new DependencyMatch(@using, tail.DependencyPattern, tail.Used), tail.Representation)));
+
+                IEnumerable<DependencyRule> directRules = CreateDependencyRules(usingItemTypeHint, usedItemTypeHint, ruleSourceName, lineNo,
+                    rawUsingPattern, "", rawUsedPattern, "==", "=>", questionableRule: false, ignoreCase: ignoreCase);
+                _allowed.AddRange(directRules);
+
                 return true;
             } else {
                 throw new ApplicationException("Unexpected rule at " + ruleSourceName + ":" + lineNo);
@@ -119,10 +122,11 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
         [NotNull]
         private static string GetUsingPattern([NotNull] string usingPattern, [NotNull] string previousRawUsingPattern) {
-            if (usingPattern == "") {
-                usingPattern = previousRawUsingPattern;
+            var trimmedUsingPattern = usingPattern.Trim();
+            if (trimmedUsingPattern == "") {
+                trimmedUsingPattern = previousRawUsingPattern;
             }
-            return usingPattern;
+            return trimmedUsingPattern;
         }
 
         [NotNull]
