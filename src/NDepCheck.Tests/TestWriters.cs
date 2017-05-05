@@ -10,8 +10,6 @@ namespace NDepCheck.Tests {
     public class TestWriters {
         [TestMethod]
         public void TestItemWriter() {
-            //using (DisposingFile.TempFileWithTail(".txt")) {
-
             using (var s = new MemoryStream()) {
                 var w = new ItemWriter();
                 IEnumerable<Dependency> dependencies = w.CreateSomeTestDependencies();
@@ -26,7 +24,6 @@ namespace NDepCheck.Tests {
     --0->*--4->     AMO:VKF:VKF:0400'area
 ", result);
             }
-            //}
         }
 
         [TestMethod]
