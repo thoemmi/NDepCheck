@@ -565,7 +565,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TestHelpForSingleInternalTransformer() {
-            Assert.AreEqual(Program.OPTIONS_PROBLEM, Program.Main(new[] {typeof(MarkDeps).Name, "help" }));
+            Assert.AreEqual(Program.OPTIONS_PROBLEM, Program.Main(new[] { typeof(MarkDeps).Name, "help" }));
         }
 
         [TestMethod]

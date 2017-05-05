@@ -7,7 +7,7 @@ using NDepCheck.Reading.DipReading;
 
 namespace NDepCheck.Tests {
     [TestClass]
-    public class TestSomeReaders {
+    public class TestReaders {
         [TestMethod]
         public void TestDipWithProxies() {
             using (var f = DisposingFile.TempFileWithTail(".dip")) {

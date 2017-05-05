@@ -85,10 +85,10 @@
     <Compile Include="TestMarkMinimalCutDeps.cs" />
     <Compile Include="TestOption.cs" />
     <Compile Include="TestProjectItems.cs" />
-    <Compile Include="TestSomeWriters.cs" />
-    <Compile Include="TestSomeReaders.cs" />
+    <Compile Include="TestWriters.cs" />
+    <Compile Include="TestReaders.cs" />
     <Compile Include="TestRemoveDeps.cs" />
-    <Compile Include="TestRendering.cs" />
+    <Compile Include="TestGraphicsRendering.cs" />
     <Compile Include="TestAddReverseDeps.cs" />
     <Compile Include="TestMarkSpecialItems .cs" />
     <Compile Include="TestModifyDeps.cs" />

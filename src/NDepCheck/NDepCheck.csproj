@@ -92,6 +92,7 @@
       <Link>CommonAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="AbstractLogger.cs" />
+    <Compile Include="AbstractDepthFirstPathTraverser.cs" />
     <Compile Include="Annotations.cs" />
     <Compile Include="Calculating\GetHash.cs" />
     <Compile Include="ICalculator.cs" />
@@ -114,6 +115,7 @@
     <Compile Include="IPlugin.cs" />
     <Compile Include="IReaderFactory.cs" />
     <Compile Include="Reading\AssemblyReading\DotNetAssemblyDependencyReaderFactory.cs" />
+    <Compile Include="Rendering\TextWriting\PathWriter.cs" />
     <Compile Include="Rendering\TextWriting\ItemWriter.cs" />
     <Compile Include="Rendering\OrderSupport.cs" />
     <Compile Include="SourceLocation.cs" />

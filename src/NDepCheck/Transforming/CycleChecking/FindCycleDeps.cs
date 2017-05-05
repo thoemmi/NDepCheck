@@ -6,6 +6,42 @@ using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.CycleChecking {
     public class FindCycleDeps : ITransformer {
+        private class FindCycleDepsPathFinder : AbstractDepthFirstPathTraverser {
+            public readonly HashSet<Dependency> DependenciesOnCycles = new HashSet<Dependency>();
+            public readonly HashSet<int> FoundCycleHashs = new HashSet<int>();
+
+            public FindCycleDepsPathFinder(IEnumerable<Dependency> dependencies, ItemMatch cycleAnchorsMatch, bool ignoreSelfCycles, 
+                                           int maxCycleLength) : base(retraverseItems: false) {
+                Dictionary<Item, IEnumerable<Dependency>> outgoing = Item.CollectOutgoingDependenciesMap(dependencies);
+
+                foreach (var i in outgoing.Keys.Where(i => ItemMatch.IsMatch(cycleAnchorsMatch, i)).OrderBy(i => i.Name)) {
+                    var visitedItem2CheckedPathLengthBehindVisitedItem = new Dictionary<Item, int>();
+                    Traverse(i, i, ignoreSelfCycles, outgoing, visitedItem2CheckedPathLengthBehindVisitedItem, maxCycleLength,
+                        FoundCycleHashs, WithAddedItemHash(0, i));
+                }
+            }
+
+            protected override void OnTailLoopsBack(Stack<Dependency> currentPath, Item tail) {
+                // empty
+            }
+
+            protected override void AfterPushDependency(Stack<Dependency> currentPath) {
+                // empty
+            }
+
+            protected override void OnFoundCycleToRoot(Stack<Dependency> currentPath) {
+                DependenciesOnCycles.UnionWith(currentPath);
+            }
+
+            protected override void BeforePopDependency(Stack<Dependency> currentPath) {
+                // empty
+            }
+
+            protected override void OnPathEnd(Stack<Dependency> currentPath) {
+                // empty
+            }
+        }
+
         public static readonly Option IgnoreSelfCyclesOption = new Option("il", "ignore-loops", "",
             "ignore cycles of length 1, i.e. looping from an item to itself", @default: false);
 
@@ -40,21 +76,6 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             _ignoreCase = globalContext.IgnoreCase;
         }
 
-        private int AddHash(int hash, [NotNull] Item i) {
-            // This is a somewhat complicated hash: Its purpose is to map cyclically
-            // shifted cycles to the same hashcode. For simplicity, it is therefore
-            // commutative.
-            // However, a simple XOR would be bad if e.g. the items were named A, B, C, D:
-            // Then, A ^ B is the same as C ^ D. So, I try to inject the names somewhat
-            // more "specifically": I do this by also XORing with a single bit at some
-            // name-dependent position (not ORing, because that would fill up the
-            // hash code to all 1s).
-            // Hopefully, this works.
-            var h = i.GetHashCode();
-            return hash ^ h ^ (1 << (h % 31));
-
-        }
-
         public int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
             [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
             bool ignoreSelfCycles = false;
@@ -82,16 +103,10 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 })
             });
 
-            Dictionary<Item, IEnumerable<Dependency>> outgoing = Item.CollectOutgoingDependenciesMap(dependencies);
+            var cycleFinder = new FindCycleDepsPathFinder(dependencies, cycleAnchorsMatch, ignoreSelfCycles, maxCycleLength);            
+            HashSet<Dependency> dependenciesOnCycles = cycleFinder.DependenciesOnCycles;
+            HashSet<int> foundCycleHashs = cycleFinder.FoundCycleHashs;
 
-            var foundCycleHashs = new HashSet<int>();
-            var dependenciesOnCycles = new HashSet<Dependency>();
-            foreach (var i in outgoing.Keys.Where(i => ItemMatch.IsMatch(cycleAnchorsMatch, i)).OrderBy(i => i.Name)) {
-                var pathHeadFromI = new Stack<Dependency>();
-                var visitedItem2CheckedPathLengthBehindVisitedItem = new Dictionary<Item, int>();
-                FindCyclesFrom(i, i, ignoreSelfCycles, outgoing, visitedItem2CheckedPathLengthBehindVisitedItem,
-                    maxCycleLength, foundCycleHashs, AddHash(0, i), pathHeadFromI, dependenciesOnCycles);
-            }
             Log.WriteInfo($"... found {foundCycleHashs.Count} cycles");
 
             if (effects.Contains(DependencyEffectOptions.DELETE_ACTION_MARKER)) {
@@ -105,37 +120,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             return Program.OK_RESULT;
         }
 
-        private void FindCyclesFrom(Item root, Item tail, bool ignoreCyclesInThisRecursion,
-            Dictionary<Item, IEnumerable<Dependency>> outgoing, Dictionary<Item, int> allVisitedItems, int restLength,
-            HashSet<int> foundCycleHashs, int pathHash, Stack<Dependency> pathFromRoot, HashSet<Dependency> dependenciesOnCycles) {
-            int checkedBehindTail;
-            if ((!allVisitedItems.TryGetValue(tail, out checkedBehindTail) || checkedBehindTail < restLength)
-                && restLength > 0 && outgoing.ContainsKey(tail)) {
-                allVisitedItems[tail] = restLength;
-                // we are at this item for the first time - check whether we find a path back to the root item
-                foreach (var nextDep in outgoing[tail]) {
-                    Item newTail = nextDep.UsedItem;
-                    pathFromRoot.Push(nextDep);
-                    if (!ignoreCyclesInThisRecursion && Equals(newTail, root)) {
-                        // We found a cycle to the rootItem!
 
-                        pathHash ^= restLength;
-                        if (foundCycleHashs.Contains(pathHash)) {
-                            // The cycle was already found via another item
-                            // - we ignore it.
-                        } else {
-                            // New cycle found; we record it
-                            dependenciesOnCycles.UnionWith(pathFromRoot);
-                            foundCycleHashs.Add(pathHash);
-                        }
-                    } else {
-                        FindCyclesFrom(root, newTail, false, outgoing, allVisitedItems, restLength - 1, foundCycleHashs,
-                            AddHash(pathHash, newTail), pathFromRoot, dependenciesOnCycles);
-                    }
-                    pathFromRoot.Pop();
-                }
-            }
-        }
 
         public void AfterAllTransforms(GlobalContext globalContext) {
             // empty

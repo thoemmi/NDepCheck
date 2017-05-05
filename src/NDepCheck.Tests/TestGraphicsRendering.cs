@@ -8,9 +8,8 @@ using NDepCheck.ConstraintSolving;
 using NDepCheck.Rendering.GraphicsRendering;
 
 namespace NDepCheck.Tests {
-
     [TestClass]
-    public class TestRendering {
+    public class TestGraphicsRendering {
 
         #region Simple tests
 
