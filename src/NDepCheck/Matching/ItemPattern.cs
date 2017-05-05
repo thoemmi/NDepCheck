@@ -50,6 +50,8 @@ namespace NDepCheck.Matching {
                     throw new ApplicationException(
                         $"No named patterns possible if type of pattern must be guessed; specify item type in pattern in {itemPattern}");
                 }
+                // We ignore empty segments which might be included for "clarity"
+                parts = parts.Where(p => p != "");
                 if (!parts.All(p => p.Contains("="))) {
                     throw new ApplicationException(
                         $"Pattern must either use names for all fields, or no names. Mixing positional and named parts is not allowed in {itemPattern}");
@@ -61,7 +63,7 @@ namespace NDepCheck.Matching {
                     string keyAndSubkey = nameAndPattern[0].Trim();
                     int i = _itemType.IndexOf(keyAndSubkey);
                     if (i < 0) {
-                        throw new ApplicationException($"Key '{keyAndSubkey}' not defined in item type {_itemType.Name}");
+                        throw new ApplicationException($"Key '{keyAndSubkey}' not defined in item type {_itemType.Name}; keys are {_itemType.KeysAndSubkeys()}");
                     }
                     _matchers[i] = CreateMatcher(nameAndPattern[1].Trim(), 0, ignoreCase);
                 }

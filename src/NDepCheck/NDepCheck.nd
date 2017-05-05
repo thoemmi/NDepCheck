@@ -1,65 +1,71 @@
 // Checkable architectural information for NDepCheck
 
 -cf CheckDeps { -rd
-    $DOTNETCALL ---> DOTNETCALL
+	$DOTNETCALL ---> DOTNETCALL
 
-    // Assembly dependencies
-    ** {
-        :: ---> ::mscorlib
-        :: ---> ::System.**
-        :: ---> ::Microsoft.**    
-        :: ---> ::Mono.Cecil
-        :: ---> ::Mono.Cecil.Pdb
-        :: ---> ::NDepCheck
-    }
-    
-    // Namespace dependencies - CURRENTLY ONLY FOR TOPLEVEL NDepCheck
-    * {
-            // Compiler-generated types like <>f__AnonymousType1 in top-level namespace
-        : ---> -:
+	// Assembly dependencies
+	** {
+		:: ---> ::mscorlib
+		:: ---> ::System.**
+		:: ---> ::Microsoft.**    
+		:: ---> ::Mono.Cecil
+		:: ---> ::Mono.Cecil.Pdb
+		:: ---> ::NDepCheck
+	}
+	
+	// Namespace dependencies - CURRENTLY ONLY FOR TOPLEVEL NDepCheck
+	* {
+			// Compiler-generated types like <>f__AnonymousType1 in top-level namespace
+		: ---> -:
 
-        // using own namespace is always ok
-        (**): ---> \1
-    
-        : ---> System.**
-        : ---> Microsoft.**
-        : ---> Mono.Cecil.**
-            
-        // Copied Gibraltar interning - may be used by anyone (mhm?)
-        : ---> Gibraltar
+		// using own namespace is always ok
+		(**): ---> \1
+	
+		: ---> System.**
+		: ---> Microsoft.**
+		: ---> Mono.Cecil.**
+			
+		// Copied Gibraltar interning - may be used by anyone (mhm?)
+		: ---> Gibraltar
 
-        // Copied JetBrains.Annotations - may be used by anyone
-                : ---> JetBrains.Annotations
-        
-            // NDepCheck namespace architecture - CURRENTLY ONLY FOR TOPLEVEL 
-            // Matching and Markers are "subdrawer" subnamespaces that can be used by everyone
-        : ---> NDepCheck.Matching
-        : ---> NDepCheck.Markers
+		// Copied JetBrains.Annotations - may be used by anyone
+				: ---> JetBrains.Annotations
+		
+			// NDepCheck namespace architecture - CURRENTLY ONLY FOR TOPLEVEL 
+			// Matching and Markers are "subdrawer" subnamespaces that can be used by everyone
+		: ---> NDepCheck.Matching
+		: ---> NDepCheck.Markers
 
-        // By design (for -wd option), Program can use WebServer
-        :Program ---> NDepCheck.WebServing:WebServer
+		// By design (for -wd option), Program can use WebServer
+		:Program ---> NDepCheck.WebServing:WebServer
 
-        // By design (if no other options are specified), Program can use transformer and writer for dependency checking
-        :Program ---> NDepCheck.Transforming.ViolationChecking:CheckDeps
-        :Program ---> NDepCheck.Rendering.TextWriting:RuleViolationWriter
-        
-        // By design (for -wd option), Program can use DipWriter
-        :Program ---> NDepCheck.Rendering.TextWriting:DipWriter
-    }
-    
-    // Ensure immutable ("ReadOnly...") classes are really immutable
-    :ReadOnly* {
-        : -- '_declaresfield  -> '_readonly&_primitive
-        : -- '_declaresfield  -> System:String
-        : -- '_declaresfield  -> :IMarkerSet'_readonly
-        : -- '_declaresfield  -> :ReadOnly*'_readonly
-        
-        // By design, we have a HashSet in the ReadOnlyMarkerSet; but no method ever changes it after init in the .ctor
-        :ReadOnlyMarkerSet -- '_declaresfield -> :HashSet
-        
-        // Non-declarations are free to do what they want (maybe properties should also be constrained somehow ... "immutable" is a non-trivial concept)
-        : -- '~_declaresfield -> :
-    }
+		// By design (if no other options are specified), Program can use transformer and writer for dependency checking
+		:Program ---> NDepCheck.Transforming.ViolationChecking:CheckDeps
+		:Program ---> NDepCheck.Rendering.TextWriting:RuleViolationWriter
+		
+		// By design (for -wd option), Program can use DipWriter
+		:Program ---> NDepCheck.Rendering.TextWriting:DipWriter
+	}
+	
+	// Safeguards against some possible bugs
+	** {
+	    // Only use the Option classes from Program, where variables and hex chars are expanded.
+		:CLASS=GlobalContext ---! :CLASS=Option:MEMBER.NAME=Extract*
+	}
+
+	// Ensure immutable ("ReadOnly...") classes are really immutable
+	:ReadOnly* {
+		: -- '_declaresfield  -> '_readonly&_primitive
+		: -- '_declaresfield  -> System:String
+		: -- '_declaresfield  -> :IMarkerSet'_readonly
+		: -- '_declaresfield  -> :ReadOnly*'_readonly
+		
+		// By design, we have a HashSet in the ReadOnlyMarkerSet; but no method ever changes it after init in the .ctor
+		:ReadOnlyMarkerSet -- '_declaresfield -> :HashSet
+		
+		// Non-declarations are free to do what they want (maybe properties should also be constrained somehow ... "immutable" is a non-trivial concept)
+		: -- '~_declaresfield -> :
+	}
 }
 -tf CheckDeps { -ag }
 
