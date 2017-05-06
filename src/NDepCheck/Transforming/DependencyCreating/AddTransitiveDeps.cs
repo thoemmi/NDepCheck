@@ -76,7 +76,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
             DependencyPattern idempotentPattern = new DependencyPattern("'" + string.Join("+", markersToAdd), _ignoreCase);
             Dictionary<FromTo, Dependency> checkPresence = idempotent ? FromTo.AggregateAllDependencies(dependencies) : new Dictionary<FromTo, Dependency>();
-            Dictionary<Item, IEnumerable<Dependency>> outgoing = Item.CollectOutgoingDependenciesMap(dependencies);
+            Dictionary<Item, Dependency[]> outgoing = Item.CollectOutgoingDependenciesMap(dependencies);
             var matchingFroms = outgoing.Keys.Where(i => IsMatch(fromItemMatches, i));
 
             var result = new List<Dependency>();
@@ -97,7 +97,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         }
 
         private void RecursivelyFlood(Item root, Item from, HashSet<Item> visited, Dictionary<FromTo, Dependency> checkPresence,
-                DependencyPattern idempotentPattern, Dictionary<Item, IEnumerable<Dependency>> outgoing, IEnumerable<ItemMatch> toItemMatches,
+                DependencyPattern idempotentPattern, Dictionary<Item, Dependency[]> outgoing, IEnumerable<ItemMatch> toItemMatches,
                 List<DependencyMatch> matches, List<DependencyMatch> excludes, IEnumerable<string> markersToAddOrNull,
                 List<Dependency> result, Dependency collectedEdge) {
             if (outgoing.ContainsKey(from)) {

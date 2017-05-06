@@ -28,35 +28,39 @@ namespace NDepCheck {
 
         protected abstract void OnTailLoopsBack(Stack<TDependency> currentPath, TItem tail);
 
-        protected abstract void AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath);
+        protected abstract void AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount);
 
         protected abstract void OnFoundCycleToRoot(Stack<TDependency> currentPath);
 
-        protected abstract void BeforePopDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath);
+        protected abstract void BeforePopDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount);
 
         protected abstract void OnPathEnd(Stack<TDependency> currentPath);
 
         protected void Traverse(TItem root, TItem tail, bool ignoreCyclesInThisRecursion,
-            Dictionary<TItem, IEnumerable<TDependency>> outgoing, Dictionary<TItem, int> allVisitedItems, int restLength) {
+            Dictionary<TItem, TDependency[]> incidentDependencies, Dictionary<TItem, int> allVisitedItems, int restLength) {
 
             int lengthCheckedBehindTail;
             bool tailAlreadyVisited = allVisitedItems.TryGetValue(tail, out lengthCheckedBehindTail);
             if (!tailAlreadyVisited || lengthCheckedBehindTail < restLength) {
-                if (restLength > 0 && outgoing.ContainsKey(tail)) {
+                if (restLength > 0 && incidentDependencies.ContainsKey(tail)) {
                     allVisitedItems[tail] = restLength;
-                    // we are at this item for the first time - check whether we find a path back to the root item
-                    foreach (var nextDep in outgoing[tail]) {
+                    // we are at this item for the first time - check whether we find a path to some defined end
+
+                    TDependency[] dependencies = incidentDependencies[tail];
+                    int n = dependencies.Length;
+                    for (int i = 0; i < n; i++) {
+                        TDependency nextDep = dependencies[i];
                         TItem newTail = nextDep.UsedItem;
                         _currentPath.Push(nextDep);
                         bool alreadyVisitedUsedItem = allVisitedItems.ContainsKey(newTail);
-                        AfterPushDependency(_currentPath, alreadyVisitedUsedItem);
+                        AfterPushDependency(_currentPath, alreadyVisitedUsedItem, i, n);
                         if (!ignoreCyclesInThisRecursion && Equals(newTail, root)) {
                             // We found a cycle to the rootItem!
                             OnFoundCycleToRoot(_currentPath);
                         } else {
-                            Traverse(root, newTail, false, outgoing, allVisitedItems, restLength - 1);
+                            Traverse(root, newTail, false, incidentDependencies, allVisitedItems, restLength - 1);
                         }
-                        BeforePopDependency(_currentPath, alreadyVisitedUsedItem);
+                        BeforePopDependency(_currentPath, alreadyVisitedUsedItem, i, n);
                         _currentPath.Pop();
                     }
                     if (_retraverseItems) {

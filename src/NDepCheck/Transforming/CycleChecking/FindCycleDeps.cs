@@ -14,7 +14,7 @@ namespace NDepCheck.Transforming.CycleChecking {
 
             public FindCycleDepsPathFinder(IEnumerable<TDependency> dependencies, ItemMatch cycleAnchorsMatch, 
                                            bool ignoreSelfCycles,  int maxCycleLength) : base(retraverseItems: false) {
-                Dictionary<TItem, IEnumerable<TDependency>> outgoing = AbstractItem<TItem>.CollectOutgoingDependenciesMap(dependencies);
+                Dictionary<TItem, TDependency[]> outgoing = AbstractItem<TItem>.CollectOutgoingDependenciesMap(dependencies);
 
                 foreach (var i in outgoing.Keys.Where(i => ItemMatch.IsMatch(cycleAnchorsMatch, i)).OrderBy(i => i.Name)) {
                     var visitedItem2CheckedPathLengthBehindVisitedItem = new Dictionary<TItem, int>();
@@ -26,7 +26,7 @@ namespace NDepCheck.Transforming.CycleChecking {
                 // empty
             }
 
-            protected override void AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath) {
+            protected override void AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount) {
                 // empty
             }
 
@@ -54,7 +54,7 @@ namespace NDepCheck.Transforming.CycleChecking {
                 }
             }
 
-            protected override void BeforePopDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath) {
+            protected override void BeforePopDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount) {
                 // empty
             }
 

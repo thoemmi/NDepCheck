@@ -77,9 +77,11 @@ namespace NDepCheck.Markers {
         }
 
         public static string CreateReadableDefaultMarker(IEnumerable<ItemMatch> fromItemMatches, IEnumerable<ItemMatch> toItemMatches, string defaultName) {
-            string fromPart = FirstReadableName(fromItemMatches) ?? ToMarker(defaultName);
+            string fromPart = FirstReadableName(fromItemMatches);
             string toPart = FirstReadableName(toItemMatches);
-            string marker = fromPart + "_" + toPart;
+            string marker = fromPart == null
+                ? (toPart != null ? "." + toPart : ToMarker(defaultName))
+                : (toPart == null ? "." + fromPart : "." + fromPart + "_" + toPart);
             return marker;
         }
 
@@ -91,8 +93,8 @@ namespace NDepCheck.Markers {
         }
 
         private static string ToMarker(string m) {
-            // Replace anything not letter, number or _ with nothing
-            return Regex.Replace(m, @"[^\p{L}\p{N}_]", "");
+            // Replace anything not letter, number or one of _ . / \\ with nothing
+            return Regex.Replace(m, @"[^\p{L}\p{N}_./\\]", "");
         }
     }
 }
