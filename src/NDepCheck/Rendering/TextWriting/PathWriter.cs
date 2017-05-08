@@ -58,6 +58,8 @@ namespace NDepCheck.Rendering.TextWriting {
         private abstract class TreePathWriterTraverser<TDependency, TItem> : AbstractPathWriterTraverser<TDependency, TItem>
                 where TDependency : AbstractDependency<TItem>
                 where TItem : AbstractItem<TItem> {
+            // For advanced ideas, see e.g. https://www.informatik.uni-rostock.de/~ct/pub_files/Tominski06GraphLenses.pdf
+
             private readonly int _manyPopsLimit;
             private readonly Stack<string> _indents = new Stack<string>();
             private int _popsAfterLastPush;
