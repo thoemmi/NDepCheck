@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.ViolationChecking {
@@ -15,10 +16,10 @@ namespace NDepCheck.Transforming.ViolationChecking {
             _includedRuleSets = children;
         }
 
-        internal IEnumerable<DependencyRuleGroup> GetAllDependencyGroups(bool ignoreCase) {
+        internal IEnumerable<DependencyRuleGroup> GetAllDependencyGroupsWithRules(bool ignoreCase) {
             var result = new Dictionary<string, DependencyRuleGroup>();
             CombineGroupsFromChildren(result, new List<DependencyRuleSet>(), ignoreCase);
-            return result.Values;
+            return result.Values.Where(g => g.AllRules.Any());
         }
 
         private void CombineGroupsFromChildren([NotNull] Dictionary<string, DependencyRuleGroup> result, [NotNull] List<DependencyRuleSet> visited, bool ignoreCase) {
@@ -27,10 +28,10 @@ namespace NDepCheck.Transforming.ViolationChecking {
             }
             visited.Add(this);
             foreach (var g in _ruleGroups) {
-                if (result.ContainsKey(g.GroupPattern)) {
-                    result[g.GroupPattern] = result[g.GroupPattern].Combine(g, ignoreCase);
+                if (result.ContainsKey(g.GroupMarker)) {
+                    result[g.GroupMarker] = result[g.GroupMarker].Combine(g, ignoreCase);
                 } else {
-                    result[g.GroupPattern] = g;
+                    result[g.GroupMarker] = g;
                 }
             }
             foreach (var includedRuleSet in _includedRuleSets) {

@@ -80,7 +80,7 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream stream) {
+        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
             using (var sw = new StreamWriter(stream)) {
                 RenderToStreamWriter(dependencies, sw);
             }

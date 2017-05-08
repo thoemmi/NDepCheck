@@ -95,7 +95,7 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output) {
+        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output, string option = null) {
             using (var sw = new StreamWriter(output)) {
                 Write(dependencies, sw, itemMatches: null, itemExcludes: null, indegreeMatches: null, indegreeExcludes: null,
                       outdegreeMatches: null, outdegreeExcludes: null, 
@@ -109,9 +109,9 @@ namespace NDepCheck.Rendering.TextWriting {
                             bool writeOnlyIfIndegreeNotZero, bool writeOnlyIfOutdegreeNotZero, bool showMarkers, bool ignoreCase) {
             ISet<Item> items = Dependency.GetAllItems(dependencies, i => i.IsMatch(itemMatches, itemExcludes));
 
-            Dictionary<Item, IEnumerable<Dependency>> incoming = Item.CollectIncomingDependenciesMap(dependencies,
+            Dictionary<Item, Dependency[]> incoming = Item.CollectIncomingDependenciesMap(dependencies,
                 i => items.Contains(i));
-            Dictionary<Item, IEnumerable<Dependency>> outgoing = Item.CollectOutgoingDependenciesMap(dependencies,
+            Dictionary<Item, Dependency[]> outgoing = Item.CollectOutgoingDependenciesMap(dependencies,
                 i => items.Contains(i));
 
             List<Item> itemsAsList = items.ToList();
@@ -145,8 +145,8 @@ namespace NDepCheck.Rendering.TextWriting {
             Log.WriteInfo($"... written {n} items");
         }
 
-        private int GetCount(Dictionary<Item, IEnumerable<Dependency>> adjacency, Item i, List<DependencyMatch> matches, List<DependencyMatch> excludes) {
-            IEnumerable<Dependency> dependencies;
+        private int GetCount(Dictionary<Item, Dependency[]> adjacency, Item i, List<DependencyMatch> matches, List<DependencyMatch> excludes) {
+            Dependency[] dependencies;
             return adjacency.TryGetValue(i, out dependencies) ? dependencies.Count(d => d.IsMatch(matches, excludes)) : 0;
         }
 

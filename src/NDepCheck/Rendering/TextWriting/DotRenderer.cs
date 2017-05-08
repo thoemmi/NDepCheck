@@ -58,7 +58,7 @@ namespace NDepCheck.Rendering.TextWriting {
             return GlobalContext.CreateFullFileName(baseFileName, ".dot");
         }
 
-        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream stream) {
+        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
             using (var sw = new StreamWriter(stream)) {
                 Render(dependencies, sw, null, null);
             }

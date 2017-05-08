@@ -92,7 +92,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             var ruleGroups = new List<DependencyRuleGroup>();
             var children = new List<DependencyRuleSet>();
 
-            DependencyRuleGroup mainRuleGroup = new DependencyRuleGroup("", null, ignoreCase);
+            DependencyRuleGroup mainRuleGroup = new DependencyRuleGroup("", globalContext.IgnoreCase, null, null, "global");
             DependencyRuleGroup currentGroup = mainRuleGroup;
             ruleGroups.Add(currentGroup);
 
@@ -101,7 +101,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 onIncludedConfiguration: (e, n) => children.Add(e),
                 onLineWithLineNo: (line, lineNo) => {
                     if (line.StartsWith("$")) {
-                        if (currentGroup != null && currentGroup.GroupPattern != "") {
+                        if (currentGroup != null && currentGroup.GroupMarker != "") {
                             return "$ inside '{{ ... }}' not allowed";
                         } else {
                             string typeLine = line.Substring(1).Trim();
@@ -117,16 +117,16 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     } else if (line.EndsWith("{")) {
                         if (currentGroup == null || usingItemType == null) {
                             return $"Itemtypes not defined - $ line is missing in {ruleSourceName}, dependency rules are ignored";
-                        } else if (currentGroup.GroupPattern != "") {
+                        } else if (currentGroup.GroupMarker != "") {
                             return "Nested '{{ ... {{' not possible";
                         } else {
-                            currentGroup = new DependencyRuleGroup(groupPattern: line.TrimEnd('{').TrimEnd(),
-                                                                   groupItemTypeHintOrNull: usingItemType, ignoreCase: ignoreCase);
+                            string groupPattern = line.TrimEnd('{').Trim();
+                            currentGroup = new DependencyRuleGroup(groupPattern, globalContext.IgnoreCase, usingItemType, usedItemType, ruleSourceName + "_" + lineNo);
                             ruleGroups.Add(currentGroup);
                             return null;
                         }
                     } else if (line == "}") {
-                        if (currentGroup?.GroupPattern != "") {
+                        if (currentGroup != null && currentGroup.GroupMarker != "") {
                             currentGroup = mainRuleGroup;
                             return null;
                         } else {
@@ -241,8 +241,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 return Program.NO_RULE_SET_FOUND_FOR_FILE;
             }
 
-            DependencyRuleGroup[] checkedGroups = ruleSetForAssembly.GetAllDependencyGroups(globalContext.IgnoreCase).ToArray();
-            if (checkedGroups.Any(g => g.IsCheckingGroup)) {
+            DependencyRuleGroup[] checkedGroups = ruleSetForAssembly.GetAllDependencyGroupsWithRules(globalContext.IgnoreCase).ToArray();
+            if (checkedGroups.Any()) {
                 Log.WriteInfo("Checking " + dependencySourceForLogging);
                 bool result = true;
                 foreach (var group in checkedGroups) {

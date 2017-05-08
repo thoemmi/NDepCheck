@@ -186,9 +186,16 @@ namespace NDepCheck.Matching {
     internal sealed class StartsWithMatcher : AbstractRememberingDelegateMatcher {
         public StartsWithMatcher(string segment, bool ignoreCase, int maxSize = 1000)
             : base(segment.TakeWhile(c => c == '(').Count(),
-                  segment.TrimStart('(').TrimEnd(')').TrimEnd('*').TrimEnd('.'),
+                  GetStartSegment(segment),
                   (value, seg) => value.IndexOf(seg, GetComparisonType(ignoreCase)) == 0,
                   ignoreCase, maxSize) {
+        }
+
+        private static string GetStartSegment(string segment) {
+            string trimmedWithPossibleDotsAtEnd = segment.TrimStart('(').TrimEnd(')').TrimEnd('*');
+            string trimmed = trimmedWithPossibleDotsAtEnd.TrimEnd('.');
+            // Lone dots at the start survive, so that a pattern like ".**" creates a StartsWithMatcher with segment "."
+            return trimmed == "" ? trimmedWithPossibleDotsAtEnd : trimmed;
         }
 
         public override string ToString() {

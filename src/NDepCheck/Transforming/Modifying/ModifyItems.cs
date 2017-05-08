@@ -105,17 +105,17 @@ Examples:
                 Log.WriteWarning($"No actions configured for {GetType().Name}");
             } else {
 
-                Dictionary<Item, IEnumerable<Dependency>> items2incoming =
+                Dictionary<Item, Dependency[]> items2incoming =
                     Item.CollectIncomingDependenciesMap(dependencies);
-                Dictionary<Item, IEnumerable<Dependency>> items2outgoing =
+                Dictionary<Item, Dependency[]> items2outgoing =
                     Item.CollectOutgoingDependenciesMap(dependencies);
 
                 var allItems = new HashSet<Item>(items2incoming.Keys.Concat(items2outgoing.Keys));
 
                 foreach (var i in allItems.ToArray()) {
-                    IEnumerable<Dependency> incoming;
+                    Dependency[] incoming;
                     items2incoming.TryGetValue(i, out incoming);
-                    IEnumerable<Dependency> outgoing;
+                    Dependency[] outgoing;
                     items2outgoing.TryGetValue(i, out outgoing);
 
                     ItemAction firstMatchingAction = _orderedActions.FirstOrDefault(a => a.Matches(incoming, i, outgoing));

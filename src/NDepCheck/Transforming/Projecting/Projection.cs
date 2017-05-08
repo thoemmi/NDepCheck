@@ -68,15 +68,15 @@ namespace NDepCheck.Transforming.Projecting {
             if (left && !_forLeftSide || !left && !_forRightSide) {
                 return null;
             } else {
-                string[] matchResultGroups = ItemMatch.Matches(item);
+                var matchResultGroups = ItemMatch.Matches(item);
 
-                if (matchResultGroups == null) {
+                if (!matchResultGroups.Success) {
                     return null;
                 } else {
                     IEnumerable<string> targets = _targetSegments;
-                    for (int i = 0; i < matchResultGroups.Length; i++) {
+                    for (int i = 0; i < matchResultGroups.Groups.Length; i++) {
                         int matchResultIndex = i;
-                        targets = targets.Select(s => s.Replace("\\" + (matchResultIndex + 1), matchResultGroups[matchResultIndex]));
+                        targets = targets.Select(s => s.Replace("\\" + (matchResultIndex + 1), matchResultGroups.Groups[matchResultIndex]));
                     }
                     _matchCount++;
                     return Item.New(_targetItemType, targets.Select(t => GlobalContext.ExpandHexChars(t)).ToArray());

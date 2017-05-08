@@ -18,7 +18,7 @@ namespace NDepCheck.Transforming.Modifying {
                 throw new ArgumentException($"Unexpected dependency pattern '{line}' at {fullConfigFileName}/{startLineNo}");
             } else {
                 GroupCollection groups = match.Groups;
-                _match = new DependencyMatch(groups[1].Value, groups[2].Value, groups[3].Value, ignoreCase);
+                _match = new DependencyMatch(null, groups[1].Value, groups[2].Value, null, groups[3].Value, ignoreCase);
                 if (groups[4].Value != "-" && groups[4].Value != "delete") {
                     var effects = new List<Action<Dependency>>();
                     var effectOptions =

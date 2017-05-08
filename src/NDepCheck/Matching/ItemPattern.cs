@@ -50,6 +50,8 @@ namespace NDepCheck.Matching {
                     throw new ApplicationException(
                         $"No named patterns possible if type of pattern must be guessed; specify item type in pattern in {itemPattern}");
                 }
+                // We ignore empty segments which might be included for "clarity"
+                parts = parts.Where(p => p != "");
                 if (!parts.All(p => p.Contains("="))) {
                     throw new ApplicationException(
                         $"Pattern must either use names for all fields, or no names. Mixing positional and named parts is not allowed in {itemPattern}");
@@ -61,7 +63,7 @@ namespace NDepCheck.Matching {
                     string keyAndSubkey = nameAndPattern[0].Trim();
                     int i = _itemType.IndexOf(keyAndSubkey);
                     if (i < 0) {
-                        throw new ApplicationException($"Key '{keyAndSubkey}' not defined in item type {_itemType.Name}");
+                        throw new ApplicationException($"Key '{keyAndSubkey}' not defined in item type {_itemType.Name}; keys are {_itemType.KeysAndSubkeys()}");
                     }
                     _matchers[i] = CreateMatcher(nameAndPattern[1].Trim(), 0, ignoreCase);
                 }
@@ -90,9 +92,9 @@ namespace NDepCheck.Matching {
             _matchers = matchers;
         }
 
-        public string[] Matches<TItem>([NotNull] AbstractItem<TItem> item, string[] references = null) where TItem : AbstractItem<TItem> {
+        public MatchResult Matches<TItem>([NotNull] AbstractItem<TItem> item, bool invert, string[] references = null) where TItem : AbstractItem<TItem> {
             if (item.Type.CommonType(_itemType) == null) {
-                return null;
+                return new MatchResult(invert, null);
             }
 
             string[] groupsInItem = NO_GROUPS;
@@ -102,7 +104,7 @@ namespace NDepCheck.Matching {
                 string value = item.Values[i];
                 IEnumerable<string> groups = matcher.Matches(value, references);
                 if (groups == null) {
-                    return null;
+                    return new MatchResult(invert, null);
                 }
                 int ct = groups.Count();
                 if (ct > 0) {
@@ -115,7 +117,7 @@ namespace NDepCheck.Matching {
                     groupsInItem = newGroupsInItem;
                 }
             }
-            return groupsInItem ?? NO_GROUPS;
+            return new MatchResult(!invert, groupsInItem);
         }
 
         public bool MatchesAlike(ItemPattern other) {

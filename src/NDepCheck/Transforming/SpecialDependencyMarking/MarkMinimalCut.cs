@@ -91,8 +91,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 }));
 
             var items = new HashSet<Item>(dependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
-            var sourceItems = new List<Item>(items.Where(i => sourceMatches.Any(m => m.Matches(i) != null)));
-            var targetItems = new HashSet<Item>(items.Where(i => targetMatches.Any(m => m.Matches(i) != null)));
+            var sourceItems = new List<Item>(items.Where(i => sourceMatches.Any(m => m.Matches(i).Success)));
+            var targetItems = new HashSet<Item>(items.Where(i => targetMatches.Any(m => m.Matches(i).Success)));
             if (!sourceItems.Any()) {
                 throw new ApplicationException("No source items found - minimal cut cannot be computed");
             } else if (!targetItems.Any()) {

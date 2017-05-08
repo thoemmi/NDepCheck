@@ -159,18 +159,18 @@ namespace NDepCheck {
             return _asString;
         }
 
-        public static Dictionary<TItem, IEnumerable<TDependency>> CollectIncomingDependenciesMap<TDependency>(
-            IEnumerable<TDependency> dependencies, Func<TItem, bool> selectItem = null) where TDependency : AbstractDependency<TItem> {
-            return
-                CollectMap(dependencies, d => selectItem == null || selectItem(d.UsedItem) ? d.UsedItem : null, d => d)
-                    .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<TDependency>) kvp.Value);
+        public static Dictionary<TItem, TDependency[]> CollectIncomingDependenciesMap<TDependency>(
+                IEnumerable<TDependency> dependencies, Func<TItem, bool> selectItem = null) 
+                where TDependency : AbstractDependency<TItem> {
+            return CollectMap(dependencies, d => selectItem == null || selectItem(d.UsedItem) ? d.UsedItem : null, d => d)
+                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToArray());
         }
 
-        public static Dictionary<TItem, IEnumerable<TDependency>> CollectOutgoingDependenciesMap<TDependency>(
-                IEnumerable<TDependency> dependencies, Func<TItem, bool> selectItem = null) where TDependency : AbstractDependency<TItem> {
-            return
-                CollectMap(dependencies, d => selectItem == null || selectItem(d.UsingItem) ? d.UsingItem : null, d => d)
-                    .ToDictionary(kvp => kvp.Key, kvp => (IEnumerable<TDependency>) kvp.Value);
+        public static Dictionary<TItem, TDependency[]> CollectOutgoingDependenciesMap<TDependency>(
+                IEnumerable<TDependency> dependencies, Func<TItem, bool> selectItem = null) 
+                where TDependency : AbstractDependency<TItem> {
+            return CollectMap(dependencies, d => selectItem == null || selectItem(d.UsingItem) ? d.UsingItem : null, d => d)
+                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToArray());
         }
 
         public static Dictionary<TItem, List<TResult>> CollectMap<TDependency, TResult>(
@@ -196,8 +196,8 @@ namespace NDepCheck {
         }
 
         public bool IsMatch([CanBeNull] IEnumerable<ItemMatch> matches, [CanBeNull] IEnumerable<ItemMatch> excludes) {
-            return (matches == null || !matches.Any() || matches.Any(m => m.Matches(this) != null)) &&
-                   (excludes == null || !excludes.Any() || excludes.All(m => m.Matches(this) == null));
+            return (matches == null || !matches.Any() || matches.Any(m => m.Matches(this).Success)) &&
+                   (excludes == null || !excludes.Any() || excludes.All(m => !m.Matches(this).Success));
         }
     }
 

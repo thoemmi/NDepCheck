@@ -71,7 +71,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             }
 
             if (markTransitiveDependencies) {
-                Dictionary<Item, IEnumerable<Dependency>> outgoing = Item.CollectOutgoingDependenciesMap(matchingDependencies);
+                Dictionary<Item, Dependency[]> outgoing = Item.CollectOutgoingDependenciesMap(matchingDependencies);
                 foreach (var root in outgoing.Keys) {
                     var itemsAtDistance1FromRoot = new Dictionary<Item, List<Dependency>>();
                     foreach (var d in outgoing[root]) {
@@ -98,7 +98,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             return Program.OK_RESULT;
         }
 
-        private void RemoveReachableItems(Item itemAtDistanceNFromRoot, HashSet<Item> visited, Dictionary<Item, IEnumerable<Dependency>> outgoing,
+        private void RemoveReachableItems(Item itemAtDistanceNFromRoot, HashSet<Item> visited, Dictionary<Item, Dependency[]> outgoing,
             Dictionary<Item, List<Dependency>> itemsAtDistance1FromRoot, string markerToAdd) {
             if (!visited.Contains(itemAtDistanceNFromRoot)) {
                 visited.Add(itemAtDistanceNFromRoot);

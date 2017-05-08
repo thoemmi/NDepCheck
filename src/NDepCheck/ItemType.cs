@@ -168,6 +168,17 @@ namespace NDepCheck {
             }
         }
 
+        public string KeysAndSubkeys() {
+            var result = new StringBuilder();
+            string sep = "";
+            for (int i = 0; i < Keys.Length; i++) {
+                result.Append(sep);
+                result.Append(Keys[i] + SubKeys[i]);
+                sep = ", ";
+            }
+            return result.ToString();
+        }
+
         public int IndexOf(string keyAndSubkey) {
             for (int i = 0; i < Keys.Length; i++) {
                 if (keyAndSubkey == Keys[i] + SubKeys[i]) {

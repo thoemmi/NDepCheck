@@ -7,10 +7,11 @@ namespace NDepCheck.Matching {
         private readonly IEnumerable<IMatcher> _present;
         private readonly IEnumerable<IMatcher> _absent;
 
-        public MarkerMatch(string s, bool ignoreCase) {
+        public MarkerMatch(string pattern, bool ignoreCase) {
             var present = new List<IMatcher>();
             var absent = new List<IMatcher>();
-            string[] elements = s.Split('&');
+            string[] elements = pattern.Split('&');
+            bool somePresentStartsWithDot = false;
             foreach (var e in elements) {
                 string element = e.Trim();
                 if (element == "~" || element == "") {
@@ -19,7 +20,11 @@ namespace NDepCheck.Matching {
                     absent.Add(CreateMatcher(element.Substring(1).Trim(), 0, ignoreCase));
                 } else {
                     present.Add(CreateMatcher(element, ignoreCase));
+                    somePresentStartsWithDot |= element.StartsWith(".");
                 }
+            }
+            if (!somePresentStartsWithDot) {
+                absent.Add(CreateMatcher(".**", 0, ignoreCase));
             }
             _present = present;
             _absent = absent;
