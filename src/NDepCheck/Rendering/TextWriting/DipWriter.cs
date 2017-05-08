@@ -12,7 +12,7 @@ namespace NDepCheck.Rendering.TextWriting {
         public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions();
         public static readonly Option NoExampleInfoOption = new Option("ne", "no-example", "", "Does not write example info", @default: false);
 
-        private static readonly Option[] _allOptions = { NoExampleInfoOption };
+        private static readonly Option[] _allOptions = DependencyMatchOptions.WithOptions(NoExampleInfoOption);
 
         public static int Write(IEnumerable<Dependency> dependencies, TextWriter sw, bool withExampleInfo, IEnumerable<DependencyMatch> matches, IEnumerable<DependencyMatch> excludes) {
             var writtenTypes = new HashSet<ItemType>();
