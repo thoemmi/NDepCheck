@@ -351,22 +351,22 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestSimpleNamedCall() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
-            var @using = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
-            var used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "");
+            Item @using = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
+            Item used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "");
             var d = new Dependency(@using, used, null, "Test", ct: 1);
 
-            var r = CreateDependencyRule(itemType, "**", "ASSEMBLY.NAME=mscorlib", new DependencyRuleRepresentation("rules.dep", 0, "...", false));
+            DependencyRule r = CreateDependencyRule(itemType, "**", "ASSEMBLY.NAME=mscorlib", new DependencyRuleRepresentation("rules.dep", 0, "...", false));
             Assert.IsTrue(r.IsMatch(d));
         }
 
         [TestMethod]
         public void TestReverseFieldsInNamedCall() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
-            var @using = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
-            var used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "");
+            Item @using = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
+            Item used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "");
             var d = new Dependency(@using, used, null, "Test", ct: 1);
 
-            var r = CreateDependencyRule(itemType, "**", "ASSEMBLY.NAME=mscorlib:CLASS=Object", new DependencyRuleRepresentation("rules.dep", 0, "...", false));
+            DependencyRule r = CreateDependencyRule(itemType, "**", "ASSEMBLY.NAME=mscorlib:CLASS=Object", new DependencyRuleRepresentation("rules.dep", 0, "...", false));
             Assert.IsTrue(r.IsMatch(d));
         }
 

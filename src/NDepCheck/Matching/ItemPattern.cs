@@ -5,6 +5,60 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Matching {
     public sealed class ItemPattern : Pattern {
+        private interface IMatcherGroup {
+            IMatcher[] Matchers { get; }
+            MatchResult Matches(bool invert, string[] itemValues, string[] references);
+        }
+        private class MatcherVector : IMatcherGroup {
+            public MatcherVector(IMatcher[] matchers) {
+                Matchers = matchers;
+            }
+
+            public IMatcher[] Matchers { get; }
+            public MatchResult Matches(bool invert, string[] itemValues, string[] references) {
+                string[] groupsInItem = NO_GROUPS;
+
+                for (int i = 0; i < Matchers.Length; i++) {
+                    IMatcher matcher = Matchers[i];
+                    string value = itemValues[i];
+                    IEnumerable<string> groups = matcher.Matches(value, references);
+                    if (groups == null) {
+                        return new MatchResult(invert, null);
+                    }
+                    int ct = groups.Count();
+                    if (ct > 0) {
+                        var newGroupsInItem = new string[groupsInItem.Length + ct];
+                        Array.Copy(groupsInItem, newGroupsInItem, groupsInItem.Length);
+                        int j = groupsInItem.Length;
+                        foreach (var g in groups) {
+                            newGroupsInItem[j++] = g;
+                        }
+                        groupsInItem = newGroupsInItem;
+                    }
+                }
+                return new MatchResult(!invert, groupsInItem);
+            }
+        }
+        private class AnyWhereMatcher : IMatcherGroup {
+            public AnyWhereMatcher(IMatcher matcher) {
+                Matchers = new[] { matcher};
+            }
+
+            public IMatcher[] Matchers {
+                get;
+            }
+
+            public MatchResult Matches(bool invert, string[] itemValues, string[] references) {
+                foreach (var value in itemValues) {
+                    IEnumerable<string> groups = Matchers[0].Matches(value, references);
+                    if (groups != null) {
+                        return new MatchResult(!invert, groups.ToArray());
+                    }
+                }
+                return new MatchResult(invert, null);
+            }
+        }
+
         internal static readonly string[] NO_GROUPS = new string[0];
 
         private static readonly IMatcher _alwaysMatcher = new AlwaysMatcher(alsoMatchDot: true, groupCount: 0);
@@ -12,9 +66,9 @@ namespace NDepCheck.Matching {
         [NotNull]
         private readonly ItemType _itemType;
 
-        private readonly IMatcher[] _matchers;
+        private readonly IMatcherGroup _matchers;
 
-        public IMatcher[] Matchers => _matchers;
+        public IMatcher[] Matchers => _matchers.Matchers;
 
         public ItemPattern([CanBeNull] ItemType itemTypeHintOrNull, [NotNull] string itemPattern, int upperBoundOfGroupCount, bool ignoreCase) {
             const string UNCOLLECTED_GROUP = "(?:";
@@ -57,7 +111,7 @@ namespace NDepCheck.Matching {
                         $"Pattern must either use names for all fields, or no names. Mixing positional and named parts is not allowed in {itemPattern}");
                 }
 
-                _matchers = Enumerable.Repeat(_alwaysMatcher, _itemType.Keys.Length).ToArray();
+                IMatcher[] matchers = Enumerable.Repeat(_alwaysMatcher, _itemType.Keys.Length).ToArray();
                 foreach (var p in parts) {
                     string[] nameAndPattern = p.Split(new[] { '=' }, 2);
                     string keyAndSubkey = nameAndPattern[0].Trim();
@@ -65,8 +119,12 @@ namespace NDepCheck.Matching {
                     if (i < 0) {
                         throw new ApplicationException($"Key '{keyAndSubkey}' not defined in item type {_itemType.Name}; keys are {_itemType.KeysAndSubkeys()}");
                     }
-                    _matchers[i] = CreateMatcher(nameAndPattern[1].Trim(), 0, ignoreCase);
+                    matchers[i] = CreateMatcher(nameAndPattern[1].Trim(), 0, ignoreCase);
                 }
+                _matchers = new MatcherVector(matchers);
+            } else if (parts.Count() == 1 && !parts.Any(p => p.Contains(";")) && !parts.Any(p => p.Contains("(")) && !parts.Any(p => p.Contains(@"\"))) {
+                // "anywhere pattern" - no support for groups!
+                _matchers = new AnyWhereMatcher(CreateMatcher(parts.First(), 0, ignoreCase));
             } else {
                 int j = 0;
                 foreach (var p in parts) {
@@ -83,13 +141,8 @@ namespace NDepCheck.Matching {
                     result.Add(_alwaysMatcher);
                     j++;
                 }
-                _matchers = result.Take(_itemType.Keys.Length).ToArray();
+                _matchers = new MatcherVector(result.Take(_itemType.Keys.Length).ToArray());
             }
-        }
-
-        internal ItemPattern(ItemType itemType, IMatcher[] matchers) {
-            _itemType = itemType;
-            _matchers = matchers;
         }
 
         public MatchResult Matches<TItem>([NotNull] AbstractItem<TItem> item, bool invert, string[] references = null) where TItem : AbstractItem<TItem> {
@@ -97,27 +150,7 @@ namespace NDepCheck.Matching {
                 return new MatchResult(invert, null);
             }
 
-            string[] groupsInItem = NO_GROUPS;
-
-            for (int i = 0; i < _matchers.Length; i++) {
-                IMatcher matcher = _matchers[i];
-                string value = item.Values[i];
-                IEnumerable<string> groups = matcher.Matches(value, references);
-                if (groups == null) {
-                    return new MatchResult(invert, null);
-                }
-                int ct = groups.Count();
-                if (ct > 0) {
-                    var newGroupsInItem = new string[groupsInItem.Length + ct];
-                    Array.Copy(groupsInItem, newGroupsInItem, groupsInItem.Length);
-                    int j = groupsInItem.Length;
-                    foreach (var g in groups) {
-                        newGroupsInItem[j++] = g;
-                    }
-                    groupsInItem = newGroupsInItem;
-                }
-            }
-            return new MatchResult(!invert, groupsInItem);
+            return _matchers.Matches(invert, item.Values, references);
         }
 
         public bool MatchesAlike(ItemPattern other) {

@@ -194,8 +194,7 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        public static readonly Option PathAnchorsOption = new Option("pa", "path-anchors", "itempattern", "sources from which paths are written", @default: "all items are path sources");
-        //public static readonly Option PathEndOption = new Option("pe", "path-ends", "itempattern", "targets from which paths are written", @default: "all items are path sources");
+        public static readonly Option PathAnchorsOption = new Option("pa", "path-anchors", "itempattern", "sources from which paths are written", @default: "all items are path sources", multiple: true);
         public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions();
         public static readonly Option NoExampleInfoOption = new Option("ne", "no-example", "", "Does not write example info", @default: false);
         public static readonly Option StyleOption = new Option("ps", "path-style", "&", "One of: SpaceIndent or SI, TabIndent or TI, LineIndent or LI, Flat or F", @default: "SI");
@@ -244,6 +243,11 @@ namespace NDepCheck.Rendering.TextWriting {
                 //    return j;
                 //})
                 );
+
+            //while (pathAnchorsMatches.Count < 2) {
+            //    pathAnchorsMatches.Add(new ItemMatch("** ---> **", globalContext.IgnoreCase));
+            //}
+
             using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(globalContext, argsAsString, baseFileName))) {
                 AbstractPathWriterTraverser<Dependency, Item> traverser;
                 switch (styleOption.ToUpperInvariant()) {
@@ -268,7 +272,6 @@ namespace NDepCheck.Rendering.TextWriting {
                 }
 
                 Write(true, dependencies, sw.Writer, traverser, pathAnchorsMatches);
-                ////Log.WriteInfo($"... written {n} dependencies");
             }
         }
 
