@@ -13,12 +13,11 @@ namespace NDepCheck.Transforming.CycleChecking {
             public readonly HashSet<int> FoundCycleHashs = new HashSet<int>();
 
             public FindCycleDepsPathFinder(IEnumerable<TDependency> dependencies, ItemMatch cycleAnchorsMatch, 
-                                           bool ignoreSelfCycles,  int maxCycleLength) : base(retraverseItems: false) {
+                                           bool ignoreSelfCycles,  int maxCycleLength, IPathMatch<TDependency, TItem>[] expectedPathMatches) : base(retraverseItems: false) {
                 Dictionary<TItem, TDependency[]> outgoing = AbstractItem<TItem>.CollectOutgoingDependenciesMap(dependencies);
 
                 foreach (var i in outgoing.Keys.Where(i => ItemMatch.IsMatch(cycleAnchorsMatch, i)).OrderBy(i => i.Name)) {
-                    var visitedItem2CheckedPathLengthBehindVisitedItem = new Dictionary<TItem, int>();
-                    Traverse(i, i, ignoreSelfCycles, outgoing, visitedItem2CheckedPathLengthBehindVisitedItem, maxCycleLength);
+                    Traverse(i, ignoreSelfCycles, outgoing, maxCycleLength, expectedPathMatches);
                 }
             }
 
@@ -124,7 +123,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 })
             });
 
-            var cycleFinder = new FindCycleDepsPathFinder<Dependency,Item>(dependencies, cycleAnchorsMatch, ignoreSelfCycles, maxCycleLength);            
+            // TODO: Cycles via path matches would also be a nice feature ...
+            var cycleFinder = new FindCycleDepsPathFinder<Dependency,Item>(dependencies, cycleAnchorsMatch, ignoreSelfCycles, maxCycleLength, new IPathMatch<Dependency, Item>[0]);
             HashSet<Dependency> dependenciesOnCycles = cycleFinder.DependenciesOnCycles;
             HashSet<int> foundCycleHashs = cycleFinder.FoundCycleHashs;
 

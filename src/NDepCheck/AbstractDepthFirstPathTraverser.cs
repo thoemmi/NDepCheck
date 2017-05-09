@@ -1,30 +1,83 @@
 using System.Collections.Generic;
+using JetBrains.Annotations;
+using NDepCheck.Matching;
 
 namespace NDepCheck {
+    public interface IPathMatch<in TDependency, in TItem>
+            where TDependency : AbstractDependency<TItem>
+            where TItem : AbstractItem<TItem> {
+        bool IsItemMatch {
+            get;
+        }
+        bool Matches(TDependency d);
+        bool Matches(TItem i);
+    }
+
+    public class DependencyPathMatch<TDependency, TItem> : IPathMatch<TDependency, TItem>
+            where TDependency : AbstractDependency<TItem>
+            where TItem : AbstractItem<TItem> {
+        private readonly DependencyMatch _dependencyMatch;
+
+        public DependencyPathMatch(string pattern, bool ignoreCase) {
+            _dependencyMatch = DependencyMatch.Create(pattern, ignoreCase);
+        }
+
+        public bool IsItemMatch => false;
+
+        public bool Matches(TDependency d) => _dependencyMatch.IsMatch(d);
+
+        public bool Matches(TItem i) => false;
+    }
+
+    public class ItemPathMatch<TDependency, TItem> : IPathMatch<TDependency, TItem>
+            where TDependency : AbstractDependency<TItem>
+            where TItem : AbstractItem<TItem> {
+        private readonly ItemMatch _itemMatch;
+
+        public ItemPathMatch(string pattern, bool ignoreCase) {
+            _itemMatch = new ItemMatch(pattern, ignoreCase);
+        }
+
+        public bool IsItemMatch => true;
+
+        public bool Matches(TDependency d) => false;
+
+        public bool Matches(TItem i) => _itemMatch.Matches(i).Success;
+    }
+
     public abstract class AbstractDepthFirstPathTraverser<TDependency, TItem>
             where TDependency : AbstractDependency<TItem>
             where TItem : AbstractItem<TItem> {
+        private struct VisitedKey {
+            [NotNull]
+            private readonly TItem _item;
+            private readonly int _expectedPathMatchIndex;
+
+            public VisitedKey([NotNull] TItem item, int expectedPathMatchIndex) {
+                _item = item;
+                _expectedPathMatchIndex = expectedPathMatchIndex;
+            }
+
+            public override bool Equals(object obj) {
+                if (obj is VisitedKey) {
+                    VisitedKey other = (VisitedKey) obj;
+                    return Equals(other._item, _item) && other._expectedPathMatchIndex == _expectedPathMatchIndex;
+                } else {
+                    return false;
+                }
+            }
+
+            public override int GetHashCode() {
+                return _item.GetHashCode();
+            }
+        }
+
         private readonly bool _retraverseItems;
         private readonly Stack<TDependency> _currentPath = new Stack<TDependency>();
 
         protected AbstractDepthFirstPathTraverser(bool retraverseItems) {
             _retraverseItems = retraverseItems;
         }
-
-        //[Pure]
-        //protected int WithAddedItemHash(int hash, [NotNull] Item i) {
-        //    // This is a somewhat complicated hash: Its purpose is to map cyclically
-        //    // shifted cycles to the same hashcode. For simplicity, it is therefore
-        //    // commutative.
-        //    // However, a simple XOR would be bad if e.g. the items were named A, B, C, D:
-        //    // Then, A ^ B is the same as C ^ D. So, I try to inject the names somewhat
-        //    // more "specifically": I do this by also XORing with a single bit at some
-        //    // name-dependent position (not ORing, because that would fill up the
-        //    // hash code to all 1s).
-        //    // Hopefully, this works.
-        //    int h = i.GetHashCode();
-        //    return hash ^ h ^ (1 << (h % 31));
-        //}
 
         protected abstract void OnTailLoopsBack(Stack<TDependency> currentPath, TItem tail);
 
@@ -36,38 +89,82 @@ namespace NDepCheck {
 
         protected abstract void OnPathEnd(Stack<TDependency> currentPath);
 
-        protected void Traverse(TItem root, TItem tail, bool ignoreCyclesInThisRecursion,
-            Dictionary<TItem, TDependency[]> incidentDependencies, Dictionary<TItem, int> allVisitedItems, int restLength) {
+        protected void Traverse([NotNull] TItem root, bool ignoreCyclesInThisRecursion,
+            [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies,
+            int maxLength, [NotNull] IPathMatch<TDependency, TItem>[] expectedPathMatches) {
+            Traverse(root, null, root, ignoreCyclesInThisRecursion, incidentDependencies, new Dictionary<VisitedKey, int>(), maxLength,
+                expectedPathMatches, 1);
+        }
+        protected void Traverse([NotNull] TDependency toRoot, bool ignoreCyclesInThisRecursion,
+            [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies,
+            int maxLength, [NotNull] IPathMatch<TDependency, TItem>[] expectedPathMatches) {
+            _currentPath.Push(toRoot);
+            Traverse(toRoot.UsingItem, toRoot, toRoot.UsedItem, ignoreCyclesInThisRecursion, incidentDependencies,
+                new Dictionary<VisitedKey, int> { { new VisitedKey(toRoot.UsingItem, 0), maxLength - 1 } },
+                maxLength - 1, expectedPathMatches, 1);
+        }
+
+        private void Traverse(TItem root, [CanBeNull] TDependency toTail, [NotNull] TItem tail, bool ignoreCyclesInThisRecursion,
+            [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies,
+            [NotNull] Dictionary<VisitedKey, int> allVisitedItems, int restMaxLength,
+            [NotNull] IPathMatch<TDependency, TItem>[] expectedPathMatches, int expectedPathMatchIndex) {
 
             int lengthCheckedBehindTail;
-            bool tailAlreadyVisited = allVisitedItems.TryGetValue(tail, out lengthCheckedBehindTail);
-            if (!tailAlreadyVisited || lengthCheckedBehindTail < restLength) {
-                if (restLength > 0 && incidentDependencies.ContainsKey(tail)) {
-                    allVisitedItems[tail] = restLength;
+
+            VisitedKey tailVisitedKey = new VisitedKey(tail, expectedPathMatchIndex);
+
+            bool tailAlreadyVisited = allVisitedItems.TryGetValue(tailVisitedKey, out lengthCheckedBehindTail);
+            if (!tailAlreadyVisited || lengthCheckedBehindTail < restMaxLength) {
+                if (restMaxLength > 0 && incidentDependencies.ContainsKey(tail)) {
+                    allVisitedItems[tailVisitedKey] = restMaxLength;
                     // we are at this item for the first time - check whether we find a path to some defined end
 
                     TDependency[] dependencies = incidentDependencies[tail];
                     int n = dependencies.Length;
                     for (int i = 0; i < n; i++) {
                         TDependency nextDep = dependencies[i];
+
+                        int newExpectedPathMatchIndex = expectedPathMatchIndex;
+
+                        if (expectedPathMatchIndex < expectedPathMatches.Length && expectedPathMatches[newExpectedPathMatchIndex].Matches(nextDep)) {
+                            newExpectedPathMatchIndex++;
+                        }
+
                         TItem newTail = nextDep.UsedItem;
+
+                        if (expectedPathMatchIndex < expectedPathMatches.Length && expectedPathMatches[newExpectedPathMatchIndex].Matches(tail)) {
+                            newExpectedPathMatchIndex++;
+                        }
+
                         _currentPath.Push(nextDep);
-                        bool alreadyVisitedUsedItem = allVisitedItems.ContainsKey(newTail);
+                        VisitedKey newTailVisitedKey = new VisitedKey(newTail, expectedPathMatchIndex);
+                        bool alreadyVisitedUsedItem = allVisitedItems.ContainsKey(newTailVisitedKey);
                         AfterPushDependency(_currentPath, alreadyVisitedUsedItem, i, n);
                         if (!ignoreCyclesInThisRecursion && Equals(newTail, root)) {
                             // We found a cycle to the rootItem!
                             OnFoundCycleToRoot(_currentPath);
                         } else {
-                            Traverse(root, newTail, false, incidentDependencies, allVisitedItems, restLength - 1);
+                            Traverse(root, nextDep, newTail, false, incidentDependencies, allVisitedItems, restMaxLength - 1, expectedPathMatches, newExpectedPathMatchIndex);
                         }
                         BeforePopDependency(_currentPath, alreadyVisitedUsedItem, i, n);
                         _currentPath.Pop();
                     }
                     if (_retraverseItems) {
-                        allVisitedItems.Remove(tail);
+                        allVisitedItems.Remove(tailVisitedKey);
                     }
-                } else {
-                    OnPathEnd(_currentPath);
+                }
+
+                if (toTail != null) {
+                    // Check whether we are end
+                    if (expectedPathMatches.Length >= 2 && expectedPathMatchIndex >= expectedPathMatches.Length - 1) {
+                        // We are at or behind the path end; if the current item or dependency match, we have a real path end!
+                        IPathMatch<TDependency, TItem> lastMatch = expectedPathMatches[expectedPathMatches.Length - 1];
+                        if (lastMatch.Matches(tail) || lastMatch.Matches(toTail)) {
+                            OnPathEnd(_currentPath);
+                        }
+                    } else {
+                        OnPathEnd(_currentPath);
+                    }
                 }
             }
         }

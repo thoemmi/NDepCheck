@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using JetBrains.Annotations;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Rendering.TextWriting {
@@ -20,21 +21,36 @@ namespace NDepCheck.Rendering.TextWriting {
                 _backwards = backwards;
             }
 
-            public void Traverse(IEnumerable<TDependency> dependencies, List<ItemMatch> pathAnchorsMatches) {
+            public void Traverse(IEnumerable<TDependency> dependencies, IPathMatch<TDependency, TItem>[] expectedPathMatches) {
                 Dictionary<TItem, TDependency[]> incidentDependencies = _backwards
                     ? AbstractItem<TItem>.CollectIncomingDependenciesMap(dependencies)
                     : AbstractItem<TItem>.CollectOutgoingDependenciesMap(dependencies);
                 _seenPathStarts.Clear();
 
-                IEnumerable<TItem> items = pathAnchorsMatches == null
-                    ? incidentDependencies.Keys
-                    : incidentDependencies.Keys.Where(i => pathAnchorsMatches.Any(m => ItemMatch.IsMatch(m, i)));
+                if (expectedPathMatches.Length == 0) {
+                    TraverseFromItems(expectedPathMatches, incidentDependencies.Keys, incidentDependencies);
+                } else {
+                    IPathMatch<TDependency, TItem> initMatch = expectedPathMatches.First();
+                    if (initMatch.IsItemMatch) {
+                        IEnumerable<TItem> startItems = incidentDependencies.Keys.Where(i => initMatch.Matches(i));
+                        TraverseFromItems(expectedPathMatches, startItems, incidentDependencies);
+                    } else {
+                        IEnumerable<TDependency> startDependencies = dependencies.Where(d => initMatch.Matches(d));
+                        foreach (var d in startDependencies.OrderBy(d => d.UsingItem.Name)) {
+                            HandleFirstItemBeforeTraverse(d.UsingItem);
+                            Traverse(toRoot: d, ignoreCyclesInThisRecursion: false, incidentDependencies: incidentDependencies, maxLength: int.MaxValue,
+                                expectedPathMatches: expectedPathMatches);
+                        }
+                    }
+                }
+            }
 
+            private void TraverseFromItems(IPathMatch<TDependency, TItem>[] expectedPathMatches, IEnumerable<TItem> items, Dictionary<TItem, TDependency[]> incidentDependencies) {
                 foreach (var i in items.OrderBy(i => i.Name)) {
-                    var visitedItem2CheckedPathLengthBehindVisitedItem = new Dictionary<TItem, int>();
                     if (_seenPathStarts.Add(i)) {
                         HandleFirstItemBeforeTraverse(i);
-                        Traverse(i, i, false, incidentDependencies, visitedItem2CheckedPathLengthBehindVisitedItem, int.MaxValue);
+                        Traverse(root: i, ignoreCyclesInThisRecursion: false, incidentDependencies: incidentDependencies, maxLength: int.MaxValue,
+                            expectedPathMatches: expectedPathMatches);
                     }
                 }
             }
@@ -64,7 +80,7 @@ namespace NDepCheck.Rendering.TextWriting {
             private readonly Stack<string> _indents = new Stack<string>();
             private int _popsAfterLastPush;
 
-            protected TreePathWriterTraverser(TextWriter tw, bool showItemMarkers, bool backwards, 
+            protected TreePathWriterTraverser(TextWriter tw, bool showItemMarkers, bool backwards,
                                            int manyPopsLimit = 3) : base(tw, showItemMarkers, backwards) {
                 _manyPopsLimit = manyPopsLimit;
                 _indents.Push("");
@@ -196,21 +212,22 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        public static readonly Option PathAnchorsOption = new Option("pa", "path-anchors", "itempattern", "sources from which paths are written", @default: "all items are path sources", multiple: true);
+        public static readonly Option PathItemAnchorOption = new Option("pi", "path-item", "itempattern", "item pattern to be matched by path", @default: "all items match", multiple: true);
+        public static readonly Option PathDependencyAnchorOption = new Option("pd", "path-dependency", "dependencypattern", "dependency pattern to be matched by path", @default: "all dependencies match", multiple: true);
         public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions();
         public static readonly Option NoExampleInfoOption = new Option("ne", "no-example", "", "Does not write example info", @default: false);
         public static readonly Option StyleOption = new Option("ps", "path-style", "&", "One of: SpaceIndent or SI, TabIndent or TI, LineIndent or LI, Flat or F", @default: "SI");
         public static readonly Option BackwardsOption = new Option("bw", "upwards", "", "Traverses dependencies in opposite direction", @default: false);
         public static readonly Option ShowItemMarkersOption = new Option("sm", "show-markers", "", "Shows markers on items", @default: false);
 
-        private static readonly Option[] _allOptions = DependencyMatchOptions.WithOptions(PathAnchorsOption, NoExampleInfoOption, StyleOption, BackwardsOption);
+        private static readonly Option[] _allOptions = DependencyMatchOptions.WithOptions(PathItemAnchorOption, NoExampleInfoOption, StyleOption, BackwardsOption);
 
         private static void Write(bool withHeader, IEnumerable<Dependency> dependencies, TextWriter sw,
-                AbstractPathWriterTraverser<Dependency, Item> traverser, List<ItemMatch> pathAnchorsMatch) {
+                AbstractPathWriterTraverser<Dependency, Item> traverser, [NotNull] IPathMatch<Dependency, Item>[] expectedPathMatches) {
             if (withHeader) {
                 sw.WriteLine($"// Written {DateTime.Now} by {typeof(PathWriter).Name} in NDepCheck {Program.VERSION}");
             }
-            traverser.Traverse(dependencies, pathAnchorsMatch);
+            traverser.Traverse(dependencies, expectedPathMatches);
         }
 
         public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount,
@@ -220,7 +237,7 @@ namespace NDepCheck.Rendering.TextWriting {
             var matches = new List<DependencyMatch>();
             var excludes = new List<DependencyMatch>();
             //int maxCycleLength = int.MaxValue;
-            var pathAnchorsMatches = new List<ItemMatch>();
+            var expectedPathMatches = new List<IPathMatch<Dependency, Item>>();
             string styleOption = "SI";
 
             DependencyMatchOptions.Parse(globalContext, argsAsString, globalContext.IgnoreCase, matches, excludes,
@@ -232,8 +249,12 @@ namespace NDepCheck.Rendering.TextWriting {
                     showItemMarkers = true;
                     return j;
                 }),
-                PathAnchorsOption.Action((args, j) => {
-                    pathAnchorsMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "missing anchor name"), globalContext.IgnoreCase));
+                PathItemAnchorOption.Action((args, j) => {
+                    expectedPathMatches.Add(new ItemPathMatch<Dependency, Item>(Option.ExtractRequiredOptionValue(args, ref j, "missing anchor name"), globalContext.IgnoreCase));
+                    return j;
+                }),
+                PathDependencyAnchorOption.Action((args, j) => {
+                    expectedPathMatches.Add(new DependencyPathMatch<Dependency, Item>(Option.ExtractRequiredOptionValue(args, ref j, "missing anchor name"), globalContext.IgnoreCase));
                     return j;
                 }),
                 StyleOption.Action((args, j) => {
@@ -245,10 +266,6 @@ namespace NDepCheck.Rendering.TextWriting {
                 //    return j;
                 //})
                 );
-
-            //while (pathAnchorsMatches.Count < 2) {
-            //    pathAnchorsMatches.Add(new ItemMatch("** ---> **", globalContext.IgnoreCase));
-            //}
 
             using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(globalContext, argsAsString, baseFileName))) {
                 AbstractPathWriterTraverser<Dependency, Item> traverser;
@@ -273,7 +290,7 @@ namespace NDepCheck.Rendering.TextWriting {
                         throw new ArgumentException($"Style '{styleOption}' not supported for PathWriter");
                 }
 
-                Write(true, dependencies, sw.Writer, traverser, pathAnchorsMatches);
+                Write(true, dependencies, sw.Writer, traverser, expectedPathMatches.ToArray());
             }
         }
 
@@ -294,7 +311,7 @@ namespace NDepCheck.Rendering.TextWriting {
                         throw new ArgumentException($"option '{option}' not supported");
                 }
 
-                Write(false, dependencies, sw, traverser, pathAnchorsMatch: null);
+                Write(false, dependencies, sw, traverser, expectedPathMatches: new IPathMatch<Dependency, Item>[0]);
             }
         }
 
