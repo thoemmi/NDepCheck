@@ -479,8 +479,8 @@ namespace NDepCheck {
             InputContext[] nonEmptyInputContexts =
                 _inputContexts.Values.Where(ic => ic.Dependencies.Any()).ToArray();
             maxCount = Math.Max(3 * nonEmptyInputContexts.Length, maxCount);
-            int depsPerContext = maxCount / (nonEmptyInputContexts.Length + 1);
             foreach (var ic in nonEmptyInputContexts) {
+                int depsPerContext = maxCount / nonEmptyInputContexts.Length;
                 IEnumerable<Dependency> matchingDependencies =
                     ic.Dependencies.Where(d => m == null || m.IsMatch(d)).Take(depsPerContext + 1);
                 foreach (var d in matchingDependencies.Take(depsPerContext)) {
@@ -501,8 +501,6 @@ namespace NDepCheck {
                     Log.WriteInfo("...");
                 }
             }
-
-            LogOnlyItemCount(pattern);
         }
 
         public void LogAboutNItems(int maxCount, [CanBeNull] string pattern) {
