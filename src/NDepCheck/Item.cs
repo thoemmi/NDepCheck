@@ -162,14 +162,14 @@ namespace NDepCheck {
         }
 
         public static Dictionary<TItem, TDependency[]> CollectIncomingDependenciesMap<TDependency>(
-                IEnumerable<TDependency> dependencies, Func<TItem, bool> selectItem = null) 
+                [NotNull, ItemNotNull] IEnumerable<TDependency> dependencies, Func<TItem, bool> selectItem = null) 
                 where TDependency : AbstractDependency<TItem> {
             return CollectMap(dependencies, d => selectItem == null || selectItem(d.UsedItem) ? d.UsedItem : null, d => d)
                     .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToArray());
         }
 
         public static Dictionary<TItem, TDependency[]> CollectOutgoingDependenciesMap<TDependency>(
-                IEnumerable<TDependency> dependencies, Func<TItem, bool> selectItem = null) 
+                [NotNull, ItemNotNull] IEnumerable<TDependency> dependencies, Func<TItem, bool> selectItem = null) 
                 where TDependency : AbstractDependency<TItem> {
             return CollectMap(dependencies, d => selectItem == null || selectItem(d.UsingItem) ? d.UsingItem : null, d => d)
                     .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToArray());

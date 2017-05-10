@@ -1,51 +1,9 @@
 using System.Collections.Generic;
+using System.Linq;
 using JetBrains.Annotations;
-using NDepCheck.Matching;
 
 namespace NDepCheck {
-    public interface IPathMatch<in TDependency, in TItem>
-            where TDependency : AbstractDependency<TItem>
-            where TItem : AbstractItem<TItem> {
-        bool IsItemMatch {
-            get;
-        }
-        bool Matches(TDependency d);
-        bool Matches(TItem i);
-    }
-
-    public class DependencyPathMatch<TDependency, TItem> : IPathMatch<TDependency, TItem>
-            where TDependency : AbstractDependency<TItem>
-            where TItem : AbstractItem<TItem> {
-        private readonly DependencyMatch _dependencyMatch;
-
-        public DependencyPathMatch(string pattern, bool ignoreCase) {
-            _dependencyMatch = DependencyMatch.Create(pattern, ignoreCase);
-        }
-
-        public bool IsItemMatch => false;
-
-        public bool Matches(TDependency d) => _dependencyMatch.IsMatch(d);
-
-        public bool Matches(TItem i) => false;
-    }
-
-    public class ItemPathMatch<TDependency, TItem> : IPathMatch<TDependency, TItem>
-            where TDependency : AbstractDependency<TItem>
-            where TItem : AbstractItem<TItem> {
-        private readonly ItemMatch _itemMatch;
-
-        public ItemPathMatch(string pattern, bool ignoreCase) {
-            _itemMatch = new ItemMatch(pattern, ignoreCase);
-        }
-
-        public bool IsItemMatch => true;
-
-        public bool Matches(TDependency d) => false;
-
-        public bool Matches(TItem i) => _itemMatch.Matches(i).Success;
-    }
-
-    public abstract class AbstractDepthFirstPathTraverser<TDependency, TItem>
+    public abstract class AbstractDepthFirstPathTraverser<TDependency, TItem, TDownInfo, TUpInfo>
             where TDependency : AbstractDependency<TItem>
             where TItem : AbstractItem<TItem> {
         private struct VisitedKey {
@@ -81,37 +39,40 @@ namespace NDepCheck {
 
         protected abstract void OnTailLoopsBack(Stack<TDependency> currentPath, TItem tail);
 
-        protected abstract void AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount, bool isEnd);
+        protected abstract TDownInfo AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount, IPathMatch<TDependency, TItem> dependencyMatchOrNull, IPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd, TDownInfo down);
 
-        protected abstract void OnFoundCycleToRoot(Stack<TDependency> currentPath);
+        protected abstract TUpInfo OnFoundCycleToRoot(Stack<TDependency> currentPath);
 
-        protected abstract void BeforePopDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount, bool isEnd);
+        protected abstract TUpInfo BeforePopDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount, bool isEnd, TUpInfo par);
 
-        ////protected abstract void OnPathEnd(Stack<TDependency> currentPath);
+        protected abstract TUpInfo AggregateUpInfo(TUpInfo sum, TUpInfo next);
 
         protected void Traverse([NotNull] TItem root, bool ignoreCyclesInThisRecursion,
             [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies,
-            int maxLength, [NotNull] IPathMatch<TDependency, TItem>[] expectedPathMatches) {
+            int maxLength, [NotNull, ItemCanBeNull] IPathMatch<TDependency, TItem>[] expectedPathMatches) {
             Traverse(root, root, ignoreCyclesInThisRecursion, incidentDependencies, new Dictionary<VisitedKey, int>(), maxLength,
-                expectedPathMatches, 1);
+                expectedPathMatches, 1, default(TDownInfo));
         }
+
         protected void Traverse([NotNull] TDependency toRoot, bool ignoreCyclesInThisRecursion,
             [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies,
-            int maxLength, [NotNull] IPathMatch<TDependency, TItem>[] expectedPathMatches) {
+            int maxLength, [NotNull, ItemCanBeNull] IPathMatch<TDependency, TItem>[] expectedPathMatches) {
             _currentPath.Push(toRoot);
             Traverse(toRoot.UsingItem, toRoot.UsedItem, ignoreCyclesInThisRecursion, incidentDependencies,
                 new Dictionary<VisitedKey, int> { { new VisitedKey(toRoot.UsingItem, 0), maxLength - 1 } },
-                maxLength - 1, expectedPathMatches, 1);
+                maxLength - 1, expectedPathMatches, 1, default(TDownInfo));
         }
 
-        private void Traverse(TItem root, [NotNull] TItem tail, bool ignoreCyclesInThisRecursion,
+        private TUpInfo Traverse([NotNull] TItem root, [NotNull] TItem tail, bool ignoreCyclesInThisRecursion,
             [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies,
             [NotNull] Dictionary<VisitedKey, int> allVisitedItems, int restMaxLength,
-            [NotNull] IPathMatch<TDependency, TItem>[] expectedPathMatches, int expectedPathMatchIndex) {
+            [NotNull, ItemCanBeNull] IPathMatch<TDependency, TItem>[] expectedPathMatches, int expectedPathMatchIndex, TDownInfo par) {
 
             int lengthCheckedBehindTail;
 
             VisitedKey tailVisitedKey = new VisitedKey(tail, expectedPathMatchIndex);
+
+            TUpInfo upSum = default(TUpInfo);
 
             bool tailAlreadyVisited = allVisitedItems.TryGetValue(tailVisitedKey, out lengthCheckedBehindTail);
             if (!tailAlreadyVisited || lengthCheckedBehindTail < restMaxLength) {
@@ -121,59 +82,86 @@ namespace NDepCheck {
 
                     TDependency[] dependencies = incidentDependencies[tail];
                     int n = dependencies.Length;
+
+                    bool upSumIsAssigned = false;
+
                     for (int i = 0; i < n; i++) {
                         TDependency nextDep = dependencies[i];
+                        TItem nextTail = nextDep.UsedItem;
 
                         int newExpectedPathMatchIndex = expectedPathMatchIndex;
 
-                        if (newExpectedPathMatchIndex < expectedPathMatches.Length && expectedPathMatches[newExpectedPathMatchIndex].Matches(nextDep)) {
-                            newExpectedPathMatchIndex++;
+                        bool mayContinue = true;
+
+                        IPathMatch<TDependency, TItem> dependencyMatchOrNull = null;
+                        if (newExpectedPathMatchIndex < expectedPathMatches.Length) {
+                            IPathMatch<TDependency, TItem> m = expectedPathMatches[newExpectedPathMatchIndex];
+                            if (m != null && m.Matches(nextDep)) {
+                                newExpectedPathMatchIndex++;
+                                mayContinue &= m.MayContinue;
+                                dependencyMatchOrNull = m;
+                            }
                         }
 
-                        TItem newTail = nextDep.UsedItem;
-
-                        if (newExpectedPathMatchIndex < expectedPathMatches.Length && expectedPathMatches[newExpectedPathMatchIndex].Matches(tail)) {
-                            newExpectedPathMatchIndex++;
+                        IPathMatch<TDependency, TItem> itemMatchOrNull = null;
+                        if (newExpectedPathMatchIndex < expectedPathMatches.Length) {
+                            var m = expectedPathMatches[newExpectedPathMatchIndex];
+                            if (m != null && m.Matches(nextTail)) {
+                                newExpectedPathMatchIndex++;
+                                mayContinue &= m.MayContinue;
+                                itemMatchOrNull = m;
+                            }
                         }
 
-                        _currentPath.Push(nextDep);
-                        VisitedKey newTailVisitedKey = new VisitedKey(newTail, expectedPathMatchIndex);
-                        bool alreadyVisitedUsedItem = allVisitedItems.ContainsKey(newTailVisitedKey);
-
-
-                        bool isEnd;
-                        if (expectedPathMatches.Length >= 2 && expectedPathMatchIndex >= expectedPathMatches.Length - 1) {
-                            // We are at or behind the path end; if the current item or dependency match, we have a real path end!
-                            IPathMatch<TDependency, TItem> lastMatch = expectedPathMatches[expectedPathMatches.Length - 1];
-                            // Check whether we are end
-                            isEnd = lastMatch.Matches(newTail) || lastMatch.Matches(nextDep);
-                        } else {
-                            isEnd = true;
+                        if (newExpectedPathMatchIndex == expectedPathMatchIndex) {
+                            // Check that no "used up" non-multiple-occurrence positive ("MayContinue") path 
+                            // match matches - but only if none of the two previous tests matched explicitly.
+                            // This, I hope & believe, captures what one expects to hold implicitly:
+                            // "No loop backs" to previous positive single patterns
+                            mayContinue &= !expectedPathMatches
+                                .Take(expectedPathMatchIndex)
+                                .Where(m => m != null && m.MayContinue && !m.MultipleOccurrencesAllowed)
+                                .Any(m => m.Matches(nextDep) || m.Matches(nextTail));
                         }
 
+                        if (mayContinue) {
+                            _currentPath.Push(nextDep);
+                            VisitedKey newTailVisitedKey = new VisitedKey(nextTail, expectedPathMatchIndex);
+                            bool alreadyVisitedUsedItem = allVisitedItems.ContainsKey(newTailVisitedKey);
 
+                            bool isEnd;
+                            if (expectedPathMatches.Length >= 2 && expectedPathMatchIndex >= expectedPathMatches.Length - 1) {
+                                // We are at or behind the path match end; if the current item or dependency match, we have a real path end!
+                                IPathMatch<TDependency, TItem> lastMatch = expectedPathMatches[expectedPathMatches.Length - 1];
+                                // Check whether we are end
+                                isEnd = lastMatch.Matches(nextTail) || lastMatch.Matches(nextDep);
+                            } else {
+                                isEnd = false;
+                            }
 
+                            TDownInfo down = AfterPushDependency(_currentPath, alreadyVisitedUsedItem, i, n, dependencyMatchOrNull, itemMatchOrNull, isEnd, par);
+                            TUpInfo up;
+                            if (!ignoreCyclesInThisRecursion && Equals(nextTail, root)) {
+                                // We found a cycle to the rootItem!
+                                up = OnFoundCycleToRoot(_currentPath);
+                            } else {
+                                up = Traverse(root, nextTail, false, incidentDependencies, allVisitedItems, restMaxLength - 1, expectedPathMatches, newExpectedPathMatchIndex, down);
+                            }
+                            BeforePopDependency(_currentPath, alreadyVisitedUsedItem, i, n, isEnd, up);
 
+                            upSum = upSumIsAssigned ? AggregateUpInfo(upSum, up) : up;
+                            upSumIsAssigned = true;
 
-                        AfterPushDependency(_currentPath, alreadyVisitedUsedItem, i, n, isEnd);
-                        if (!ignoreCyclesInThisRecursion && Equals(newTail, root)) {
-                            // We found a cycle to the rootItem!
-                            OnFoundCycleToRoot(_currentPath);
-                        } else {
-                            Traverse(root, newTail, false, incidentDependencies, allVisitedItems, restMaxLength - 1, expectedPathMatches, newExpectedPathMatchIndex);
+                            _currentPath.Pop();
                         }
-                        BeforePopDependency(_currentPath, alreadyVisitedUsedItem, i, n, isEnd);
-                        _currentPath.Pop();
                     }
                     if (_retraverseItems) {
                         allVisitedItems.Remove(tailVisitedKey);
                     }
                 }
-
-                //if (isEnd) {
-                //    OnPathEnd(_currentPath);
-                //}
             }
+
+            return upSum;
         }
     }
 }

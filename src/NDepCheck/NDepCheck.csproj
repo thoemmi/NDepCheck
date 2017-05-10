@@ -99,6 +99,8 @@
     <Compile Include="ConstraintSolving\Range.cs" />
     <Compile Include="ConstraintSolving\SimpleConstraintSolver.cs" />
     <Compile Include="FileWatcher.cs" />
+    <Compile Include="Ignore.cs" />
+    <Compile Include="IPathMatch.cs" />
     <Compile Include="ISourceLocation.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="Matching\MarkerMatch.cs" />

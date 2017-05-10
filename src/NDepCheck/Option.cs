@@ -213,6 +213,15 @@ namespace NDepCheck {
             return string.Join(Environment.NewLine, argsList);
         }
 
+        [NotNull]
+        public static string ExtractNextRequiredValue(string[] args, ref int i, string message, bool allowOptionValue = false) {
+            var result = ExtractNextValue(args, ref i, allowOptionValue);
+            if (result == null) {
+                throw new ArgumentException(message);
+            }
+            return result;
+        }
+
         [CanBeNull]
         public static string ExtractNextValue(string[] args, ref int i, bool allowOptionValue = false) {
             if (i >= args.Length - 1) {

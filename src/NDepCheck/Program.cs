@@ -344,7 +344,7 @@ namespace NDepCheck {
                     } else if (WriteFileOption.IsMatch(arg)) {
                         // -wr    writer  [{ options }] filename
                         string writer = ExtractOptionValue(globalContext, args, ref i);
-                        string s = ExtractNextValue(globalContext, args, ref i);
+                        string s = ExtractNextRequiredValue(globalContext, args, ref i, "Missing filename or options");
                         string masterFileName = Write(globalContext, s, args, ref i,
                             (writerOptions, fileName) => globalContext.RenderToFile("", writer, writerOptions, fileName));
                         writtenMasterFiles?.Add(masterFileName);
@@ -609,6 +609,11 @@ namespace NDepCheck {
                     } else if (IsInternalTransformPlugin(arg)) {
                         string transformerOptions = ExtractNextValue(globalContext, args, ref i);
                         SetResult(ref result, globalContext.Transform("", arg, transformerOptions));
+                    } else if (IsInternalRendererPlugin(arg)) {
+                        string s = ExtractRequiredOptionValue(globalContext, args, ref i, "Missing filename or options");
+                        string masterFileName = Write(globalContext, s, args, ref i,
+                            (writerOptions, fileName) => globalContext.RenderToFile("", arg, writerOptions, fileName));
+                        writtenMasterFiles?.Add(masterFileName);
                     } else {
                         return UsageAndExit(message: "Unsupported option '" + arg + "'", globalContext: globalContext);
                     }
@@ -657,6 +662,11 @@ namespace NDepCheck {
         [CanBeNull]
         private static string ExtractNextValue(GlobalContext globalContext, string[] args, ref int i, bool allowOptionValue = false) {
             return globalContext.ExpandDefinesAndHexChars(Option.ExtractNextValue(args, ref i, allowOptionValue), null);
+        }
+
+        [CanBeNull]
+        private static string ExtractNextRequiredValue(GlobalContext globalContext, string[] args, ref int i, string message, bool allowOptionValue = false) {
+            return globalContext.ExpandDefinesAndHexChars(Option.ExtractNextRequiredValue(args, ref i, message, allowOptionValue), null);
         }
 
         [CanBeNull]
@@ -766,6 +776,10 @@ namespace NDepCheck {
 
         private static bool IsInternalTransformPlugin(string arg) {
             return GlobalContext.IsInternalPlugin<ITransformer>(arg);
+        }
+
+        private static bool IsInternalRendererPlugin(string arg) {
+            return GlobalContext.IsInternalPlugin<IRenderer>(arg);
         }
 
         internal int RunFromFile([NotNull] string fileName, [NotNull, ItemNotNull] string[] passedValues, [NotNull] GlobalContext globalContext,
