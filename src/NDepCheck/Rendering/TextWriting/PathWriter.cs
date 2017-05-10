@@ -57,17 +57,17 @@ namespace NDepCheck.Rendering.TextWriting {
 
             protected abstract void HandleFirstItemBeforeTraverse(TItem firstItem);
 
-            protected override void AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount) {
+            protected override void AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount, bool isEnd) {
                 TItem usedItem = currentPath.Peek().UsedItem;
                 _seenPathStarts.Add(usedItem);
             }
 
-            protected void WriteLine(TItem item, bool showMarkers) {
-                _tw.WriteLine(showMarkers ? item.AsFullString() : item.AsString());
-            }
-
             protected override void OnFoundCycleToRoot(Stack<TDependency> currentPath) {
                 // empty
+            }
+
+            protected string GetItemAsString(TItem item, bool showMarkers, bool markAsEnd) {
+                return (showMarkers ? item.AsFullString() : item.AsString()) + (markAsEnd ? " $" : "");
             }
         }
 
@@ -87,22 +87,22 @@ namespace NDepCheck.Rendering.TextWriting {
             }
 
             protected override void HandleFirstItemBeforeTraverse(TItem firstItem) {
-                WriteLine(firstItem, _showItemMarkers);
+                _tw.WriteLine(GetItemAsString(firstItem, _showItemMarkers, false));
             }
 
             protected override void OnTailLoopsBack(Stack<TDependency> currentPath, TItem tail) {
-                _tw.WriteLine(_indents.Peek() + GetIndent(true) + "<= " + tail.AsString());
+                _tw.WriteLine(_indents.Peek() + GetIndent(true) + "<= " + GetItemAsString(tail, false, false));
             }
 
-            protected override void AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount) {
-                base.AfterPushDependency(currentPath, alreadyVisitedLastUsedItemInCurrentPath, incidentIndex, incidentCount);
+            protected override void AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount, bool isEnd) {
+                base.AfterPushDependency(currentPath, alreadyVisitedLastUsedItemInCurrentPath, incidentIndex, incidentCount, isEnd);
 
                 TItem usedItem = currentPath.Peek().UsedItem;
 
                 if (alreadyVisitedLastUsedItemInCurrentPath) {
                     _tw.Write(_indents.Peek() + GetLead(incidentIndex == incidentCount - 1));
                     _tw.Write("<= ");
-                    WriteLine(usedItem, showMarkers: false);
+                    _tw.WriteLine(GetItemAsString(usedItem, false, isEnd));
                     _indents.Push(_indents.Peek() + GetIndent(incidentIndex == incidentCount - 1));
                 } else {
                     _tw.Write(_indents.Peek());
@@ -112,7 +112,7 @@ namespace NDepCheck.Rendering.TextWriting {
                         _tw.Write(_indents.Peek());
                     }
                     _tw.Write(GetLead(incidentIndex == incidentCount - 1));
-                    WriteLine(usedItem, _showItemMarkers);
+                    _tw.WriteLine(GetItemAsString(usedItem, _showItemMarkers, isEnd));
                     _popsAfterLastPush = 0;
                     _indents.Push(_indents.Peek() + GetIndent(incidentIndex == incidentCount - 1));
                 }
@@ -122,13 +122,9 @@ namespace NDepCheck.Rendering.TextWriting {
 
             protected abstract string GetIndent(bool isLastIncidentDependency);
 
-            protected override void BeforePopDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount) {
+            protected override void BeforePopDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount, bool isEnd) {
                 _indents.Pop();
                 _popsAfterLastPush++;
-            }
-
-            protected override void OnPathEnd(Stack<TDependency> currentPath) {
-                // empty
             }
         }
 
@@ -171,8 +167,11 @@ namespace NDepCheck.Rendering.TextWriting {
         private class FlatPathWriterTraverser<TDependency, TItem> : AbstractPathWriterTraverser<TDependency, TItem>
                 where TDependency : AbstractDependency<TItem>
                 where TItem : AbstractItem<TItem> {
+            private bool _dontWriteBeforeNextPush = false;
+            private readonly List<bool> _isEndStack = new List<bool>();
+
             public FlatPathWriterTraverser(TextWriter tw, bool showItemMarkers, bool backwards) : base(tw, showItemMarkers, backwards) {
-                // empty
+                _isEndStack.Add(false);
             }
 
             protected override void HandleFirstItemBeforeTraverse(TItem firstItem) {
@@ -181,33 +180,36 @@ namespace NDepCheck.Rendering.TextWriting {
 
             protected override void OnTailLoopsBack(Stack<TDependency> currentPath, TItem tail) {
                 WritePath(currentPath);
-                _tw.WriteLine("<= " + tail.AsString());
+                _tw.WriteLine("<= " + GetItemAsString(tail, false, false));
                 _tw.WriteLine();
             }
 
-            protected override void AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount) {
-                base.AfterPushDependency(currentPath, alreadyVisitedLastUsedItemInCurrentPath, incidentIndex, incidentCount);
-
+            protected override void AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount, bool isEnd) {
+                base.AfterPushDependency(currentPath, alreadyVisitedLastUsedItemInCurrentPath, incidentIndex, incidentCount, isEnd);
+                _isEndStack.Add(isEnd);
+                _dontWriteBeforeNextPush = false;
                 if (alreadyVisitedLastUsedItemInCurrentPath) {
                     WritePath(currentPath);
-                    _tw.WriteLine("<= " + currentPath.Peek().UsedItem.AsString());
+                    _tw.WriteLine("<= " + GetItemAsString(currentPath.Peek().UsedItem, false, isEnd));
                     _tw.WriteLine();
+                    _dontWriteBeforeNextPush = true;
                 }
             }
 
-            protected override void BeforePopDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount) {
-                // empty
-            }
-
-            protected override void OnPathEnd(Stack<TDependency> currentPath) {
-                WritePath(currentPath);
-                WriteLine(currentPath.Peek().UsedItem, _showItemMarkers);
-                _tw.WriteLine();
+            protected override void BeforePopDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount, bool isEnd) {
+                if (isEnd && !_dontWriteBeforeNextPush) {
+                    WritePath(currentPath);
+                    _tw.WriteLine(GetItemAsString(currentPath.Peek().UsedItem, _showItemMarkers, true));
+                    _tw.WriteLine();
+                    _dontWriteBeforeNextPush = true;
+                }
+                _isEndStack.RemoveAt(_isEndStack.Count - 1);
             }
 
             private void WritePath(Stack<TDependency> currentPath) {
+                int i = 0;
                 foreach (var d in currentPath.Reverse()) {
-                    WriteLine(d.UsingItem, _showItemMarkers);
+                    _tw.WriteLine(GetItemAsString(d.UsingItem, _showItemMarkers, _isEndStack[i++]));
                 }
             }
         }
@@ -236,7 +238,7 @@ namespace NDepCheck.Rendering.TextWriting {
             bool backwards = false;
             var matches = new List<DependencyMatch>();
             var excludes = new List<DependencyMatch>();
-            //int maxCycleLength = int.MaxValue;
+            //int maxPathLength = int.MaxValue;
             var expectedPathMatches = new List<IPathMatch<Dependency, Item>>();
             string styleOption = "SI";
 
@@ -261,8 +263,8 @@ namespace NDepCheck.Rendering.TextWriting {
                     styleOption = Option.ExtractRequiredOptionValue(args, ref j, "missing style");
                     return j;
                 })
-                //MaxCycleLengthOption.Action((args, j) => {
-                //    maxCycleLength = Option.ExtractIntOptionValue(args, ref j, "Invalid maximum cycle length");
+                //MaxPathLengthOption.Action((args, j) => {
+                //    maxPathLength = Option.ExtractIntOptionValue(args, ref j, "Invalid maximum path length");
                 //    return j;
                 //})
                 );
@@ -311,7 +313,11 @@ namespace NDepCheck.Rendering.TextWriting {
                         throw new ArgumentException($"option '{option}' not supported");
                 }
 
-                Write(false, dependencies, sw, traverser, expectedPathMatches: new IPathMatch<Dependency, Item>[0]);
+                Write(false, dependencies, sw, traverser, 
+                      expectedPathMatches: new IPathMatch<Dependency, Item>[] {
+                          new ItemPathMatch<Dependency, Item>(":", true),
+                          new ItemPathMatch<Dependency, Item>("~c:", true)
+                      });
             }
         }
 

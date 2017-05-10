@@ -83,6 +83,8 @@ namespace NDepCheck {
         }
     }
 
+    // See http://stackoverflow.com/questions/31562791/what-makes-the-visual-studio-debugger-stop-evaluating-a-tostring-override
+    [DebuggerDisplay("{" + nameof(ToString) + "()}")]
     public abstract class AbstractItem<TItem> : ItemSegment where TItem : AbstractItem<TItem> {
         private string _asString;
         private string _asFullString;

@@ -25,7 +25,7 @@ namespace NDepCheck.Transforming.CycleChecking {
                 // empty
             }
 
-            protected override void AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount) {
+            protected override void AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount, bool isEnd) {
                 // empty
             }
 
@@ -53,11 +53,7 @@ namespace NDepCheck.Transforming.CycleChecking {
                 }
             }
 
-            protected override void BeforePopDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount) {
-                // empty
-            }
-
-            protected override void OnPathEnd(Stack<TDependency> currentPath) {
+            protected override void BeforePopDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount, bool isEnd) {
                 // empty
             }
         }
@@ -140,8 +136,6 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             }
             return Program.OK_RESULT;
         }
-
-
 
         public void AfterAllTransforms(GlobalContext globalContext) {
             // empty

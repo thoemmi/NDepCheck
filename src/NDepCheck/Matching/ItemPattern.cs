@@ -20,7 +20,7 @@ namespace NDepCheck.Matching {
 
                 for (int i = 0; i < Matchers.Length; i++) {
                     IMatcher matcher = Matchers[i];
-                    string value = itemValues[i];
+                    string value = i < itemValues.Length ? itemValues[i] : "";
                     IEnumerable<string> groups = matcher.Matches(value, references);
                     if (groups == null) {
                         return new MatchResult(invert, null);
