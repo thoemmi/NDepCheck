@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Matching {
@@ -122,8 +123,8 @@ namespace NDepCheck.Matching {
                     matchers[i] = CreateMatcher(nameAndPattern[1].Trim(), 0, ignoreCase);
                 }
                 _matchers = new MatcherVector(matchers);
-            } else if (parts.Count() == 1 && !parts.Any(p => p.Contains(";")) && !parts.Any(p => p.Contains("(")) && !parts.Any(p => p.Contains(@"\"))) {
-                // "anywhere pattern" - no support for groups!
+            } else if (parts.Count() == 1 && !parts.Any(p => Regex.IsMatch(p, @"[;(\\*^$]"))) {
+                // If there is only a single pattern without any special chars in it
                 _matchers = new AnyWhereMatcher(CreateMatcher(parts.First(), 0, ignoreCase));
             } else {
                 int j = 0;
