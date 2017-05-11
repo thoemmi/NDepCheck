@@ -38,40 +38,32 @@ namespace NDepCheck.Rendering.TextWriting {
                 _showItemMarkers = showItemMarkers;
                 _backwards = backwards;
                 _countMatch = countMatch;
-
-                throw new NotImplementedException("DOES NOT WORK REIGHT NOW -> S-Bahn :-)");
             }
 
-            public void Traverse(IEnumerable<TDependency> dependencies, IPathMatch<TDependency, TItem>[] expectedPathMatches) {
+            public void Traverse(IEnumerable<TDependency> dependencies, ItemMatch pathAnchor,
+                IPathMatch<TDependency, TItem>[] expectedPathMatches) {
                 Dictionary<TItem, TDependency[]> incidentDependencies = _backwards
                     ? AbstractItem<TItem>.CollectIncomingDependenciesMap(dependencies)
                     : AbstractItem<TItem>.CollectOutgoingDependenciesMap(dependencies);
                 _seenPathStarts.Clear();
 
-                if (expectedPathMatches.Length == 0) {
-                    TraverseFromItems(expectedPathMatches, incidentDependencies.Keys, incidentDependencies);
+                IEnumerable<TItem> startItems = pathAnchor == null ? incidentDependencies.Keys : incidentDependencies.Keys.Where(i => pathAnchor.Matches(i).Success);
+                IPathMatch<TDependency, TItem> endMatch;
+                IPathMatch<TDependency, TItem>[] innerMatches;
+                var n = expectedPathMatches.Length;
+                if (n == 0) {
+                    endMatch = null;
+                    innerMatches = expectedPathMatches;
                 } else {
-                    IPathMatch<TDependency, TItem> initMatch = expectedPathMatches.First();
-                    if (initMatch.IsItemMatch) {
-                        IEnumerable<TItem> startItems = incidentDependencies.Keys.Where(i => initMatch.Matches(i));
-                        TraverseFromItems(expectedPathMatches, startItems, incidentDependencies);
-                    } else {
-                        IEnumerable<TDependency> startDependencies = dependencies.Where(d => initMatch.Matches(d));
-                        foreach (var d in startDependencies.OrderBy(d => d.UsingItem.Name)) {
-                            HandleFirstItemBeforeTraverse(d.UsingItem);
-                            Traverse(toRoot: d, ignoreCyclesInThisRecursion: false, incidentDependencies: incidentDependencies, maxLength: int.MaxValue,
-                                expectedPathMatches: expectedPathMatches);
-                        }
-                    }
+                    endMatch = expectedPathMatches[n - 1];
+                    innerMatches = expectedPathMatches.Take(n - 1).ToArray();
                 }
-            }
 
-            private void TraverseFromItems(IPathMatch<TDependency, TItem>[] expectedPathMatches, IEnumerable<TItem> items, Dictionary<TItem, TDependency[]> incidentDependencies) {
-                foreach (var i in items.OrderBy(i => i.Name)) {
-                    if (_seenPathStarts.Add(i)) {
-                        HandleFirstItemBeforeTraverse(i);
-                        Traverse(root: i, ignoreCyclesInThisRecursion: false, incidentDependencies: incidentDependencies, maxLength: int.MaxValue,
-                            expectedPathMatches: expectedPathMatches);
+                foreach (var i1 in startItems.OrderBy(i => i.Name)) {
+                    if (_seenPathStarts.Add(i1)) {
+                        HandleFirstItemBeforeTraverse(i1);
+                        Traverse(root: i1, ignoreCyclesInThisRecursion: false, incidentDependencies: incidentDependencies, maxLength: int.MaxValue,
+                            expectedInnerPathMatches: innerMatches, endMatch: endMatch);
                     }
                 }
             }
@@ -273,11 +265,12 @@ namespace NDepCheck.Rendering.TextWriting {
             NoExampleInfoOption, StyleOption, BackwardsOption, ShowItemMarkersOption);
 
         private static void Write(bool withHeader, IEnumerable<Dependency> dependencies, TextWriter sw,
-                AbstractPathWriterTraverser<Dependency, Item> traverser, [NotNull] IPathMatch<Dependency, Item>[] expectedPathMatches) {
+                AbstractPathWriterTraverser<Dependency, Item> traverser, ItemMatch pathAnchor,
+                [NotNull] IPathMatch<Dependency, Item>[] expectedInnerPathMatches) {
             if (withHeader) {
                 sw.WriteLine($"// Written {DateTime.Now} by {typeof(PathWriter).Name} in NDepCheck {Program.VERSION}");
             }
-            traverser.Traverse(dependencies, expectedPathMatches);
+            traverser.Traverse(dependencies, pathAnchor, expectedInnerPathMatches);
         }
 
         public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount,
@@ -287,6 +280,7 @@ namespace NDepCheck.Rendering.TextWriting {
             var matches = new List<DependencyMatch>();
             var excludes = new List<DependencyMatch>();
             //int maxPathLength = int.MaxValue;
+            ItemMatch pathAnchor = null;
             var expectedPathMatches = new List<IPathMatch<Dependency, Item>>();
             IPathMatch<Dependency, Item> countMatch = null;
             string styleOption = "SI";
@@ -301,34 +295,45 @@ namespace NDepCheck.Rendering.TextWriting {
                     return j;
                 }),
                 PathItemAnchorOption.Action((args, j) => {
-                    expectedPathMatches.Add(CreateItemPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: false));
+                    if (pathAnchor == null) {
+                        pathAnchor = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item pattern"), ignoreCase);
+                    } else {
+                        expectedPathMatches.Add(CreateItemPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: false));
+                    }
                     return j;
                 }),
                 PathDependencyAnchorOption.Action((args, j) => {
+                    CheckPathAnchorSet(pathAnchor);
                     expectedPathMatches.Add(CreateDependencyPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: false));
                     return j;
                 }),
                 CountItemAnchorOption.Action((args, j) => {
+                    CheckPathAnchorSet(pathAnchor);
                     expectedPathMatches.Add(countMatch = CreateItemPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: false));
                     return j;
                 }),
                 CountDependencyAnchorOption.Action((args, j) => {
+                    CheckPathAnchorSet(pathAnchor);
                     expectedPathMatches.Add(countMatch = CreateDependencyPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: false));
                     return j;
                 }),
                 MultipleItemAnchorOption.Action((args, j) => {
+                    CheckPathAnchorSet(pathAnchor);
                     expectedPathMatches.Add(CreateItemPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: false));
                     return j;
                 }),
                 MultipleDependencyAnchorOption.Action((args, j) => {
+                    CheckPathAnchorSet(pathAnchor);
                     expectedPathMatches.Add(CreateDependencyPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: false));
                     return j;
                 }),
                 NoSuchItemAnchorOption.Action((args, j) => {
+                    CheckPathAnchorSet(pathAnchor);
                     expectedPathMatches.Add(CreateItemPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: false));
                     return j;
                 }),
                 NoSuchDependencyAnchorOption.Action((args, j) => {
+                    CheckPathAnchorSet(pathAnchor);
                     expectedPathMatches.Add(CreateDependencyPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: false));
                     return j;
                 }),
@@ -365,7 +370,14 @@ namespace NDepCheck.Rendering.TextWriting {
                         throw new ArgumentException($"Style '{styleOption}' not supported for PathWriter");
                 }
 
-                Write(true, dependencies, sw.Writer, traverser, expectedPathMatches.ToArray());
+                Write(true, dependencies, sw.Writer, traverser, pathAnchor, expectedPathMatches.ToArray());
+            }
+        }
+
+        // ReSharper disable once UnusedParameter.Local -- method is just a precondition check
+        private static void CheckPathAnchorSet(ItemMatch pathAnchor) {
+            if (pathAnchor == null) {
+                throw new ArgumentException($"First path pattern must be specified with {PathItemAnchorOption}");
             }
         }
 
@@ -394,10 +406,10 @@ namespace NDepCheck.Rendering.TextWriting {
                         throw new ArgumentException($"option '{option}' not supported");
                 }
 
-                Write(false, dependencies, sw, traverser, 
-                      expectedPathMatches: new IPathMatch<Dependency, Item>[] {
-                          new ItemPathMatch<Dependency, Item>(":", true, multipleOccurrencesAllowed: false, mayContinue: true),
-                          new ItemPathMatch<Dependency, Item>("~c:", true, multipleOccurrencesAllowed: true, mayContinue: false)
+                Write(false, dependencies, sw, traverser,
+                    pathAnchor: new ItemMatch("a:", true),
+                    expectedInnerPathMatches: new IPathMatch<Dependency, Item>[] {
+                          new ItemPathMatch<Dependency, Item>("~c:", true, multipleOccurrencesAllowed: true, mayContinue: true)
                       });
             }
         }

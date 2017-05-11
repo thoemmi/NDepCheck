@@ -18,7 +18,7 @@ namespace NDepCheck {
 
             public override bool Equals(object obj) {
                 if (obj is VisitedKey) {
-                    VisitedKey other = (VisitedKey) obj;
+                    VisitedKey other = (VisitedKey)obj;
                     return Equals(other._item, _item) && other._expectedPathMatchIndex == _expectedPathMatchIndex;
                 } else {
                     return false;
@@ -49,24 +49,18 @@ namespace NDepCheck {
 
         protected void Traverse([NotNull] TItem root, bool ignoreCyclesInThisRecursion,
             [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies,
-            int maxLength, [NotNull, ItemCanBeNull] IPathMatch<TDependency, TItem>[] expectedPathMatches) {
-            Traverse(root, root, ignoreCyclesInThisRecursion, incidentDependencies, new Dictionary<VisitedKey, int>(), maxLength,
-                expectedPathMatches, 1, default(TDownInfo));
-        }
+            int maxLength, [NotNull, ItemCanBeNull] IPathMatch<TDependency, TItem>[] expectedInnerPathMatches,
+            IPathMatch<TDependency, TItem> endMatch) {
 
-        protected void Traverse([NotNull] TDependency toRoot, bool ignoreCyclesInThisRecursion,
-            [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies,
-            int maxLength, [NotNull, ItemCanBeNull] IPathMatch<TDependency, TItem>[] expectedPathMatches) {
-            _currentPath.Push(toRoot);
-            Traverse(toRoot.UsingItem, toRoot.UsedItem, ignoreCyclesInThisRecursion, incidentDependencies,
-                new Dictionary<VisitedKey, int> { { new VisitedKey(toRoot.UsingItem, 0), maxLength - 1 } },
-                maxLength - 1, expectedPathMatches, 1, default(TDownInfo));
+            Traverse(root, root, ignoreCyclesInThisRecursion, incidentDependencies, new Dictionary<VisitedKey, int>(), maxLength,
+                expectedInnerPathMatches, 0, endMatch, default(TDownInfo));
         }
 
         private TUpInfo Traverse([NotNull] TItem root, [NotNull] TItem tail, bool ignoreCyclesInThisRecursion,
             [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies,
             [NotNull] Dictionary<VisitedKey, int> allVisitedItems, int restMaxLength,
-            [NotNull, ItemCanBeNull] IPathMatch<TDependency, TItem>[] expectedPathMatches, int expectedPathMatchIndex, TDownInfo par) {
+            [NotNull, ItemCanBeNull] IPathMatch<TDependency, TItem>[] expectedInnerPathMatches, 
+            int expectedPathMatchIndex, IPathMatch<TDependency, TItem> endMatch, TDownInfo par) {
 
             int lengthCheckedBehindTail;
 
@@ -78,7 +72,7 @@ namespace NDepCheck {
             if (!tailAlreadyVisited || lengthCheckedBehindTail < restMaxLength) {
                 if (restMaxLength > 0 && incidentDependencies.ContainsKey(tail)) {
                     allVisitedItems[tailVisitedKey] = restMaxLength;
-                    // we are at this item for the first time - check whether we find a path to some defined end
+                    // We are at this item for the first time - check whether we find a path to some defined end
 
                     TDependency[] dependencies = incidentDependencies[tail];
                     int n = dependencies.Length;
@@ -94,34 +88,37 @@ namespace NDepCheck {
                         bool mayContinue = true;
 
                         IPathMatch<TDependency, TItem> dependencyMatchOrNull = null;
-                        if (newExpectedPathMatchIndex < expectedPathMatches.Length) {
-                            IPathMatch<TDependency, TItem> m = expectedPathMatches[newExpectedPathMatchIndex];
-                            if (m != null && m.Matches(nextDep)) {
-                                newExpectedPathMatchIndex++;
-                                mayContinue &= m.MayContinue;
-                                dependencyMatchOrNull = m;
-                            }
-                        }
-
                         IPathMatch<TDependency, TItem> itemMatchOrNull = null;
-                        if (newExpectedPathMatchIndex < expectedPathMatches.Length) {
-                            var m = expectedPathMatches[newExpectedPathMatchIndex];
-                            if (m != null && m.Matches(nextTail)) {
-                                newExpectedPathMatchIndex++;
-                                mayContinue &= m.MayContinue;
-                                itemMatchOrNull = m;
-                            }
-                        }
 
-                        if (newExpectedPathMatchIndex == expectedPathMatchIndex) {
-                            // Check that no "used up" non-multiple-occurrence positive ("MayContinue") path 
-                            // match matches - but only if none of the two previous tests matched explicitly.
-                            // This, I hope & believe, captures what one expects to hold implicitly:
-                            // "No loop backs" to previous positive single patterns
-                            mayContinue &= !expectedPathMatches
-                                .Take(expectedPathMatchIndex)
-                                .Where(m => m != null && m.MayContinue && !m.MultipleOccurrencesAllowed)
-                                .Any(m => m.Matches(nextDep) || m.Matches(nextTail));
+                        if (_currentPath.Any()) {
+                            if (newExpectedPathMatchIndex < expectedInnerPathMatches.Length) {
+                                IPathMatch<TDependency, TItem> m = expectedInnerPathMatches[newExpectedPathMatchIndex];
+                                if (m != null && m.Matches(nextDep)) {
+                                    newExpectedPathMatchIndex++;
+                                    mayContinue &= m.MayContinue;
+                                    dependencyMatchOrNull = m;
+                                }
+                            }
+
+                            if (newExpectedPathMatchIndex < expectedInnerPathMatches.Length) {
+                                var m = expectedInnerPathMatches[newExpectedPathMatchIndex];
+                                if (m != null && m.Matches(nextTail)) {
+                                    newExpectedPathMatchIndex++;
+                                    mayContinue &= m.MayContinue;
+                                    itemMatchOrNull = m;
+                                }
+                            }
+
+                            if (newExpectedPathMatchIndex == expectedPathMatchIndex) {
+                                // Check that no "used up" non-multiple-occurrence positive ("MayContinue") path 
+                                // match matches - but only if none of the two previous tests matched explicitly.
+                                // This, I hope & believe, captures what one expects to hold implicitly:
+                                // "No loop backs" to previous positive single patterns
+                                mayContinue &= !expectedInnerPathMatches
+                                    .Take(expectedPathMatchIndex)
+                                    .Where(m => m != null && m.MayContinue && !m.MultipleOccurrencesAllowed)
+                                    .Any(m => m.Matches(nextDep) || m.Matches(nextTail));
+                            }
                         }
 
                         if (mayContinue) {
@@ -130,11 +127,10 @@ namespace NDepCheck {
                             bool alreadyVisitedUsedItem = allVisitedItems.ContainsKey(newTailVisitedKey);
 
                             bool isEnd;
-                            if (expectedPathMatches.Length >= 2 && expectedPathMatchIndex >= expectedPathMatches.Length - 1) {
+                            if (expectedPathMatchIndex >= expectedInnerPathMatches.Length) {
                                 // We are at or behind the path match end; if the current item or dependency match, we have a real path end!
-                                IPathMatch<TDependency, TItem> lastMatch = expectedPathMatches[expectedPathMatches.Length - 1];
                                 // Check whether we are end
-                                isEnd = lastMatch.Matches(nextTail) || lastMatch.Matches(nextDep);
+                                isEnd = endMatch == null || endMatch.Matches(nextTail) || endMatch.Matches(nextDep);
                             } else {
                                 isEnd = false;
                             }
@@ -145,7 +141,7 @@ namespace NDepCheck {
                                 // We found a cycle to the rootItem!
                                 up = OnFoundCycleToRoot(_currentPath);
                             } else {
-                                up = Traverse(root, nextTail, false, incidentDependencies, allVisitedItems, restMaxLength - 1, expectedPathMatches, newExpectedPathMatchIndex, down);
+                                up = Traverse(root, nextTail, false, incidentDependencies, allVisitedItems, restMaxLength - 1, expectedInnerPathMatches, newExpectedPathMatchIndex, endMatch, down);
                             }
                             BeforePopDependency(_currentPath, alreadyVisitedUsedItem, i, n, isEnd, up);
 

@@ -17,7 +17,7 @@ namespace NDepCheck.Transforming.CycleChecking {
                 Dictionary<TItem, TDependency[]> outgoing = AbstractItem<TItem>.CollectOutgoingDependenciesMap(dependencies);
 
                 foreach (var i in outgoing.Keys.Where(i => ItemMatch.IsMatch(cycleAnchorsMatch, i)).OrderBy(i => i.Name)) {
-                    Traverse(i, ignoreSelfCycles, outgoing, maxCycleLength, expectedPathMatches);
+                    Traverse(i, ignoreSelfCycles, outgoing, maxCycleLength, expectedPathMatches, endMatch: null);
                 }
             }
 
