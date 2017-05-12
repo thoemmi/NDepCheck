@@ -8,7 +8,7 @@ namespace NDepCheck.Tests {
     public class TestMarkDeps {
         [TestMethod]
         public void TestarkFromTo() {
-            using (var f = DisposingFile.TempFileWithTail("Mark.dip")) {
+            using (var f = DisposingFile.CreateTempFileWithTail("Mark.dip")) {
                 Assert.AreEqual(0,
                     Program.Main(new[] {
                         Program.DoResetOption.Opt,
@@ -40,7 +40,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestIncludeExclude() {
-            using (var f = DisposingFile.TempFileWithTail("Mark.dip")) {
+            using (var f = DisposingFile.CreateTempFileWithTail("Mark.dip")) {
                 Assert.AreEqual(0,
                     Program.Main(new[] {
                         Program.DoResetOption.Opt,

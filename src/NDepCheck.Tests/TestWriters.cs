@@ -28,7 +28,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void WriteAndReadDotNetDependencies() {
-            using (DisposingFile dipFile = DisposingFile.TempFileWithTail(".dip")) {
+            using (DisposingFile dipFile = DisposingFile.CreateTempFileWithTail(".dip")) {
                 int result =
                     Program.Main(new[] {
                         MainTests.TestAssemblyPath, Program.WriteDipOption.Opt, dipFile.Filename,
@@ -143,6 +143,8 @@ namespace NDepCheck.Tests {
 .....f:ff:fff $
 ....<= b:bb:bbb $
 ..
+..g:gg:ggg $
+.h:hh:hhh $
 ..g:gg:ggg $", result.Trim());
             }
         }
@@ -233,6 +235,10 @@ d:dd:ddd $
 
 a:aa:aaa
 b:bb:bbb $
+g:gg:ggg $
+
+a:aa:aaa
+h:hh:hhh $
 g:gg:ggg $", result.Trim());
             }
         }
@@ -269,14 +275,42 @@ g:gg:ggg $", result.Trim());
                 w.RenderToStreamForUnitTests(dependencies, s, "LI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a:aa:aaa
-\-b:bb:bbb $
-..+-c:cc:ccc
-..|.\-d:dd:ddd $
-..|...+-e:ee:eee $
-..|...|.\-f:ff:fff $
-..|...\-<= b:bb:bbb $
-..|.
++-b:bb:bbb $
+|.+-c:cc:ccc
+|.|.\-d:dd:ddd $
+|.|...+-e:ee:eee $
+|.|...|.\-f:ff:fff $
+|.|...\-<= b:bb:bbb $
+|.|.
+|.\-g:gg:ggg $
+\-h:hh:hhh $
 ..\-g:gg:ggg $", result.Trim());
+            }
+        }
+
+        [TestMethod]
+        public void TestTreeLineWriterX() {
+            ItemType xy = ItemType.New("XY(X:Y)");
+            Item a = Item.New(xy, "a:1");
+            Item b = Item.New(xy, "b:2");
+            Item c = Item.New(xy, "c:2");
+            Item d = Item.New(xy, "d:3");
+            Item e = Item.New(xy, "e:4");
+            Dependency[] dependencies = {
+                FromTo(a, b), FromTo(a, c), FromTo(b, d), FromTo(c, d), FromTo(d, e)
+            };
+
+
+            using (var f = DisposingFile.CreateTempFileWithTail(".txt")) {
+                var w = new PathWriter();
+                w.Render(new GlobalContext(), dependencies, null, 
+                    "{ -pi a -ci 2 -pi e }", f.Filename, false);
+
+                using (var sw = new StreamReader(f.Filename)) {
+                    string o = sw.ReadToEnd();
+
+                    Assert.IsTrue(o.Contains("SIMPLE:A'LeftMatch+RightMatch "));
+                }
             }
         }
     }

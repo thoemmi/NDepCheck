@@ -43,7 +43,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestCollectArgsFromFile() {
-            using (var f = DisposingFile.TempFileWithTail(".nd")) {
+            using (var f = DisposingFile.CreateTempFileWithTail(".nd")) {
                 using (var sw = new StreamWriter(f.Filename)) {
                     sw.WriteLine(@"
 a b                        // 1 2

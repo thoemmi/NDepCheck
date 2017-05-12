@@ -31,7 +31,7 @@ namespace NDepCheck.Tests {
             return new DisposingFile(filename);
         }
 
-        public static DisposingFile TempFileWithTail(string tail) {
+        public static DisposingFile CreateTempFileWithTail(string tail) {
             return new DisposingFile(Path.GetTempFileName() + tail);
         }
     }

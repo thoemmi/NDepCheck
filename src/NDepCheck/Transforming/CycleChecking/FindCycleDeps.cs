@@ -6,30 +6,71 @@ using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.CycleChecking {
     public class FindCycleDeps : ITransformer {
-        private class FindCycleDepsPathFinder<TDependency, TItem> : AbstractDepthFirstPathTraverser<TDependency, TItem, Ignore, Ignore>
+        private class FindCycleDepsPathFinder<TDependency, TItem> : AbstractDepthFirstPathTraverser<TDependency, TItem, Ignore, Ignore, Ignore>
                 where TDependency : AbstractDependency<TItem>
                 where TItem : AbstractItem<TItem> {
             public readonly HashSet<TDependency> DependenciesOnCycles = new HashSet<TDependency>();
             public readonly HashSet<int> FoundCycleHashs = new HashSet<int>();
+            private readonly Dictionary<TItem, int> _visited2RestLength;
+            private readonly int _maxCycleLength;
+            private readonly TItem _root;
+            private readonly bool _ignoreSelfCycles;
 
-            public FindCycleDepsPathFinder([NotNull, ItemNotNull] IEnumerable<TDependency> dependencies, ItemMatch cycleAnchorsMatch, 
-                                           bool ignoreSelfCycles,  int maxCycleLength, [NotNull, ItemCanBeNull] IPathMatch<TDependency, TItem>[] expectedPathMatches) : base(retraverseItems: false) {
+            public FindCycleDepsPathFinder([NotNull, ItemNotNull] IEnumerable<TDependency> dependencies, ItemMatch cycleAnchorsMatch,
+                                           bool ignoreSelfCycles, int maxCycleLength, [NotNull, ItemCanBeNull] IPathMatch<TDependency, TItem>[] expectedPathMatches) {
                 Dictionary<TItem, TDependency[]> outgoing = AbstractItem<TItem>.CollectOutgoingDependenciesMap(dependencies);
-
-                foreach (var i in outgoing.Keys.Where(i => ItemMatch.IsMatch(cycleAnchorsMatch, i)).OrderBy(i => i.Name)) {
-                    Traverse(i, ignoreSelfCycles, outgoing, maxCycleLength, expectedPathMatches, endMatch: null);
+                _maxCycleLength = maxCycleLength;
+                _visited2RestLength = new Dictionary<TItem, int>();
+                _ignoreSelfCycles = ignoreSelfCycles;
+                foreach (var root in outgoing.Keys.Where(i => ItemMatch.IsMatch(cycleAnchorsMatch, i)).OrderBy(i => i.Name)) {
+                    _root = root;
+                    Traverse(root, outgoing, expectedPathMatches, endMatch: null, down: Ignore.Om);
                 }
             }
 
-            protected override void OnTailLoopsBack(Stack<TDependency> currentPath, TItem tail) {
-                // empty
+            protected override bool VisitSuccessors(TItem tail, Stack<TDependency> currentPath, int expectedPathMatchIndex, out Ignore initUpSum) {
+                initUpSum = Ignore.Om;
+                if (currentPath.Count == 0) {
+                    // We are at root ... nothing to do, and of course we visit all successors
+                    return true;
+                } else if (currentPath.Count > _maxCycleLength) {
+                    // We have reached the checking limit - no further graph traversal
+                    return false;
+                } else if (Equals(tail, _root)) {
+                    // We found a cycle to the root
+                    if (currentPath.Count == 1 && _ignoreSelfCycles) {
+                        // Self cycles is ignored
+                    } else {
+                        RecordCycleToRoot(currentPath);
+                    }
+                    // No need to drill deeper after the cycle is found
+                    return false;
+                } else {
+                    int lengthToBeChecked = _maxCycleLength - currentPath.Count;
+                    int restLengthCheckedSoFar;
+                    if (!_visited2RestLength.TryGetValue(tail, out restLengthCheckedSoFar)) {
+                        // We never visited tail up to now
+                        _visited2RestLength.Add(tail, _maxCycleLength - currentPath.Count);
+                        return true;
+                    } else {
+                        // We did visit tail before ...
+                        if (lengthToBeChecked > restLengthCheckedSoFar) {
+                            // ... but last time the rest length was smaller than now, so we must retraverse again
+                            _visited2RestLength[tail] = lengthToBeChecked;
+                            return true;
+                        } else {
+                            // ... and we don't have to drill deeper.
+                            return false;
+                        }
+                    }
+                }
             }
 
-            protected override Ignore AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount, IPathMatch<TDependency, TItem> dependencyMatchOrNull, IPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd, Ignore down) {
-                return down;
+            protected override DownAndSave AfterPushDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex, IPathMatch<TDependency, TItem> dependencyMatchOrNull, IPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd, Ignore down) {
+                return new DownAndSave();
             }
 
-            protected override Ignore OnFoundCycleToRoot(Stack<TDependency> currentPath) {
+            private void RecordCycleToRoot(Stack<TDependency> currentPath) {
                 int[] nodeHashes = currentPath.Select(d => d.UsingItem.GetHashCode()).ToArray();
                 int minHashCode = nodeHashes[0];
                 int minPos = 0;
@@ -51,15 +92,14 @@ namespace NDepCheck.Transforming.CycleChecking {
                     // actually a new cycle
                     DependenciesOnCycles.UnionWith(currentPath);
                 }
-                return Ignore.Void;
             }
 
-            protected override Ignore BeforePopDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount, bool isEnd, Ignore up) {
-                return up;
+            protected override Ignore BeforePopDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex, IPathMatch<TDependency, TItem> dependencyMatchOrNull, IPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd, Ignore save, Ignore upSum, Ignore childUp) {
+                return childUp;
             }
 
-            protected override Ignore AggregateUpInfo(Ignore sum, Ignore next) {
-                return Ignore.Void;
+            protected override Ignore AfterVisitingSuccessors(bool visitSuccessors, TItem tail, Stack<TDependency> restMaxLength, int expectedPathMatchIndex, Ignore upSum) {
+                return upSum;
             }
         }
 
@@ -125,7 +165,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             });
 
             // TODO: Cycles via path matches would also be a nice feature ...
-            var cycleFinder = new FindCycleDepsPathFinder<Dependency,Item>(dependencies, cycleAnchorsMatch, ignoreSelfCycles, maxCycleLength, new IPathMatch<Dependency, Item>[0]);
+            var cycleFinder = new FindCycleDepsPathFinder<Dependency, Item>(dependencies, cycleAnchorsMatch, ignoreSelfCycles, maxCycleLength, new IPathMatch<Dependency, Item>[0]);
             HashSet<Dependency> dependenciesOnCycles = cycleFinder.DependenciesOnCycles;
             HashSet<int> foundCycleHashs = cycleFinder.FoundCycleHashs;
 

@@ -10,7 +10,7 @@ namespace NDepCheck.Tests {
     public class TestReaders {
         [TestMethod]
         public void TestDipWithProxies() {
-            using (var f = DisposingFile.TempFileWithTail(".dip")) {
+            using (var f = DisposingFile.CreateTempFileWithTail(".dip")) {
                 using (TextWriter tw = new StreamWriter(f.Filename)) {
                     tw.Write(@"$ NKK(Name:Key1:Key2)
                         NKK:a:keyA1:?     => ;1;0;0;src.abc|1            => NKK:?:keyA1:?
@@ -37,7 +37,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void WriteAndReadDotNetDependencies() {
-            using (var dipFile = DisposingFile.TempFileWithTail(".dip")) {
+            using (var dipFile = DisposingFile.CreateTempFileWithTail(".dip")) {
                 int result =
                     Program.Main(new[] {
                         MainTests.TestAssemblyPath,

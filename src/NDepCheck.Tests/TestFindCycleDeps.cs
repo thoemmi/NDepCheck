@@ -46,7 +46,7 @@ namespace NDepCheck.Tests {
 
             new FindCycleDeps().Transform(new GlobalContext(), "test", deps, FindCycleDeps.KeepOnlyCyclesOption.Opt, "test", result);
 
-            result.Sort((x, y) => String.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
+            result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
 
             Assert.AreEqual(3, result.Count);
             Assert.AreEqual(c, result[0].UsingItem);
@@ -85,7 +85,7 @@ namespace NDepCheck.Tests {
             new FindCycleDeps().Transform(new GlobalContext(), "test", deps,
                 $"{{ {FindCycleDeps.KeepOnlyCyclesOption} {FindCycleDeps.IgnoreSelfCyclesOption} }}".Replace(" ", "\r\n"), "test", result);
 
-            result.Sort((x, y) => String.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
+            result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
 
             Assert.AreEqual(5, result.Count);
             Assert.AreEqual(a, result[0].UsingItem);
@@ -128,7 +128,7 @@ namespace NDepCheck.Tests {
                  $"{FindCycleDeps.EffectOptions.AddMarkerOption} {marker} }}").Replace(" ", "\r\n"),
                 "test", result);
 
-            result.Sort((x, y) => String.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
+            result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
 
             Assert.AreEqual(2, result.Count);
             Assert.AreEqual(b, result[0].UsingItem);

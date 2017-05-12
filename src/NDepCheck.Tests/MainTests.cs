@@ -31,7 +31,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void GeneralSucceedingTest() {
-            using (var ruleFile = DisposingFile.TempFileWithTail(".dll.dep")) {
+            using (var ruleFile = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(ruleFile.Filename, false, Encoding.Default)) {
                     tw.Write(@"
 // Test dependencies for NDepCheck
@@ -219,7 +219,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void ExitOk() {
-            using (var d = DisposingFile.TempFileWithTail(".dll.dep")) {
+            using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
                     $ DOTNETCALL ---> DOTNETCALL
@@ -249,7 +249,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void ExitOkAspects() {
-            using (var d = DisposingFile.TempFileWithTail(".dll.dep")) {
+            using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
                     $ DOTNETCALL ---> DOTNETCALL
@@ -275,7 +275,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void NestedMacroTest1() {
-            using (var d = DisposingFile.TempFileWithTail(".dll.dep")) {
+            using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
                     $ DOTNETCALL ---> DOTNETCALL
@@ -308,7 +308,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void ExitDependenciesNotOk() {
-            using (var d = DisposingFile.TempFileWithTail(".dll.dep")) {
+            using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 // The rules are not enough for the test assembly - we expect return result 3
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
@@ -324,7 +324,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void ExitNoRuleGroupsFoundForEmptyDepFile() {
-            using (var d = DisposingFile.TempFileWithTail(".dll.dep")) {
+            using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write("");
                 }
@@ -334,7 +334,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void ExitDependenciesNotOkAspects() {
-            using (var d = DisposingFile.TempFileWithTail(".dll.dep")) {
+            using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
 
@@ -359,7 +359,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void ExitFileNotFound() {
-            using (var d = DisposingFile.TempFileWithTail(".dll.dep")) {
+            using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
 
@@ -373,7 +373,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void ExitException() {
-            using (var d = DisposingFile.TempFileWithTail(".dll.dep")) {
+            using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
 
@@ -390,7 +390,7 @@ NDepCheck:Tests ---> **
                 }
                 Assert.AreEqual(Program.EXCEPTION_RESULT, Program.Main(CreateCheckDepsArgs(d)));
             }
-            using (var d = DisposingFile.TempFileWithTail(".dll.dep")) {
+            using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
 
@@ -405,7 +405,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TestWritePluginption() {
-            using (var d = DisposingFile.TempFileWithTail(".dll.dep")) {
+            using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
                     $ DOTNETCALL ---> DOTNETCALL
@@ -426,7 +426,7 @@ NDepCheck:Tests ---> **
                 ");
                 }
 
-                using (var e = DisposingFile.TempFileWithTail(".gif")) {
+                using (var e = DisposingFile.CreateTempFileWithTail(".gif")) {
                     // typeof(FullName) forces copying to known directory ...
                     Assert.AreEqual(0,
                         Program.Main(
@@ -442,7 +442,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TestWriteTestDataOption() {
-            using (var d = DisposingFile.TempFileWithTail(".gif")) {
+            using (var d = DisposingFile.CreateTempFileWithTail(".gif")) {
                 // The usage typeof(...).FullName forces copying of assembly to bin directory.
                 Assert.AreEqual(0,
                     Program.Main(new[] {
@@ -454,7 +454,7 @@ NDepCheck:Tests ---> **
 
         [TestMethod]
         public void TestWriteTestDataOptionWithModulesAndInterfacesRenderer() {
-            using (var d = DisposingFile.TempFileWithTail(".gif")) {
+            using (var d = DisposingFile.CreateTempFileWithTail(".gif")) {
                 Assert.AreEqual(0,
                     Program.Main(new[] {
                         TestAssemblyPath, Program.WriteTestDataOption.Opt, ".",
