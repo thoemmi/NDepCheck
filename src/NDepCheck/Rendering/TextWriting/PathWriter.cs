@@ -15,29 +15,27 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        private struct SaveInfo {
-        }
-
         private class PathNode<TItem, TDependency>
                 where TDependency : AbstractDependency<TItem>
                 where TItem : AbstractItem<TItem> {
             public bool IsEnd { get; }
             public bool LeadsToNodesToBePrinted { get; }
             public readonly TDependency Dependency;
-            public readonly bool EndOfCycle;
+            public readonly bool IsEndOfCycle;
+            [NotNull, ItemNotNull]
             public readonly IEnumerable<PathNode<TItem, TDependency>> Children;
 
-            public PathNode(TDependency dependency, bool isEnd, bool endOfCycle, IEnumerable<PathNode<TItem, TDependency>> children) {
+            public PathNode(TDependency dependency, bool isEnd, bool isEndOfCycle, IEnumerable<PathNode<TItem, TDependency>> children) {
                 Dependency = dependency;
                 IsEnd = isEnd;
-                EndOfCycle = endOfCycle;
+                IsEndOfCycle = isEndOfCycle;
                 Children = children ?? Enumerable.Empty<PathNode<TItem, TDependency>>();
-                LeadsToNodesToBePrinted = isEnd || Children.Any(ch => ch.LeadsToNodesToBePrinted);
+                LeadsToNodesToBePrinted = isEndOfCycle || isEnd || Children.Any(ch => ch.LeadsToNodesToBePrinted);
             }
         }
 
         private class PathWriterTraverser<TDependency, TItem> : AbstractDepthFirstPathTraverser<TDependency, TItem,
-            DownInfo, SaveInfo, List<PathNode<TItem, TDependency>>>
+            DownInfo, Ignore, List<PathNode<TItem, TDependency>>>
                 where TDependency : AbstractDependency<TItem>
                 where TItem : AbstractItem<TItem> {
             private readonly IPathMatch<TDependency, TItem> _countMatch;
@@ -112,18 +110,18 @@ namespace NDepCheck.Rendering.TextWriting {
                 return new DownAndSave(_countMatch == null
                     ? new DownInfo()
                     : new DownInfo(down.BehindCountMatch || _countMatch == dependencyMatchOrNull || _countMatch == itemMatchOrNull),
-                    new SaveInfo());
+                    Ignore.Om);
             }
 
             protected override List<PathNode<TItem, TDependency>> BeforePopDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex, IPathMatch<TDependency, TItem> dependencyMatchOrNull, IPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd,
-                SaveInfo save, List<PathNode<TItem, TDependency>> upSum, List<PathNode<TItem, TDependency>> childUp) {
+                Ignore save, List<PathNode<TItem, TDependency>> upSum, List<PathNode<TItem, TDependency>> childUp) {
 
-                var top = currentPath.Peek();
+                TDependency top = currentPath.Peek();
                 var key = new ItemAndInt(top.UsedItem, expectedPathMatchIndex);
-                var endOfCycle = _onPath.Contains(key);
+                bool isEndOfCycle = _onPath.Contains(key);
 
-                if (isEnd || endOfCycle || childUp != null) {
-                    PathNode<TItem, TDependency> n = new PathNode<TItem, TDependency>(top, isEnd, endOfCycle, childUp);
+                if (isEnd || isEndOfCycle || childUp.Any(p => p.LeadsToNodesToBePrinted)) {
+                    PathNode<TItem, TDependency> n = new PathNode<TItem, TDependency>(top, isEnd, isEndOfCycle, childUp);
                     upSum.Add(n);
                 }
                 return upSum;
@@ -135,7 +133,7 @@ namespace NDepCheck.Rendering.TextWriting {
                     var key = new ItemAndInt(tail, expectedPathMatchIndex);
                     _onPath.Remove(key);
                 }
-                return upSum.Any(p => p.LeadsToNodesToBePrinted) ? upSum : null;
+                return upSum;
             }
         }
 
@@ -143,8 +141,12 @@ namespace NDepCheck.Rendering.TextWriting {
             void Traverse(TextWriter tw, Dictionary<Item, List<PathNode<Item, Dependency>>> paths, Dictionary<Item, int> counts);
         }
 
-        private abstract class AbstractPathWriterTraverser : IPrintTraverser {
-            public abstract void Traverse(TextWriter tw, Dictionary<Item, List<PathNode<Item, Dependency>>> paths, Dictionary<Item, int> counts);
+        private abstract class AbstractPrintTraverser : IPrintTraverser {
+            protected readonly bool _showItemMarkers;
+
+            protected AbstractPrintTraverser(bool showItemMarkers) {
+                _showItemMarkers = showItemMarkers;
+            }
 
             protected static string ItemAsString(bool showItemMarkers, Dictionary<Item, int> counts, Item usedItem, bool isEnd, bool endOfCycle) {
                 int count;
@@ -154,27 +156,31 @@ namespace NDepCheck.Rendering.TextWriting {
                        + (isEnd ? " $" : "")
                        + (count > 0 ? " (" + count + ")" : "");
             }
-        }
 
-        private class FlatPathWriterTraverser : AbstractPathWriterTraverser {
-            private readonly bool _showItemMarkers;
-
-            public FlatPathWriterTraverser(bool showItemMarkers) {
-                _showItemMarkers = showItemMarkers;
+            public void Traverse(TextWriter tw, Dictionary<Item, List<PathNode<Item, Dependency>>> paths, Dictionary<Item, int> counts) {
+                foreach (var head in paths.Keys.OrderBy(i => i.AsString())) {
+                    Traverse(tw, paths, counts, head);
+                }
             }
 
-            public override void Traverse(TextWriter tw, Dictionary<Item, List<PathNode<Item, Dependency>>> paths, Dictionary<Item, int> counts) {
-                foreach (var head in paths.Keys.OrderBy(i => i.AsString())) {
-                    var stack = new Stack<string>();
-                    stack.Push(ItemAsString(_showItemMarkers, counts, head, false, false));
-                    foreach (var p in paths[head]) {
-                        Traverse(tw, stack, p, counts);
-                    }
+            protected abstract void Traverse(TextWriter tw, Dictionary<Item, List<PathNode<Item, Dependency>>> paths,
+                Dictionary<Item, int> counts, Item head);
+        }
+
+        private class FlatPrintTraverser : AbstractPrintTraverser {
+            public FlatPrintTraverser(bool showItemMarkers) : base(showItemMarkers) {
+            }
+            protected override void Traverse(TextWriter tw, Dictionary<Item, List<PathNode<Item, Dependency>>> paths,
+                Dictionary<Item, int> counts, Item head) {
+                var stack = new Stack<string>();
+                stack.Push(ItemAsString(_showItemMarkers, counts, head, false, false));
+                foreach (var p in paths[head]) {
+                    Traverse(tw, stack, p, counts);
                 }
             }
 
             private void Traverse(TextWriter tw, Stack<string> stack, [NotNull] PathNode<Item, Dependency> node, Dictionary<Item, int> counts) {
-                stack.Push(ItemAsString(_showItemMarkers, counts, node.Dependency.UsedItem, node.IsEnd, node.EndOfCycle));
+                stack.Push(ItemAsString(_showItemMarkers, counts, node.Dependency.UsedItem, node.IsEnd, node.IsEndOfCycle));
                 if (node.Children.Any()) {
                     foreach (var child in node.Children) {
                         Traverse(tw, stack, child, counts);
@@ -189,154 +195,50 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        //private abstract class TreePathWriterTraverser<TDependency, TItem> : AbstractPathWriterTraverser<TDependency, TItem>
-        //        where TDependency : AbstractDependency<TItem>
-        //        where TItem : AbstractItem<TItem> {
-        //    // For advanced ideas, see e.g. https://www.informatik.uni-rostock.de/~ct/pub_files/Tominski06GraphLenses.pdf
+        private class TreePrintTraverser : AbstractPrintTraverser {
+            private readonly int _manyPopsLimit;
+            private readonly string _regularIndent;
+            private readonly string _lastIndent;
+            private readonly string _regularPrefix;
+            private readonly string _lastPrefix;
+            private int _popsAfterLastPush;
 
-        //    private readonly int _manyPopsLimit;
-        //    private readonly Stack<string> _indents = new Stack<string>();
-        //    private int _popsAfterLastPush;
+            public TreePrintTraverser(string regularIndent, string lastIndent, string regularPrefix, string lastPrefix, int manyPopsLimit, bool showItemMarkers) : base(showItemMarkers) {
+                _manyPopsLimit = manyPopsLimit;
+                _regularIndent = regularIndent;
+                _lastIndent = lastIndent;
+                _regularPrefix = regularPrefix;
+                _lastPrefix = lastPrefix;
+            }
 
-        //    protected TreePathWriterTraverser(TextWriter tw, bool showItemMarkers, bool backwards, IPathMatch<Dependency, Item> countMatch,
-        //                                   int manyPopsLimit = 3) : base(tw, showItemMarkers, backwards, countMatch) {
-        //        _manyPopsLimit = manyPopsLimit;
-        //        _indents.Push("");
-        //    }
+            protected override void Traverse(TextWriter tw, Dictionary<Item, List<PathNode<Item, Dependency>>> paths,
+                Dictionary<Item, int> counts, Item head) {
+                tw.WriteLine(ItemAsString(_showItemMarkers, counts, head, false, false));
+                List<PathNode<Item, Dependency>> path = paths[head];
+                var lastChild = path.LastOrDefault();
+                foreach (var p in path) {
+                    // ReSharper disable once AssignNullToNotNullAttribute - pathNodes in lists are never null
+                    Traverse(tw, p == lastChild, "", p, counts);
+                }
+            }
 
-        //    protected override void HandleFirstItemBeforeTraverse(TItem firstItem) {
-        //        _tw.WriteLine(GetItemAsString(firstItem, _showItemMarkers, false));
-        //    }
-
-        //    protected override void OnTailLoopsBack(Stack<TDependency> currentPath, TItem tail) {
-        //        _tw.WriteLine(_indents.Peek() + GetIndent(true) + "<= " + GetItemAsString(tail, false, false));
-        //    }
-
-        //    protected override DownInfo AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount, IPathMatch<TDependency, TItem> dependencyMatchOrNull, IPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd, DownInfo down) {
-        //        DownInfo result = base.AfterPushDependency(currentPath, alreadyVisitedLastUsedItemInCurrentPath, incidentIndex, incidentCount, dependencyMatchOrNull, itemMatchOrNull, isEnd, down);
-
-        //        TItem usedItem = currentPath.Peek().UsedItem;
-
-        //        if (alreadyVisitedLastUsedItemInCurrentPath) {
-        //            _tw.Write(_indents.Peek() + GetLead(incidentIndex == incidentCount - 1));
-        //            _tw.Write("<= ");
-        //            _tw.WriteLine(GetItemAsString(usedItem, false, isEnd));
-        //            _indents.Push(_indents.Peek() + GetIndent(incidentIndex == incidentCount - 1));
-        //        } else {
-        //            _tw.Write(_indents.Peek());
-        //            if (_popsAfterLastPush > _manyPopsLimit) {
-        //                _tw.Write(GetIndent(false));
-        //                _tw.WriteLine();
-        //                _tw.Write(_indents.Peek());
-        //            }
-        //            _tw.Write(GetLead(incidentIndex == incidentCount - 1));
-        //            _tw.WriteLine(GetItemAsString(usedItem, _showItemMarkers, isEnd));
-        //            _popsAfterLastPush = 0;
-        //            _indents.Push(_indents.Peek() + GetIndent(incidentIndex == incidentCount - 1));
-        //        }
-        //        return result;
-        //    }
-
-        //    protected abstract string GetLead(bool isLastIncidentDependency);
-
-        //    protected abstract string GetIndent(bool isLastIncidentDependency);
-
-        //    protected override PathNode BeforePopDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount, bool isEnd, PathNode up) {
-        //        _indents.Pop();
-        //        _popsAfterLastPush++;
-        //        return base.BeforePopDependency(currentPath, alreadyVisitedLastUsedItemInCurrentPath, incidentIndex, incidentCount, isEnd, up);
-        //    }
-        //}
-
-        //private class TreePathWriterTraverserWithFixedIndent<TDependency, TItem> : TreePathWriterTraverser<TDependency, TItem>
-        //                    where TDependency : AbstractDependency<TItem>
-        //        where TItem : AbstractItem<TItem> {
-        //    private readonly string _indent;
-
-        //    public TreePathWriterTraverserWithFixedIndent(TextWriter tw, string indent, bool showItemMarkers, bool backwards, IPathMatch<Dependency, Item> countMatch, int manyPopsLimit = 3) 
-        //        : base(tw, showItemMarkers, backwards, countMatch, manyPopsLimit) {
-        //        _indent = indent;
-        //    }
-
-        //    protected override string GetLead(bool isLastIncidentDependency) {
-        //        return _indent;
-        //    }
-
-        //    protected override string GetIndent(bool isLastIncidentDependency) {
-        //        return _indent;
-        //    }
-        //}
-
-        //private class TreePathWriterTraverserWithLineIndent<TDependency, TItem> : TreePathWriterTraverser<TDependency, TItem>
-        //                    where TDependency : AbstractDependency<TItem>
-        //        where TItem : AbstractItem<TItem> {
-        //    private readonly char _spaceChar;
-
-        //    public TreePathWriterTraverserWithLineIndent(TextWriter tw, char spaceChar, bool showItemMarkers, bool backwards, IPathMatch<Dependency, Item> countMatch, int manyPopsLimit = 3)
-        //        : base(tw, showItemMarkers, backwards, countMatch, manyPopsLimit) {
-        //        _spaceChar = spaceChar;
-        //    }
-
-        //    protected override string GetLead(bool isLastIncidentDependency) {
-        //        return isLastIncidentDependency ? @"\-" : "+-";
-        //    }
-
-        //    protected override string GetIndent(bool isLastIncidentDependency) {
-        //        return "" + (isLastIncidentDependency ? _spaceChar : '|') + _spaceChar;
-        //    }
-        //}
-
-        //private class FlatPathWriterTraverser<TDependency, TItem> : AbstractPathWriterTraverser<TDependency, TItem>
-        //        where TDependency : AbstractDependency<TItem>
-        //        where TItem : AbstractItem<TItem> {
-        //    private bool _dontWriteBeforeNextPush = false;
-        //    private readonly List<bool> _isEndStack = new List<bool>();
-
-        //    public FlatPathWriterTraverser(TextWriter tw, bool showItemMarkers, bool backwards, IPathMatch<Dependency, Item> countMatch) : base(tw, showItemMarkers, backwards, countMatch) {
-        //        _isEndStack.Add(false);
-        //    }
-
-        //    protected override void HandleFirstItemBeforeTraverse(TItem firstItem) {
-        //        // empty
-        //    }
-
-        //    protected override void OnTailLoopsBack(Stack<TDependency> currentPath, TItem tail) {
-        //        WritePath(currentPath);
-        //        _tw.WriteLine("<= " + GetItemAsString(tail, false, false));
-        //        _tw.WriteLine();
-        //    }
-
-        //    protected override DownInfo AfterPushDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount, IPathMatch<TDependency, TItem> dependencyMatchOrNull, IPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd, DownInfo down) {
-        //        DownInfo result = base.AfterPushDependency(currentPath, alreadyVisitedLastUsedItemInCurrentPath, incidentIndex, incidentCount, dependencyMatchOrNull, itemMatchOrNull, isEnd, down);
-        //        _isEndStack.Add(isEnd);
-        //        _dontWriteBeforeNextPush = false;
-        //        if (alreadyVisitedLastUsedItemInCurrentPath) {
-        //            WritePath(currentPath);
-        //            _tw.WriteLine("<= " + GetItemAsString(currentPath.Peek().UsedItem, false, isEnd));
-        //            _tw.WriteLine();
-        //            _dontWriteBeforeNextPush = true;
-        //        }
-        //        return result;
-        //    }
-
-        //    protected override PathNode BeforePopDependency(Stack<TDependency> currentPath, bool alreadyVisitedLastUsedItemInCurrentPath, int incidentIndex, int incidentCount, bool isEnd, PathNode up) {
-        //        if (isEnd && !_dontWriteBeforeNextPush) {
-        //            WritePath(currentPath);
-        //            _tw.WriteLine(GetItemAsString(currentPath.Peek().UsedItem, _showItemMarkers, true));
-        //            _tw.WriteLine();
-        //            _dontWriteBeforeNextPush = true;
-        //        }
-        //        _isEndStack.RemoveAt(_isEndStack.Count - 1);
-        //        return base.BeforePopDependency(currentPath, alreadyVisitedLastUsedItemInCurrentPath, incidentIndex, incidentCount, isEnd, up);
-        //    }
-
-        //    private void WritePath(Stack<TDependency> currentPath) {
-        //        int i = 0;
-        //        foreach (var d in currentPath.Reverse()) {
-        //            _tw.WriteLine(GetItemAsString(d.UsingItem, _showItemMarkers, _isEndStack[i++]));
-        //        }
-        //    }
-        //}
+            private void Traverse(TextWriter tw, bool isLastChild, string currentIndent, [NotNull] PathNode<Item, Dependency> node, Dictionary<Item, int> counts) {
+                if (_popsAfterLastPush >= _manyPopsLimit) {
+                    tw.WriteLine(currentIndent + _regularIndent);
+                }
+                _popsAfterLastPush = 0;
+                tw.WriteLine(
+                    currentIndent
+                    + (isLastChild ? _lastPrefix : _regularPrefix) 
+                    + ItemAsString(_showItemMarkers, counts, node.Dependency.UsedItem, node.IsEnd, node.IsEndOfCycle)
+                );
+                var lastChild = node.Children.LastOrDefault();
+                foreach (var child in node.Children) {
+                    Traverse(tw, child == lastChild, currentIndent + (isLastChild ? _lastIndent : _regularIndent), child, counts);
+                }
+                _popsAfterLastPush++;
+            }
+        }
 
         public static readonly Option PathItemAnchorOption = new Option("pi", "path-item", "itempattern", "item pattern to be matched by path", @default: "all items match", multiple: true);
         public static readonly Option PathDependencyAnchorOption = new Option("pd", "path-dependency", "dependencypattern", "dependency pattern to be matched by path", @default: "all dependencies match", multiple: true);
@@ -449,21 +351,21 @@ namespace NDepCheck.Rendering.TextWriting {
             using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(globalContext, argsAsString, baseFileName))) {
                 IPrintTraverser traverser;
                 switch (styleOption.ToUpperInvariant()) {
-                    //case "SPACEINDENT":
-                    //case "SI":
-                    //    traverser = new TreePathWriterTraverserWithFixedIndent<Dependency, Item>(sw.Writer, " ", showItemMarkers: showItemMarkers, backwards: backwards, countMatch: countMatch);
-                    //    break;
+                    case "SPACEINDENT":
+                    case "SI":
+                        traverser = new TreePrintTraverser("..", " .", ". ", "._", manyPopsLimit: 3, showItemMarkers: showItemMarkers);
+                        break;
                     //case "TABINDENT":
                     //case "TI":
                     //    traverser = new TreePathWriterTraverserWithFixedIndent<Dependency, Item>(sw.Writer, "\t", showItemMarkers: showItemMarkers, backwards: backwards, countMatch: countMatch);
                     //    break;
-                    //case "LINEINDENT":
-                    //case "LI":
-                    //    traverser = new TreePathWriterTraverserWithLineIndent<Dependency, Item>(sw.Writer, ' ', showItemMarkers: showItemMarkers, backwards: backwards, countMatch: countMatch);
-                    //    break;
+                    case "LINEINDENT":
+                    case "LI":
+                        traverser = new TreePrintTraverser("|.", "..", "+-", @"\-", manyPopsLimit: 3, showItemMarkers: showItemMarkers);
+                        break;
                     case "FLAT":
                     case "F":
-                        traverser = new FlatPathWriterTraverser(showItemMarkers: showItemMarkers);
+                        traverser = new FlatPrintTraverser(showItemMarkers: showItemMarkers);
                         break;
                     default:
                         throw new ArgumentException($"Style '{styleOption}' not supported for PathWriter");
@@ -492,14 +394,14 @@ namespace NDepCheck.Rendering.TextWriting {
             using (var sw = new StreamWriter(output)) {
                 IPrintTraverser traverser;
                 switch (option) {
-                    //case "SI":
-                    //    traverser = new TreePathWriterTraverserWithFixedIndent<Dependency, Item>(sw, ".", showItemMarkers: false, backwards: false, countMatch: null);
-                    //    break;
-                    //case "LI":
-                    //    traverser = new TreePathWriterTraverserWithLineIndent<Dependency, Item>(sw, '.', showItemMarkers: false, backwards: false, countMatch: null);
-                    //    break;
+                    case "SI":
+                        traverser = new TreePrintTraverser(".", ".", ".", ".", manyPopsLimit: 3, showItemMarkers: false);
+                        break;
+                    case "LI":
+                        traverser = new TreePrintTraverser("|.", "..", "+-", @"\-", manyPopsLimit: 3, showItemMarkers: false);
+                        break;
                     case "F":
-                        traverser = new FlatPathWriterTraverser(showItemMarkers: false);
+                        traverser = new FlatPrintTraverser(showItemMarkers: false);
                         break;
                     default:
                         throw new ArgumentException($"option '{option}' not supported");

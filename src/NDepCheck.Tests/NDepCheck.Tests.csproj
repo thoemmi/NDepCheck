@@ -80,11 +80,13 @@
     <Compile Include="TestCheckDeps.cs" />
     <Compile Include="TestFindCycleDeps.cs" />
     <Compile Include="TestConstraints.cs" />
+    <Compile Include="TestFlatPathWriters.cs" />
     <Compile Include="TestHideTransitiveEdges.cs" />
     <Compile Include="TestMarkDeps.cs" />
     <Compile Include="TestMarkMinimalCutDeps.cs" />
     <Compile Include="TestOption.cs" />
     <Compile Include="TestProjectItems.cs" />
+    <Compile Include="TestTreeWriters.cs" />
     <Compile Include="TestWriters.cs" />
     <Compile Include="TestReaders.cs" />
     <Compile Include="TestRemoveDeps.cs" />
