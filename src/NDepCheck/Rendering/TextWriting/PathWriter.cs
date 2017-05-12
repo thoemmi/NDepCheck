@@ -127,7 +127,8 @@ namespace NDepCheck.Rendering.TextWriting {
                 return upSum;
             }
 
-            protected override List<PathNode<TItem, TDependency>> AfterVisitingSuccessors(bool visitSuccessors, TItem tail, Stack<TDependency> currentPath, int expectedPathMatchIndex, List<PathNode<TItem, TDependency>> upSum) {
+            protected override List<PathNode<TItem, TDependency>> AfterVisitingSuccessors(bool visitSuccessors, TItem tail, 
+                    Stack<TDependency> currentPath, int expectedPathMatchIndex, List<PathNode<TItem, TDependency>> upSum) {
                 if (visitSuccessors) {
                     // We visit the children - tail was therefore definitely not in _onPath - so we can safely remove it!
                     var key = new ItemAndInt(tail, expectedPathMatchIndex);
@@ -299,33 +300,33 @@ namespace NDepCheck.Rendering.TextWriting {
                     if (pathAnchor == null) {
                         pathAnchor = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item pattern"), ignoreCase);
                     } else {
-                        expectedPathMatches.Add(CreateItemPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: false));
+                        expectedPathMatches.Add(CreateItemPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: true));
                     }
                     return j;
                 }),
                 PathDependencyAnchorOption.Action((args, j) => {
                     CheckPathAnchorSet(pathAnchor);
-                    expectedPathMatches.Add(CreateDependencyPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: false));
+                    expectedPathMatches.Add(CreateDependencyPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: true));
                     return j;
                 }),
                 CountItemAnchorOption.Action((args, j) => {
                     CheckPathAnchorSet(pathAnchor);
-                    expectedPathMatches.Add(countMatch = CreateItemPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: false));
+                    expectedPathMatches.Add(countMatch = CreateItemPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: true));
                     return j;
                 }),
                 CountDependencyAnchorOption.Action((args, j) => {
                     CheckPathAnchorSet(pathAnchor);
-                    expectedPathMatches.Add(countMatch = CreateDependencyPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: false));
+                    expectedPathMatches.Add(countMatch = CreateDependencyPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: true));
                     return j;
                 }),
                 MultipleItemAnchorOption.Action((args, j) => {
                     CheckPathAnchorSet(pathAnchor);
-                    expectedPathMatches.Add(CreateItemPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: false));
+                    expectedPathMatches.Add(CreateItemPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: true, mayContinue: true));
                     return j;
                 }),
                 MultipleDependencyAnchorOption.Action((args, j) => {
                     CheckPathAnchorSet(pathAnchor);
-                    expectedPathMatches.Add(CreateDependencyPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: false));
+                    expectedPathMatches.Add(CreateDependencyPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: true, mayContinue: true));
                     return j;
                 }),
                 NoSuchItemAnchorOption.Action((args, j) => {
@@ -339,7 +340,7 @@ namespace NDepCheck.Rendering.TextWriting {
                     return j;
                 }),
                 StyleOption.Action((args, j) => {
-                    styleOption = Option.ExtractRequiredOptionValue(args, ref j, "missing style");
+                    styleOption = Option.ExtractRequiredOptionValue(args, ref j, "missing style (on of F, FLAT, SI, SPACEINDENT, LI, LINEINDENT");
                     return j;
                 })
                 //MaxPathLengthOption.Action((args, j) => {
@@ -353,15 +354,15 @@ namespace NDepCheck.Rendering.TextWriting {
                 switch (styleOption.ToUpperInvariant()) {
                     case "SPACEINDENT":
                     case "SI":
-                        traverser = new TreePrintTraverser("..", " .", ". ", "._", manyPopsLimit: 3, showItemMarkers: showItemMarkers);
+                        traverser = new TreePrintTraverser("  ", "  ", "  ", "  ", manyPopsLimit: 3, showItemMarkers: showItemMarkers);
                         break;
-                    //case "TABINDENT":
-                    //case "TI":
-                    //    traverser = new TreePathWriterTraverserWithFixedIndent<Dependency, Item>(sw.Writer, "\t", showItemMarkers: showItemMarkers, backwards: backwards, countMatch: countMatch);
-                    //    break;
+                    case "TABINDENT":
+                    case "TI":
+                        traverser = new TreePrintTraverser("\t", "\t", "  ", "  ", manyPopsLimit: 3, showItemMarkers: showItemMarkers);
+                        break;
                     case "LINEINDENT":
                     case "LI":
-                        traverser = new TreePrintTraverser("|.", "..", "+-", @"\-", manyPopsLimit: 3, showItemMarkers: showItemMarkers);
+                        traverser = new TreePrintTraverser("| ", "  ", "+-", @"\-", manyPopsLimit: 3, showItemMarkers: showItemMarkers);
                         break;
                     case "FLAT":
                     case "F":
@@ -454,7 +455,7 @@ namespace NDepCheck.Rendering.TextWriting {
         }
 
         public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
-            return GlobalContext.CreateFullFileName(baseFileName, ".dip");
+            return GlobalContext.CreateFullFileName(baseFileName, ".txt");
         }
     }
 }

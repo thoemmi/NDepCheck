@@ -44,13 +44,20 @@ namespace NDepCheck {
 
         private readonly Stack<TDependency> _currentPath = new Stack<TDependency>();
 
-        protected abstract bool VisitSuccessors(TItem tail, Stack<TDependency> currentPath, int expectedPathMatchIndex, out TUpInfo initUpSum);
+        protected abstract bool VisitSuccessors(TItem tail, Stack<TDependency> currentPath, int expectedPathMatchIndex, 
+                                                out TUpInfo initUpSum);
 
-        protected abstract DownAndSave AfterPushDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex, IPathMatch<TDependency, TItem> dependencyMatchOrNull, IPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd, TDownInfo down);
+        protected abstract DownAndSave AfterPushDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex, 
+                                                IPathMatch<TDependency, TItem> dependencyMatchOrNull, 
+                                                IPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd, TDownInfo down);
 
-        protected abstract TUpInfo BeforePopDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex, IPathMatch<TDependency, TItem> dependencyMatchOrNull, IPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd, TSaveInfo save, TUpInfo upSum, TUpInfo childUp);
+        protected abstract TUpInfo BeforePopDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex,
+                                                IPathMatch<TDependency, TItem> dependencyMatchOrNull, 
+                                                IPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd, 
+                                                TSaveInfo save, TUpInfo upSum, TUpInfo childUp);
 
-        protected abstract TUpInfo AfterVisitingSuccessors(bool visitSuccessors, TItem tail, Stack<TDependency> restMaxLength, int expectedPathMatchIndex, TUpInfo upSum);
+        protected abstract TUpInfo AfterVisitingSuccessors(bool visitSuccessors, TItem tail, Stack<TDependency> currentPath, 
+                                                int expectedPathMatchIndex, TUpInfo upSum);
 
         protected TUpInfo Traverse([NotNull] TItem root,
             [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies,
@@ -89,35 +96,33 @@ namespace NDepCheck {
                     IPathMatch<TDependency, TItem> dependencyMatchOrNull = null;
                     IPathMatch<TDependency, TItem> itemMatchOrNull = null;
 
-                    if (_currentPath.Any()) {
-                        if (newExpectedPathMatchIndex < expectedInnerPathMatches.Length) {
-                            IPathMatch<TDependency, TItem> m = expectedInnerPathMatches[newExpectedPathMatchIndex];
-                            if (m != null && m.Matches(nextDep)) {
-                                newExpectedPathMatchIndex++;
-                                mayContinue &= m.MayContinue;
-                                dependencyMatchOrNull = m;
-                            }
+                    if (newExpectedPathMatchIndex < expectedInnerPathMatches.Length) {
+                        IPathMatch<TDependency, TItem> m = expectedInnerPathMatches[newExpectedPathMatchIndex];
+                        if (m != null && m.Matches(nextDep)) {
+                            newExpectedPathMatchIndex++;
+                            mayContinue &= m.MayContinue;
+                            dependencyMatchOrNull = m;
                         }
+                    }
 
-                        if (newExpectedPathMatchIndex < expectedInnerPathMatches.Length) {
-                            var m = expectedInnerPathMatches[newExpectedPathMatchIndex];
-                            if (m != null && m.Matches(nextTail)) {
-                                newExpectedPathMatchIndex++;
-                                mayContinue &= m.MayContinue;
-                                itemMatchOrNull = m;
-                            }
+                    if (newExpectedPathMatchIndex < expectedInnerPathMatches.Length) {
+                        var m = expectedInnerPathMatches[newExpectedPathMatchIndex];
+                        if (m != null && m.Matches(nextTail)) {
+                            newExpectedPathMatchIndex++;
+                            mayContinue &= m.MayContinue;
+                            itemMatchOrNull = m;
                         }
+                    }
 
-                        if (newExpectedPathMatchIndex == expectedPathMatchIndex) {
-                            // Check that no "used up" non-multiple-occurrence positive ("MayContinue") path 
-                            // match matches - but only if none of the two previous tests matched explicitly.
-                            // This, I hope & believe, captures what one expects to hold implicitly:
-                            // "No loop backs" to previous positive single patterns
-                            mayContinue &= !expectedInnerPathMatches
-                                .Take(expectedPathMatchIndex)
-                                .Where(m => m != null && m.MayContinue && !m.MultipleOccurrencesAllowed)
-                                .Any(m => m.Matches(nextDep) || m.Matches(nextTail));
-                        }
+                    if (newExpectedPathMatchIndex == expectedPathMatchIndex) {
+                        // Check that no "used up" non-multiple-occurrence positive ("MayContinue") path 
+                        // match matches - but only if none of the two previous tests matched explicitly.
+                        // This, I hope & believe, captures what one expects to hold implicitly:
+                        // "No loop backs" to previous positive single patterns
+                        mayContinue &= !expectedInnerPathMatches
+                            .Take(expectedPathMatchIndex)
+                            .Where(m => m != null && m.MayContinue && !m.MultipleOccurrencesAllowed)
+                            .Any(m => m.Matches(nextDep) || m.Matches(nextTail));
                     }
 
                     if (mayContinue) {

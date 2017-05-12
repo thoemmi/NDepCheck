@@ -100,5 +100,31 @@ b:bb:bbb $
 d:dd:ddd $", result.Trim());
             }
         }
+
+        [TestMethod]
+        public void TestCountPaths() {
+            ItemType xy = ItemType.New("XY(X:Y)");
+            Item a = Item.New(xy, "a", "1");
+            Item b = Item.New(xy, "b", "2");
+            Item c = Item.New(xy, "c", "2");
+            Item d = Item.New(xy, "d", "3");
+            Item e = Item.New(xy, "e", "4");
+            Dependency[] dependencies = {
+                FromTo(a, b), FromTo(a, c), FromTo(b, d), FromTo(c, d), FromTo(d, e)
+            };
+
+            using (var f = DisposingFile.CreateTempFileWithTail(".txt")) {
+                var w = new PathWriter();
+                w.Render(new GlobalContext(), dependencies, null,
+                    "{ -ps F -pi a -ci 2 -pi e }".Replace(" ", "\r\n"), f.Filename, false);
+
+                using (var sw = new StreamReader(f.Filename)) {
+                    string o = sw.ReadToEnd();
+
+                    Assert.IsTrue(o.Contains("d:3 (2)"));
+                    Assert.IsTrue(o.Contains("e:4 $ (2)"));
+                }
+            }
+        }
     }
 }
