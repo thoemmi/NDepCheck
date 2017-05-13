@@ -127,6 +127,7 @@ NDepCheck:Tests ---> **
                     Console.SetOut(tw);
                     string[] args = {
                         Program.LogVerboseOption.Opt,
+                        Program.ConfigureOption.Opt,
                         typeof(CheckDeps).Name, "<.",
                             CheckDeps.DefaultRuleFileOption.Opt, ruleFile.Filename,
                         ".>",

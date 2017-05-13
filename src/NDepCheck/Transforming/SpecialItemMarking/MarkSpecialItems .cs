@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using JetBrains.Annotations;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.SpecialItemMarking {
@@ -29,14 +28,12 @@ Configuration options: None
 Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)}";
         }
 
-        public bool RunsPerInputContext => true;
-
         public void Configure(GlobalContext globalContext, string configureOptions, bool forceReload) {
             _ignoreCase = globalContext.IgnoreCase;
         }
 
-        public int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
-            string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
+        public int Transform(GlobalContext globalContext, IEnumerable<Dependency> dependencies,
+            string transformOptions, List<Dependency> transformedDependencies) {
 
             var matches = new List<ItemMatch>();
             bool markSources = false;
@@ -130,10 +127,6 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     }
                 }
             } while (recursive && itemRemoved);
-        }
-
-        public void AfterAllTransforms(GlobalContext globalContext) {
-            // empty
         }
 
         public IEnumerable<Dependency> GetTestDependencies() {

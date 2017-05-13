@@ -21,7 +21,7 @@ namespace NDepCheck.Tests {
             var deps = new[] { new Dependency(a, b, null, "", 1), new Dependency(b, a, null, "", 1), };
             var result = new List<Dependency>();
 
-            new FindCycleDeps().Transform(new GlobalContext(), "test", deps, "", "test", result);
+            new FindCycleDeps().Transform(new GlobalContext(), deps, "", result);
 
             Assert.AreEqual(2, result.Count);
             Assert.AreEqual(1, result[0].BadCt);
@@ -44,7 +44,7 @@ namespace NDepCheck.Tests {
             };
             var result = new List<Dependency>();
 
-            new FindCycleDeps().Transform(new GlobalContext(), "test", deps, FindCycleDeps.KeepOnlyCyclesOption.Opt, "test", result);
+            new FindCycleDeps().Transform(new GlobalContext(), deps, FindCycleDeps.KeepOnlyCyclesOption.Opt, result);
 
             result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
 
@@ -82,8 +82,8 @@ namespace NDepCheck.Tests {
             };
             var result = new List<Dependency>();
 
-            new FindCycleDeps().Transform(new GlobalContext(), "test", deps,
-                $"{{ {FindCycleDeps.KeepOnlyCyclesOption} {FindCycleDeps.IgnoreSelfCyclesOption} }}".Replace(" ", "\r\n"), "test", result);
+            new FindCycleDeps().Transform(new GlobalContext(), deps,
+                $"{{ {FindCycleDeps.KeepOnlyCyclesOption} {FindCycleDeps.IgnoreSelfCyclesOption} }}".Replace(" ", "\r\n"), result);
 
             result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
 
@@ -122,11 +122,10 @@ namespace NDepCheck.Tests {
             var result = new List<Dependency>();
 
             const string marker = "Cycle";
-            new FindCycleDeps().Transform(new GlobalContext(), "test", deps, 
+            new FindCycleDeps().Transform(new GlobalContext(), deps, 
                 ($"{{ {FindCycleDeps.KeepOnlyCyclesOption} " +
                  $"{FindCycleDeps.MaxCycleLengthOption} 3 " +
-                 $"{FindCycleDeps.EffectOptions.AddMarkerOption} {marker} }}").Replace(" ", "\r\n"),
-                "test", result);
+                 $"{FindCycleDeps.EffectOptions.AddMarkerOption} {marker} }}").Replace(" ", "\r\n"), result);
 
             result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
 

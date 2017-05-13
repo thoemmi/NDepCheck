@@ -95,6 +95,7 @@
     <Compile Include="AbstractDepthFirstPathTraverser.cs" />
     <Compile Include="Annotations.cs" />
     <Compile Include="Calculating\GetHash.cs" />
+    <Compile Include="FileSource.cs" />
     <Compile Include="ICalculator.cs" />
     <Compile Include="ConstraintSolving\Range.cs" />
     <Compile Include="ConstraintSolving\SimpleConstraintSolver.cs" />
@@ -133,6 +134,7 @@
     <Compile Include="Rendering\TextWriting\DotRenderer.cs" />
     <Compile Include="Reading\AssemblyReading\FullDotNetAssemblyDependencyReader.cs" />
     <Compile Include="Gibraltar\StringReference.cs" />
+    <Compile Include="Transforming\AbstractTransformerWithFileConfiguration.cs" />
     <Compile Include="Transforming\CycleChecking\FindCycleDeps.cs" />
     <Compile Include="Transforming\DependencyCreating\AddTransitiveDeps.cs" />
     <Compile Include="Matching\DependencyPattern.cs" />
@@ -154,7 +156,6 @@
     <Compile Include="Transforming\Modifying\ModifyItems.cs" />
     <Compile Include="Transforming\DependencyCreating\AddReverseDeps.cs" />
     <Compile Include="Reading\AssemblyReading\AbstractDotNetAssemblyDependencyReader.cs" />
-    <Compile Include="InputContext.cs" />
     <Compile Include="GlobalContext.cs" />
     <Compile Include="Reading\AbstractDependencyReader.cs" />
     <Compile Include="Matching\IMatcher.cs" />

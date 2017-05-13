@@ -5,7 +5,7 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.ViolationChecking {
-    public class CheckDeps : AbstractTransformerWithConfigurationPerInputfile<DependencyRuleSet> {
+    public class CheckDeps : AbstractTransformerPerContainerUriWithFileConfiguration<DependencyRuleSet> {
         public static readonly Option RuleFileExtensionOption = new Option("re", "rule-extension", "extension", "extension for rule files", @default: ".dep");
         public static readonly Option RuleRootDirectoryOption = new Option("rr", "rule-rootdirectory", "directory", "search directory for rule files (searched recursively)", @default: "no search for rule files", multiple: true);
         public static readonly Option DefaultRuleFileOption = new Option("rf", "rule-defaultfile", "filename", "default rule file", @default: "no default rule file");
@@ -26,9 +26,6 @@ namespace NDepCheck.Transforming.ViolationChecking {
         [CanBeNull]
         private DependencyRuleSet _defaultRuleSet;
 
-        // Transformer options
-        private bool _showUnusedQuestionableRules;
-        private bool _showUnusedRules;
 
         HashSet<DependencyRuleGroup> _allCheckedGroups;
 
@@ -151,108 +148,127 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
         #region Transform
 
-        public override bool RunsPerInputContext => true;
+        private bool _showUnusedQuestionableRules;
+        private bool _showUnusedRules;
+        private bool _addMarker;
+        private int _allFilesCt, _okFilesCt;
 
-        public override int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFileName, IEnumerable<Dependency> dependencies,
-            string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
+        public override void BeforeAllTransforms(GlobalContext globalContext, string transformOptions) {
+            _showUnusedQuestionableRules = _showUnusedRules = _addMarker = false;
+
+            Option.Parse(globalContext, transformOptions,
+                ShowUnusedQuestionableRulesOption.Action((args, j) => {
+                    _showUnusedQuestionableRules = true;
+                    return j;
+                }), ShowAllUnusedRulesOption.Action((args, j) => {
+                    _showUnusedRules = true;
+                    return j;
+                }), AddMarkersForBadGroups.Action((args, j) => {
+                    _addMarker = true;
+                    return j;
+                }));
+
+            _allFilesCt = _okFilesCt = 0;
             _allCheckedGroups = new HashSet<DependencyRuleGroup>();
-            if (dependencies.Any()) {
-                transformedDependencies.AddRange(dependencies);
-                bool addMarker = false;
+        }
 
-                // Transformation only done if there are any dependencies. This is especially useful for the
-                // typical case that there are no inputcontext-less dependencies; and no default set is specified
-                // (which would emit an error message "no dep file for input "" found" or the like).
-                Option.Parse(globalContext, transformOptions,
-                    ShowUnusedQuestionableRulesOption.Action((args, j) => {
-                        _showUnusedQuestionableRules = true;
-                        return j;
-                    }), ShowAllUnusedRulesOption.Action((args, j) => {
-                        _showUnusedRules = true;
-                        return j;
-                    }), AddMarkersForBadGroups.Action((args, j) => {
-                        addMarker = true;
-                        return j;
-                    }));
+        public override int TransformContainer(GlobalContext globalContext, IEnumerable<Dependency> dependencies,
+            string containerName, List<Dependency> transformedDependencies) {
 
-                var fullRuleFileNames = new List<string>();
-                foreach (var root in _searchRootsForRuleFiles) {
-                    try {
-                        fullRuleFileNames.AddRange(
-                            root.GetFiles(Path.GetFileName(dependenciesFileName) + _ruleFileExtension,
-                                SearchOption.AllDirectories).Select(fi => fi.FullName));
-                    } catch (IOException ex) {
-                        Log.WriteWarning($"Cannot access files in {root} ({ex.Message})");
-                    }
+            transformedDependencies.AddRange(dependencies);
+
+            var fullRuleFileNames = new List<string>();
+            foreach (var root in _searchRootsForRuleFiles) {
+                try {
+                    fullRuleFileNames.AddRange(
+                        root.GetFiles(Path.GetFileName(containerName) + _ruleFileExtension,
+                            SearchOption.AllDirectories).Select(fi => fi.FullName));
+                } catch (IOException ex) {
+                    Log.WriteWarning($"Cannot access files in {root} ({ex.Message})");
                 }
-
-                fullRuleFileNames = fullRuleFileNames.Distinct().ToList();
-
-                if (!fullRuleFileNames.Any() && dependenciesFileName != null) {
-                    fullRuleFileNames = new List<string> { Path.GetFullPath(dependenciesFileName) + _ruleFileExtension };
-                }
-
-                DependencyRuleSet ruleSetForAssembly;
-                if (fullRuleFileNames.Count > 1) {
-                    string allFilenames = string.Join(", ", fullRuleFileNames.Select(fi => $"'{fi}'"));
-                    throw new ApplicationException(
-                        $"More than one dependency rule file found for input file {dependenciesFileName} in and below " +
-                        $"{string.Join(", ", _searchRootsForRuleFiles)}: {allFilenames}");
-                } else if (!fullRuleFileNames.Any()) {
-                    ruleSetForAssembly = null;
-                } else {
-                    string fullRuleFileName = fullRuleFileNames[0];
-                    ruleSetForAssembly = File.Exists(fullRuleFileName)
-                        ? GetOrReadChildConfiguration(globalContext, () => new StreamReader(fullRuleFileName),
-                            fullRuleFileName, globalContext.IgnoreCase, "...", forceReload: false)
-                        : null;
-                }
-
-                // Nothing found - we take the default set.
-                if (ruleSetForAssembly == null) {
-                    if (_defaultRuleSet == null) {
-                        throw new ApplicationException(
-                            $"No dependency rule file found for input file {dependenciesFileName} in and below " +
-                            $"{string.Join(", ", _searchRootsForRuleFiles)}, and no default rules provided");
-                    } else {
-                        ruleSetForAssembly = _defaultRuleSet;
-                    }
-                }
-
-                // TODO: !!!!!!!!!!!!!!!!!! How to reset all "unused counts"? 
-                // (a) remember counts before and check after - but how to find all checked rules???
-                // (b) reset counts in all rules (that are read in)
-                // (c) keep a callback list of checked rules ...
-
-                return CheckDependencies(globalContext, dependencies, dependencySourceForLogging, ruleSetForAssembly, addMarker);
-            } else {
-                return Program.OK_RESULT;
             }
+
+            fullRuleFileNames = fullRuleFileNames.Distinct().ToList();
+
+            if (!fullRuleFileNames.Any() && containerName != null) {
+                fullRuleFileNames = new List<string> { Path.GetFullPath(containerName) + _ruleFileExtension };
+            }
+
+            DependencyRuleSet ruleSetForAssembly;
+            if (fullRuleFileNames.Count > 1) {
+                string allFilenames = string.Join(", ", fullRuleFileNames.Select(fi => $"'{fi}'"));
+                throw new ApplicationException(
+                    $"More than one dependency rule file found for input file {containerName} in and below " +
+                    $"{string.Join(", ", _searchRootsForRuleFiles)}: {allFilenames}");
+            } else if (!fullRuleFileNames.Any()) {
+                ruleSetForAssembly = null;
+            } else {
+                string fullRuleFileName = fullRuleFileNames[0];
+                ruleSetForAssembly = File.Exists(fullRuleFileName)
+                    ? GetOrReadChildConfiguration(globalContext, () => new StreamReader(fullRuleFileName),
+                        fullRuleFileName, globalContext.IgnoreCase, "...", forceReload: false)
+                    : null;
+            }
+
+            // Nothing found - we take the default set.
+            if (ruleSetForAssembly == null) {
+                if (_defaultRuleSet == null) {
+                    throw new ApplicationException(
+                        $"No dependency rule file found for input file {containerName} in and below " +
+                        $"{string.Join(", ", _searchRootsForRuleFiles)}, and no default rules provided");
+                } else {
+                    ruleSetForAssembly = _defaultRuleSet;
+                }
+            }
+
+            // TODO: !!!!!!!!!!!!!!!!!! How to reset all "unused counts"? 
+            // (a) remember counts before and check after - but how to find all checked rules???
+            // (b) reset counts in all rules (that are read in)
+            // (c) keep a callback list of checked rules ...
+
+            return CheckDependencies(globalContext, dependencies, containerName, ruleSetForAssembly);
         }
 
         private int CheckDependencies([NotNull] GlobalContext globalContext, [NotNull] IEnumerable<Dependency> dependencies,
-                    string dependencySourceForLogging, DependencyRuleSet ruleSetForAssembly, bool addMarker) {
+                                      string containerName, DependencyRuleSet ruleSetForAssembly) {
             if (!dependencies.Any()) {
                 return Program.OK_RESULT;
             }
 
             if (ruleSetForAssembly == null) {
-                Log.WriteError("No rule set found for checking " + dependencySourceForLogging);
+                Log.WriteError("No rule set found for checking " + containerName);
                 return Program.NO_RULE_SET_FOUND_FOR_FILE;
             }
 
             DependencyRuleGroup[] checkedGroups = ruleSetForAssembly.GetAllDependencyGroupsWithRules(globalContext.IgnoreCase).ToArray();
             if (checkedGroups.Any()) {
-                Log.WriteInfo("Checking " + dependencySourceForLogging);
-                bool result = true;
+                Log.WriteInfo("Checking " + containerName);
+                int badCount = 0;
+                int questionableCount = 0;
                 foreach (var group in checkedGroups) {
-                    result &= group.Check(dependencies, addMarker);
+                    group.Check(dependencies, _addMarker, ref badCount, ref questionableCount);
                 }
                 _allCheckedGroups.UnionWith(checkedGroups);
 
-                return result ? Program.OK_RESULT : Program.DEPENDENCIES_NOT_OK;
+                if (Log.IsVerboseEnabled) {
+                    string msg = 
+                        $"{containerName}: {badCount} bad dependencies, {questionableCount} questionable dependecies";
+                    if (badCount > 0) {
+                        Log.WriteError(msg);
+                    } else if (questionableCount > 0) {
+                        Log.WriteWarning(msg);
+                    }
+                }
+
+                _allFilesCt++;
+                if (badCount > 0) {
+                    return Program.DEPENDENCIES_NOT_OK;
+                } else {
+                    _okFilesCt++;
+                    return Program.OK_RESULT;
+                }
             } else {
-                Log.WriteInfo("No rule groups found for " + dependencySourceForLogging + " - no dependency checking is done");
+                Log.WriteInfo("No rule groups found for " + containerName + " - no dependency checking is done");
                 return Program.NO_RULE_GROUPS_FOUND;
             }
         }
@@ -262,13 +278,11 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         }
 
         public override void AfterAllTransforms(GlobalContext globalContext) {
-            foreach (
-                var r in
-                _allCheckedGroups.SelectMany(g => g.AllRules)
-                    .Select(r => r.Representation)
-                    .Distinct()
-                    .OrderBy(r => r.RuleFileName)
-                    .ThenBy(r => r.LineNo)) {
+            foreach (var r in _allCheckedGroups.SelectMany(g => g.AllRules)
+                                               .Select(r => r.Representation)
+                                               .Distinct()
+                                               .OrderBy(r => r.RuleFileName)
+                                               .ThenBy(r => r.LineNo)) {
                 if (_showUnusedQuestionableRules && r.IsQuestionableRule && !r.WasHit) {
                     Log.WriteInfo("Questionable rule " + r + " was never matched - maybe you can remove it!");
                 } else if (_showUnusedRules && !r.WasHit) {
@@ -280,32 +294,14 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 }
             }
 
-            IEnumerable<InputContext> contexts = globalContext.InputContexts;
-            foreach (var ic in contexts) {
-                WriteCounts(ic.Filename, ic.BadDependenciesCount, ic.QuestionableDependenciesCount);
-            }
-            WriteCounts("Dependencies not assigned to file", globalContext.BadDependenciesCountWithoutInputContext,
-                globalContext.QuestionableDependenciesCountWithoutInputContext);
-            int okFilesCt =
-                contexts.Count(ctx => ctx.BadDependenciesCount == 0 && ctx.QuestionableDependenciesCount == 0);
-            int allFileCt = contexts.Count();
-            if (allFileCt == 1) {
-                if (okFilesCt == 1) {
+            if (_allFilesCt == 1) {
+                if (_okFilesCt == 1) {
                     Log.WriteInfo("Input file is without violations.");
                 }
             } else {
-                Log.WriteInfo(okFilesCt == 1
+                Log.WriteInfo(_okFilesCt == 1
                     ? "One input file is without violations."
-                    : $"{okFilesCt} input files are without violations.");
-            }
-        }
-
-        private static void WriteCounts(string input, int badDependenciesCount, int questionableDependenciesCount) {
-            string msg = $"{input}: {badDependenciesCount} bad dependencies, {questionableDependenciesCount} questionable dependecies";
-            if (badDependenciesCount > 0) {
-                Log.WriteError(msg);
-            } else if (questionableDependenciesCount > 0) {
-                Log.WriteWarning(msg);
+                    : $"{_okFilesCt} input files are without violations.");
             }
         }
 

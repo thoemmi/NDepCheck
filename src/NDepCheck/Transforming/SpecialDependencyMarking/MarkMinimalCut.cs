@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using JetBrains.Annotations;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.SpecialDependencyMarking {
@@ -26,8 +25,6 @@ Configuration options: None
 
 Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)}";
         }
-
-        public bool RunsPerInputContext => true;
 
         public void Configure(GlobalContext globalContext, string configureOptions) {
             _ignoreCase = globalContext.IgnoreCase;
@@ -55,8 +52,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             _ignoreCase = globalContext.IgnoreCase;
         }
 
-        public int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
-            string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
+        public int Transform(GlobalContext globalContext, IEnumerable<Dependency> dependencies,
+            string transformOptions, List<Dependency> transformedDependencies) {
 
             var sourceMatches = new List<ItemMatch>();
             var targetMatches = new List<ItemMatch>();
@@ -233,10 +230,6 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 new Dependency(d, b, null, "d->b", 142, 7, 0),
                 new Dependency(d, t, null, "d->t", 145, 4, 0),
             };
-        }
-
-        public void AfterAllTransforms(GlobalContext globalContext) {
-            // empty
         }
     }
 }

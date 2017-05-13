@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 using NDepCheck.Reading.DipReading;
 
 namespace NDepCheck.Transforming.Projecting {
-    public partial class ProjectItems : AbstractTransformerWithConfigurationPerInputfile<ProjectionSet> {
+    public partial class ProjectItems : AbstractTransformerWithFileConfiguration<ProjectionSet> {
         internal const string ABSTRACT_IT_LEFT = "<";
         internal const string ABSTRACT_IT_BOTH = "!";
         internal const string ABSTRACT_IT_RIGHT = ">";
@@ -221,10 +221,8 @@ Examples:
 
         #region Transform
 
-        public override bool RunsPerInputContext => true;
-
-        public override int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFileName, IEnumerable<Dependency> dependencies,
-                            string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
+        public override int Transform(GlobalContext globalContext, IEnumerable<Dependency> dependencies,
+                            string transformOptions, List<Dependency> transformedDependencies) {
             string fullDipName = null;
             bool keepOnlyProjected = false;
             Option.Parse(globalContext, transformOptions, BackProjectionDipFileOption.Action((args, j) => {
@@ -238,14 +236,10 @@ Examples:
             if (fullDipName != null) {
                 // Back projection - ProjectItems may use DipReader by design
                 if (_dependenciesForBackProjection == null) {
-                    InputContext localContext = new DipReader(fullDipName).ReadDependencies(0, globalContext.IgnoreCase);
-                    if (localContext == null) {
-                        throw new Exception("Internal Error: new DipReader() will always create new InputContext - cannot be null");
-                    }
-                    _dependenciesForBackProjection = localContext.Dependencies.ToDictionary(
+                    IEnumerable<Dependency> dipDependencies = new DipReader(fullDipName).ReadDependencies(0, globalContext.IgnoreCase);
+                    _dependenciesForBackProjection = dipDependencies.ToDictionary(
                         d => new FromTo(d.UsingItem, d.UsedItem), d => d);
                 }
-                Log.WriteInfo("Backprojecting " + dependencySourceForLogging);
 
                 var localCollector = new Dictionary<FromTo, Dependency>();
                 var backProjected = new List<Dependency>();
@@ -268,7 +262,6 @@ Examples:
                 }
                 transformedDependencies.AddRange(keepOnlyProjected ? backProjected : dependencies);
             } else {
-                Log.WriteInfo("Projecting " + dependencySourceForLogging);
                 // Forward projection
                 var localCollector = new Dictionary<FromTo, Dependency>();
                 int missingPatternCount = 0;
@@ -277,6 +270,8 @@ Examples:
                 }
                 transformedDependencies.AddRange(localCollector.Values);
             }
+
+            AfterAllTransforms();
 
             return Program.OK_RESULT;
         }
@@ -330,7 +325,7 @@ Examples:
             return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: 1);
         }
 
-        public override void AfterAllTransforms(GlobalContext globalContext) {
+        private void AfterAllTransforms() {
             // reset cached back projection dependencies for next transform
             _dependenciesForBackProjection = null;
 

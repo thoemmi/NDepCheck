@@ -65,16 +65,14 @@ Examples:
             return result;
         }
 
-        public bool RunsPerInputContext => false;
-
         private bool _ignoreCase;
 
         public void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
             _ignoreCase = globalContext.IgnoreCase;
         }
 
-        public int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
+        public int Transform(GlobalContext globalContext, IEnumerable<Dependency> dependencies,
+            [CanBeNull] string transformOptions, List<Dependency> transformedDependencies) {
 
             var matches = new List<DependencyMatch>();
             var excludes = new List<DependencyMatch>();
@@ -173,10 +171,6 @@ Examples:
                 item.UnionWithMarkers(markersToAdd);
                 item.RemoveMarkers(markersToRemove, ignoreCase);
             }
-        }
-
-        public void AfterAllTransforms(GlobalContext globalContext) {
-            // empty
         }
 
         public IEnumerable<Dependency> GetTestDependencies() {

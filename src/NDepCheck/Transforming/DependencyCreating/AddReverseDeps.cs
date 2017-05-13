@@ -24,14 +24,12 @@ Configuration options: None
 Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)}";
         }
 
-        public bool RunsPerInputContext => false;
-
         public void Configure(GlobalContext globalContext, string configureOptions, bool forceReload) {
             _ignoreCase = globalContext.IgnoreCase;
         }
 
-        public int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
+        public int Transform(GlobalContext globalContext, IEnumerable<Dependency> dependencies,
+            [CanBeNull] string transformOptions, List<Dependency> transformedDependencies) {
 
             var matches = new List<DependencyMatch>();
             var excludes = new List<DependencyMatch>();
@@ -68,7 +66,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     if (fromTos == null ||
                         !FromTo.ContainsMatchingDependency(fromTos, d.UsedItem, d.UsingItem, idempotentPattern)) {
                         var newDependency = new Dependency(d.UsedItem, d.UsingItem, d.Source, d.Markers, d.Ct,
-                                                           d.QuestionableCt, d.BadCt, d.ExampleInfo, d.InputContext);
+                                                           d.QuestionableCt, d.BadCt, d.ExampleInfo);
                         if (markerToAdd != null) {
                             newDependency.AddMarker(markerToAdd);
                         }
@@ -79,10 +77,6 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             }
             Log.WriteInfo($"... added {added}{(removed > 0 ? " removed " + removed : "")} dependencies");
             return Program.OK_RESULT;
-        }
-
-        public void AfterAllTransforms(GlobalContext globalContext) {
-            // empty
         }
 
         public IEnumerable<Dependency> GetTestDependencies() {

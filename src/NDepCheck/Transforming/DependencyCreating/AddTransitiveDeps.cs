@@ -31,14 +31,12 @@ Configuration options: None
 Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)}";
         }
 
-        public bool RunsPerInputContext => false;
-
         public void Configure(GlobalContext globalContext, string configureOptions, bool forceReload) {
             _ignoreCase = globalContext.IgnoreCase;
         }
 
-        public int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
+        public int Transform(GlobalContext globalContext, IEnumerable<Dependency> dependencies,
+            [CanBeNull] string transformOptions, List<Dependency> transformedDependencies) {
 
             var matches = new List<DependencyMatch>();
             var excludes = new List<DependencyMatch>();
@@ -109,7 +107,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                             : new Dependency(root, target, d.Source,
                                 markersToAddOrNull ?? MutableMarkerSet.ConcatOrUnionWithMarkers(collectedEdge.Markers, d.Markers, _ignoreCase),
                                 collectedEdge.Ct + d.Ct, collectedEdge.QuestionableCt + d.QuestionableCt,
-                                collectedEdge.BadCt + d.BadCt, d.ExampleInfo, d.InputContext);
+                                collectedEdge.BadCt + d.BadCt, d.ExampleInfo);
 
                         if (IsMatch(toItemMatches, target)) {
                             Dependency alreadyThere;
@@ -128,10 +126,6 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     }
                 }
             }
-        }
-
-        public void AfterAllTransforms(GlobalContext globalContext) {
-            // empty
         }
 
         public IEnumerable<Dependency> GetTestDependencies() {

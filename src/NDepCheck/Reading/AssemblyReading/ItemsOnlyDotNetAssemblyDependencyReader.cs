@@ -9,7 +9,7 @@ namespace NDepCheck.Reading.AssemblyReading {
             : base(factory, fileName) {
         }
 
-        protected override IEnumerable<Dependency> ReadDependencies(InputContext inputContext, int depth, bool ignoreCase) {
+        protected override IEnumerable<Dependency> ReadDependenciesX(int depth, bool ignoreCase) {
             throw new NotImplementedException(); // TODO: gehört da eigentlich raus!
         }
 

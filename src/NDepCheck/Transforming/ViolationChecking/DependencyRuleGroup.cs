@@ -151,8 +151,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
                 _forbidden.Union(other._forbidden));
         }
 
-        public bool Check([NotNull] IEnumerable<Dependency> dependencies, bool addMarker) {
-            bool allOk = true;
+        public void Check([NotNull] IEnumerable<Dependency> dependencies, bool addMarker, ref int badCt, ref int questionableCt) {
             int reorgCount = 0;
             int nextReorg = 200;
 
@@ -166,10 +165,12 @@ namespace NDepCheck.Transforming.ViolationChecking {
                         CheckBadOnly(d);
                     }
                     if (d.BadCt > 0) {
-                        allOk = false;
+                        badCt++;
                         if (addMarker) {
                             d.AddMarker(_groupMarker ?? "global");
                         }
+                    } else if (d.QuestionableCt > 0) {
+                        questionableCt++;
                     }
                     if (++reorgCount > nextReorg) {
                         _forbidden.Sort(_sortOnDescendingHitCount);
@@ -179,7 +180,6 @@ namespace NDepCheck.Transforming.ViolationChecking {
                     }
                 }
             }
-            return allOk;
         }
 
         private void Check([NotNull] Dependency d) {

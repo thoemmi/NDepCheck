@@ -38,8 +38,6 @@ namespace NDepCheck.Transforming.Projecting {
             }
 
             public int SetProjectors(string triePath, ProjectionAndFixedPrefix[] pfps) {
-                //IEnumerable<ProjectionAndFixedPrefix> matchingProjections =
-                //    pfps.Where(pfp => pfp.FixedPrefix.StartsWith(triePath) || pfp.FixedPrefix == "");
                 IEnumerable<ProjectionAndFixedPrefix> matchingProjections =
                     pfps.Where(pfp => triePath.StartsWith(pfp.FixedPrefix) || pfp.FixedPrefix == "");
 

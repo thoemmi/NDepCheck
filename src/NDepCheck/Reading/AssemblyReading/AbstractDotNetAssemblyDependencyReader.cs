@@ -252,19 +252,18 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
 
             [NotNull]
-            private Dependency ToDependency(Item usedItem, InputContext inputContext) {
-                return _sequencePoint == null
-                    ? new Dependency(UsingItem.ToItem(_type), usedItem, null, Usage.ToString(), 1, inputContext: inputContext)
-                    : new Dependency(UsingItem.ToItem(_type), usedItem,
-                        new ProgramFileSource(_sequencePoint.Document.Url, _sequencePoint.StartLine, _sequencePoint.StartColumn, _sequencePoint.EndLine, _sequencePoint.EndColumn),
-                        Usage.ToString(), 1, inputContext: inputContext);
+            private Dependency ToDependency(Item usedItem, string containerUri) {
+                return new Dependency(UsingItem.ToItem(_type), usedItem, _sequencePoint == null 
+                            ? new FileSource(containerUri) 
+                            : new ProgramFileSource(containerUri, _sequencePoint.Document.Url, _sequencePoint.StartLine, _sequencePoint.StartColumn, _sequencePoint.EndLine, _sequencePoint.EndColumn),
+                        Usage.ToString(), 1);
             }
 
             [NotNull]
-            public Dependency ToDependencyWithTail(int depth, InputContext inputContext) {
+            public Dependency ToDependencyWithTail(int depth, string containerUrl) {
                 // ?? fires if reader == null (i.e., target assembly is not read in), or if assemblies do not match (different compiles) and hence a used item is not found in target reader.
                 Item usedItem = (_readerForUsedItem == null ? null : UsedItem.ToItemWithTail(_type, _readerForUsedItem, depth)) ?? UsedItem.ToItem(_type);
-                return ToDependency(usedItem, inputContext);
+                return ToDependency(usedItem, containerUrl);
             }
         }
 

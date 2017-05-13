@@ -13,6 +13,6 @@ namespace NDepCheck {
         string FullFileName { get; }
 
         void SetReadersInSameReadFilesBeforeReadDependencies(IDependencyReader[] readerGang);
-        InputContext ReadDependencies(int v, bool ignoreCase);
+        IEnumerable<Dependency> ReadDependencies(int v, bool ignoreCase);
     }
 }

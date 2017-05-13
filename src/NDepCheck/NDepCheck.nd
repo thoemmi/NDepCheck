@@ -66,6 +66,11 @@
 		// Non-declarations are free to do what they want (maybe properties should also be constrained somehow ... "immutable" is a non-trivial concept)
 		:                  -- '~_declaresfield -> :
 	}
+
+	// Specific rules for immutability project
+	NDepCheck: ---> : {
+	    Program ---! Dependency
+	}
 }
 -tf CheckDeps { -ag }
 

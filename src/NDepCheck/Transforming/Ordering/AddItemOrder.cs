@@ -21,14 +21,12 @@ Configure options: None
 Transform options: {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
-        public bool RunsPerInputContext => false;
-
         public void Configure(GlobalContext globalContext, string configureOptions, bool forceReload) {
             // empty
         }
 
-        public int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
+        public int Transform(GlobalContext globalContext, IEnumerable<Dependency> dependencies,
+            [CanBeNull] string transformOptions, List<Dependency> transformedDependencies) {
 
             Func<int, int, decimal> getSortValue = (incoming, outgoing) => incoming / (incoming + outgoing + 0.0001m);
             Func<Dependency, int> orderBy = d => d.Ct;
@@ -82,10 +80,6 @@ Transform options: {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
                 minItem.AddMarker(orderMarkerPrefix + i.ToString("D4"));
             }
             return Program.OK_RESULT;
-        }
-
-        public void AfterAllTransforms(GlobalContext globalContext) {
-            // empty
         }
 
         public IEnumerable<Dependency> GetTestDependencies() {

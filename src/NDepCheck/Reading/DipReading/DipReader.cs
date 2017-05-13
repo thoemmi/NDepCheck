@@ -43,7 +43,7 @@ namespace NDepCheck.Reading.DipReading {
         public DipReader([NotNull] string fileName) : base(fileName) {
         }
 
-        protected override IEnumerable<Dependency> ReadDependencies([CanBeNull] InputContext inputContext, int depth, bool ignoreCase) {
+        protected override IEnumerable<Dependency> ReadDependenciesX(int depth, bool ignoreCase) {
             Log.WriteInfo("Reading " + _fullFileName);
             Regex dipArrow = new Regex($@"\s*{Dependency.DIP_ARROW}\s*");
 
@@ -108,7 +108,7 @@ namespace NDepCheck.Reading.DipReading {
                                 string.IsNullOrWhiteSpace(source[0])
                                     ? new TextFileSource(_fullFileName, lineNo)
                                     : new TextFileSource(source[0], sourceLine < 0 ? null : (int?) sourceLine),
-                                dependencyMarkers, ct, questionableCt, badCt, exampleInfo, pointsToProxy ? null : inputContext);
+                                dependencyMarkers, ct, questionableCt, badCt, exampleInfo);
 
                             result.Add(dependency);
                         } catch (DipReaderException ex) {
@@ -128,17 +128,17 @@ namespace NDepCheck.Reading.DipReading {
                         }
                     }
 
-                    return result.Select(d => ResolveItemProxies(d, itemsDictionary, inputContext)).ToArray();
+                    return result.Select(d => ResolveItemProxies(d, itemsDictionary)).ToArray();
                 } else {
                     return result;
                 }
             }
         }
 
-        private Dependency ResolveItemProxies(Dependency d, Dictionary<Item, Item> itemsDictionary, InputContext inputContext) {
+        private Dependency ResolveItemProxies(Dependency d, Dictionary<Item, Item> itemsDictionary) {
             return d.UsingItem is ItemProxy || d.UsedItem is ItemProxy
                 ? new Dependency(itemsDictionary[d.UsingItem], itemsDictionary[d.UsedItem],
-                    d.Source, d.Markers, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo, inputContext)
+                    d.Source, d.Markers, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo)
                 : d;
         }
 

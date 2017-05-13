@@ -20,7 +20,7 @@ namespace NDepCheck.Reading {
         public string FullFileName => _fullFileName;
 
         [NotNull]
-        protected abstract IEnumerable<Dependency> ReadDependencies([CanBeNull] InputContext inputContext, int depth, bool ignoreCase);
+        protected abstract IEnumerable<Dependency> ReadDependenciesX(int depth, bool ignoreCase);
 
         /// <summary>
         /// Read dependencies from file
@@ -28,14 +28,13 @@ namespace NDepCheck.Reading {
         /// <param name="depth"></param>
         /// <param name="ignoreCase"></param>
         /// <returns><c>null</c> if already read in</returns>
-        [CanBeNull]
-        public InputContext ReadDependencies(int depth, bool ignoreCase) {
-            var inputContext = new InputContext(FullFileName);
-            IEnumerable<Dependency> dependencies = ReadDependencies(inputContext, depth, ignoreCase).ToArray();
+        [NotNull]
+        public IEnumerable<Dependency> ReadDependencies(int depth, bool ignoreCase) {
+            IEnumerable<Dependency> dependencies = ReadDependenciesX(depth, ignoreCase).ToArray();
             if (!dependencies.Any()) {
                 Log.WriteWarning("No dependencies found in " + FullFileName);
             }
-            return inputContext;
+            return dependencies;
         }
 
         public abstract void SetReadersInSameReadFilesBeforeReadDependencies([NotNull] IDependencyReader[] readerGang);

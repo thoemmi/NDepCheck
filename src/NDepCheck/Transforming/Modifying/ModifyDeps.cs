@@ -4,7 +4,7 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.Modifying {
-    public class ModifyDeps : AbstractTransformerWithConfigurationPerInputfile<IEnumerable<DependencyAction>> {
+    public class ModifyDeps : AbstractTransformerWithFileConfiguration<IEnumerable<DependencyAction>> {
         public static readonly Option ModificationsFileOption = new Option("mf", "modifications-file", "filename", "File containing modifications", @default: "");
         public static readonly Option ModificationsOption = new Option("ml", "modifications-list", "modifications", "Inline modifications", orElse: ModificationsFileOption);
 
@@ -70,8 +70,6 @@ Examples:
             return result;
         }
 
-        public override bool RunsPerInputContext => false;
-
         private IEnumerable<DependencyAction> _orderedActions;
 
         public override void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
@@ -110,8 +108,8 @@ Examples:
             return actions;
         }
 
-        public override int Transform(GlobalContext globalContext, string dependenciesFilename, IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
+        public override int Transform(GlobalContext globalContext, IEnumerable<Dependency> dependencies,
+            [CanBeNull] string transformOptions, List<Dependency> transformedDependencies) {
 
             if (_orderedActions == null) {
                 Log.WriteWarning($"No actions configured for {GetType().Name}");

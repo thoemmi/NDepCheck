@@ -16,7 +16,7 @@ namespace NDepCheck.Tests {
             GlobalContext globalContext = new GlobalContext();
             var cd = new CheckDeps();
             cd.Configure(globalContext, "{ -rd $SIMPLE--->SIMPLE a--->(a|b) }".Replace(" ", "\r\n"), true);
-            cd.Transform(globalContext, "test", deps, "", "test", result);
+            cd.Transform(globalContext, deps, "", result);
 
             Assert.IsFalse(deps.Any(d => d.BadCt > 0));
         }

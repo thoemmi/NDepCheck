@@ -9,9 +9,9 @@ using JetBrains.Annotations;
 using NDepCheck.Matching;
 
 namespace NDepCheck {
-
     public class GlobalContext {
         private const string HELP_SEPARATOR = "=============================================";
+
         internal bool RenderingDone {
             get; set;
         }
@@ -32,20 +32,9 @@ namespace NDepCheck {
         private readonly ValuesFrame _globalValues = new ValuesFrame();
         private ValuesFrame _localParameters = new ValuesFrame();
 
-        [NotNull]
-        private readonly Dictionary<string, InputContext> _inputContexts =
-            new Dictionary<string, InputContext>();
+        private readonly Stack<IEnumerable<Dependency>> _dependencies = new Stack<IEnumerable<Dependency>>();
 
-        private readonly Stack<IEnumerable<Dependency>> _dependenciesWithoutInputContextStack =
-            new Stack<IEnumerable<Dependency>>();
-
-        private IEnumerable<Dependency> DependenciesWithoutInputContext
-            => _dependenciesWithoutInputContextStack.Peek();
-
-        public int BadDependenciesCountWithoutInputContext => DependenciesWithoutInputContext.Sum(d => d.BadCt);
-
-        public int QuestionableDependenciesCountWithoutInputContext
-            => DependenciesWithoutInputContext.Sum(d => d.QuestionableCt);
+        private IEnumerable<Dependency> AllDependencies => _dependencies.Peek();
 
         [NotNull]
         private readonly List<IPlugin> _plugins = new List<IPlugin>();
@@ -56,9 +45,6 @@ namespace NDepCheck {
                 Activator.CreateInstance(t);
             }
         }
-
-        [NotNull]
-        public IEnumerable<InputContext> InputContexts => _inputContexts.Values;
 
         public bool WorkLazily {
             get; set;
@@ -74,7 +60,7 @@ namespace NDepCheck {
 
         public GlobalContext() {
             Name = "[" + ++_cxtId + "]";
-            _dependenciesWithoutInputContextStack.Push(Enumerable.Empty<Dependency>());
+            _dependencies.Push(Enumerable.Empty<Dependency>());
         }
 
         public void SetDefine(string key, string value, string location) {
@@ -98,10 +84,6 @@ namespace NDepCheck {
                 : s;
         }
 
-        private IEnumerable<Dependency> GetAllDependencies() {
-            return _inputContexts.Values.SelectMany(ic => ic.Dependencies).Concat(DependenciesWithoutInputContext);
-        }
-
         [NotNull]
         private T GetOrCreatePlugin<T>([CanBeNull] string assemblyName, [CanBeNull] string pluginClassName)
             where T : IPlugin {
@@ -121,7 +103,7 @@ namespace NDepCheck {
                     $"No plugin type found in assembly '{ShowAssemblyName(assemblyName)}' matching '{pluginClassName}'");
             }
             try {
-                // plugins can have state, therefore we must manage them
+                // Plugins can have state, therefore we must manage them in a repository. A simple list is sufficient.
                 T result = (T)_plugins.FirstOrDefault(t => t.GetType() == pluginType);
                 if (result == null) {
                     _plugins.Add(result = (T)Activator.CreateInstance(pluginType));
@@ -230,12 +212,12 @@ namespace NDepCheck {
                 r.SetReadersInSameReadFilesBeforeReadDependencies(readers);
             }
 
+            var readSet = new List<Dependency>();
             foreach (var r in readers) {
-                InputContext inputContext;
-                if (!_inputContexts.TryGetValue(r.FullFileName, out inputContext)) {
-                    _inputContexts.Add(r.FullFileName, r.ReadDependencies(0, IgnoreCase));
-                }
+                var deps = r.ReadDependencies(0, IgnoreCase);
+                readSet.AddRange(deps);
             }
+            _dependencies.Push(readSet);
         }
 
         [CanBeNull]
@@ -268,16 +250,16 @@ namespace NDepCheck {
 
         public void TransformTestData(string assemblyName, string transformerClass, string transformerOptions) {
             ITransformer transformer = GetOrCreatePlugin<ITransformer>(assemblyName, transformerClass);
-            _dependenciesWithoutInputContextStack.Push(transformer.GetTestDependencies());
+            _dependencies.Push(transformer.GetTestDependencies());
 
             var newDependenciesCollector = new List<Dependency>();
-            transformer.Transform(this, "TestData", DependenciesWithoutInputContext, transformerOptions, "TestData",
+            transformer.Transform(this, AllDependencies, transformerOptions,
                 newDependenciesCollector);
 
             TransformingDone = true;
 
-            _dependenciesWithoutInputContextStack.Pop();
-            _dependenciesWithoutInputContextStack.Push(newDependenciesCollector);
+            _dependencies.Pop();
+            _dependencies.Push(newDependenciesCollector);
         }
 
         public int Transform([CanBeNull] string assemblyName, [NotNull] string transformerClass,
@@ -286,56 +268,30 @@ namespace NDepCheck {
                 ShowDetailedHelp<ITransformer>(assemblyName, transformerClass, "");
                 return Program.OPTIONS_PROBLEM;
             } else {
-                ITransformer transformer = GetOrCreatePlugin<ITransformer>(assemblyName, transformerClass);
-                Log.WriteInfo($"Transforming with {assemblyName}.{transformerClass}");
+                try {
+                    ITransformer transformer = GetOrCreatePlugin<ITransformer>(assemblyName, transformerClass);
+                    Log.WriteInfo($"Transforming with {assemblyName}.{transformerClass}");
 
-                var newDependenciesCollector = new List<Dependency>();
-                int result = Program.OK_RESULT;
-                if (transformer.RunsPerInputContext) {
-                    foreach (var ic in _inputContexts.Values) {
-                        result = Transform(transformerOptions, transformer, ic.Filename, ic.Dependencies,
-                            "dependencies in file " + ic.Filename, newDependenciesCollector, result);
+                    var newDependenciesCollector = new List<Dependency>();
+
+                    int result = transformer.Transform(this, AllDependencies.ToArray(), transformerOptions, newDependenciesCollector);
+
+                    Dependency[] dependencies = newDependenciesCollector.ToArray();
+                    if (dependencies.Contains(null)) {
+                        throw new ArgumentNullException(nameof(dependencies), "Contains null item");
                     }
-                    result = Transform(transformerOptions, transformer, "", DependenciesWithoutInputContext,
-                        "generated dependencies", newDependenciesCollector, result);
-                } else {
-                    result = transformer.Transform(this, "", GetAllDependencies().ToArray(), transformerOptions,
-                        "all dependencies", newDependenciesCollector);
+                    _dependencies.Push(dependencies);
+
+                    Log.WriteInfo($"... now {dependencies.Length} dependencies");
+
+                    TransformingDone = true;
+                    return result;
+                } catch (Exception ex) {
+                    Log.WriteError(
+                        $"Error while transforming with '{transformerClass}': {ex.GetType().Name} - {ex.Message}");
+                    return Program.EXCEPTION_RESULT;
                 }
-
-                if (newDependenciesCollector.Contains(null)) {
-                    throw new NullReferenceException("newDependenciesCollector contains null dependency");
-                }
-
-                transformer.AfterAllTransforms(this);
-                int sum = 0;
-                foreach (var ic in _inputContexts.Values) {
-                    sum += ic.PushDependencies(newDependenciesCollector.Where(d => d.InputContext == ic));
-                }
-                sum +=
-                    PushDependenciesWithoutInputContext(
-                        newDependenciesCollector.Where(d => d.InputContext == null).ToArray());
-                TransformingDone = true;
-
-                Log.WriteInfo($"... now {sum} dependencies");
-
-                return result;
             }
-        }
-
-        private int Transform(string transformerOptions, ITransformer transformer,
-            [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
-            string dependencySourceForLogging, List<Dependency> newDependenciesCollector, int result) {
-            try {
-                int r = transformer.Transform(this, dependenciesFilename, dependencies, transformerOptions,
-                    dependencySourceForLogging, newDependenciesCollector);
-                result = Math.Max(result, r);
-            } catch (Exception ex) {
-                Log.WriteError(
-                    $"Error while transforming '{dependencySourceForLogging}': {ex.GetType().Name} - {ex.Message}");
-                result = Program.EXCEPTION_RESULT;
-            }
-            return result;
         }
 
         public void Calculate(string valueKey, string assemblyName, string calculatorClass,
@@ -374,7 +330,7 @@ namespace NDepCheck {
             } else {
                 IRenderer renderer = GetOrCreatePlugin<IRenderer>(assemblyName, rendererClassName);
 
-                Dependency[] allDependencies = GetAllDependencies().ToArray();
+                Dependency[] allDependencies = AllDependencies.ToArray();
                 string masterFileName = renderer.GetMasterFileName(this, rendererOptions, fileName);
                 if (WorkLazily && File.Exists(masterFileName)) {
                     // we dont do anything - TODO check change dates of input files vs. the master file's last update date
@@ -388,22 +344,10 @@ namespace NDepCheck {
             }
         }
 
-        private int PushDependenciesWithoutInputContext(Dependency[] dependencies) {
-            if (dependencies.Contains(null)) {
-                throw new ArgumentNullException(nameof(dependencies), "Contains null item");
-            }
-
-            _dependenciesWithoutInputContextStack.Push(dependencies);
-            return dependencies.Length;
-        }
-
         public void UndoTransform() {
-            if (_dependenciesWithoutInputContextStack.Count > 1) {
-                _dependenciesWithoutInputContextStack.Pop();
-                int sum = _dependenciesWithoutInputContextStack.Peek().Count();
-                foreach (var ic in _inputContexts.Values) {
-                    sum += ic.PopDependencies();
-                }
+            if (_dependencies.Count > 1) {
+                _dependencies.Pop();
+                int sum = _dependencies.Peek().Count();
                 Log.WriteInfo($"{sum} dependencies");
             }
         }
@@ -413,9 +357,8 @@ namespace NDepCheck {
         }
 
         public void ResetAll() {
-            _inputContexts.Clear();
-            _dependenciesWithoutInputContextStack.Clear();
-            _dependenciesWithoutInputContextStack.Push(Enumerable.Empty<Dependency>());
+            _dependencies.Clear();
+            _dependencies.Push(Enumerable.Empty<Dependency>());
 
             RenderingDone = false;
             TransformingDone = false;
@@ -459,7 +402,6 @@ namespace NDepCheck {
             } else {
                 Log.WriteInfo("Writing " + fullFileName);
                 return new NamedTextWriter(new StreamWriter(fullFileName), fullFileName);
-
             }
         }
 
@@ -476,36 +418,17 @@ namespace NDepCheck {
 
         public void LogAboutNDependencies(int maxCount, [CanBeNull] string pattern) {
             DependencyMatch m = pattern == null ? null : DependencyMatch.Create(pattern, IgnoreCase);
-            InputContext[] nonEmptyInputContexts =
-                _inputContexts.Values.Where(ic => ic.Dependencies.Any()).ToArray();
-            maxCount = Math.Max(3 * nonEmptyInputContexts.Length, maxCount);
-            foreach (var ic in nonEmptyInputContexts) {
-                int depsPerContext = maxCount / nonEmptyInputContexts.Length;
-                IEnumerable<Dependency> matchingDependencies =
-                    ic.Dependencies.Where(d => m == null || m.IsMatch(d)).Take(depsPerContext + 1);
-                foreach (var d in matchingDependencies.Take(depsPerContext)) {
-                    maxCount--;
-                    Log.WriteInfo(d.AsDipStringWithTypes(false));
-                }
-                if (matchingDependencies.Skip(depsPerContext).Any()) {
-                    Log.WriteInfo("...");
-                }
+            IEnumerable<Dependency> matchingDependencies =
+                AllDependencies.Where(d => m == null || m.IsMatch(d)).Take(maxCount + 1);
+            foreach (var d in matchingDependencies.Take(maxCount)) {
+                Log.WriteInfo(d.AsDipStringWithTypes(false));
             }
-            {
-                IEnumerable<Dependency> matchingDependencies =
-                    DependenciesWithoutInputContext.Where(d => m == null || m.IsMatch(d)).Take(maxCount + 1);
-                foreach (var d in matchingDependencies.Take(maxCount)) {
-                    Log.WriteInfo(d.AsDipStringWithTypes(false));
-                }
-                if (matchingDependencies.Skip(maxCount).Any()) {
-                    Log.WriteInfo("...");
-                }
+            if (matchingDependencies.Skip(maxCount).Any()) {
+                Log.WriteInfo("...");
             }
         }
 
         public void LogAboutNItems(int maxCount, [CanBeNull] string pattern) {
-            //ReadAllNotYetReadIn();
-
             List<Item> matchingItems = LogOnlyItemCount(pattern).ToList();
             matchingItems.Sort(
                 (i1, i2) =>
@@ -519,20 +442,15 @@ namespace NDepCheck {
 
         public void LogDependencyCount(string pattern) {
             DependencyMatch m = pattern == null ? null : DependencyMatch.Create(pattern, IgnoreCase);
-            int sum = DependenciesWithoutInputContext.Count(d => m == null || m.IsMatch(d));
-            foreach (var ic in _inputContexts.Values) {
-                sum += ic.Dependencies.Count(d => m == null || m.IsMatch(d));
-            }
-            Log.WriteInfo(sum + " dependencies" + (m == null ? "" : " matching " + pattern));
-            foreach (var d in GetAllDependencies().Where(d => m == null || m.IsMatch(d)).Take(3)) {
+            int count = AllDependencies.Count(d => m == null || m.IsMatch(d));
+            Log.WriteInfo(count + " dependencies" + (m == null ? "" : " matching " + pattern));
+            foreach (var d in AllDependencies.Where(d => m == null || m.IsMatch(d)).Take(3)) {
                 Log.WriteInfo(d.AsDipStringWithTypes(false));
             }
             TransformingDone = true;
         }
 
         public void LogItemCount(string pattern) {
-            //ReadAllNotYetReadIn();
-
             IEnumerable<Item> matchingItems = LogOnlyItemCount(pattern);
             foreach (var i in matchingItems.Take(3)) {
                 Log.WriteInfo(i.AsFullString());
@@ -543,7 +461,7 @@ namespace NDepCheck {
         private IEnumerable<Item> LogOnlyItemCount(string pattern) {
             ItemMatch m = pattern == null ? null : new ItemMatch(pattern, IgnoreCase);
             IEnumerable<Item> allItems =
-                new HashSet<Item>(GetAllDependencies().SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
+                new HashSet<Item>(AllDependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
             IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.IsMatch(m, i));
             Log.WriteInfo(matchingItems.Count() + " items" + (m == null ? "" : " matching " + pattern));
             return matchingItems;

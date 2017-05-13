@@ -16,14 +16,12 @@ Configuration options: None
 Transformer options: {Option.CreateHelp(DependencyMatchOptions.WithOptions(), detailedHelp, filter)}";
         }
 
-        public bool RunsPerInputContext => true;
-
         public void Configure(GlobalContext globalContext, string configureOptions, bool forceReload) {
             _ignoreCase = globalContext.IgnoreCase;
         }
 
-        public int Transform(GlobalContext globalContext, string dependenciesFilename,
-            IEnumerable<Dependency> dependencies, string transformOptions, string dependencySourceForLogging,
+        public int Transform(GlobalContext globalContext,
+            IEnumerable<Dependency> dependencies, string transformOptions,
             List<Dependency> transformedDependencies) {
 
             var matches = new List<DependencyMatch>();
@@ -34,10 +32,6 @@ Transformer options: {Option.CreateHelp(DependencyMatchOptions.WithOptions(), de
             transformedDependencies.AddRange(dependencies.Where(d => d.IsMatch(matches, excludes)));
 
             return Program.OK_RESULT;
-        }
-
-        public void AfterAllTransforms(GlobalContext globalContext) {
-            // empty
         }
 
         public IEnumerable<Dependency> GetTestDependencies() {

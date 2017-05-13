@@ -30,7 +30,7 @@ namespace NDepCheck.Tests {
             Item t = Item.New(generic2, "m:t");
 
             var result = new List<Dependency>();
-            pi.Transform(gc, "test", new[] {
+            pi.Transform(gc, new[] {
                 new Dependency(a, a, null, "a->a", 1), // the first surviving dependency
                 new Dependency(a, s, null, "a->s", 1), // vanishes, because s is not mapped
                 new Dependency(ab, s, null, "ab->s", 1), // same
@@ -50,7 +50,7 @@ namespace NDepCheck.Tests {
                 // !cb 3
                 // !s  4
                 // !t  3
-            }, "", "test", result);
+            }, "", result);
 
             Assert.AreEqual(2, result.Count);
             Assert.AreEqual("A", result[0].UsingItem.Values[0]);
@@ -118,12 +118,12 @@ namespace NDepCheck.Tests {
             Item t = Item.New(generic2, "m:t");
 
             var result = new List<Dependency>();
-            pi.Transform(gc, "test", new[] {
+            pi.Transform(gc, new[] {
                 new Dependency(a, t, null, "a->t", 1), // A->T
                 new Dependency(ab, t, null, "ab->t", 1), // A-> T
                 new Dependency(abc, t, null, "abc->t", 1), // ADetail ->T
                 new Dependency(abcd, t, null, "abcd->t", 1), // A -> T
-            }, "", "test", result);
+            }, "", result);
 
             Assert.AreEqual(2, result.Count);
             Assert.AreEqual("A", result[0].UsingItem.Values[0]);
@@ -152,11 +152,11 @@ namespace NDepCheck.Tests {
             Item a = Item.New(threeFields, "a:-:-");
 
             var result = new List<Dependency>();
-            pi.Transform(gc, "test", new[] {
+            pi.Transform(gc, new[] {
                 new Dependency(abc, abc, null, "abc", 1),
                 new Dependency(ab, ab, null, "ab", 1),
                 new Dependency(a, a, null, "a", 1),
-            }, "", "test", result);
+            }, "", result);
 
             Assert.AreEqual(0, result.Count);
         }

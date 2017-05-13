@@ -22,11 +22,10 @@ namespace NDepCheck.Tests {
                         NKK:?::KEYb       => ;7;0;0;src.abc|13           => NKK:?:keyA2:?");
                 }
 
-                InputContext inputContext =
+                IEnumerable<Dependency> dependencies =
                     new DipReaderFactory().CreateReader(f.Filename, false).ReadDependencies(0, ignoreCase: false);
-                Assert.IsNotNull(inputContext);
-                IEnumerable<Dependency> deps = inputContext.Dependencies;
-                Item[] items = deps.SelectMany(d => new[] { d.UsingItem, d.UsedItem }).Distinct().ToArray();
+                Assert.IsNotNull(dependencies);
+                Item[] items = dependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }).Distinct().ToArray();
                 Assert.AreEqual(3, items.Length);
                 Assert.IsTrue(items.Contains(Item.New(ItemType.Find("NKK"), "a", "keyA1", "KEYa1")));
                 Assert.IsTrue(items.Contains(Item.New(ItemType.Find("NKK"), "a", "keyA2", "KEYa2")));

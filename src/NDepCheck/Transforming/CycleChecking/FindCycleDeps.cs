@@ -139,14 +139,12 @@ Configuration options: None
 Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)}";
         }
 
-        public bool RunsPerInputContext => false;
-
         public void Configure(GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
             _ignoreCase = globalContext.IgnoreCase;
         }
 
-        public int Transform(GlobalContext globalContext, [CanBeNull] string dependenciesFilename, IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, string dependencySourceForLogging, List<Dependency> transformedDependencies) {
+        public int Transform(GlobalContext globalContext, IEnumerable<Dependency> dependencies,
+            [CanBeNull] string transformOptions, List<Dependency> transformedDependencies) {
             bool ignoreSelfCycles = false;
             bool keepOnlyCycleEdges = false;
             int maxCycleLength = int.MaxValue;
@@ -188,10 +186,6 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 transformedDependencies.AddRange(keepOnlyCycleEdges ? dependenciesOnCycles : dependencies);
             }
             return Program.OK_RESULT;
-        }
-
-        public void AfterAllTransforms(GlobalContext globalContext) {
-            // empty
         }
 
         public IEnumerable<Dependency> GetTestDependencies() {

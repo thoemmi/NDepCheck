@@ -1,19 +1,13 @@
 namespace NDepCheck {
-    public class TextFileSource : ISourceLocation {
-        public TextFileSource(string sourceName, int? line) {
-            SourceName = sourceName;
+    public class TextFileSource : FileSource {
+        public TextFileSource(string sourceName, int? line) : base(sourceName) {
             Line = line;
         }
 
-        public string SourceName { get; }
         public int? Line { get; }
 
-        public string AsDipString() {
-            return $"{SourceName}|{Line}";
-        }
-
-        public override string ToString() {
-            return $"{SourceName}{(Line.HasValue ? "/" + Line : "")}";
-        }
+        public override string AsDipString() => $"{ContainerUri}|{Line}";
+        
+        public override string ToString()=>$"{ContainerUri}{(Line.HasValue ? "/" + Line : "")}";
     }
 }

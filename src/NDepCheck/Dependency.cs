@@ -26,6 +26,8 @@ namespace NDepCheck {
         public abstract int Ct { get; }
         public abstract int QuestionableCt { get; }
         public abstract int BadCt { get; }
+
+        [CanBeNull]
         public ISourceLocation Source { get; }
         /// <value>
         /// A guess where the use occurs in the
@@ -154,11 +156,6 @@ namespace NDepCheck {
         [NotNull]
         private readonly MutableMarkerSet _markerSet;
 
-        [CanBeNull]
-        public InputContext InputContext {
-            get;
-        }
-
         private int _ct;
         private int _questionableCt;
         private int _badCt;
@@ -168,9 +165,9 @@ namespace NDepCheck {
 
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem, [CanBeNull] ISourceLocation source,
             [NotNull] string markers, int ct, int questionableCt = 0, int badCt = 0,
-            [CanBeNull] string exampleInfo = null, [CanBeNull] InputContext inputContext = null) : this(
+            [CanBeNull] string exampleInfo = null) : this(
                 usingItem, usedItem, source, markers: markers.Split('&', '+', ','), ct: ct,
-                questionableCt: questionableCt, badCt: badCt, exampleInfo: exampleInfo, inputContext: inputContext) {
+                questionableCt: questionableCt, badCt: badCt, exampleInfo: exampleInfo) {
         }
 
         protected override IMarkerSet MarkerSet => _markerSet;
@@ -186,20 +183,17 @@ namespace NDepCheck {
         /// <param name="questionableCt"></param>
         /// <param name="badCt"></param>
         /// <param name="exampleInfo"></param>
-        /// <param name="inputContext"></param>
         /// <param name="ignoreCase"></param>
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem,
             [CanBeNull] ISourceLocation source, [CanBeNull] IEnumerable<string> markers,
             int ct, int questionableCt = 0, int badCt = 0, [CanBeNull] string exampleInfo = null,
-            [CanBeNull] InputContext inputContext = null, bool? ignoreCase = null) : base(usingItem, usedItem, source) {
+            bool? ignoreCase = null) : base(usingItem, usedItem, source) {
             if (usingItem == null) {
                 throw new ArgumentNullException(nameof(usingItem));
             }
             if (usedItem == null) {
                 throw new ArgumentNullException(nameof(usedItem));
             }
-            InputContext = inputContext;
-            inputContext?.AddDependency(this);
             _ct = ct;
             _questionableCt = questionableCt;
             _badCt = badCt;
