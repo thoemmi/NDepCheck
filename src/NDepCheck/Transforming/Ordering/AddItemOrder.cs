@@ -77,7 +77,7 @@ Transform options: {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
 
                 aggregatedCounts.RemoveColumn(minItem);
 
-                minItem.AddMarker(orderMarkerPrefix + i.ToString("D4"));
+                minItem.IncrementMarker(orderMarkerPrefix + i.ToString("D4"));
             }
             return Program.OK_RESULT;
         }

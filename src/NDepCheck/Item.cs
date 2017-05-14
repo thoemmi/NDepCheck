@@ -94,8 +94,6 @@ namespace NDepCheck {
             get;
         }
 
-        public IEnumerable<string> Markers => MarkerSet.Markers;
-
         protected AbstractItem([NotNull] ItemType type, string[] values) : base(type, values) {
             if (type.Length < values.Length) {
                 throw new ArgumentException(
@@ -130,20 +128,17 @@ namespace NDepCheck {
         [NotNull]
         public string AsFullString() {
             if (_asFullString == null) {
-                // TODO --> MarkerSet!!
-                string markers = MarkerSet.Markers.Any() ? "'" + string.Join("+", MarkerSet.Markers.OrderBy(s => s)) : "";
-                _asFullString = Type.Name + ":" + AsString() + markers;
+                _asFullString = Type.Name + ":" + AsString() + MarkerSet.AsFullString();
             }
             return _asFullString;
         }
 
-        protected bool MarkersHaveChanged() {
+        protected void MarkersHaveChanged() {
             _asFullString = null;
-            return true;
         }
 
-        public bool IsMatch(IEnumerable<IMatcher> present, IEnumerable<IMatcher> absent) {
-            return MarkerSet.IsMatch(present, absent);
+        public bool IsMatch(IEnumerable<CountPattern<IMatcher>.Eval> evals) {
+            return MarkerSet.IsMatch(evals);
         }
 
         [NotNull]
@@ -203,18 +198,18 @@ namespace NDepCheck {
         }
     }
 
-    public class ReadOnlyItem : AbstractItem<ReadOnlyItem>, IMarkerSet {
+    public class ReadOnlyItem : AbstractItem<ReadOnlyItem> { 
         [NotNull]
         private readonly ReadOnlyMarkerSet _markerSet;
 
         protected ReadOnlyItem([NotNull] ItemType type, string[] values) : base(type, values) {
-            _markerSet = new ReadOnlyMarkerSet(type.IgnoreCase, markers: null);
+            _markerSet = new ReadOnlyMarkerSet(type.IgnoreCase, markers: Enumerable.Empty<string>());
         }
 
         public override IMarkerSet MarkerSet => _markerSet;
     }
 
-    public class Item : AbstractItem<Item>, IMutableMarkerSet {
+    public class Item : AbstractItem<Item>, IWithMutableMarkerSet {
         [NotNull]
         private readonly MutableMarkerSet _markerSet;
 
@@ -226,9 +221,13 @@ namespace NDepCheck {
             return Intern<Item>.GetReference(new Item(type, values));
         }
 
-        public static Item New([NotNull] ItemType type, [ItemNotNull] string[] values, [ItemNotNull] string[] markers) {
+        public static Item New([NotNull] ItemType type, [ItemNotNull] string[] values, [CanBeNull, ItemNotNull] string[] markers) {
             Item item = Intern<Item>.GetReference(new Item(type, values));
-            item.UnionWithMarkers(markers);
+            if (markers != null) {
+                foreach (var m in new HashSet<string>(markers)) {
+                    item.IncrementMarker(m);
+                }
+            }
             return item;
         }
 
@@ -245,24 +244,29 @@ namespace NDepCheck {
                 : new Item(additionalValues.Type, Values.Concat(additionalValues.Values.Skip(Type.Length)).ToArray());
         }
 
-        public bool UnionWithMarkers(IEnumerable<string> markers) {
-            return _markerSet.UnionWithMarkers(markers) && MarkersHaveChanged();
+        public void MergeWithMarkers(IMarkerSet markers) {
+            _markerSet.MergeWithMarkers(markers);
+            MarkersHaveChanged();
         }
 
-        public bool AddMarker(string marker) {
-            return _markerSet.AddMarker(marker) && MarkersHaveChanged();
+        public void IncrementMarker(string marker) {
+            _markerSet.IncrementMarker(marker);
+            MarkersHaveChanged();
         }
 
-        public bool RemoveMarkers(string markerPattern, bool ignoreCase) {
-            return _markerSet.RemoveMarkers(markerPattern, ignoreCase) && MarkersHaveChanged();
+        public void RemoveMarkers(string markerPattern, bool ignoreCase) {
+            _markerSet.RemoveMarkers(markerPattern, ignoreCase);
+            MarkersHaveChanged();
         }
 
-        public bool RemoveMarkers(IEnumerable<string> markerPatterns, bool ignoreCase) {
-            return _markerSet.RemoveMarkers(markerPatterns, ignoreCase) && MarkersHaveChanged();
+        public void RemoveMarkers(IEnumerable<string> markerPatterns, bool ignoreCase) {
+            _markerSet.RemoveMarkers(markerPatterns, ignoreCase);
+            MarkersHaveChanged();
         }
 
-        public bool ClearMarkers() {
-            return _markerSet.ClearMarkers() && MarkersHaveChanged();
+        public void ClearMarkers() {
+            _markerSet.ClearMarkers();
+            MarkersHaveChanged();
         }
 
         public static readonly string ITEM_HELP = @"

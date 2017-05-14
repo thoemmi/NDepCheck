@@ -104,6 +104,9 @@
     <Compile Include="IPathMatch.cs" />
     <Compile Include="ISourceLocation.cs" />
     <Compile Include="Log.cs" />
+    <Compile Include="Markers\DictionaryExtensions.cs" />
+    <Compile Include="Markers\IWithMarkerSet.cs" />
+    <Compile Include="Matching\CountPattern.cs" />
     <Compile Include="Matching\MarkerMatch.cs" />
     <Compile Include="Markers\AbstractMarkerSet.cs" />
     <Compile Include="Markers\IMarkerSet.cs" />

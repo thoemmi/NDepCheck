@@ -652,7 +652,7 @@ namespace JetBrains.Annotations {
     /// ASP.NET MVC attribute. If applied to a parameter, indicates that the parameter
     /// is an MVC action. If applied to a method, the MVC action name is calculated
     /// implicitly from the context. Use this attribute for custom wrappers similar to
-    /// <c>System.Web.Mvc.Html.ChildActionExtensions.RenderAction(HtmlHelper, String)</c>.
+    /// <c>System.Web.Mvc.Html.ChildActionExtensions.RenderAction(HtmlHelper, string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method)]
     public sealed class AspMvcActionAttribute : Attribute {
@@ -670,7 +670,7 @@ namespace JetBrains.Annotations {
     /// <summary>
     /// ASP.NET MVC attribute. Indicates that a parameter is an MVC area.
     /// Use this attribute for custom wrappers similar to
-    /// <c>System.Web.Mvc.Html.ChildActionExtensions.RenderAction(HtmlHelper, String)</c>.
+    /// <c>System.Web.Mvc.Html.ChildActionExtensions.RenderAction(HtmlHelper, string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
     public sealed class AspMvcAreaAttribute : Attribute {
@@ -689,7 +689,7 @@ namespace JetBrains.Annotations {
     /// ASP.NET MVC attribute. If applied to a parameter, indicates that the parameter is
     /// an MVC controller. If applied to a method, the MVC controller name is calculated
     /// implicitly from the context. Use this attribute for custom wrappers similar to
-    /// <c>System.Web.Mvc.Html.ChildActionExtensions.RenderAction(HtmlHelper, String, String)</c>.
+    /// <c>System.Web.Mvc.Html.ChildActionExtensions.RenderAction(HtmlHelper, string, string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method)]
     public sealed class AspMvcControllerAttribute : Attribute {
@@ -706,7 +706,7 @@ namespace JetBrains.Annotations {
 
     /// <summary>
     /// ASP.NET MVC attribute. Indicates that a parameter is an MVC Master. Use this attribute
-    /// for custom wrappers similar to <c>System.Web.Mvc.Controller.View(String, String)</c>.
+    /// for custom wrappers similar to <c>System.Web.Mvc.Controller.View(string, string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
     public sealed class AspMvcMasterAttribute : Attribute {
@@ -714,7 +714,7 @@ namespace JetBrains.Annotations {
 
     /// <summary>
     /// ASP.NET MVC attribute. Indicates that a parameter is an MVC model type. Use this attribute
-    /// for custom wrappers similar to <c>System.Web.Mvc.Controller.View(String, Object)</c>.
+    /// for custom wrappers similar to <c>System.Web.Mvc.Controller.View(string, Object)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
     public sealed class AspMvcModelTypeAttribute : Attribute {
@@ -724,7 +724,7 @@ namespace JetBrains.Annotations {
     /// ASP.NET MVC attribute. If applied to a parameter, indicates that the parameter is an MVC
     /// partial view. If applied to a method, the MVC partial view name is calculated implicitly
     /// from the context. Use this attribute for custom wrappers similar to
-    /// <c>System.Web.Mvc.Html.RenderPartialExtensions.RenderPartial(HtmlHelper, String)</c>.
+    /// <c>System.Web.Mvc.Html.RenderPartialExtensions.RenderPartial(HtmlHelper, string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method)]
     public sealed class AspMvcPartialViewAttribute : Attribute {
@@ -740,7 +740,7 @@ namespace JetBrains.Annotations {
     /// <summary>
     /// ASP.NET MVC attribute. Indicates that a parameter is an MVC display template.
     /// Use this attribute for custom wrappers similar to
-    /// <c>System.Web.Mvc.Html.DisplayExtensions.DisplayForModel(HtmlHelper, String)</c>.
+    /// <c>System.Web.Mvc.Html.DisplayExtensions.DisplayForModel(HtmlHelper, string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
     public sealed class AspMvcDisplayTemplateAttribute : Attribute {
@@ -749,7 +749,7 @@ namespace JetBrains.Annotations {
     /// <summary>
     /// ASP.NET MVC attribute. Indicates that a parameter is an MVC editor template.
     /// Use this attribute for custom wrappers similar to
-    /// <c>System.Web.Mvc.Html.EditorExtensions.EditorForModel(HtmlHelper, String)</c>.
+    /// <c>System.Web.Mvc.Html.EditorExtensions.EditorForModel(HtmlHelper, string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
     public sealed class AspMvcEditorTemplateAttribute : Attribute {
@@ -758,7 +758,7 @@ namespace JetBrains.Annotations {
     /// <summary>
     /// ASP.NET MVC attribute. Indicates that a parameter is an MVC template.
     /// Use this attribute for custom wrappers similar to
-    /// <c>System.ComponentModel.DataAnnotations.UIHintAttribute(System.String)</c>.
+    /// <c>System.ComponentModel.DataAnnotations.UIHintAttribute(System.string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
     public sealed class AspMvcTemplateAttribute : Attribute {
@@ -833,7 +833,7 @@ namespace JetBrains.Annotations {
     /// <summary>
     /// Razor attribute. Indicates that a parameter or a method is a Razor section.
     /// Use this attribute for custom wrappers similar to
-    /// <c>System.Web.WebPages.WebPageBase.RenderSection(String)</c>.
+    /// <c>System.Web.WebPages.WebPageBase.RenderSection(string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method)]
     public sealed class RazorSectionAttribute : Attribute {

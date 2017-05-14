@@ -27,19 +27,19 @@ namespace NDepCheck.Transforming.Modifying {
                         if (effect == "-?" || effect == "reset-questionable") {
                             effects.Add(d => d.ResetQuestionable());
                         } else if (effect == "+?" || effect == "mark-questionable") {
-                            effects.Add(d => d.MarkAsQuestionable());
+                            effects.Add(d => d.MarkAsQuestionable(effect));
                         } else if (effect == "?" || effect == "increment-questionable") {
-                            effects.Add(d => d.IncrementQuestionable());
+                            effects.Add(d => d.IncrementQuestionable(effect));
                         } else if (effect == "-!" || effect == "reset-bad") {
                             effects.Add(d => d.ResetBad());
                         } else if (effect == "+!" || effect == "mark-bad") {
-                            effects.Add(d => d.MarkAsBad());
+                            effects.Add(d => d.MarkAsBad(effect));
                         } else if (effect == "!" || effect == "increment-bad") {
-                            effects.Add(d => d.IncrementBad());
+                            effects.Add(d => d.IncrementBad(effect));
                         } else if (effect == "" || effect == "ignore" || effect == "keep") {
                             effects.Add(d => { });
                         } else if (effect.StartsWith("+")) {
-                            effects.Add(d => d.AddMarker(effect.Substring(1)));
+                            effects.Add(d => d.IncrementMarker(effect.Substring(1)));
                         } else if (effect.StartsWith("-")) {
                             effects.Add(d => d.RemoveMarkers(effect.Substring(1), ignoreCase));
                         } else {

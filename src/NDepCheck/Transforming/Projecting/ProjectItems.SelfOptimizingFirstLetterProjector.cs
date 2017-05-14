@@ -95,7 +95,7 @@ namespace NDepCheck.Transforming.Projecting {
                                         // SelfOptimizingProjector.
                                         !allFirstLetters.Contains(item.Values[fieldPos0].ElementAtOrDefault(0)),
                                     projectionsWhoseMatcherDoesNotStartWithAnyFirstLetters,
-                                    "#" + String.Join("", allFirstLetters)
+                                    "#" + string.Join("", allFirstLetters)
                                 ));
                         }
                     }

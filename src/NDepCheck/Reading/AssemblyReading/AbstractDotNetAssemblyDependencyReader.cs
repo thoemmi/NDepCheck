@@ -44,10 +44,11 @@ namespace NDepCheck.Reading.AssemblyReading {
             private readonly string _assemblyVersion;
             private readonly string _assemblyCulture;
             private readonly string _memberName;
+            [CanBeNull, ItemNotNull]
             private readonly string[] _markers;
 
             protected RawAbstractItem(string namespaceName, string className, string assemblyName, string assemblyVersion,
-                                      string assemblyCulture, string memberName, string[] markers) {
+                                      string assemblyCulture, string memberName, [CanBeNull, ItemNotNull] string[] markers) {
                 if (namespaceName == null) {
                     throw new ArgumentNullException(nameof(namespaceName));
                 }
@@ -68,7 +69,7 @@ namespace NDepCheck.Reading.AssemblyReading {
 
             public override string ToString() {
                 return _namespaceName + ":" + ClassName + ":" + AssemblyName + ";" + _assemblyVersion + ";" +
-                       _assemblyCulture + ":" + _memberName + ";" + _markers;
+                       _assemblyCulture + ":" + _memberName + (_markers == null ? "" : "'" + string.Join("+", _markers));
             }
 
             [NotNull]
@@ -89,8 +90,7 @@ namespace NDepCheck.Reading.AssemblyReading {
                        && other.AssemblyName == AssemblyName
                        && other._assemblyVersion == _assemblyVersion
                        && other._assemblyCulture == _assemblyCulture
-                       && other._memberName == _memberName
-                       && other._markers == _markers;
+                       && other._memberName == _memberName;
             }
 
             protected int GetRawAbstractItemHashCode() {
@@ -150,7 +150,7 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
 
             public static RawUsedItem New(string namespaceName, string className, string assemblyName,
-                string assemblyVersion, string assemblyCulture, string memberName, string[] markers) {
+                string assemblyVersion, string assemblyCulture, string memberName, [CanBeNull, ItemNotNull] string[] markers) {
                 //return Intern<RawUsedItem>.GetReference(new RawUsedItem(namespaceName, className, assemblyName,
                 //        assemblyVersion, assemblyCulture, memberName, markers));
                 // Dont make unique - costs lot of time; and Raw...Items are anyway removed at end of DLL reading.
@@ -217,8 +217,7 @@ namespace NDepCheck.Reading.AssemblyReading {
             public readonly Usage Usage;
 
             public RawDependency([NotNull] ItemType type, [NotNull] RawUsingItem usingItem, [NotNull] RawUsedItem usedItem,
-                Usage usage, [CanBeNull] SequencePoint sequencePoint,
-                AbstractDotNetAssemblyDependencyReader readerForUsedItem) {
+                Usage usage, [CanBeNull] SequencePoint sequencePoint, AbstractDotNetAssemblyDependencyReader readerForUsedItem) {
                 if (usingItem == null) {
                     throw new ArgumentNullException(nameof(usingItem));
                 }
@@ -289,7 +288,7 @@ namespace NDepCheck.Reading.AssemblyReading {
                 FieldDefinition itemTypeNameField = attributeType.Fields.FirstOrDefault(f => f.Name == "ITEM_TYPE");
                 if (itemTypeNameField == null) {
                     //??? Log.WriteError();
-                    throw new Exception("String constant ITEM_TYPE not defined in " + attributeType.FullName);
+                    throw new Exception("string constant ITEM_TYPE not defined in " + attributeType.FullName);
                 } else {
                     string itemTypeName = "" + itemTypeNameField.Constant;
                     ItemType itemType = GetOrDeclareType(itemTypeName, Enumerable.Repeat("CUSTOM", keys.Length), keys.Select(k => "." + k));

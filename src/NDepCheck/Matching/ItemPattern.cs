@@ -153,14 +153,5 @@ namespace NDepCheck.Matching {
 
             return _matchers.Matches(invert, item.Values, references);
         }
-
-        public bool MatchesAlike(ItemPattern other) {
-            for (int i = 0; i < Math.Min(Matchers.Length, other.Matchers.Length); i++) {
-                if (!Matchers[i].MatchesAlike(other.Matchers[i])) {
-                    return false;
-                }
-            }
-            return true;
-        }
     }
 }

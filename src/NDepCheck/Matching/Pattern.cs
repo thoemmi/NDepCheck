@@ -66,7 +66,7 @@ namespace NDepCheck.Matching {
         }
 
         [NotNull]
-        protected static IMatcher CreateMatcher([NotNull] string segment, int upperBoundOfGroupCount, bool ignoreCase) {
+        protected internal static IMatcher CreateMatcher([NotNull] string segment, int upperBoundOfGroupCount, bool ignoreCase) {
             if (Regex.IsMatch(segment, @"^[\(\)-]+$")) { // Examples: (-), ()-, -(), ((-)), ((-))()
                 return new EmptyStringMatcher(groupCount: segment.Count(c => c == '('));
             } else if (string.IsNullOrWhiteSpace(segment) || Regex.IsMatch(segment, @"^\(*\*+\)*$")) { // Examples: empty string, *, **, (**), (((****)))

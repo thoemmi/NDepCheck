@@ -151,24 +151,25 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             ItemMatch cycleAnchorsMatch = null;
 
             IEnumerable<Action<Dependency>> effects = EffectOptions.Parse(globalContext: globalContext,
-                argsAsString: transformOptions, ignoreCase: _ignoreCase, moreOptions: new[] {
-                IgnoreSelfCyclesOption.Action((args, j) => {
-                    ignoreSelfCycles = true;
-                    return j;
-                }),
-                KeepOnlyCyclesOption.Action((args, j) => {
-                    keepOnlyCycleEdges = true;
-                    return j;
-                }),
-                CycleAnchorsOption.Action((args, j) => {
-                    cycleAnchorsMatch = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "missing anchor name"), _ignoreCase);
-                    return j;
-                }),
-                MaxCycleLengthOption.Action((args, j) => {
-                    maxCycleLength = Option.ExtractIntOptionValue(args, ref j, "Invalid maximum cycle length");
-                    return j;
-                })
-            });
+                argsAsString: transformOptions, defaultReasonForSetBad: typeof(FindCycleDeps).Name, 
+                    ignoreCase: _ignoreCase, moreOptions: new[] {
+                    IgnoreSelfCyclesOption.Action((args, j) => {
+                        ignoreSelfCycles = true;
+                        return j;
+                    }),
+                    KeepOnlyCyclesOption.Action((args, j) => {
+                        keepOnlyCycleEdges = true;
+                        return j;
+                    }),
+                    CycleAnchorsOption.Action((args, j) => {
+                        cycleAnchorsMatch = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "missing anchor name"), _ignoreCase);
+                        return j;
+                    }),
+                    MaxCycleLengthOption.Action((args, j) => {
+                        maxCycleLength = Option.ExtractIntOptionValue(args, ref j, "Invalid maximum cycle length");
+                        return j;
+                    })
+                });
 
             // TODO: Cycles via path matches would also be a nice feature ...
             var cycleFinder = new FindCycleDepsPathFinder<Dependency, Item>(dependencies, cycleAnchorsMatch, ignoreSelfCycles, maxCycleLength, new IPathMatch<Dependency, Item>[0]);

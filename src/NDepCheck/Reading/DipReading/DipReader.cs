@@ -138,7 +138,7 @@ namespace NDepCheck.Reading.DipReading {
         private Dependency ResolveItemProxies(Dependency d, Dictionary<Item, Item> itemsDictionary) {
             return d.UsingItem is ItemProxy || d.UsedItem is ItemProxy
                 ? new Dependency(itemsDictionary[d.UsingItem], itemsDictionary[d.UsedItem],
-                    d.Source, d.Markers, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo)
+                    d.Source, d.MarkerSet, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo)
                 : d;
         }
 

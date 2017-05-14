@@ -26,11 +26,6 @@ namespace NDepCheck.Matching {
             return IsMatch(value) ? _groupCount == 0 ? NO_STRING : Enumerable.Repeat(value, _groupCount) : null;
         }
 
-        public bool MatchesAlike(IMatcher other) {
-            AlwaysMatcher m = other as AlwaysMatcher;
-            return m != null && m._alsoMatchDot == _alsoMatchDot;
-        }
-
         public override string ToString() {
             return "[**]";
         }
@@ -57,10 +52,6 @@ namespace NDepCheck.Matching {
 
         public IEnumerable<string> Matches(string value, string[] ignoredReferences) {
             return value == "" ? _groups : null;
-        }
-
-        public bool MatchesAlike(IMatcher other) {
-            return other is EmptyStringMatcher;
         }
 
         public override string ToString() {
@@ -127,10 +118,6 @@ namespace NDepCheck.Matching {
                     ? (_resultGroupCt == 0 ? ItemPattern.NO_GROUPS : Enumerable.Repeat(value, _resultGroupCt).ToArray())
                     : null);
             }
-        }
-
-        public virtual bool MatchesAlike(IMatcher other) {
-            return other.GetType() == GetType() && string.Compare((other as AbstractRememberingDelegateMatcher)?._segment, _segment, _ignoreCase) == 0;
         }
 
         [NotNull]
@@ -281,10 +268,6 @@ namespace NDepCheck.Matching {
             } else {
                 return null;
             }
-        }
-
-        public bool MatchesAlike(IMatcher other) {
-            return (other as RegexMatcher)?._regex.Equals(_regex) ?? false;
         }
 
         public override string ToString() {

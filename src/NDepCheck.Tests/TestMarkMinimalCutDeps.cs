@@ -1,9 +1,18 @@
 ﻿using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
+using NDepCheck.Markers;
+using NDepCheck.Matching;
 using NDepCheck.Transforming.SpecialDependencyMarking;
 
 namespace NDepCheck.Tests {
+    public static class TestUtils {
+        public static bool MarkersContain(this IWithMarkerSet d, string s) {
+            CountPattern<IMatcher>.Eval eval = MarkerMatch.CreateEval(s + ">0", ignoreCase: false);
+            return d.MarkerSet.IsMatch(new[] {eval});
+        }
+    }
+
     [TestClass]
     public class TestMarkMinimalCutDeps {
         private static IEnumerable<Dependency> Run(string options, IEnumerable<Dependency> dependencies) {
@@ -36,7 +45,7 @@ namespace NDepCheck.Tests {
             IEnumerable<Dependency> result = Run($"{{ {MarkMinimalCutDeps.MatchSourceOption} a " +
                                                  $"{MarkMinimalCutDeps.MatchTargetOption} d " +
                                                  $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
-            Assert.IsTrue(result.All(z => z.Markers.Contains(mark) == (z.Ct == 20)), string.Join("\r\n", result.Select(z => z.AsDipStringWithTypes(false))));
+            Assert.IsTrue(result.All(z => z.MarkersContain(mark) == (z.Ct == 20)), string.Join("\r\n", result.Select(z => z.AsDipStringWithTypes(false))));
         }
 
         [TestMethod]
@@ -66,7 +75,7 @@ namespace NDepCheck.Tests {
             IEnumerable<Dependency> result = Run($"{{ {MarkMinimalCutDeps.MatchSourceOption} s " +
                                                  $"{MarkMinimalCutDeps.MatchTargetOption} t " +
                                                  $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
-            Assert.IsTrue(result.All(z => z.Markers.Contains(mark) == (Equals(z.UsingItem, s))),
+            Assert.IsTrue(result.All(z => z.MarkersContain(mark) == (Equals(z.UsingItem, s))),
                           string.Join("\r\n", result.Select(z => z.AsDipStringWithTypes(false))));
         }
 
@@ -102,7 +111,7 @@ namespace NDepCheck.Tests {
             IEnumerable<Dependency> result = Run($"{{ {MarkMinimalCutDeps.MatchSourceOption} s " +
                                                  $"{MarkMinimalCutDeps.MatchTargetOption} t " +
                                                  $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
-            Assert.IsTrue(result.All(z => z.Markers.Contains(mark) == new[] { 12, 36, 78 }.Contains(z.Ct)),
+            Assert.IsTrue(result.All(z => z.MarkersContain(mark) == new[] { 12, 36, 78 }.Contains(z.Ct)),
                           string.Join("\r\n", result.Select(z => z.AsDipStringWithTypes(false))));
         }
 
@@ -123,7 +132,7 @@ namespace NDepCheck.Tests {
             IEnumerable<Dependency> result = Run($"{{ {MarkMinimalCutDeps.MatchSourceOption} r* " +
                                                  $"{MarkMinimalCutDeps.MatchTargetOption} t " +
                                                  $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
-            Assert.IsTrue(result.All(z => z.Markers.Contains(mark) == new[] { 12, 36, 78 }.Contains(z.Ct)),
+            Assert.IsTrue(result.All(z => z.MarkersContain(mark) == new[] { 12, 36, 78 }.Contains(z.Ct)),
                           string.Join("\r\n", result.Select(z => z.AsDipStringWithTypes(false))));
         }
 
@@ -151,12 +160,12 @@ namespace NDepCheck.Tests {
                                                  $"{MarkMinimalCutDeps.MatchTargetOption} t " +
                                                  $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} " +
                                                  $"{MarkMinimalCutDeps.SourceMarkerOption} {source} }}", dependencies);
-            Assert.IsTrue(result.All(z => z.Markers.Contains(mark) == new[] { 102, 104 }.Contains(z.Ct)),
+            Assert.IsTrue(result.All(z => z.MarkersContain(mark) == new[] { 102, 104 }.Contains(z.Ct)),
                           string.Join("\r\n", result.Select(z => z.AsDipStringWithTypes(false))));
-            Assert.IsTrue(s.Markers.Contains(source));
-            Assert.IsFalse(n2.Markers.Contains(source));
-            Assert.IsFalse(n4.Markers.Contains(source));
-            Assert.IsFalse(t.Markers.Contains(source));
+            Assert.IsTrue(s.MarkersContain(source));
+            Assert.IsFalse(n2.MarkersContain(source));
+            Assert.IsFalse(n4.MarkersContain(source));
+            Assert.IsFalse(t.MarkersContain(source));
         }
 
 
@@ -167,7 +176,7 @@ namespace NDepCheck.Tests {
                                                  $"{MarkMinimalCutDeps.MatchTargetOption} t " +
                                                  $"{MarkMinimalCutDeps.UseQuestionableCountOption} " +
                                                  $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", null);
-            Assert.IsTrue(result.All(z => z.Markers.Contains(mark) == new[] { 112, 142, 145 }.Contains(z.Ct)),
+            Assert.IsTrue(result.All(z => z.MarkersContain(mark) == new[] { 112, 142, 145 }.Contains(z.Ct)),
                           string.Join("\r\n", result.Select(z => z.AsDipStringWithTypes(false))));
         }
 
@@ -190,12 +199,12 @@ namespace NDepCheck.Tests {
                                                  $"{MarkMinimalCutDeps.MatchTargetOption} d " +
                                                  $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} " +
                                                  $"{MarkMinimalCutDeps.SourceMarkerOption} {source} }}", dependencies);
-            Assert.IsTrue(result.All(z => !z.Markers.Contains(mark)),
+            Assert.IsTrue(result.All(z => !z.MarkersContain(mark)),
                           string.Join("\r\n", result.Select(z => z.AsDipStringWithTypes(false))));
-            Assert.IsTrue(a.Markers.Contains(source));
-            Assert.IsTrue(b.Markers.Contains(source));
-            Assert.IsFalse(c.Markers.Contains(source));
-            Assert.IsFalse(d.Markers.Contains(source));
+            Assert.IsTrue(a.MarkersContain(source));
+            Assert.IsTrue(b.MarkersContain(source));
+            Assert.IsFalse(c.MarkersContain(source));
+            Assert.IsFalse(d.MarkersContain(source));
         }
     }
 }

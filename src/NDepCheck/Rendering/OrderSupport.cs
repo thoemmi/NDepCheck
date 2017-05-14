@@ -21,11 +21,11 @@ namespace NDepCheck.Rendering {
 
         public static OrderSupport Create(string pattern, bool ignoreCase) {
             int field;
-            if (Int32.TryParse(pattern, out field)) {
+            if (int.TryParse(pattern, out field)) {
                 return new OrderSupport(item => item.GetCasedValue(field));
             } else {
                 IMatcher orderMatcher = MarkerMatch.CreateMatcher(pattern, ignoreCase);
-                return new OrderSupport(item => item.Markers.FirstOrDefault(m => orderMatcher.Matches(m, null) != null));
+                return new OrderSupport(item => item.MarkerSet.MatchingMarkerStrings(orderMatcher).FirstOrDefault());
             }
         }
 
@@ -34,7 +34,7 @@ namespace NDepCheck.Rendering {
                 string order1 = OrderSelector(i1);
                 string order2 = OrderSelector(i2);
                 return order1 != order2
-                    ? String.Compare(order1, order2, StringComparison.Ordinal)
+                    ? string.Compare(order1, order2, StringComparison.Ordinal)
                     : Sum(relevantDependencies, d => filter(i2, d)) - Sum(relevantDependencies, d => filter(i1, d));
             });
         }

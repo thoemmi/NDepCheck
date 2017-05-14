@@ -75,12 +75,14 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             DependencyPattern idempotentPattern = new DependencyPattern("'" + string.Join("+", markersToAdd), _ignoreCase);
             Dictionary<FromTo, Dependency> checkPresence = idempotent ? FromTo.AggregateAllDependencies(dependencies) : new Dictionary<FromTo, Dependency>();
             Dictionary<Item, Dependency[]> outgoing = Item.CollectOutgoingDependenciesMap(dependencies);
-            var matchingFroms = outgoing.Keys.Where(i => IsMatch(fromItemMatches, i));
+            IEnumerable<Item> matchingFroms = outgoing.Keys.Where(i => IsMatch(fromItemMatches, i));
+
+            Dictionary<string, int> markersToAddAsDictionary = markersToAdd.Distinct().ToDictionary(s => s, s => 1);
 
             var result = new List<Dependency>();
             foreach (var from in matchingFroms) {
                 RecursivelyFlood(from, from, new HashSet<Item> { from }, checkPresence, idempotentPattern, outgoing,
-                                 toItemMatches, matches, excludes, markersToAdd, result, null);
+                                 toItemMatches, matches, excludes, markersToAddAsDictionary, result, null);
             }
 
             transformedDependencies.AddRange(dependencies);
@@ -96,7 +98,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
         private void RecursivelyFlood(Item root, Item from, HashSet<Item> visited, Dictionary<FromTo, Dependency> checkPresence,
                 DependencyPattern idempotentPattern, Dictionary<Item, Dependency[]> outgoing, IEnumerable<ItemMatch> toItemMatches,
-                List<DependencyMatch> matches, List<DependencyMatch> excludes, IEnumerable<string> markersToAddOrNull,
+                List<DependencyMatch> matches, List<DependencyMatch> excludes, Dictionary<string,int> markersToAddOrNull,
                 List<Dependency> result, Dependency collectedEdge) {
             if (outgoing.ContainsKey(from)) {
                 foreach (var d in outgoing[from].Where(d => d.IsMatch(matches, excludes))) {
@@ -105,7 +107,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                         Dependency rootToTarget = collectedEdge == null
                             ? d
                             : new Dependency(root, target, d.Source,
-                                markersToAddOrNull ?? MutableMarkerSet.ConcatOrUnionWithMarkers(collectedEdge.Markers, d.Markers, _ignoreCase),
+                                new MutableMarkerSet(_ignoreCase, markersToAddOrNull ?? MutableMarkerSet.ConcatOrUnionWithMarkers(collectedEdge.AbstractMarkerSet, d.AbstractMarkerSet, _ignoreCase)),
                                 collectedEdge.Ct + d.Ct, collectedEdge.QuestionableCt + d.QuestionableCt,
                                 collectedEdge.BadCt + d.BadCt, d.ExampleInfo);
 

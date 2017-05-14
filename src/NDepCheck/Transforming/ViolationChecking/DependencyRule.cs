@@ -37,8 +37,8 @@ namespace NDepCheck.Transforming.ViolationChecking {
             return result;
         }
 
-        public bool MatchesUsingPattern(ItemMatch otherMatch) {
-            return _match.UsingMatch?.MatchesAlike(otherMatch) ?? otherMatch == null;
+        public bool MatchesUsingPattern(string pattern) {
+            return Representation.TrimmedUsingPattern == pattern;
         }
     }
 }

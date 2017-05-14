@@ -132,10 +132,10 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             // Find minimal cut and add markers
             foreach (var s in reachableFromSources) {
                 if (markerToAddToSourceSide != null) {
-                    s.AddMarker(markerToAddToSourceSide);
+                    s.IncrementMarker(markerToAddToSourceSide);
                 }
                 foreach (var d in GetList(outgoing, s).Where(e => !reachableFromSources.Contains(e.UsedItem))) {
-                    d.Dependency.AddMarker(markerToAddToCut);
+                    d.Dependency.IncrementMarker(markerToAddToCut);
                 }
             }
 

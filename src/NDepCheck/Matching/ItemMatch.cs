@@ -52,10 +52,5 @@ namespace NDepCheck.Matching {
         public static bool IsMatch<TItem>(ItemMatch matchOrNull, AbstractItem<TItem> item) where TItem : AbstractItem<TItem> {
             return matchOrNull == null || matchOrNull.Matches(item).Success;
         }
-
-        public bool MatchesAlike(ItemMatch other) {
-            return _markerPattern.MatchesAlike(other._markerPattern)
-                && _itemPattern.MatchesAlike(other._itemPattern);
-        }
     }
 }

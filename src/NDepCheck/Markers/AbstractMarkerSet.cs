@@ -7,28 +7,38 @@ using NDepCheck.Matching;
 
 namespace NDepCheck.Markers {
     public abstract class AbstractMarkerSet : IMarkerSet {
+        private static readonly Dictionary<string, int> _empty = new Dictionary<string, int>(StringComparer.InvariantCulture);
+        private static readonly Dictionary<string, int> _emptyIgnoreCase = new Dictionary<string, int>(StringComparer.InvariantCultureIgnoreCase);
+
         protected readonly bool _ignoreCase;
         // TODO: Replace with sharing implementation of string sets to save space and maybe time
         [CanBeNull]
-        protected abstract /*IReadOnlySet<string>*/ IEnumerable<string> MarkersOrNull { get; }
+        protected abstract IReadOnlyDictionary<string,int> MarkersOrNull { get; }
 
         // For performance, this is delegated to subclasses which can check an internal set more quickly
         [Pure]
-        protected abstract bool MarkersContains(string marker);
+        protected abstract int MarkerValue(string marker);
 
         protected AbstractMarkerSet(bool ignoreCase) {
             _ignoreCase = ignoreCase;
         }
 
-        protected static HashSet<string> CreateSet(bool ignoreCase, [CanBeNull] IEnumerable<string> markers) {
+        protected static Dictionary<string, int> CreateMarkerSetWithClonedDictionary(bool ignoreCase,
+            [NotNull] IReadOnlyDictionary<string,int> markers) {
+            return markers.ToDictionary(kvp => kvp.Key, kvp => kvp.Value, GetComparer(ignoreCase));
+        }
+
+        public static Dictionary<string,int> CreateMarkerSetWithClonedDictionary(bool ignoreCase, [CanBeNull] IEnumerable<string> markers) {
             IEnumerable<string> cleanMarkers =
                 (markers ?? Enumerable.Empty<string>()).Select(s => s.Trim())
                 .Where(s => s != "")
-                .Select(s => s.Contains("/") ? s : String.Intern(s));
-            return cleanMarkers.Any() ? new HashSet<string>(cleanMarkers, GetComparer(ignoreCase)) : null;
+                .Select(s => s.Contains("/") ? s : string.Intern(s));
+            return cleanMarkers.Any() ? CreateMarkerSetWithClonedDictionary(ignoreCase, cleanMarkers.ToDictionary(s => s, s => 1)) : null;
         }
 
-        public IEnumerable<string> Markers => MarkersOrNull ?? Enumerable.Empty<string>();
+        public IReadOnlyDictionary<string, int> Markers => MarkersOrNull ?? Empty(_ignoreCase);
+
+        protected static IReadOnlyDictionary<string, int> Empty(bool ignoreCase) => ignoreCase ? _emptyIgnoreCase : _empty;
 
         public static StringComparer GetComparer(bool ignoreCase) {
             return ignoreCase ? StringComparer.InvariantCultureIgnoreCase : StringComparer.InvariantCulture;
@@ -42,38 +52,21 @@ namespace NDepCheck.Markers {
             return GetComparer(_ignoreCase);
         }
 
-        public bool IsMatch(IEnumerable<IMatcher> present, IEnumerable<IMatcher> absent) {
-            if (MarkersOrNull == null) {
-                return !present.Any();
+        public bool IsMatch(IEnumerable<CountPattern<IMatcher>.Eval> evals) {
+            return evals.All(e => e.Predicate(GetValue(e.LeftOrNullForConstant), GetValue(e.RightOrNullForConstant)));
+        }
+
+        private int GetValue(IMatcher m) {
+            int value;
+            if (m == null) {
+                value = 0;
             } else {
-                foreach (var m in present) {
-                    // For performance, EqualsMatcher is handled separately - no All loop needed!
-                    EqualsMatcher em = m as EqualsMatcher;
-                    if (em != null) {
-                        if (!MarkersContains(em.MatchString)) {
-                            return false;
-                        }
-                    } else {
-                        if (MarkersOrNull.All(s => m.Matches(s, null) == null)) {
-                            return false;
-                        }
-                    }
-                }
-                foreach (var m in absent) {
-                    // For performance, EqualsMatcher is handled separately - no Any loop needed!
-                    EqualsMatcher em = m as EqualsMatcher;
-                    if (em != null) {
-                        if (MarkersContains(em.MatchString)) {
-                            return false;
-                        }
-                    } else {
-                        if (MarkersOrNull.Any(s => m.Matches(s, null) != null)) {
-                            return false;
-                        }
-                    }
-                }
-                return true;
+                EqualsMatcher em = m as EqualsMatcher;
+                value = em != null 
+                    ? MarkerValue(em.MatchString) 
+                    : Markers.Where(kvp => m.Matches(kvp.Key, null) != null).Sum(kvp => kvp.Value);
             }
+            return value;
         }
 
         public static string CreateReadableDefaultMarker(IEnumerable<ItemMatch> fromItemMatches, IEnumerable<ItemMatch> toItemMatches, string defaultName) {
@@ -95,6 +88,23 @@ namespace NDepCheck.Markers {
         private static string ToMarker(string m) {
             // Replace anything not letter, number or one of _ . / \\ with nothing
             return Regex.Replace(m, @"[^\p{L}\p{N}_./\\]", "");
+        }
+
+        public string AsFullString() {
+            IEnumerable<KeyValuePair<string, int>> nonZeroMarkers = Markers.Where(kvp => kvp.Value != 0);
+            return nonZeroMarkers.Any() 
+                ? "'" + string.Join("+", nonZeroMarkers.OrderBy(kvp => kvp.Key)
+                                                       .Select(kvp => kvp.Key + (kvp.Value == 1 ? "" : "=" + kvp.Value)))
+                : "";
+        }
+
+        public IEnumerable<string> MatchingMarkerStrings(IMatcher matcher) {
+            return Markers.Where(kvp => kvp.Value != 0 && matcher.Matches(kvp.Key, null) != null)
+                          .Select(kvp => kvp.Key + "=" + kvp.Value);
+        }
+
+        public MutableMarkerSet CloneAsMutableMarkerSet(bool b) {
+            return new MutableMarkerSet(_ignoreCase, Markers);        
         }
     }
 }

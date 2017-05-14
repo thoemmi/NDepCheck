@@ -65,10 +65,10 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 if (d.IsMatch(matches, excludes)) {
                     if (fromTos == null ||
                         !FromTo.ContainsMatchingDependency(fromTos, d.UsedItem, d.UsingItem, idempotentPattern)) {
-                        var newDependency = new Dependency(d.UsedItem, d.UsingItem, d.Source, d.Markers, d.Ct,
+                        var newDependency = new Dependency(d.UsedItem, d.UsingItem, d.Source, d.MarkerSet, d.Ct,
                                                            d.QuestionableCt, d.BadCt, d.ExampleInfo);
                         if (markerToAdd != null) {
-                            newDependency.AddMarker(markerToAdd);
+                            newDependency.IncrementMarker(markerToAdd);
                         }
                         transformedDependencies.Add(newDependency);
                         added++;

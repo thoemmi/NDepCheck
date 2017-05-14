@@ -1,91 +1,92 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Markers {
     public class MutableMarkerSet : AbstractMarkerSet, IMutableMarkerSet {
         [CanBeNull]
-        private HashSet<string> _markersOrNull;
+        private Dictionary<string, int> _markersOrNull;
 
-        protected override IEnumerable<string> MarkersOrNull => _markersOrNull;
+        protected override IReadOnlyDictionary<string, int> MarkersOrNull => _markersOrNull;
 
         public MutableMarkerSet(bool ignoreCase, [CanBeNull] IEnumerable<string> markers) : base(ignoreCase) {
-            _markersOrNull = CreateSet(ignoreCase, markers);
+            _markersOrNull = CreateMarkerSetWithClonedDictionary(ignoreCase, markers);
         }
 
-        protected override bool MarkersContains(string marker) {
-            return _markersOrNull != null && _markersOrNull.Contains(marker);
+        public MutableMarkerSet(bool ignoreCase, [CanBeNull] IMarkerSet markersOrNull) : base(ignoreCase) {
+            _markersOrNull = CreateMarkerSetWithClonedDictionary(ignoreCase,
+                markersOrNull == null ? Empty(ignoreCase) : ((AbstractMarkerSet)markersOrNull).Markers);
         }
 
-        public bool UnionWithMarkers([CanBeNull] IEnumerable<string> markers) {
+        public MutableMarkerSet(bool ignoreCase, [CanBeNull] IReadOnlyDictionary<string, int> markersOrNull) : base(ignoreCase) {
+            _markersOrNull = CreateMarkerSetWithClonedDictionary(ignoreCase, markersOrNull ?? Empty(ignoreCase));
+        }
+
+        protected override int MarkerValue(string marker) {
+            return _markersOrNull.Get(marker);
+        }
+
+        public void MergeWithMarkers([CanBeNull] IMarkerSet markerSet) {
+            if (markerSet != null) {
+                MergeWithMarkers(((AbstractMarkerSet)markerSet).Markers);
+            }
+        }
+
+        public void MergeWithMarkers([CanBeNull] IReadOnlyDictionary<string, int> markers) {
             if (markers != null && markers.Any()) {
                 if (_markersOrNull == null) {
-                    _markersOrNull = CreateSet(_ignoreCase, markers);
+                    _markersOrNull = CreateMarkerSetWithClonedDictionary(_ignoreCase, markers);
                 } else {
                     _markersOrNull.UnionWith(markers);
                 }
-                return true;
-            } else {
-                return false;
             }
         }
 
-        public bool AddMarker([NotNull] string marker) {
+        public void IncrementMarker([NotNull] string marker) {
             if (_markersOrNull == null) {
-                _markersOrNull = CreateSet(_ignoreCase, new[] { marker });
-                return true;
+                _markersOrNull = CreateMarkerSetWithClonedDictionary(_ignoreCase, new[] { marker });
             } else {
-                return _markersOrNull.Add(marker);
+                _markersOrNull[marker] = _markersOrNull.Get(marker) + 1;
             }
         }
 
-        public bool RemoveMarkers(string markerPattern, bool ignoreCase) {
-            return RemoveMarkers(new[] { markerPattern }, ignoreCase);
+        public void RemoveMarkers(string markerPattern, bool ignoreCase) {
+            RemoveMarkers(new[] { markerPattern }, ignoreCase);
         }
 
-        public bool RemoveMarkers([CanBeNull] IEnumerable<string> markerPatterns, bool ignoreCase) {
+        public void RemoveMarkers([CanBeNull] IEnumerable<string> markerPatterns, bool ignoreCase) {
             if (markerPatterns != null && _markersOrNull != null) {
-                IEnumerable<IMatcher> matchers =
-                    markerPatterns.Select(p => MarkerMatch.CreateMatcher(p, ignoreCase)).ToArray();
-                _markersOrNull.RemoveWhere(m => matchers.Any(ma => ma.Matches(m, null) != null));
-                return NormalizeMarkersOrNullAndSignalChange();
-            } else {
-                return false;
+                IEnumerable<IMatcher> matchers = markerPatterns.Select(p => MarkerMatch.CreateMatcher(p, ignoreCase)).ToArray();
+                string[] keys = _markersOrNull.Keys.Where(m => matchers.Any(ma => ma.Matches(m, null) != null)).ToArray();
+                foreach (var k in keys) {
+                    _markersOrNull[k] = 0;
+                }
             }
         }
 
-        private bool NormalizeMarkersOrNullAndSignalChange() {
-            if (_markersOrNull != null && _markersOrNull.Count == 0) {
-                _markersOrNull = null;
-            }
-            return true;
+        public void ClearMarkers() {
+            _markersOrNull = null;
         }
 
-        public bool ClearMarkers() {
-            if (_markersOrNull != null) {
-                _markersOrNull = null;
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        public static IEnumerable<string> ConcatOrUnionWithMarkers(IEnumerable<string> left, IEnumerable<string> right, bool ignoreCase) {
-            var result = new HashSet<string>(left);
+        public static Dictionary<string, int> ConcatOrUnionWithMarkers(AbstractMarkerSet leftMarkers,
+                                                              AbstractMarkerSet rightMarkers, bool ignoreCase) {
+            IReadOnlyDictionary<string, int> left = leftMarkers.Markers;
+            IReadOnlyDictionary<string, int> right = rightMarkers.Markers;
+            Dictionary<string, int> result = left.ToDictionary(ignoreCase);
             result.UnionWith(right);
+
             // a, b, c/d, c/e + a, k, e/f, e/g = a, b, k; c/d, c/f, c/g
-            foreach (var l in left.Where(l => l.Contains("/"))) {
+            foreach (var l in left.Keys.Where(l => l.Contains("/"))) {
                 string leftTail = l.Substring(l.IndexOf("/", StringComparison.InvariantCulture) + 1);
-                foreach (var r in right.Where(r => r.Contains("/"))) {
+                foreach (var r in right.Keys.Where(r => r.Contains("/"))) {
                     string[] rightParts = r.Split(new[] { '/' }, 2);
                     if (GetComparer(ignoreCase).Compare(leftTail, rightParts[0]) == 0) {
                         // l & r are partners!
                         result.Remove(l);
                         result.Remove(r);
-                        result.Add(left + "/" + rightParts[1]);
+                        result.Increment(left + "/" + rightParts[1], left[l] * right[r]);
                     }
                 }
             }
@@ -105,13 +106,16 @@ Markers
 =======
 
 It is possible to add arbitrary 'marker strings' (or markers) items and dependencies.
+Each marker is associated with an integer number.
 This is useful
 * to add additional information to read-in dependencies (e.g., dependencies read in
-  from .Net assemblies have markers like 'inherit' or 'call')
+  from .Net assemblies have markers like 'inherit' or 'call');
 * to add additional information in dep-checking algorithms that can be used later
   (e.g., FindCycleDeps adds a marker to each dependency on a cycle; later,
   ModifyDeps can use that marker to delete or modify the dependency, e.g. set the 
-  questionable count).
+  questionable count);
+* to add orders to items or dependencies;
+* to add reachability counts to items (see e.g. PathWriter).
 
 Markers on items and dependencies are persistent information that is written into Dip files.
 
@@ -141,10 +145,15 @@ It has the following format:
 
     ' singlepattern {{ & singlepattern }}
 
-where a singlepattern checks for the presence or absence of a marker:
+where a singlepattern checks the sum of all markers matching a 
+marker pattern via one of the following patterns:
 
-    marker      marker is present
-    ~marker     marker is absent
+    pattern=0 or pattern==0 or ~pattern
+    pattern<0
+    pattern>0 or pattern
+    pattern<=0
+    pattern>=0
+    pattern<>0 or pattern!=0
 ";
     }
 }

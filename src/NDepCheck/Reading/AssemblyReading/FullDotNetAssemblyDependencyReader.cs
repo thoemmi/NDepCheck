@@ -152,10 +152,12 @@ namespace NDepCheck.Reading.AssemblyReading {
             return GetMarkers(t, markerGenerators);
         }
 
+        [CanBeNull]
         private static string[] GetParameterMarkers(ParameterDefinition t, MarkerGenerator<ParameterDefinition>[] markerGenerators) {
             return GetMarkers(t, markerGenerators);
         }
 
+        [CanBeNull]
         private static string[] GetMemberMarkers<T>(T t, MarkerGenerator<T>[] markerGenerators) where T : IMemberDefinition {
             return GetMarkers(t, markerGenerators);
         }
@@ -433,19 +435,19 @@ namespace NDepCheck.Reading.AssemblyReading {
             ////return IsLinked(referringType, referrer.DeclaringType) || IsLinked(referringType.DeclaringType, referrer);
         }
 
-        private RawUsingItem GetClassItem([NotNull] TypeReference typeReference, [CanBeNull] ItemTail customSections, string[] markers) {
+        private RawUsingItem GetClassItem([NotNull] TypeReference typeReference, [CanBeNull] ItemTail customSections, [CanBeNull, ItemNotNull] string[] markers) {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
             return RawUsingItem.New(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, "", markers, customSections);
         }
 
-        private RawUsedItem GetFullNameItem([NotNull] TypeReference typeReference, [NotNull] string memberName, string[] markers) {
+        private RawUsedItem GetFullNameItem([NotNull] TypeReference typeReference, [NotNull] string memberName, [CanBeNull, ItemNotNull] string[] markers) {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
             return RawUsedItem.New(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers);
         }
 
-        private RawUsingItem GetFullNameItem([NotNull] TypeReference typeReference, [NotNull] string memberName, string[] markers, [CanBeNull] ItemTail customSections) {
+        private RawUsingItem GetFullNameItem([NotNull] TypeReference typeReference, [NotNull] string memberName, [CanBeNull, ItemNotNull] string[] markers, [CanBeNull] ItemTail customSections) {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
             return RawUsingItem.New(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, customSections);
@@ -455,10 +457,10 @@ namespace NDepCheck.Reading.AssemblyReading {
         /// Create a single dependency to the calledType or (if passed) calledType+method.
         /// Create additional dependencies for each generic parameter type of calledType.
         /// </summary>
-        private IEnumerable<RawDependency> CreateTypeAndMethodDependencies([NotNull] RawUsingItem usingItem, string[] usedMarkers,
+        private IEnumerable<RawDependency> CreateTypeAndMethodDependencies([NotNull] RawUsingItem usingItem, [CanBeNull, ItemNotNull] string[] usedMarkers,
             [NotNull] TypeReference usedType, Usage usage, [CanBeNull] SequencePoint sequencePoint, [NotNull] string memberName) {
             if (usedType is TypeSpecification) {
-                // E.g. the reference type System.Int32&, which is used for out parameters.
+                // E.g. the reference type System.int&, which is used for out parameters.
                 // or an arraytype?!?
                 usedType = ((TypeSpecification)usedType).ElementType;
             }

@@ -6,8 +6,6 @@ namespace NDepCheck.Matching {
         [CanBeNull]
         IEnumerable<string> Matches([NotNull] string value, [CanBeNull] string[] references);
 
-        bool MatchesAlike(IMatcher other);
-
         /// <summary>
         /// Function used by self-organzing projectors for projections, e.g.
         /// the "SelfOptimizingProjector" inside the ProjectItems transformer.

@@ -63,7 +63,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             if (markSingleCycleNodes) {
                 foreach (var d in matchingDependencies) {
                     if (Equals(d.UsingItem, d.UsedItem)) {
-                        d.AddMarker(markerToAdd);
+                        d.IncrementMarker(markerToAdd);
                     }
                 }
             }
@@ -102,7 +102,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 visited.Add(itemAtDistanceNFromRoot);
                 if (itemsAtDistance1FromRoot.ContainsKey(itemAtDistanceNFromRoot)) {
                     foreach (var d in itemsAtDistance1FromRoot[itemAtDistanceNFromRoot]) {
-                        d.AddMarker(markerToAdd);
+                        d.IncrementMarker(markerToAdd);
                     }
                     // This item can be "reached transitively" - we are done with it.
                     itemsAtDistance1FromRoot.Remove(itemAtDistanceNFromRoot);

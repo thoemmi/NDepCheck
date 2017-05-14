@@ -5,11 +5,13 @@ namespace NDepCheck {
         private readonly string _line;
         private int _hitCount;
 
-        public DependencyRuleRepresentation([NotNull] string ruleFileName, int lineNo, [NotNull] string line, bool isQuestionableRule) {
+        public DependencyRuleRepresentation([NotNull] string ruleFileName, int lineNo, [NotNull] string line, 
+                                            bool isQuestionableRule, [NotNull] string trimmedUsingPattern) {
             RuleFileName = ruleFileName;
             LineNo = lineNo;
             _line = line;
             IsQuestionableRule = isQuestionableRule;
+            TrimmedUsingPattern = trimmedUsingPattern;
             _hitCount = 0;
         }
 
@@ -21,6 +23,9 @@ namespace NDepCheck {
         public int HitCount => _hitCount;
 
         public bool IsQuestionableRule { get; }
+
+        [NotNull]
+        public string TrimmedUsingPattern { get; }
 
         [NotNull]
         public string RuleFileName { get; }

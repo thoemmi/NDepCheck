@@ -7,7 +7,7 @@ using NDepCheck.Markers;
 using NDepCheck.Matching;
 
 namespace NDepCheck {
-    public abstract class AbstractDependency<TItem> : IMarkerSet, IWithCt where TItem : AbstractItem<TItem> {
+    public abstract class AbstractDependency<TItem> : IWithMarkerSet, IWithCt where TItem : AbstractItem<TItem> {
         protected AbstractDependency([NotNull] TItem usingItem, [NotNull] TItem usedItem, ISourceLocation source) {
             UsingItem = usingItem;
             UsedItem = usedItem;
@@ -21,11 +21,12 @@ namespace NDepCheck {
         [NotNull]
         public TItem UsedItem { get; }
         [NotNull]
-        protected abstract IMarkerSet MarkerSet { get; }
+        public abstract IMarkerSet MarkerSet { get; }
 
         public abstract int Ct { get; }
         public abstract int QuestionableCt { get; }
         public abstract int BadCt { get; }
+        protected abstract string NotOkReason { get; }
 
         [CanBeNull]
         public ISourceLocation Source { get; }
@@ -36,11 +37,10 @@ namespace NDepCheck {
         [CanBeNull]
         public abstract string ExampleInfo { get; }
 
-        public IEnumerable<string> Markers => MarkerSet.Markers;
-
-        public bool IsMatch(IEnumerable<IMatcher> present, IEnumerable<IMatcher> absent) {
-            return MarkerSet.IsMatch(present, absent);
+        public bool IsMatch(IEnumerable<CountPattern<IMatcher>.Eval> evals) {
+            return MarkerSet.IsMatch(evals);
         }
+
         /// <summary>
         /// Coded name of using item.
         /// </summary>
@@ -54,7 +54,7 @@ namespace NDepCheck {
         public string UsedItemAsString => UsedItem.AsString();
 
         /// <summary>
-        /// String representation of a Dependency.
+        /// string representation of a Dependency.
         /// </summary>
         public override string ToString() {
             return UsingItem + " ---> " + UsedItem;
@@ -83,11 +83,12 @@ namespace NDepCheck {
             string prefix = BadCt > 0
                 ? QuestionableCt > 0 ? "Bad and questionable d" : "Bad d"
                 : QuestionableCt > 0 ? "Questionable d" : "D";
+            string reason = string.IsNullOrWhiteSpace(NotOkReason) ? "" : " detected by " + NotOkReason;
             string ct = BadCt > 0
                 ? QuestionableCt > 0 ? $";{QuestionableCt};{BadCt}" : $";;{BadCt}"
                 : QuestionableCt > 0 ? $";{QuestionableCt};" : ";;";
-            string markers = Markers.Any() ? "'" + string.Join("+", Markers) : "";
-            return $"{prefix}{nounTail} {UsingItem} --{ct}{markers}-> {UsedItem}" + (Source != null ? (Ct > 1 ? " (e.g. at " : " (at ") + Source + ")" : "");
+            string markers = MarkerSet.AsFullString();
+            return $"{prefix}{nounTail}{reason}: {UsingItem} --{ct}{markers}-> {UsedItem}" + (Source != null ? (Ct > 1 ? " (e.g. at " : " (at ") + Source + ")" : "");
         }
 
         public string GetDotRepresentation(int? stringLengthForIllegalEdges) {
@@ -128,7 +129,7 @@ namespace NDepCheck {
         public string AsDipStringWithTypes(bool withExampleInfo) {
             // Should that be in DipWriter?
             string exampleInfo = withExampleInfo ? ExampleInfo : null;
-            string markers = string.Join("+", Markers.OrderBy(s => s));
+            string markers = MarkerSet.AsFullString();
             return $"{UsingItem.AsFullString()} {DIP_ARROW} "
                  + $"{markers};{Ct};{QuestionableCt};{BadCt};{Source?.AsDipString()};{exampleInfo} "
                  + $"{DIP_ARROW} {UsedItem.AsFullString()}";
@@ -137,22 +138,25 @@ namespace NDepCheck {
 
     public class ReadOnlyDependency : AbstractDependency<ReadOnlyItem> {
         public ReadOnlyDependency(ReadOnlyItem usingItem, ReadOnlyItem usedItem, ISourceLocation source, IMarkerSet markerSet,
-                                   int ct, int questionableCt, int badCt, string exampleInfo) : base(usingItem, usedItem, source) {
+                                   int ct, int questionableCt, int badCt, string notOkReason, string exampleInfo) 
+                : base(usingItem, usedItem, source) {
             MarkerSet = markerSet;
             Ct = ct;
             QuestionableCt = questionableCt;
             BadCt = badCt;
+            NotOkReason = notOkReason;
             ExampleInfo = exampleInfo;
         }
 
-        protected override IMarkerSet MarkerSet { get; }
+        public override IMarkerSet MarkerSet { get; }
         public override int Ct { get; }
         public override int QuestionableCt { get; }
         public override int BadCt { get; }
+        protected override string NotOkReason { get; }
         public override string ExampleInfo { get; }
     }
 
-    public class Dependency : AbstractDependency<Item>, IMutableMarkerSet {
+    public class Dependency : AbstractDependency<Item>, IWithMutableMarkerSet {
         [NotNull]
         private readonly MutableMarkerSet _markerSet;
 
@@ -161,16 +165,30 @@ namespace NDepCheck {
         private int _badCt;
 
         [CanBeNull]
+        private string _notOkReason;
+
+        [CanBeNull]
         private string _exampleInfo;
 
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem, [CanBeNull] ISourceLocation source,
             [NotNull] string markers, int ct, int questionableCt = 0, int badCt = 0,
             [CanBeNull] string exampleInfo = null) : this(
-                usingItem, usedItem, source, markers: markers.Split('&', '+', ','), ct: ct,
-                questionableCt: questionableCt, badCt: badCt, exampleInfo: exampleInfo) {
+                usingItem, usedItem, source, markers: markers.Split('&', '+', ','),
+                ct: ct, questionableCt: questionableCt, badCt: badCt, exampleInfo: exampleInfo) {
         }
 
-        protected override IMarkerSet MarkerSet => _markerSet;
+        public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem, [CanBeNull] ISourceLocation source,
+            [NotNull] IEnumerable<string> markers, int ct, int questionableCt = 0, int badCt = 0,
+            [CanBeNull] string exampleInfo = null) : this(
+                usingItem, usedItem, source, markers: new ReadOnlyMarkerSet(false, markers),
+                ct: ct, questionableCt: questionableCt, badCt: badCt, exampleInfo: exampleInfo) {
+        }
+
+        public override IMarkerSet MarkerSet => _markerSet;
+
+        public AbstractMarkerSet AbstractMarkerSet => _markerSet;
+
+        protected override string NotOkReason => _notOkReason;
 
         /// <summary>
         /// Create a dependency.
@@ -183,11 +201,11 @@ namespace NDepCheck {
         /// <param name="questionableCt"></param>
         /// <param name="badCt"></param>
         /// <param name="exampleInfo"></param>
-        /// <param name="ignoreCase"></param>
+        /// <param name="ignoreCaseDefault"></param>
         public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem,
-            [CanBeNull] ISourceLocation source, [CanBeNull] IEnumerable<string> markers,
+            [CanBeNull] ISourceLocation source, [CanBeNull] IMarkerSet markers,            
             int ct, int questionableCt = 0, int badCt = 0, [CanBeNull] string exampleInfo = null,
-            bool? ignoreCase = null) : base(usingItem, usedItem, source) {
+            bool? ignoreCaseDefault = null) : base(usingItem, usedItem, source) {
             if (usingItem == null) {
                 throw new ArgumentNullException(nameof(usingItem));
             }
@@ -198,7 +216,8 @@ namespace NDepCheck {
             _questionableCt = questionableCt;
             _badCt = badCt;
             _exampleInfo = exampleInfo;
-            _markerSet = new MutableMarkerSet(ignoreCase ?? usingItem.Type.IgnoreCase | usedItem.Type.IgnoreCase, markers);
+            bool ignoreCase = ignoreCaseDefault ?? usingItem.Type.IgnoreCase | usedItem.Type.IgnoreCase;
+            _markerSet = new MutableMarkerSet(ignoreCase, markers);
         }
 
         public override int Ct => _ct;
@@ -209,47 +228,57 @@ namespace NDepCheck {
 
         public override string ExampleInfo => _exampleInfo;
 
-        public void MarkAsBad() {
-            SetBadCount(_ct);
+        public void MarkAsBad(string reason) {
+            SetBadCount(_ct, reason);
         }
 
-        public void IncrementBad() {
-            SetBadCount(_badCt + 1);
+        public void IncrementBad(string reason) {
+            SetBadCount(_badCt + 1, reason);
         }
 
         public void ResetBad() {
             _badCt = 0;
+            _notOkReason = null;
         }
 
-        private void SetBadCount(int value) {
+        private void SetBadCount(int value, string reason) {
             // First bad example overrides any previous example
             if (_badCt == 0 || _exampleInfo == null) {
                 _exampleInfo = UsingItemAsString + " ---! " + UsedItemAsString;
             }
+            if (_badCt == 0 || _notOkReason == null) {
+                _notOkReason = reason;
+            }
             _badCt = value;
         }
 
-        public void MarkAsQuestionable() {
-            SetQuestionableCount(_ct);
+        public void MarkAsQuestionable(string reason) {
+            SetQuestionableCount(_ct, reason);
         }
 
-        public void IncrementQuestionable() {
-            SetQuestionableCount(_questionableCt + 1);
+        public void IncrementQuestionable(string reason) {
+            SetQuestionableCount(_questionableCt + 1, reason);
         }
 
         public void ResetQuestionable() {
             _questionableCt = 0;
+            if (_badCt == 0) {
+                _notOkReason = null;
+            }
         }
 
-        private void SetQuestionableCount(int value) {
-            if (_badCt == 0 && _questionableCt == 0 || _exampleInfo == null) {
+        private void SetQuestionableCount(int value, string reason) {
+            if (NotOkCt == 0 || _exampleInfo == null) {
                 _exampleInfo = UsingItemAsString + " ---? " + UsedItemAsString;
+            }
+            if (NotOkCt == 0 || _notOkReason == null) {
+                _notOkReason = reason;
             }
             _questionableCt = value;
         }
 
         public void AggregateMarkersAndCounts(Dependency d) {
-            _markerSet.UnionWithMarkers(d.Markers);
+            _markerSet.MergeWithMarkers(d.MarkerSet);
             _ct += d.Ct;
             _questionableCt += d.QuestionableCt;
             _badCt += d.BadCt;
@@ -285,24 +314,24 @@ namespace NDepCheck {
             return result;
         }
 
-        public bool AddMarker(string marker) {
-            return _markerSet.AddMarker(marker);
+        public void IncrementMarker(string marker) {
+            _markerSet.IncrementMarker(marker);
         }
 
-        public bool UnionWithMarkers(IEnumerable<string> markerPatterns) {
-            return _markerSet.UnionWithMarkers(markerPatterns);
+        public void UnionWithMarkers(IReadOnlyDictionary<string, int> markerPatterns) {
+            _markerSet.MergeWithMarkers(markerPatterns);
         }
 
-        public bool RemoveMarkers(string markerPattern, bool ignoreCase) {
-            return _markerSet.RemoveMarkers(markerPattern, ignoreCase);
+        public void RemoveMarkers(string markerPattern, bool ignoreCase) {
+            _markerSet.RemoveMarkers(markerPattern, ignoreCase);
         }
 
-        public bool RemoveMarkers(IEnumerable<string> markerPatterns, bool ignoreCase) {
-            return _markerSet.RemoveMarkers(markerPatterns, ignoreCase);
+        public void RemoveMarkers(IEnumerable<string> markerPatterns, bool ignoreCase) {
+            _markerSet.RemoveMarkers(markerPatterns, ignoreCase);
         }
 
-        public bool ClearMarkers() {
-            return _markerSet.ClearMarkers();
+        public void ClearMarkers() {
+            _markerSet.ClearMarkers();
         }
     }
 }

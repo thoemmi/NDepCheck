@@ -131,9 +131,9 @@ namespace NDepCheck.Tests {
 
             Assert.AreEqual(2, result.Count);
             Assert.AreEqual(b, result[0].UsingItem);
-            Assert.IsTrue(result[0].Markers.Contains(marker));
+            Assert.IsTrue(result[0].MarkerSet.AsFullString().Contains(marker));
             Assert.AreEqual(c, result[1].UsingItem);
-            Assert.IsTrue(result[1].Markers.Contains(marker));
+            Assert.IsTrue(result[1].MarkerSet.AsFullString().Contains(marker));
         }
 
         [TestMethod]

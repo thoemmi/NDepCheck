@@ -4,16 +4,20 @@ using JetBrains.Annotations;
 namespace NDepCheck.Markers {
     public class ReadOnlyMarkerSet : AbstractMarkerSet {
         [CanBeNull]
-        private readonly HashSet<string> _markersOrNull;
+        private readonly Dictionary<string,int> _markersOrNull;
 
-        protected override IEnumerable<string> MarkersOrNull => _markersOrNull;
+        protected override IReadOnlyDictionary<string,int> MarkersOrNull => _markersOrNull;
 
         public ReadOnlyMarkerSet(bool ignoreCase, [CanBeNull] IEnumerable<string> markers) : base(ignoreCase) {
-            _markersOrNull = CreateSet(ignoreCase, markers);
+            _markersOrNull = CreateMarkerSetWithClonedDictionary(ignoreCase, markers);
         }
 
-        protected override bool MarkersContains(string marker) {
-            return _markersOrNull != null && _markersOrNull.Contains(marker);
+        public ReadOnlyMarkerSet(bool ignoreCase, [NotNull] IReadOnlyDictionary<string, int> markers) : base(ignoreCase) {
+            _markersOrNull = CreateMarkerSetWithClonedDictionary(ignoreCase, markers);
+        }
+
+        protected override int MarkerValue(string marker) {
+            return _markersOrNull.Get(marker);
         }
     }
 }

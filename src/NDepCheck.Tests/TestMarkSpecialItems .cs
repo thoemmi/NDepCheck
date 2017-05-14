@@ -13,9 +13,9 @@ namespace NDepCheck.Tests {
                 var result = new List<Dependency>();
                 msi.Transform(globalContext, msi.GetTestDependencies(), options.Replace(" ", "\r\n"), result);
                 return
-                    result.SelectMany(d => new[] {d.UsingItem, d.UsedItem})
+                    result.SelectMany(d => new[] { d.UsingItem, d.UsedItem })
                         .Distinct()
-                        .Where(i => i.Markers.Any(m => m == mark));
+                        .Where(i => i.MarkersContain(mark));
             } finally {
                 // Also static caches must be reset, as "Mark" modifies Items
                 globalContext.ResetAll();

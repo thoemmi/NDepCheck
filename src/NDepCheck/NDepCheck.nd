@@ -56,7 +56,7 @@
 	// Ensure immutable ("ReadOnly...") classes are really immutable
 	NDepCheck:ReadOnly* ---> : {
 		: -- '_declaresfield  -> '_readonly&_primitive
-		  -- '_declaresfield  -> System:String
+		  -- '_declaresfield  -> System:String'_readonly
 		  -- '_declaresfield  -> :IMarkerSet'_readonly
 		  -- '_declaresfield  -> :ReadOnly*'_readonly
 		

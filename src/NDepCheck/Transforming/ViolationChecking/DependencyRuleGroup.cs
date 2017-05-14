@@ -53,7 +53,8 @@ namespace NDepCheck.Transforming.ViolationChecking {
         /// </summary>
         public bool AddDependencyRules([CanBeNull] ItemType usingItemTypeHint, [CanBeNull] ItemType usedItemTypeHint,
                                        [NotNull] string ruleSourceName, int lineNo, [NotNull] string line,
-                                       bool ignoreCase, [NotNull] string previousRawUsingPattern, [NotNull] out string rawTrimmedUsingPattern) {
+                                       bool ignoreCase, [NotNull] string previousRawUsingPattern, 
+                                       [NotNull] out string rawTrimmedUsingPattern) {
             Match match;
             if (TryMatch(line, "^(.*)--(.*)->(.*)", out match)) {
                 rawTrimmedUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
@@ -75,19 +76,19 @@ namespace NDepCheck.Transforming.ViolationChecking {
                 return true;
             } else if (TryMatch(line, "^(.*)===>(.*)", out match)) {
                 rawTrimmedUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
-                string rawUsedPattern = match.Groups[2].Value;
+                string rawTrimmedUsedPattern = match.Groups[2].Value.Trim();
                 {
                     ItemMatch @using = new ItemMatch(usingItemTypeHint, rawTrimmedUsingPattern, 0, ignoreCase);
-                    ItemMatch used = new ItemMatch(usedItemTypeHint, rawUsedPattern.Trim(), 0, ignoreCase);
+                    ItemMatch used = new ItemMatch(usedItemTypeHint, rawTrimmedUsedPattern, 0, ignoreCase);
 
-                    CopyRulesWithNewUsing(_allowed, used, @using);
-                    CopyRulesWithNewUsing(_questionable, used, @using);
-                    CopyRulesWithNewUsing(_forbidden, used, @using);
+                    CopyRulesWithNewUsing(rawTrimmedUsedPattern, _allowed, used, @using);
+                    CopyRulesWithNewUsing(rawTrimmedUsedPattern, _questionable, used, @using);
+                    CopyRulesWithNewUsing(rawTrimmedUsedPattern, _forbidden, used, @using);
                 }
 
                 // using may also use the right side of ===>; in other words, ===> is an implicit --->.
                 _allowed.AddRange(CreateDependencyRules(usingItemTypeHint, usedItemTypeHint,
-                    ruleSourceName, lineNo, rawTrimmedUsingPattern, "", rawUsedPattern, "==", "=>", questionableRule: false,
+                    ruleSourceName, lineNo, rawTrimmedUsingPattern, "", rawTrimmedUsedPattern, "==", "=>", questionableRule: false,
                     ignoreCase: ignoreCase));
                 return true;
             } else {
@@ -95,9 +96,9 @@ namespace NDepCheck.Transforming.ViolationChecking {
             }
         }
 
-        private static void CopyRulesWithNewUsing(List<DependencyRule> rules, ItemMatch used, ItemMatch @using) {
+        private static void CopyRulesWithNewUsing(string rawTrimmedUsedPattern, List<DependencyRule> rules, ItemMatch used, ItemMatch @using) {
             IEnumerable<DependencyRule> indirectRulesWithMatchingUsingPattern =
-                rules.Where(r => r.MatchesUsingPattern(used)).ToArray(); // make a copy!
+                rules.Where(r => r.MatchesUsingPattern(rawTrimmedUsedPattern)).ToArray(); // make a copy!
 
             rules.AddRange(indirectRulesWithMatchingUsingPattern.Select(
                     tail => new DependencyRule(new DependencyMatch(@using, tail.DependencyPattern, tail.Used), tail.Representation)));
@@ -117,7 +118,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
             string trimmedUsedPattern = usedPattern.Trim();
 
             string repString = trimmedUsingPattern + " " + leftRepresentationPart + trimmedDependencyPattern + rightRepresentationPart + trimmedUsedPattern;
-            DependencyRuleRepresentation rep = new DependencyRuleRepresentation(ruleSourceName, lineNo, repString, questionableRule);
+            DependencyRuleRepresentation rep = new DependencyRuleRepresentation(ruleSourceName, lineNo, repString, questionableRule, trimmedUsingPattern);
 
             var match = new DependencyMatch(usingItemTypeHint, trimmedUsingPattern, trimmedDependencyPattern, usedItemTypeHint, trimmedUsedPattern, ignoreCase);
             var head = new DependencyRule(match, rep);
@@ -167,7 +168,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
                     if (d.BadCt > 0) {
                         badCt++;
                         if (addMarker) {
-                            d.AddMarker(_groupMarker ?? "global");
+                            d.IncrementMarker(_groupMarker ?? "global");
                         }
                     } else if (d.QuestionableCt > 0) {
                         questionableCt++;
@@ -185,23 +186,23 @@ namespace NDepCheck.Transforming.ViolationChecking {
         private void Check([NotNull] Dependency d) {
             if (_forbidden.Any(r => r.IsMatch(d))) {
                 // First, we check for forbidden rules - "if it is forbidden, it is definitely forbidden"
-                d.MarkAsBad();
+                d.MarkAsBad(_groupMarker);
             } else if (_allowed.Any(r => r.IsMatch(d))) {
                 // Then we check for allowed - "if it is not forbidden and allowed, it is definitely allowed"
                 // If there is no allowed or questionable rule, then there is an implicit 
             } else if (_questionable.Any(r => r.IsMatch(d))) {
                 // Last, we check for questionable - "if it is neither allowed nor forbidden, but questionably allowed, well, so be it"
-                d.MarkAsQuestionable();
+                d.MarkAsQuestionable(_groupMarker);
             } else {
                 // If no rule matches, it is bad!
-                d.MarkAsBad();
+                d.MarkAsBad(_groupMarker);
             }
         }
 
         private void CheckBadOnly([NotNull] Dependency d) {
             if (_forbidden.Any(r => r.IsMatch(d))) {
                 // First, we check for forbidden rules - "if it is forbidden, it is definitely forbidden"
-                d.MarkAsBad();
+                d.MarkAsBad(_groupMarker);
             }   // If there is no allowed or questionable rule, then there is an implicit ** ---> ** rule.
         }
 

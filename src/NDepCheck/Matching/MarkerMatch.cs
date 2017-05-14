@@ -3,55 +3,27 @@ using System.Linq;
 using NDepCheck.Markers;
 
 namespace NDepCheck.Matching {
-    public class MarkerMatch : Pattern {
-        private readonly IEnumerable<IMatcher> _present;
-        private readonly IEnumerable<IMatcher> _absent;
+    public class MarkerMatch : CountPattern<IMatcher> {
+        private const string MARKER_PATTERN = @"^[\p{L}\p{N}_./\\]+$";
+
+        private readonly IEnumerable<Eval> _evals;
 
         public MarkerMatch(string pattern, bool ignoreCase) {
-            var present = new List<IMatcher>();
-            var absent = new List<IMatcher>();
-            string[] elements = pattern.Split('&');
-            bool somePresentStartsWithDot = false;
-            foreach (var e in elements) {
-                string element = e.Trim();
-                if (element == "~" || element == "") {
-                    // ignore
-                } else if (element.StartsWith("~")) {
-                    absent.Add(CreateMatcher(element.Substring(1).Trim(), 0, ignoreCase));
-                } else {
-                    present.Add(CreateMatcher(element, ignoreCase));
-                    somePresentStartsWithDot |= element.StartsWith(".");
-                }
-            }
-            if (!somePresentStartsWithDot) {
-                absent.Add(CreateMatcher(".**", 0, ignoreCase));
-            }
-            _present = present;
-            _absent = absent;
+            _evals = pattern.Split('&')
+                            .Select(element => CreateEval(element, ignoreCase))
+                            .ToArray();
+        }
+
+        public static Eval CreateEval(string pattern, bool ignoreCase) {
+            return CreateEval(pattern, MARKER_PATTERN, s => CreateMatcher(s, ignoreCase));
         }
 
         public static IMatcher CreateMatcher(string pattern, bool ignoreCase) {
-            return CreateMatcher(pattern.Trim(), 0, ignoreCase);
-        }
-
-        public MarkerMatch(IEnumerable<string> present, IEnumerable<string> absent, bool ignoreCase) {
-            _present = present.Select(s => CreateMatcher(s, 0, ignoreCase));
-            _absent = absent.Select(s => CreateMatcher(s, 0, ignoreCase));
+            return Pattern.CreateMatcher(pattern.Trim(), 0, ignoreCase);
         }
 
         public bool IsMatch(IMarkerSet obj) {
-            return obj.IsMatch(_present, _absent);
-        }
-
-        public bool MatchesAlike(MarkerMatch other) {
-            return MatchAlike(_present, other._present)
-                && MatchAlike(other._present, _present)
-                && MatchAlike(_absent, other._absent)
-                && MatchAlike(other._absent, _absent);
-        }
-
-        private static bool MatchAlike(IEnumerable<IMatcher> left, IEnumerable<IMatcher> right) {
-            return left.All(p => right.Any(q => p.MatchesAlike(q)));
+            return obj.IsMatch(_evals);
         }
     }
 }

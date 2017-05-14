@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using NDepCheck.Markers;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.Modifying {
@@ -82,12 +83,12 @@ Examples:
             bool clearRight = false;
 
             var markersToAddOnLeft = new List<string>();
-            var markersToAddOnDep = new List<string>();
+            var markersToAddOnDep = new Dictionary<string, int>();
             var markersToAddOnRight = new List<string>();
 
-            var markersToRemoveOnLeft = new List<string>();
+            var markerPatternsToRemoveOnLeft = new List<string>();
             var markersToRemoveOnDep = new List<string>();
-            var markersToRemoveOnRight = new List<string>();
+            var markerPatternsToRemoveOnRight = new List<string>();
 
             DependencyMatchOptions.Parse(globalContext, transformOptions, _ignoreCase, matches, excludes,
                 MarkLeftItemOption.Action((args, j) => {
@@ -97,7 +98,7 @@ Examples:
                 }),
                 MarkDependencyItemOption.Action((args, j) => {
                     string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
-                    markersToAddOnDep.Add(marker.TrimStart('\''));
+                    markersToAddOnDep[marker.TrimStart('\'')] = 1;
                     return j;
                 }),
                 MarkRightItemOption.Action((args, j) => {
@@ -107,7 +108,7 @@ Examples:
                 }),
                 UnmarkLeftItemOption.Action((args, j) => {
                     string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
-                    markersToRemoveOnLeft.Add(marker.TrimStart('\''));
+                    markerPatternsToRemoveOnLeft.Add(marker.TrimStart('\''));
                     return j;
                 }),
                 UnmarkDependencyItemOption.Action((args, j) => {
@@ -117,7 +118,7 @@ Examples:
                 }),
                 UnmarkRightItemOption.Action((args, j) => {
                     string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker");
-                    markersToRemoveOnRight.Add(marker.TrimStart('\''));
+                    markerPatternsToRemoveOnRight.Add(marker.TrimStart('\''));
                     return j;
                 }),
                 ClearLeftItemOption.Action((args, j) => {
@@ -152,24 +153,28 @@ Examples:
 
             Log.WriteInfo($"Marked {n} dependencies");
 
+            ReadOnlyMarkerSet markersToAddOnLeftMarkerSet = new ReadOnlyMarkerSet(_ignoreCase, markersToAddOnLeft);
+            ReadOnlyMarkerSet markersToAddOnRightMarkerSet = new ReadOnlyMarkerSet(_ignoreCase, markersToAddOnRight);
+
             // Items are modified afterwards - match loop above uses unchanged values
             foreach (var left in leftMatches) {
-                MarkItem(clearLeft, left, markersToAddOnLeft, markersToRemoveOnLeft, _ignoreCase);
+                MarkItem(clearLeft, left, markersToAddOnLeftMarkerSet, markerPatternsToRemoveOnLeft, _ignoreCase);
             }
             foreach (var right in rightMatches) {
-                MarkItem(clearRight, right, markersToAddOnRight, markersToRemoveOnRight, _ignoreCase);
+                MarkItem(clearRight, right, markersToAddOnRightMarkerSet, markerPatternsToRemoveOnRight, _ignoreCase);
             }
 
             transformedDependencies.AddRange(dependencies);
             return Program.OK_RESULT;
         }
 
-        private static void MarkItem(bool clear, Item item, List<string> markersToAdd, List<string> markersToRemove, bool ignoreCase) {
+        private static void MarkItem(bool clear, Item item, IMarkerSet markersToAdd, 
+                                     List<string> markerPatternsToRemove, bool ignoreCase) {
             if (clear) {
                 item.ClearMarkers();
             } else {
-                item.UnionWithMarkers(markersToAdd);
-                item.RemoveMarkers(markersToRemove, ignoreCase);
+                item.MergeWithMarkers(markersToAdd);
+                item.RemoveMarkers(markerPatternsToRemove, ignoreCase);
             }
         }
 

@@ -11,25 +11,24 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestSimpleDependencyRuleMatches() {
-            DependencyRuleRepresentation rep = new DependencyRuleRepresentation("FILE", 0, "...", false);
             ItemType itemType = ItemType.New("NC", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" }, ignoreCase: false);
 
-            var r1 = CreateDependencyRule(itemType, ":", ":", rep);
+            var r1 = CreateDependencyRule(itemType, ":", ":");
 
-            var rn1 = CreateDependencyRule(itemType, "n*", ":", rep);
-            var rn2 = CreateDependencyRule(itemType, "n*:", ":", rep);
-            var rn3 = CreateDependencyRule(itemType, "n**", ":", rep);
-            var rn4 = CreateDependencyRule(itemType, "n**:", ":", rep);
-            var rn5 = CreateDependencyRule(itemType, "n1", ":", rep);
-            var rn6 = CreateDependencyRule(itemType, "n1:", ":", rep);
-            var rn7 = CreateDependencyRule(itemType, "*n1:", ":", rep);
-            var rn8 = CreateDependencyRule(itemType, "**n1:", ":", rep);
-            var rc1 = CreateDependencyRule(itemType, ":c*", ":", rep);
-            var rc2 = CreateDependencyRule(itemType, ":c**", ":", rep);
-            var rc3 = CreateDependencyRule(itemType, ":*c1", ":", rep);
-            var rc4 = CreateDependencyRule(itemType, ":**c1", ":", rep);
-            var rnc1 = CreateDependencyRule(itemType, "n*:c*", ":", rep);
-            var rnc2 = CreateDependencyRule(itemType, "n**:c**", ":", rep);
+            var rn1 = CreateDependencyRule(itemType, "n*", ":");
+            var rn2 = CreateDependencyRule(itemType, "n*:", ":");
+            var rn3 = CreateDependencyRule(itemType, "n**", ":");
+            var rn4 = CreateDependencyRule(itemType, "n**:", ":");
+            var rn5 = CreateDependencyRule(itemType, "n1", ":");
+            var rn6 = CreateDependencyRule(itemType, "n1:", ":");
+            var rn7 = CreateDependencyRule(itemType, "*n1:", ":");
+            var rn8 = CreateDependencyRule(itemType, "**n1:", ":");
+            var rc1 = CreateDependencyRule(itemType, ":c*", ":");
+            var rc2 = CreateDependencyRule(itemType, ":c**", ":");
+            var rc3 = CreateDependencyRule(itemType, ":*c1", ":");
+            var rc4 = CreateDependencyRule(itemType, ":**c1", ":");
+            var rnc1 = CreateDependencyRule(itemType, "n*:c*", ":");
+            var rnc2 = CreateDependencyRule(itemType, "n**:c**", ":");
 
             Dependency dep = new Dependency(Item.New(itemType, "n1", "c1"), Item.New(itemType, "n2", "c2"), null, "Test", ct: 1);
             Assert.IsTrue(r1.IsMatch(dep));
@@ -52,19 +51,21 @@ namespace NDepCheck.Tests {
             Assert.IsTrue(rnc2.IsMatch(dep));
         }
 
-        private static DependencyRule CreateDependencyRule(ItemType itemType, string left, string right, DependencyRuleRepresentation rep) {
-            return new DependencyRule(new DependencyMatch(itemType, left, "", itemType, right, IGNORECASE), rep);
+        private static DependencyRule CreateDependencyRule(ItemType itemType, string left, string right) {
+            return new DependencyRule(new DependencyMatch(itemType, left, "", itemType, right, IGNORECASE), 
+                new DependencyRuleRepresentation("TEST", 0, left + "--->" + right, false, left)
+                
+                );
         }
 
         [TestMethod]
         public void TestBackReferenceDependencyRuleMatches() {
-            DependencyRuleRepresentation rep = new DependencyRuleRepresentation("FILE", 0, "...", false);
             ItemType itemtype = ItemType.New("SO", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" }, ignoreCase: false);
-            var rn1 = CreateDependencyRule(itemtype, "(s)*", @"\1*", rep);
-            var rn2 = CreateDependencyRule(itemtype, "(s)*:(t)*", @"\1*:\2*", rep);
-            var rn3 = CreateDependencyRule(itemtype, "(s)**:(t)**", @"\1*:\2*", rep);
-            var rn4 = CreateDependencyRule(itemtype, "s(*):t(*)", @"s\1:t\2", rep);
-            var rn5 = CreateDependencyRule(itemtype, "s(**):t(**)", @"s\1:t\2", rep);
+            var rn1 = CreateDependencyRule(itemtype, "(s)*", @"\1*");
+            var rn2 = CreateDependencyRule(itemtype, "(s)*:(t)*", @"\1*:\2*");
+            var rn3 = CreateDependencyRule(itemtype, "(s)**:(t)**", @"\1*:\2*");
+            var rn4 = CreateDependencyRule(itemtype, "s(*):t(*)", @"s\1:t\2");
+            var rn5 = CreateDependencyRule(itemtype, "s(**):t(**)", @"s\1:t\2");
 
             Dependency dep = new Dependency(Item.New(itemtype, "s1", "t1"), Item.New(itemtype, "s2", "t2"), null, "Test", ct: 1);
             Assert.IsTrue(rn1.IsMatch(dep));
@@ -76,10 +77,9 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestBackReferenceDependencyRuleMatchesWithOuterParentheses() {
-            DependencyRuleRepresentation rep = new DependencyRuleRepresentation("FILE", 0, "...", false);
             ItemType itemtype = ItemType.New("SO", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" }, ignoreCase: false);
-            var rn3 = CreateDependencyRule(itemtype, "(s**):(t**)", @"\1*:\2*", rep);
-            var rn5 = CreateDependencyRule(itemtype, "(**s**):(**t**)", @"\1:\2", rep);
+            var rn3 = CreateDependencyRule(itemtype, "(s**):(t**)", @"\1*:\2*");
+            var rn5 = CreateDependencyRule(itemtype, "(**s**):(**t**)", @"\1:\2");
 
             Dependency dep = new Dependency(Item.New(itemtype, "sx", "tx"), Item.New(itemtype, "sx", "tx"), null, "Test", ct: 1);
             Assert.IsTrue(rn3.IsMatch(dep));
@@ -88,15 +88,14 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestMoreBackReferenceDependencyRuleMatches() {
-            DependencyRuleRepresentation rep = new DependencyRuleRepresentation("FILE", 0, "...", false);
             ItemType itemType = ItemType.New("SO", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" }, ignoreCase: false);
-            var rn1 = CreateDependencyRule(itemType, "(s)*", @"\1*", rep);
-            var rn2 = CreateDependencyRule(itemType, "(s*)", @"\1", rep);
-            var rn3 = CreateDependencyRule(itemType, "s(*)", @"s\1", rep);
-            var rn4 = CreateDependencyRule(itemType, "s(*):(t)*", @"s\1:\2*", rep);
-            var rn5 = CreateDependencyRule(itemType, "s*:t(*)", @"s\1:t*", rep);
+            var rn1 = CreateDependencyRule(itemType, "(s)*", @"\1*");
+            var rn2 = CreateDependencyRule(itemType, "(s*)", @"\1");
+            var rn3 = CreateDependencyRule(itemType, "s(*)", @"s\1");
+            var rn4 = CreateDependencyRule(itemType, "s(*):(t)*", @"s\1:\2*");
+            var rn5 = CreateDependencyRule(itemType, "s*:t(*)", @"s\1:t*");
 
-            var rn6 = CreateDependencyRule(itemType, "s*:(t*)", @"s\1:t*", rep);
+            var rn6 = CreateDependencyRule(itemType, "s*:(t*)", @"s\1:t*");
 
             Dependency dep = new Dependency(Item.New(itemType, "s1", "t1"), Item.New(itemType, "s1", "t2"), null, "Test", ct: 1);
             Assert.IsTrue(rn1.IsMatch(dep));
@@ -317,7 +316,7 @@ namespace NDepCheck.Tests {
             var used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "");
             var d = new Dependency(@using, used, null, "Test", ct: 1);
 
-            var r = CreateDependencyRule(itemType, "**", "System.**", new DependencyRuleRepresentation("rules.dep", 0, "...", false));
+            var r = CreateDependencyRule(itemType, "**", "System.**");
             Assert.IsTrue(r.IsMatch(d));
         }
 
@@ -329,7 +328,7 @@ namespace NDepCheck.Tests {
             Item used = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "I");
             var d = new Dependency(@using, used, null, "Test", ct: 1);
 
-            var r = CreateDependencyRule(itemType, "NDepCheck.TestAssembly.dir1.dir2:SomeClass:**", "-:NamespacelessTestClassForNDepCheck::I", new DependencyRuleRepresentation("rules.dep", 0, "...", false));
+            var r = CreateDependencyRule(itemType, "NDepCheck.TestAssembly.dir1.dir2:SomeClass:**", "-:NamespacelessTestClassForNDepCheck::I");
             Assert.IsTrue(r.IsMatch(d));
         }
 
@@ -355,7 +354,7 @@ namespace NDepCheck.Tests {
             Item used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "");
             var d = new Dependency(@using, used, null, "Test", ct: 1);
 
-            DependencyRule r = CreateDependencyRule(itemType, "**", "ASSEMBLY.NAME=mscorlib", new DependencyRuleRepresentation("rules.dep", 0, "...", false));
+            DependencyRule r = CreateDependencyRule(itemType, "**", "ASSEMBLY.NAME=mscorlib");
             Assert.IsTrue(r.IsMatch(d));
         }
 
@@ -366,7 +365,7 @@ namespace NDepCheck.Tests {
             Item used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "");
             var d = new Dependency(@using, used, null, "Test", ct: 1);
 
-            DependencyRule r = CreateDependencyRule(itemType, "**", "ASSEMBLY.NAME=mscorlib:CLASS=Object", new DependencyRuleRepresentation("rules.dep", 0, "...", false));
+            DependencyRule r = CreateDependencyRule(itemType, "**", "ASSEMBLY.NAME=mscorlib:CLASS=Object");
             Assert.IsTrue(r.IsMatch(d));
         }
 

@@ -7,7 +7,7 @@ namespace NDepCheck.Tests {
     [TestClass]
     public class TestMarkDeps {
         [TestMethod]
-        public void TestarkFromTo() {
+        public void TestMarkFromTo() {
             using (var f = DisposingFile.CreateTempFileWithTail("Mark.dip")) {
                 Assert.AreEqual(0,
                     Program.Main(new[] {
@@ -33,7 +33,7 @@ namespace NDepCheck.Tests {
                     Assert.IsTrue(o.Contains("SIMPLE:A'LeftMatch+RightMatch "));
                     Assert.IsTrue(o.Contains("SIMPLE:B'M "));
                     Assert.IsTrue(o.Contains("SIMPLE:C'N+RightMatch"));
-                    Assert.IsTrue(o.Contains("=> DepMatch"));
+                    Assert.IsTrue(o.Contains("=> 'DepMatch"));
                 }
             }
         }

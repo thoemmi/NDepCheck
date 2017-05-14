@@ -25,16 +25,17 @@ namespace NDepCheck.Transforming {
                 IncrementQuestionableOption, ResetQuestionableOption
             });
 
-        protected internal override IEnumerable<Action<Dependency>> Parse(GlobalContext globalContext, [CanBeNull] string argsAsString, 
-            bool ignoreCase, [NotNull] [ItemNotNull] IEnumerable<OptionAction> moreOptions) {
+        protected internal override IEnumerable<Action<Dependency>> Parse(GlobalContext globalContext, 
+                [CanBeNull] string argsAsString, string defaultReasonForSetBad, bool ignoreCase, 
+                [NotNull] [ItemNotNull] IEnumerable<OptionAction> moreOptions) {
             var localResult = new List<Action<Dependency>>();
-            IEnumerable<Action<Dependency>> baseResult = base.Parse(globalContext, argsAsString, ignoreCase, new[] {
+            IEnumerable<Action<Dependency>> baseResult = base.Parse(globalContext, argsAsString, defaultReasonForSetBad, ignoreCase, new[] {
                 SetBadOption.Action((args, j) => {
-                    localResult.Add(d => d.MarkAsBad());
+                    localResult.Add(d => d.MarkAsBad(SetBadOption.Name));
                     return j;
                 }),
                 IncrementBadOption.Action((args, j) => {
-                    localResult.Add(d => d.IncrementBad());
+                    localResult.Add(d => d.IncrementBad(IncrementBadOption.Name));
                     return j;
                 }),
                 ResetBadOption.Action((args, j) => {
@@ -42,11 +43,11 @@ namespace NDepCheck.Transforming {
                     return j;
                 }),
                 SetQuestionableOption.Action((args, j) => {
-                    localResult.Add(d => d.MarkAsQuestionable());
+                    localResult.Add(d => d.MarkAsQuestionable(SetQuestionableOption.Name));
                     return j;
                 }),
                 IncrementQuestionableOption.Action((args, j) => {
-                    localResult.Add(d => d.IncrementQuestionable());
+                    localResult.Add(d => d.IncrementQuestionable(IncrementQuestionableOption.Name));
                     return j;
                 }),
                 ResetQuestionableOption.Action((args, j) => {

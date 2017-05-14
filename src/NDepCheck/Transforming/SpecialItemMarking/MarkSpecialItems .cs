@@ -102,7 +102,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             if (markSingleCycleNodes) {
                 foreach (var d in matchingDependencies) {
                     if (Equals(d.UsingItem, d.UsedItem)) {
-                        d.UsingItem.AddMarker(markerToAdd);
+                        d.UsingItem.IncrementMarker(markerToAdd);
                     }
                 }
             }
@@ -122,7 +122,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     if (sum(i) == (ignoreSelfCyclesInSourcesAndSinks ? aggregatedCounts.Get(i, i) : 0)) {
                         aggregatedCounts.RemoveRow(i);
                         aggregatedCounts.RemoveColumn(i);
-                        i.AddMarker(markerToAdd);
+                        i.IncrementMarker(markerToAdd);
                         itemRemoved = true;
                     }
                 }

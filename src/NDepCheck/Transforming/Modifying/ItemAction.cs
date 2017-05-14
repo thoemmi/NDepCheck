@@ -39,7 +39,7 @@ namespace NDepCheck.Transforming.Modifying {
                         if (effect == "" || effect == "ignore" || effect == "keep") {
                             effects.Add(d => { });
                         } else if (effect.StartsWith("+")) {
-                            effects.Add(i => i.AddMarker(effect.Substring(1)));
+                            effects.Add(i => i.IncrementMarker(effect.Substring(1)));
                         } else if (effect.StartsWith("-")) {
                             effects.Add(i => i.RemoveMarkers(effect.Substring(1), ignoreCase));
                         } else {
