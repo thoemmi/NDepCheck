@@ -219,16 +219,16 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             Item d = Item.New(ItemType.SIMPLE, "d");
             Item t = Item.New(ItemType.SIMPLE, "t");
             return new[] {
-                new Dependency(s, a, null, "s->a", 101, 16, 0),
-                new Dependency(s, c, null, "s->c", 103, 13, 0),
-                new Dependency(a, b, null, "a->b", 112, 12, 0),
-                new Dependency(a, c, null, "a->c", 113, 10, 0),
-                new Dependency(b, c, null, "b->c", 123, 9, 0),
-                new Dependency(b, t, null, "b->t", 125, 20, 0),
-                new Dependency(c, a, null, "c->a", 131, 4, 0),
-                new Dependency(c, d, null, "c->d", 134, 14, 0),
-                new Dependency(d, b, null, "d->b", 142, 7, 0),
-                new Dependency(d, t, null, "d->t", 145, 4, 0),
+                new Dependency(s, a, null, "s_a", 101, 16, 0),
+                new Dependency(s, c, null, "s_c", 103, 13, 0),
+                new Dependency(a, b, null, "a_b", 112, 12, 0),
+                new Dependency(a, c, null, "a_c", 113, 10, 0),
+                new Dependency(b, c, null, "b_c", 123, 9, 0),
+                new Dependency(b, t, null, "b_t", 125, 20, 0),
+                new Dependency(c, a, null, "c_a", 131, 4, 0),
+                new Dependency(c, d, null, "c_d", 134, 14, 0),
+                new Dependency(d, b, null, "d_b", 142, 7, 0),
+                new Dependency(d, t, null, "d_t", 145, 4, 0),
             };
         }
     }

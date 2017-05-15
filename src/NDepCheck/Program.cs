@@ -14,7 +14,7 @@ using NDepCheck.WebServing;
 
 namespace NDepCheck {
     public class Program {
-        public const string VERSION = "V.3.81";
+        public const string VERSION = "V.3.82";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 180;
@@ -92,8 +92,8 @@ namespace NDepCheck {
 
         public static readonly Option InteractiveOption = new ProgramOption(shortname: "ia", name: "interactive", usage: "[filename]", description: "interactive mode, logging to filename");
         public static readonly Option InteractiveStopOption = new ProgramOption(shortname: "is", name: "interactive-stop", usage: "", description: "stop interactive mode", moreNames: new[] { "q", "quit", "exit" });
-        public static readonly Option ListDependenciesOption = new ProgramOption(shortname: "sd", name: "list-dependencies", usage: "# [pattern]", description: "write about # dependencies matching pattern from all sources");
-        public static readonly Option ListItemsOption = new ProgramOption(shortname: "si", name: "list-items", usage: "# [pattern]", description: "write about # items matching pattern from all sources");
+        public static readonly Option ListDependenciesOption = new ProgramOption(shortname: "ld", name: "list-dependencies", usage: "# [pattern]", description: "write about # dependencies matching pattern from all sources");
+        public static readonly Option ListItemsOption = new ProgramOption(shortname: "li", name: "list-items", usage: "# [pattern]", description: "write about # items matching pattern from all sources");
         public static readonly Option CountDependenciesOption = new ProgramOption(shortname: "id", name: "count-dependencies", usage: "[pattern]", description: "Show number of dependencies matching pattern from all sources");
         public static readonly Option CountItemsOption = new ProgramOption(shortname: "ii", name: "count-items", usage: "[pattern]", description: "Show number of items matching pattern from all sources");
 
@@ -535,12 +535,12 @@ namespace NDepCheck {
                         // -is
                         _interactiveLogFile = null;
                     } else if (ListItemsOption.IsMatch(arg)) {
-                        // -iw # [pattern]
+                        // -li # [pattern]
                         int maxCount = ExtractIntOptionValue(globalContext, args, ref i, "Not a valid number");
                         string pattern = ExtractNextValue(globalContext, args, ref i);
                         globalContext.LogAboutNItems(maxCount, pattern);
                     } else if (ListDependenciesOption.IsMatch(arg)) {
-                        // -iw # [pattern]
+                        // -ld # [pattern]
                         int maxCount = ExtractIntOptionValue(globalContext, args, ref i, "Not a valid number");
                         string pattern = ExtractNextValue(globalContext, args, ref i);
                         globalContext.LogAboutNDependencies(maxCount, pattern);

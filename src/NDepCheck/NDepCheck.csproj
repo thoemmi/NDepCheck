@@ -101,6 +101,7 @@
     <Compile Include="ConstraintSolving\SimpleConstraintSolver.cs" />
     <Compile Include="FileWatcher.cs" />
     <Compile Include="Ignore.cs" />
+    <Compile Include="IMatchableObject.cs" />
     <Compile Include="IPathMatch.cs" />
     <Compile Include="ISourceLocation.cs" />
     <Compile Include="Log.cs" />
@@ -124,7 +125,7 @@
     <Compile Include="Rendering\TextWriting\PathWriter.cs" />
     <Compile Include="Rendering\TextWriting\ItemWriter.cs" />
     <Compile Include="Rendering\OrderSupport.cs" />
-    <Compile Include="SourceLocation.cs" />
+    <Compile Include="TextFileSource.cs" />
     <Compile Include="Rendering\TextWriting\RuleViolationWriter.cs" />
     <Compile Include="Rendering\GraphicsRendering\MatrixGraphicsRenderer.cs" />
     <Compile Include="Rendering\GraphicsRendering\ModulesAndInterfacesRenderer.cs" />

@@ -5,11 +5,17 @@ using JetBrains.Annotations;
 namespace NDepCheck.Matching {
     public class DependencyMatch {
         [CanBeNull]
-        public ItemMatch UsingMatch { get; }
+        public ItemMatch UsingMatch {
+            get;
+        }
         [CanBeNull]
-        public DependencyPattern DependencyPattern { get; }
+        public DependencyPattern DependencyPattern {
+            get;
+        }
         [CanBeNull]
-        public ItemMatch UsedMatch { get; }
+        public ItemMatch UsedMatch {
+            get;
+        }
 
         private static readonly string[] NO_STRINGS = new string[0];
 
@@ -23,7 +29,8 @@ namespace NDepCheck.Matching {
         public DependencyMatch(ItemType usingTypeHint, string usingPattern, string dependencyPattern, ItemType usedTypeHint, string usedPattern, bool ignoreCase) : this(
             usingPattern != "" ? new ItemMatch(usingTypeHint, usingPattern, 0, ignoreCase) : null,
             dependencyPattern != "" ? new DependencyPattern(dependencyPattern, ignoreCase) : null,
-            usedPattern != "" ? new ItemMatch(usedTypeHint, usedPattern, usingPattern.Count(c => c == '('), ignoreCase) : null) { }
+            usedPattern != "" ? new ItemMatch(usedTypeHint, usedPattern, usingPattern.Count(c => c == '('), ignoreCase) : null) {
+        }
 
         public static DependencyMatch Create(string pattern, bool ignoreCase, string arrowTail = "->", ItemType usingTypeHint = null, ItemType usedTypeHint = null) {
             int l = pattern.IndexOf("--", StringComparison.InvariantCulture);
@@ -38,7 +45,7 @@ namespace NDepCheck.Matching {
             return new DependencyMatch(usingTypeHint, left.Trim(), dep.Trim(), usedTypeHint, right.Trim(), ignoreCase);
         }
 
-        public bool IsMatch<TItem>(AbstractDependency<TItem> d) where TItem : AbstractItem<TItem> {
+        public bool IsMatch<TItem>([NotNull] AbstractDependency<TItem> d) where TItem : AbstractItem<TItem> {
             MatchResult matchLeft = UsingMatch == null ? new MatchResult(true, null) : UsingMatch.Matches(d.UsingItem, NO_STRINGS);
             return matchLeft.Success
                    && (DependencyPattern == null || DependencyPattern.IsMatch(d))

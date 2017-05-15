@@ -30,7 +30,7 @@ Transform options: {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
 
             Func<int, int, decimal> getSortValue = (incoming, outgoing) => incoming / (incoming + outgoing + 0.0001m);
             Func<Dependency, int> orderBy = d => d.Ct;
-            string orderMarkerPrefix = "#";
+            string orderMarkerPrefix = "_";
 
             Option.Parse(globalContext, transformOptions,
                 OrderByBadCount.Action((args, j) => {

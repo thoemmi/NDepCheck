@@ -58,17 +58,17 @@ namespace NDepCheck.Tests {
             Item n5 = Item.New(ItemType.SIMPLE, "5");
             Item t = Item.New(ItemType.SIMPLE, "t");
             var dependencies = new[] {
-                new Dependency(s, n2, null, "s->2", 10, 0, 10),
-                new Dependency(s, n4, null, "s->4", 20, 0, 4),
+                new Dependency(s, n2, null, "s_2", 10, 0, 10),
+                new Dependency(s, n4, null, "s_4", 20, 0, 4),
 
-                new Dependency(n2, n3, null, "2->3", 30, 0, 13),
-                new Dependency(n2, n5, null, "2->5", 40, 0, 4),
+                new Dependency(n2, n3, null, "2_3", 30, 0, 13),
+                new Dependency(n2, n5, null, "2_5", 40, 0, 4),
 
-                new Dependency(n3, t, null, "3->t", 50, 0, 10),
+                new Dependency(n3, t, null, "3_t", 50, 0, 10),
 
-                new Dependency(n4, n3, null, "4->3", 60, 0, 4),
+                new Dependency(n4, n3, null, "4_3", 60, 0, 4),
 
-                new Dependency(n5, t, null, "5->t", 70, 0, 4),
+                new Dependency(n5, t, null, "5_t", 70, 0, 4),
             };
 
             const string mark = "CUT";
@@ -91,14 +91,14 @@ namespace NDepCheck.Tests {
             Item n7 = Item.New(ItemType.SIMPLE, "7");
             Item t = Item.New(ItemType.SIMPLE, "t");
             var dependencies = new[] {
-                new Dependency(s, n2, null, "s->2", 12, 0, 10), new Dependency(s, n3, null, "s->3", 13, 0, 5),
-                new Dependency(s, n4, null, "s->4", 14, 0, 15), new Dependency(n2, n3, null, "2->3", 23, 0, 4),
-                new Dependency(n2, n5, null, "2->5", 25, 0, 15), new Dependency(n2, n6, null, "2->6", 26, 0, 9),
-                new Dependency(n3, n4, null, "3->4", 34, 0, 4), new Dependency(n3, n6, null, "3->6", 36, 0, 8),
-                new Dependency(n4, n7, null, "4->7", 47, 0, 30), new Dependency(n5, n6, null, "5->6", 56, 0, 15),
-                new Dependency(n5, t, null, "5->t", 58, 0, 10), new Dependency(n6, n7, null, "6->7", 67, 0, 15),
-                new Dependency(n6, t, null, "6->t", 68, 0, 10), new Dependency(n7, n3, null, "7->3", 73, 0, 6),
-                new Dependency(n7, t, null, "7->t", 78, 0, 10),
+                new Dependency(s, n2, null, "s_2", 12, 0, 10), new Dependency(s, n3, null, "s_3", 13, 0, 5),
+                new Dependency(s, n4, null, "s_4", 14, 0, 15), new Dependency(n2, n3, null, "2_3", 23, 0, 4),
+                new Dependency(n2, n5, null, "2_5", 25, 0, 15), new Dependency(n2, n6, null, "2_6", 26, 0, 9),
+                new Dependency(n3, n4, null, "3_4", 34, 0, 4), new Dependency(n3, n6, null, "3_6", 36, 0, 8),
+                new Dependency(n4, n7, null, "4_7", 47, 0, 30), new Dependency(n5, n6, null, "5_6", 56, 0, 15),
+                new Dependency(n5, t, null, "5_t", 58, 0, 10), new Dependency(n6, n7, null, "6_7", 67, 0, 15),
+                new Dependency(n6, t, null, "6_t", 68, 0, 10), new Dependency(n7, n3, null, "7_3", 73, 0, 6),
+                new Dependency(n7, t, null, "7_t", 78, 0, 10),
             };
             return dependencies;
         }
@@ -123,9 +123,9 @@ namespace NDepCheck.Tests {
             Item r1 = Item.New(ItemType.SIMPLE, "r1");
             Item r2 = Item.New(ItemType.SIMPLE, "r2");
             Dependency[] dependencies = exampleDependencies.Concat(new[] {
-                new Dependency(r0, s, null, "r0->s", 1000, 0, 1000),
-                new Dependency(r1, s, null, "r1->s", 1000, 0, 1000),
-                new Dependency(r2, s, null, "r2->s", 1000, 0, 1000),
+                new Dependency(r0, s, null, "r0_s", 1000, 0, 1000),
+                new Dependency(r1, s, null, "r1_s", 1000, 0, 1000),
+                new Dependency(r2, s, null, "r2_s", 1000, 0, 1000),
             }).ToArray();
 
             const string mark = "CUT";
@@ -144,13 +144,13 @@ namespace NDepCheck.Tests {
             Item n4 = Item.New(ItemType.SIMPLE, "4");
             Item t = Item.New(ItemType.SIMPLE, "t");
             var dependencies = new[] {
-                new Dependency(s, n2, null, "s->2", 102, 0, 100),
-                new Dependency(s, n4, null, "s->4", 104, 0, 100),
+                new Dependency(s, n2, null, "s_2", 102, 0, 100),
+                new Dependency(s, n4, null, "s_4", 104, 0, 100),
 
-                new Dependency(n2, t, null, "2->t", 203, 0, 100),
+                new Dependency(n2, t, null, "2_t", 203, 0, 100),
 
-                new Dependency(n4, n2, null, "4->7", 402, 0, 1),
-                new Dependency(n4, t, null, "4->7", 403, 0, 100),
+                new Dependency(n4, n2, null, "4_7", 402, 0, 1),
+                new Dependency(n4, t, null, "4_7", 403, 0, 100),
             };
 
             const string mark = "CUT";

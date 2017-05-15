@@ -43,7 +43,7 @@ namespace NDepCheck.Reading.DipReading {
         public DipReader([NotNull] string fileName) : base(fileName) {
         }
 
-        protected override IEnumerable<Dependency> ReadDependenciesX(int depth, bool ignoreCase) {
+        public override IEnumerable<Dependency> ReadDependencies(int depth, bool ignoreCase) {
             Log.WriteInfo("Reading " + _fullFileName);
             Regex dipArrow = new Regex($@"\s*{Dependency.DIP_ARROW}\s*");
 
@@ -83,7 +83,8 @@ namespace NDepCheck.Reading.DipReading {
 
                             string[] properties = parts[1].Split(new[] { ';' }, 6);
                             int ct, questionableCt, badCt;
-                            string dependencyMarkers = Get(properties, 0);
+                            string dependencyMarkers = Get(properties, 0).TrimStart('\''); // TODO: Remove the Trim ... this seems like a format uncertainty!
+
                             if (!int.TryParse(Get(properties, 1, "1"), out ct)) {
                                 throw new DipReaderException($"Cannot parse count '{Get(properties, 1)}'");
                             }
@@ -95,19 +96,11 @@ namespace NDepCheck.Reading.DipReading {
                             }
 
                             string[] source = Get(properties, 4).Split('|');
-                            int sourceLine = -1;
-                            if (source.Length > 1) {
-                                if (!int.TryParse(source[1], out sourceLine)) {
-                                    sourceLine = -1;
-                                }
-                            }
+                            ISourceLocation location = FileSource.Create(source);
 
                             string exampleInfo = Get(properties, 5);
 
-                            var dependency = new Dependency(foundUsingItem, foundUsedItem,
-                                string.IsNullOrWhiteSpace(source[0])
-                                    ? new TextFileSource(_fullFileName, lineNo)
-                                    : new TextFileSource(source[0], sourceLine < 0 ? null : (int?) sourceLine),
+                            var dependency = new Dependency(foundUsingItem, foundUsedItem, location,
                                 dependencyMarkers, ct, questionableCt, badCt, exampleInfo);
 
                             result.Add(dependency);

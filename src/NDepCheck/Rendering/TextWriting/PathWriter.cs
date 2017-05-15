@@ -8,10 +8,18 @@ using NDepCheck.Matching;
 namespace NDepCheck.Rendering.TextWriting {
     public class PathWriter : IRenderer {
         private struct DownInfo {
-            public readonly bool BehindCountMatch;
+            public readonly IMatchableObject BehindCountMatch;
 
-            public DownInfo(bool behindCountMatch) {
+            public DownInfo(IMatchableObject behindCountMatch) {
                 BehindCountMatch = behindCountMatch;
+            }
+        }
+
+        private struct HereInfo {
+            public readonly bool MatchedByCountMatch;
+
+            public HereInfo(bool matchedByCountMatch) {
+                MatchedByCountMatch = matchedByCountMatch;
             }
         }
 
@@ -22,37 +30,40 @@ namespace NDepCheck.Rendering.TextWriting {
             public bool LeadsToNodesToBePrinted { get; }
             public readonly TDependency Dependency;
             public readonly bool IsEndOfCycle;
+            public readonly bool MatchedByCountMatch;
+
             [NotNull, ItemNotNull]
             public readonly IEnumerable<PathNode<TItem, TDependency>> Children;
 
-            public PathNode(TDependency dependency, bool isEnd, bool isEndOfCycle, IEnumerable<PathNode<TItem, TDependency>> children) {
+            public PathNode(TDependency dependency, bool isEnd, bool isEndOfCycle, bool matchedByCountMatch, IEnumerable<PathNode<TItem, TDependency>> children) {
                 Dependency = dependency;
                 IsEnd = isEnd;
                 IsEndOfCycle = isEndOfCycle;
+                MatchedByCountMatch = matchedByCountMatch;
                 Children = children ?? Enumerable.Empty<PathNode<TItem, TDependency>>();
                 LeadsToNodesToBePrinted = isEndOfCycle || isEnd || Children.Any(ch => ch.LeadsToNodesToBePrinted);
             }
         }
 
         private class PathWriterTraverser<TDependency, TItem> : AbstractDepthFirstPathTraverser<TDependency, TItem,
-            DownInfo, Ignore, List<PathNode<TItem, TDependency>>>
+            DownInfo, HereInfo, List<PathNode<TItem, TDependency>>>
                 where TDependency : AbstractDependency<TItem>
                 where TItem : AbstractItem<TItem> {
-            private readonly IPathMatch<TDependency, TItem> _countMatch;
+            private readonly IPathMatch _countMatch;
             private readonly HashSet<TItem> _seenInnerPathStarts = new HashSet<TItem>();
 
             public readonly Dictionary<TItem, List<PathNode<TItem, TDependency>>> Paths = new Dictionary<TItem, List<PathNode<TItem, TDependency>>>();
-            public readonly Dictionary<TItem, int> Counts = new Dictionary<TItem, int>();
+            public readonly Dictionary<TItem, HashSet<IMatchableObject>> Counts = new Dictionary<TItem, HashSet<IMatchableObject>>();
             private readonly HashSet<ItemAndInt> _onPath = new HashSet<ItemAndInt>();
             private readonly bool _backwards;
 
-            public PathWriterTraverser(bool backwards, IPathMatch<TDependency, TItem> countMatch) {
+            public PathWriterTraverser(bool backwards, IPathMatch countMatch) {
                 _backwards = backwards;
                 _countMatch = countMatch;
             }
 
             public void Traverse(IEnumerable<TDependency> dependencies, ItemMatch pathAnchor,
-                IPathMatch<TDependency, TItem>[] expectedPathMatches) {
+                IPathMatch[] expectedPathMatches) {
                 Dictionary<TItem, TDependency[]> incidentDependencies = _backwards
                     ? AbstractItem<TItem>.CollectIncomingDependenciesMap(dependencies)
                     : AbstractItem<TItem>.CollectOutgoingDependenciesMap(dependencies);
@@ -64,8 +75,8 @@ namespace NDepCheck.Rendering.TextWriting {
                 IEnumerable<TItem> uniqueStartItems = pathAnchor == null
                     ? incidentDependencies.Keys
                     : incidentDependencies.Keys.Where(i => pathAnchor.Matches(i).Success);
-                IPathMatch<TDependency, TItem> endMatch;
-                IPathMatch<TDependency, TItem>[] innerMatches;
+                IPathMatch endMatch;
+                IPathMatch[] innerMatches;
                 int n = expectedPathMatches.Length;
                 if (n == 0) {
                     endMatch = null;
@@ -77,7 +88,7 @@ namespace NDepCheck.Rendering.TextWriting {
 
                 foreach (var item in uniqueStartItems.OrderBy(i => i.Name)) {
                     if (_seenInnerPathStarts.Add(item)) {
-                        List<PathNode<TItem, TDependency>> up = Traverse(root: item, incidentDependencies: incidentDependencies, expectedInnerPathMatches: innerMatches, endMatch: endMatch, down: new DownInfo(false));
+                        List<PathNode<TItem, TDependency>> up = Traverse(root: item, incidentDependencies: incidentDependencies, expectedInnerPathMatches: innerMatches, endMatch: endMatch, down: new DownInfo(null));
                         if (up != null) {
                             Paths.Add(item, up);
                         }
@@ -85,7 +96,7 @@ namespace NDepCheck.Rendering.TextWriting {
                 }
             }
 
-            protected override bool VisitSuccessors(TItem tail, Stack<TDependency> currentPath, int expectedPathMatchIndex, out List<PathNode<TItem, TDependency>> initUpSum) {
+            protected override bool ShouldVisitSuccessors(TItem tail, Stack<TDependency> currentPath, int expectedPathMatchIndex, out List<PathNode<TItem, TDependency>> initUpSum) {
                 initUpSum = new List<PathNode<TItem, TDependency>>();
                 bool tailNewOnPath = _onPath.Add(new ItemAndInt(tail, expectedPathMatchIndex));
                 if (currentPath.Count == 0) {
@@ -97,31 +108,47 @@ namespace NDepCheck.Rendering.TextWriting {
                 }
             }
 
-            protected override DownAndSave AfterPushDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex, IPathMatch<TDependency, TItem> dependencyMatchOrNull, IPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd, DownInfo down) {
-                TItem usedItem = currentPath.Peek().UsedItem;
-                if (down.BehindCountMatch) {
+            protected override DownAndHere AfterPushDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex, 
+                    IPathMatch dependencyMatchOrNull, IPathMatch itemMatchOrNull, bool isEnd, DownInfo down) {
+                TDependency tailDependency = currentPath.Peek();
+                TItem usedItem = tailDependency.UsedItem;
+                if (down.BehindCountMatch != null) {
                     if (!Counts.ContainsKey(usedItem)) {
-                        Counts[usedItem] = 1;
-                    } else {
-                        Counts[usedItem]++;
+                        Counts[usedItem] = new HashSet<IMatchableObject>();
                     }
+                    Counts[usedItem].Add(down.BehindCountMatch);
                 }
                 _seenInnerPathStarts.Add(usedItem);
-                return new DownAndSave(_countMatch == null
-                    ? new DownInfo()
-                    : new DownInfo(down.BehindCountMatch || _countMatch == dependencyMatchOrNull || _countMatch == itemMatchOrNull),
-                    Ignore.Om);
+
+                IMatchableObject pushDownMatch;
+                bool matchedByCountMatch;
+                if (_countMatch == null) {
+                    pushDownMatch = null;
+                    matchedByCountMatch = false;
+                } else if (_countMatch == itemMatchOrNull) {
+                    pushDownMatch = usedItem;
+                    matchedByCountMatch = true;
+                } else if (_countMatch == dependencyMatchOrNull) {
+                    pushDownMatch = tailDependency;
+                    matchedByCountMatch = true;
+                } else {
+                    pushDownMatch = down.BehindCountMatch;
+                    matchedByCountMatch = false;
+                }
+
+                return new DownAndHere(new DownInfo(pushDownMatch), new HereInfo(matchedByCountMatch));
             }
 
-            protected override List<PathNode<TItem, TDependency>> BeforePopDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex, IPathMatch<TDependency, TItem> dependencyMatchOrNull, IPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd,
-                Ignore save, List<PathNode<TItem, TDependency>> upSum, List<PathNode<TItem, TDependency>> childUp) {
+            protected override List<PathNode<TItem, TDependency>> BeforePopDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex, 
+                    IPathMatch dependencyMatchOrNull, IPathMatch itemMatchOrNull, bool isEnd,
+                    HereInfo here, List<PathNode<TItem, TDependency>> upSum, List<PathNode<TItem, TDependency>> childUp) {
 
                 TDependency top = currentPath.Peek();
                 var key = new ItemAndInt(top.UsedItem, expectedPathMatchIndex);
                 bool isEndOfCycle = _onPath.Contains(key);
 
                 if (isEnd || isEndOfCycle || childUp.Any(p => p.LeadsToNodesToBePrinted)) {
-                    PathNode<TItem, TDependency> n = new PathNode<TItem, TDependency>(top, isEnd, isEndOfCycle, childUp);
+                    PathNode<TItem, TDependency> n = new PathNode<TItem, TDependency>(top, isEnd, isEndOfCycle, here.MatchedByCountMatch, childUp);
                     upSum.Add(n);
                 }
                 return upSum;
@@ -149,11 +176,12 @@ namespace NDepCheck.Rendering.TextWriting {
                 _showItemMarkers = showItemMarkers;
             }
 
-            protected static string ItemAsString(bool showItemMarkers, Dictionary<Item, int> counts, Item usedItem, bool isEnd, bool endOfCycle) {
+            protected static string ItemAsString(bool showItemMarkers, Dictionary<Item, int> counts, Item usedItem, bool isEnd, bool endOfCycle, bool matchedByCountMatch) {
                 int count;
                 counts.TryGetValue(usedItem, out count);
                 return (endOfCycle ? "<= " : "")
                        + (showItemMarkers ? usedItem.AsFullString() : usedItem.AsString())
+                       + (matchedByCountMatch ? " (*)" : "")
                        + (isEnd ? " $" : "")
                        + (count > 0 ? " (" + count + ")" : "");
             }
@@ -174,14 +202,14 @@ namespace NDepCheck.Rendering.TextWriting {
             protected override void Traverse(TextWriter tw, Dictionary<Item, List<PathNode<Item, Dependency>>> paths,
                 Dictionary<Item, int> counts, Item head) {
                 var stack = new Stack<string>();
-                stack.Push(ItemAsString(_showItemMarkers, counts, head, false, false));
+                stack.Push(ItemAsString(_showItemMarkers, counts, head, false, false, false));
                 foreach (var p in paths[head]) {
                     Traverse(tw, stack, p, counts);
                 }
             }
 
             private void Traverse(TextWriter tw, Stack<string> stack, [NotNull] PathNode<Item, Dependency> node, Dictionary<Item, int> counts) {
-                stack.Push(ItemAsString(_showItemMarkers, counts, node.Dependency.UsedItem, node.IsEnd, node.IsEndOfCycle));
+                stack.Push(ItemAsString(_showItemMarkers, counts, node.Dependency.UsedItem, node.IsEnd, node.IsEndOfCycle, node.MatchedByCountMatch));
                 if (node.Children.Any()) {
                     foreach (var child in node.Children) {
                         Traverse(tw, stack, child, counts);
@@ -214,7 +242,7 @@ namespace NDepCheck.Rendering.TextWriting {
 
             protected override void Traverse(TextWriter tw, Dictionary<Item, List<PathNode<Item, Dependency>>> paths,
                 Dictionary<Item, int> counts, Item head) {
-                tw.WriteLine(ItemAsString(_showItemMarkers, counts, head, false, false));
+                tw.WriteLine(ItemAsString(_showItemMarkers, counts, head, false, false, false));
                 List<PathNode<Item, Dependency>> path = paths[head];
                 var lastChild = path.LastOrDefault();
                 foreach (var p in path) {
@@ -231,7 +259,7 @@ namespace NDepCheck.Rendering.TextWriting {
                 tw.WriteLine(
                     currentIndent
                     + (isLastChild ? _lastPrefix : _regularPrefix) 
-                    + ItemAsString(_showItemMarkers, counts, node.Dependency.UsedItem, node.IsEnd, node.IsEndOfCycle)
+                    + ItemAsString(_showItemMarkers, counts, node.Dependency.UsedItem, node.IsEnd, node.IsEndOfCycle, node.MatchedByCountMatch)
                 );
                 var lastChild = node.Children.LastOrDefault();
                 foreach (var child in node.Children) {
@@ -262,9 +290,9 @@ namespace NDepCheck.Rendering.TextWriting {
             NoSuchItemAnchorOption, NoSuchDependencyAnchorOption,
             NoExampleInfoOption, StyleOption, BackwardsOption, ShowItemMarkersOption);
 
-        private static void Write(bool backwards, IPathMatch<Dependency, Item> countMatch,
+        private static void Write(bool backwards, IPathMatch countMatch,
                 bool withHeader, IEnumerable<Dependency> dependencies, ItemMatch pathAnchor,
-                [NotNull] IPathMatch<Dependency, Item>[] expectedPathMatches,
+                [NotNull] IPathMatch[] expectedPathMatches,
                 IPrintTraverser printTraverser, TextWriter tw) {
             if (withHeader) {
                 tw.WriteLine($"// Written {DateTime.Now} by {typeof(PathWriter).Name} in NDepCheck {Program.VERSION}");
@@ -272,7 +300,7 @@ namespace NDepCheck.Rendering.TextWriting {
 
             var c = new PathWriterTraverser<Dependency, Item>(backwards, countMatch);
             c.Traverse(dependencies, pathAnchor, expectedPathMatches);
-            printTraverser.Traverse(tw, c.Paths, c.Counts);
+            printTraverser.Traverse(tw, c.Paths, c.Counts.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count));
         }
 
         public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount,
@@ -283,8 +311,8 @@ namespace NDepCheck.Rendering.TextWriting {
             var excludes = new List<DependencyMatch>();
             //int maxPathLength = int.MaxValue;
             ItemMatch pathAnchor = null;
-            var expectedPathMatches = new List<IPathMatch<Dependency, Item>>();
-            IPathMatch<Dependency, Item> countMatch = null;
+            var expectedPathMatches = new List<IPathMatch>();
+            IPathMatch countMatch = null;
             string styleOption = "SI";
 
             DependencyMatchOptions.Parse(globalContext, argsAsString, globalContext.IgnoreCase, matches, excludes,
@@ -410,7 +438,7 @@ namespace NDepCheck.Rendering.TextWriting {
 
                 Write(backwards: false, countMatch: null, withHeader: false,
                     dependencies: dependencies, pathAnchor: new ItemMatch("a:", true),
-                    expectedPathMatches: new IPathMatch<Dependency, Item>[] {
+                    expectedPathMatches: new IPathMatch[] {
                           new ItemPathMatch<Dependency, Item>("~c:", true, multipleOccurrencesAllowed: true, mayContinue: true)
                     }, printTraverser: traverser, tw: sw);
             }

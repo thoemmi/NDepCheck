@@ -81,7 +81,7 @@ namespace NDepCheck.Reading.AssemblyReading {
             _readerGang = readerGang;
         }
 
-        protected override IEnumerable<Dependency> ReadDependenciesX(int depth, bool ignoreCase) {
+        public override IEnumerable<Dependency> ReadDependencies(int depth, bool ignoreCase) {
             return GetOrReadRawDependencies(depth).Where(d => d.UsedItem != null).Select(d => d.ToDependencyWithTail(depth, FullFileName));
         }
 

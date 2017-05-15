@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Reading {
@@ -20,22 +19,7 @@ namespace NDepCheck.Reading {
         public string FullFileName => _fullFileName;
 
         [NotNull]
-        protected abstract IEnumerable<Dependency> ReadDependenciesX(int depth, bool ignoreCase);
-
-        /// <summary>
-        /// Read dependencies from file
-        /// </summary>
-        /// <param name="depth"></param>
-        /// <param name="ignoreCase"></param>
-        /// <returns><c>null</c> if already read in</returns>
-        [NotNull]
-        public IEnumerable<Dependency> ReadDependencies(int depth, bool ignoreCase) {
-            IEnumerable<Dependency> dependencies = ReadDependenciesX(depth, ignoreCase).ToArray();
-            if (!dependencies.Any()) {
-                Log.WriteWarning("No dependencies found in " + FullFileName);
-            }
-            return dependencies;
-        }
+        public abstract IEnumerable<Dependency> ReadDependencies(int depth, bool ignoreCase);
 
         public abstract void SetReadersInSameReadFilesBeforeReadDependencies([NotNull] IDependencyReader[] readerGang);
     }

@@ -7,13 +7,23 @@ using NDepCheck.Matching;
 
 namespace NDepCheck.Markers {
     public abstract class AbstractMarkerSet : IMarkerSet {
+        public const string MARKER_PATTERN = @"^[\p{L}\p{N}_./\\]+$";
+
         private static readonly Dictionary<string, int> _empty = new Dictionary<string, int>(StringComparer.InvariantCulture);
         private static readonly Dictionary<string, int> _emptyIgnoreCase = new Dictionary<string, int>(StringComparer.InvariantCultureIgnoreCase);
 
         protected readonly bool _ignoreCase;
         // TODO: Replace with sharing implementation of string sets to save space and maybe time
         [CanBeNull]
-        protected abstract IReadOnlyDictionary<string,int> MarkersOrNull { get; }
+        protected abstract IReadOnlyDictionary<string, int> MarkersOrNull {
+            get;
+        }
+
+        protected static void CheckMarkerFormat(string marker) {
+            if (!Regex.IsMatch(marker, MARKER_PATTERN)) {
+                throw new ArgumentException($"Invalid marker '{marker}'");
+            }
+        }
 
         // For performance, this is delegated to subclasses which can check an internal set more quickly
         [Pure]
@@ -24,16 +34,30 @@ namespace NDepCheck.Markers {
         }
 
         protected static Dictionary<string, int> CreateMarkerSetWithClonedDictionary(bool ignoreCase,
-            [NotNull] IReadOnlyDictionary<string,int> markers) {
+            [NotNull] IReadOnlyDictionary<string, int> markers) {
             return markers.ToDictionary(kvp => kvp.Key, kvp => kvp.Value, GetComparer(ignoreCase));
         }
 
-        public static Dictionary<string,int> CreateMarkerSetWithClonedDictionary(bool ignoreCase, [CanBeNull] IEnumerable<string> markers) {
-            IEnumerable<string> cleanMarkers =
+        public static Dictionary<string, int> CreateMarkerSetWithClonedDictionary(bool ignoreCase, [CanBeNull] IEnumerable<string> markers) {
+            char[] split = { '=' };
+            Dictionary<string, int> cleanMarkers =
                 (markers ?? Enumerable.Empty<string>()).Select(s => s.Trim())
                 .Where(s => s != "")
-                .Select(s => s.Contains("/") ? s : string.Intern(s));
-            return cleanMarkers.Any() ? CreateMarkerSetWithClonedDictionary(ignoreCase, cleanMarkers.ToDictionary(s => s, s => 1)) : null;
+                .Select(s => {
+                    string[] parts = s.Split(split, 2);
+                    int count;
+                    if (parts.Length <= 1 || !int.TryParse(parts[1], out count)) {
+                        count = 1;
+                    }
+                    string marker = parts[0];
+                    CheckMarkerFormat(marker);
+                    return new {
+                        marker, count
+                    };
+                })
+                .GroupBy(mc => mc.marker)
+                .ToDictionary(mcs => mcs.Key.Contains("/") ? mcs.Key : string.Intern(mcs.Key), mcs => mcs.Sum(mc => mc.count));
+            return cleanMarkers.Any() ? CreateMarkerSetWithClonedDictionary(ignoreCase, cleanMarkers) : null;
         }
 
         public IReadOnlyDictionary<string, int> Markers => MarkersOrNull ?? Empty(_ignoreCase);
@@ -62,8 +86,8 @@ namespace NDepCheck.Markers {
                 value = 0;
             } else {
                 EqualsMatcher em = m as EqualsMatcher;
-                value = em != null 
-                    ? MarkerValue(em.MatchString) 
+                value = em != null
+                    ? MarkerValue(em.MatchString)
                     : Markers.Where(kvp => m.Matches(kvp.Key, null) != null).Sum(kvp => kvp.Value);
             }
             return value;
@@ -92,7 +116,7 @@ namespace NDepCheck.Markers {
 
         public string AsFullString() {
             IEnumerable<KeyValuePair<string, int>> nonZeroMarkers = Markers.Where(kvp => kvp.Value != 0);
-            return nonZeroMarkers.Any() 
+            return nonZeroMarkers.Any()
                 ? "'" + string.Join("+", nonZeroMarkers.OrderBy(kvp => kvp.Key)
                                                        .Select(kvp => kvp.Key + (kvp.Value == 1 ? "" : "=" + kvp.Value)))
                 : "";
@@ -104,7 +128,7 @@ namespace NDepCheck.Markers {
         }
 
         public MutableMarkerSet CloneAsMutableMarkerSet(bool b) {
-            return new MutableMarkerSet(_ignoreCase, Markers);        
+            return new MutableMarkerSet(_ignoreCase, Markers);
         }
     }
 }

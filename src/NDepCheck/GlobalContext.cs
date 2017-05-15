@@ -212,10 +212,15 @@ namespace NDepCheck {
                 r.SetReadersInSameReadFilesBeforeReadDependencies(readers);
             }
 
-            var readSet = new List<Dependency>();
+            // Currently, we add the previous set of dependencies to the newly read ones; with the introduction of a useful "working set" concept, this should vanish ...
+            var readSet = new List<Dependency>(_dependencies.Peek());
             foreach (var r in readers) {
-                var deps = r.ReadDependencies(0, IgnoreCase);
-                readSet.AddRange(deps);
+                Dependency[] dependencies = r.ReadDependencies(0, IgnoreCase).ToArray();
+                if (!dependencies.Any()) {
+                    Log.WriteWarning("No dependencies found in " + r.FullFileName);
+                }
+
+                readSet.AddRange(dependencies);
             }
             _dependencies.Push(readSet);
         }

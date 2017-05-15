@@ -236,7 +236,7 @@ Examples:
             if (fullDipName != null) {
                 // Back projection - ProjectItems may use DipReader by design
                 if (_dependenciesForBackProjection == null) {
-                    IEnumerable<Dependency> dipDependencies = new DipReader(fullDipName).ReadDependencies(0, globalContext.IgnoreCase);
+                    IEnumerable<Dependency> dipDependencies = new DipReader(fullDipName).ReadDependencies(0, globalContext.IgnoreCase).ToArray();
                     _dependenciesForBackProjection = dipDependencies.ToDictionary(
                         d => new FromTo(d.UsingItem, d.UsedItem), d => d);
                 }

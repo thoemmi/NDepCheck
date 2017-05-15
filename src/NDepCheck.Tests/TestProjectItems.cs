@@ -31,15 +31,15 @@ namespace NDepCheck.Tests {
 
             var result = new List<Dependency>();
             pi.Transform(gc, new[] {
-                new Dependency(a, a, null, "a->a", 1), // the first surviving dependency
-                new Dependency(a, s, null, "a->s", 1), // vanishes, because s is not mapped
-                new Dependency(ab, s, null, "ab->s", 1), // same
-                new Dependency(ca, s, null, "ca->s", 1), // etc.
-                new Dependency(cb, cb, null, "cb->cb", 1), // the second surviving dependency
-                new Dependency(cb, t, null, "cb->t", 1), // vanishes, because t is not mapped
-                new Dependency(a, t, null, "a->t", 1),
-                new Dependency(ac, t, null, "ac->t", 1),
-                new Dependency(a, s, null, "a->s", 1),
+                new Dependency(a, a, null, "a_a", 1), // the first surviving dependency
+                new Dependency(a, s, null, "a_s", 1), // vanishes, because s is not mapped
+                new Dependency(ab, s, null, "ab_s", 1), // same
+                new Dependency(ca, s, null, "ca_s", 1), // etc.
+                new Dependency(cb, cb, null, "cb_cb", 1), // the second surviving dependency
+                new Dependency(cb, t, null, "cb_t", 1), // vanishes, because t is not mapped
+                new Dependency(a, t, null, "a_t", 1),
+                new Dependency(ac, t, null, "ac_t", 1),
+                new Dependency(a, s, null, "a_s", 1),
 
                 // Counts: 
                 // !a  5
@@ -69,10 +69,10 @@ namespace NDepCheck.Tests {
             ProjectItems.SelfOptimizingFirstLetterProjector usedProjector = null;
             SmallTestForPrefixOptimizedProjector((p, i) => usedProjector = new ProjectItems.SelfOptimizingFirstLetterProjector(p, i, 4, "1stLetter"));
             // Summed match counts: 
-            // !a+>ab+!ac   6 -> 2nd
-            // !b           0 -> 4th
-            // !ca+!cb      4 -> 3rd
-            // !s+!t        7 -> 1st
+            // !a+>ab+!ac   6 _ 2nd
+            // !b           0 _ 4th
+            // !ca+!cb      4 _ 3rd
+            // !s+!t        7 _ 1st
             // ... hoever, because of the "forgetting" feature, the order is not exactly as above
             ProjectItems.FirstLetterMatchProjector[] projectors = usedProjector.ProjectorsForTesting.ToArray();
             Assert.AreEqual("=a", projectors[0].Name);
@@ -119,10 +119,10 @@ namespace NDepCheck.Tests {
 
             var result = new List<Dependency>();
             pi.Transform(gc, new[] {
-                new Dependency(a, t, null, "a->t", 1), // A->T
-                new Dependency(ab, t, null, "ab->t", 1), // A-> T
-                new Dependency(abc, t, null, "abc->t", 1), // ADetail ->T
-                new Dependency(abcd, t, null, "abcd->t", 1), // A -> T
+                new Dependency(a, t, null, "a_t", 1), // A_T
+                new Dependency(ab, t, null, "ab_t", 1), // A_ T
+                new Dependency(abc, t, null, "abc_t", 1), // ADetail _T
+                new Dependency(abcd, t, null, "abcd_t", 1), // A _ T
             }, "", result);
 
             Assert.AreEqual(2, result.Count);

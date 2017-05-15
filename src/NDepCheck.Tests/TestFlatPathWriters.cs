@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -103,26 +104,31 @@ d:dd:ddd $", result.Trim());
 
         [TestMethod]
         public void TestCountPaths() {
-            ItemType xy = ItemType.New("XY(X:Y)");
+            ItemType xy = ItemType.New("NL(Name:Layer)");
             Item a = Item.New(xy, "a", "1");
             Item b = Item.New(xy, "b", "2");
             Item c = Item.New(xy, "c", "2");
             Item d = Item.New(xy, "d", "3");
             Item e = Item.New(xy, "e", "4");
+            Item f = Item.New(xy, "f", "4");
+            Item g = Item.New(xy, "g", "5");
             Dependency[] dependencies = {
-                FromTo(a, b), FromTo(a, c), FromTo(b, d), FromTo(c, d), FromTo(d, e)
+                FromTo(a, b), FromTo(a, c), FromTo(b, d), FromTo(c, d), FromTo(d, e), FromTo(d, f), FromTo(e, g), FromTo(f, g)
             };
 
-            using (var f = DisposingFile.CreateTempFileWithTail(".txt")) {
+            using (var temp = DisposingFile.CreateTempFileWithTail(".txt")) {
                 var w = new PathWriter();
                 w.Render(new GlobalContext(), dependencies, null,
-                    "{ -ps F -pi a -ci 2 -pi e }".Replace(" ", "\r\n"), f.Filename, false);
+                    "{ -ps F -pi a -ci 2 -pi g }".Replace(" ", "\r\n"), temp.Filename, false);
 
-                using (var sw = new StreamReader(f.Filename)) {
+                using (var sw = new StreamReader(temp.Filename)) {
                     string o = sw.ReadToEnd();
-
+                    Console.WriteLine(o);
+                    Assert.IsTrue(o.Contains("b:2 (*)"));
+                    Assert.IsTrue(o.Contains("c:2 (*)"));
                     Assert.IsTrue(o.Contains("d:3 (2)"));
-                    Assert.IsTrue(o.Contains("e:4 $ (2)"));
+                    Assert.IsTrue(o.Contains("e:4 (2)"));
+                    Assert.IsTrue(o.Contains("g:5 $ (2)"));
                 }
             }
         }

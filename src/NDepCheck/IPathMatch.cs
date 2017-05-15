@@ -1,9 +1,7 @@
 using NDepCheck.Matching;
 
 namespace NDepCheck {
-    public interface IPathMatch<in TDependency, in TItem>
-        where TDependency : AbstractDependency<TItem>
-        where TItem : AbstractItem<TItem> {
+    public interface IPathMatch {
         bool IsItemMatch {
             get;
         }
@@ -11,11 +9,10 @@ namespace NDepCheck {
             get;
         }
         bool MultipleOccurrencesAllowed { get; }
-        bool Matches(TDependency d);
-        bool Matches(TItem i);
+        bool Matches(IMatchableObject d);
     }
 
-    public class DependencyPathMatch<TDependency, TItem> : IPathMatch<TDependency, TItem>
+    public class DependencyPathMatch<TDependency, TItem> : IPathMatch
             where TDependency : AbstractDependency<TItem>
             where TItem : AbstractItem<TItem> {
         public bool MayContinue {
@@ -34,12 +31,10 @@ namespace NDepCheck {
 
         public bool IsItemMatch => false;
 
-        public bool Matches(TDependency d) => _dependencyMatch.IsMatch(d);
-
-        public bool Matches(TItem i) => false;
+        public bool Matches(IMatchableObject obj) => obj is TDependency && _dependencyMatch.IsMatch((TDependency) obj);
     }
 
-    public class ItemPathMatch<TDependency, TItem> : IPathMatch<TDependency, TItem>
+    public class ItemPathMatch<TDependency, TItem> : IPathMatch
             where TDependency : AbstractDependency<TItem>
             where TItem : AbstractItem<TItem> {
         public bool MayContinue {
@@ -59,9 +54,7 @@ namespace NDepCheck {
 
         public bool IsItemMatch => true;
 
-        public bool Matches(TDependency d) => false;
-
-        public bool Matches(TItem i) => _itemMatch.Matches(i).Success;
+        public bool Matches(IMatchableObject obj) => obj is TItem && _itemMatch.Matches((TItem) obj).Success;
     }
 
 }

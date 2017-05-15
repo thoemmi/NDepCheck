@@ -85,7 +85,7 @@ namespace NDepCheck {
 
     // See http://stackoverflow.com/questions/31562791/what-makes-the-visual-studio-debugger-stop-evaluating-a-tostring-override
     [DebuggerDisplay("{" + nameof(ToString) + "()}")]
-    public abstract class AbstractItem<TItem> : ItemSegment where TItem : AbstractItem<TItem> {
+    public abstract class AbstractItem<TItem> : ItemSegment, IMatchableObject where TItem : AbstractItem<TItem> {
         private string _asString;
         private string _asFullString;
 
@@ -223,11 +223,7 @@ namespace NDepCheck {
 
         public static Item New([NotNull] ItemType type, [ItemNotNull] string[] values, [CanBeNull, ItemNotNull] string[] markers) {
             Item item = Intern<Item>.GetReference(new Item(type, values));
-            if (markers != null) {
-                foreach (var m in new HashSet<string>(markers)) {
-                    item.IncrementMarker(m);
-                }
-            }
+            item._markerSet.MergeWithMarkers(AbstractMarkerSet.CreateMarkerSetWithClonedDictionary(type.IgnoreCase, markers));
             return item;
         }
 

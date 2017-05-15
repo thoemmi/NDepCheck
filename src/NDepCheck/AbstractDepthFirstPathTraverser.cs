@@ -3,7 +3,7 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck {
-    public abstract class AbstractDepthFirstPathTraverser<TDependency, TItem, TDownInfo, TSaveInfo, TUpInfo>
+    public abstract class AbstractDepthFirstPathTraverser<TDependency, TItem, TDownInfo, THereInfo, TUpInfo>
             where TDependency : AbstractDependency<TItem>
             where TItem : AbstractItem<TItem> {
         public struct ItemAndInt {
@@ -18,7 +18,7 @@ namespace NDepCheck {
 
             public override bool Equals(object obj) {
                 if (obj is ItemAndInt) {
-                    ItemAndInt other = (ItemAndInt)obj;
+                    ItemAndInt other = (ItemAndInt) obj;
                     return Equals(other._item, _item) && other._int == _int;
                 } else {
                     return false;
@@ -30,11 +30,11 @@ namespace NDepCheck {
             }
         }
 
-        protected struct DownAndSave {
+        protected struct DownAndHere {
             public readonly TDownInfo Down;
-            public readonly TSaveInfo Save;
+            public readonly THereInfo Save;
 
-            public DownAndSave(TDownInfo down, TSaveInfo save) {
+            public DownAndHere(TDownInfo down, THereInfo save) {
                 Down = down;
                 Save = save;
             }
@@ -44,106 +44,111 @@ namespace NDepCheck {
 
         private readonly Stack<TDependency> _currentPath = new Stack<TDependency>();
 
-        protected abstract bool VisitSuccessors(TItem tail, Stack<TDependency> currentPath, int expectedPathMatchIndex, 
-                                                out TUpInfo initUpSum);
+        protected abstract bool ShouldVisitSuccessors(TItem tail, Stack<TDependency> currentPath, int expectedPathMatchIndex,
+                out TUpInfo initUpSum);
 
-        protected abstract DownAndSave AfterPushDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex, 
-                                                IPathMatch<TDependency, TItem> dependencyMatchOrNull, 
-                                                IPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd, TDownInfo down);
+        protected abstract DownAndHere AfterPushDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex,
+                IPathMatch dependencyMatchOrNull,
+                IPathMatch itemMatchOrNull, bool isEnd, TDownInfo down);
 
         protected abstract TUpInfo BeforePopDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex,
-                                                IPathMatch<TDependency, TItem> dependencyMatchOrNull, 
-                                                IPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd, 
-                                                TSaveInfo save, TUpInfo upSum, TUpInfo childUp);
+                IPathMatch dependencyMatchOrNull,
+                IPathMatch itemMatchOrNull, bool isEnd,
+                THereInfo here, TUpInfo upSum, TUpInfo childUp);
 
-        protected abstract TUpInfo AfterVisitingSuccessors(bool visitSuccessors, TItem tail, Stack<TDependency> currentPath, 
-                                                int expectedPathMatchIndex, TUpInfo upSum);
+        protected abstract TUpInfo AfterVisitingSuccessors(bool visitSuccessors, TItem tail, Stack<TDependency> currentPath,
+                int expectedPathMatchIndex, TUpInfo upSum);
 
         protected TUpInfo Traverse([NotNull] TItem root,
-            [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies,
-            [NotNull] [ItemCanBeNull] IPathMatch<TDependency, TItem>[] expectedInnerPathMatches,
-            [CanBeNull] IPathMatch<TDependency, TItem> endMatch, TDownInfo down) {
+                [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies,
+                [NotNull] [ItemCanBeNull] IPathMatch[] expectedInnerPathMatches,
+                [CanBeNull] IPathMatch endMatch, TDownInfo down) {
 
-            return Traverse(root, incidentDependencies,
-                expectedInnerPathMatches, 0, endMatch, down);
+            return Traverse(root, incidentDependencies, expectedInnerPathMatches, 0, endMatch, false, down);
         }
 
         private TUpInfo Traverse([NotNull] TItem tail,
-            [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies,
-            [NotNull, ItemCanBeNull] IPathMatch<TDependency, TItem>[] expectedInnerPathMatches,
-            int expectedPathMatchIndex, IPathMatch<TDependency, TItem> endMatch, TDownInfo rawDown) {
+                [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies,
+                [NotNull, ItemCanBeNull] IPathMatch[] expectedInnerPathMatches,
+                int expectedPathMatchIndex, IPathMatch endMatch, bool parentIsEnd, TDownInfo rawDown) {
 
             TUpInfo upSum;
+            bool visitSuccessors = ShouldVisitSuccessors(tail, _currentPath, expectedPathMatchIndex, out upSum);
+            if (parentIsEnd && endMatch != null && !endMatch.MultipleOccurrencesAllowed) {
+                // If the end match matched, and the end match may occur only once, we do not visit the children
+            } else {
+                if (visitSuccessors) {
+                    // We are at this item for the first time - check whether we find a path to some defined end
 
-            bool visitSuccessors = VisitSuccessors(tail, _currentPath, expectedPathMatchIndex, out upSum);
-            if (visitSuccessors) {
-                // We are at this item for the first time - check whether we find a path to some defined end
+                    TDependency[] dependencies;
+                    if (!incidentDependencies.TryGetValue(tail, out dependencies)) {
+                        dependencies = NO_DEPENDENCIES;
+                    }
+                    foreach (var nextDep in dependencies) {
+                        TItem nextTail = nextDep.UsedItem;
 
-                TDependency[] dependencies;
-                if (!incidentDependencies.TryGetValue(tail, out dependencies)) {
-                    dependencies = NO_DEPENDENCIES;
-                }
-                int n = dependencies.Length;
+                        int newExpectedPathMatchIndex = expectedPathMatchIndex;
 
-                for (int i = 0; i < n; i++) {
-                    TDependency nextDep = dependencies[i];
-                    TItem nextTail = nextDep.UsedItem;
+                        bool mayContinue = true;
 
-                    int newExpectedPathMatchIndex = expectedPathMatchIndex;
+                        IPathMatch dependencyMatchOrNull = null;
+                        IPathMatch itemMatchOrNull = null;
 
-                    bool mayContinue = true;
-
-                    IPathMatch<TDependency, TItem> dependencyMatchOrNull = null;
-                    IPathMatch<TDependency, TItem> itemMatchOrNull = null;
-
-                    if (newExpectedPathMatchIndex < expectedInnerPathMatches.Length) {
-                        IPathMatch<TDependency, TItem> m = expectedInnerPathMatches[newExpectedPathMatchIndex];
-                        if (m != null && m.Matches(nextDep)) {
-                            newExpectedPathMatchIndex++;
-                            mayContinue &= m.MayContinue;
-                            dependencyMatchOrNull = m;
+                        if (newExpectedPathMatchIndex < expectedInnerPathMatches.Length) {
+                            IPathMatch m = expectedInnerPathMatches[newExpectedPathMatchIndex];
+                            if (m != null && m.Matches(nextDep)) {
+                                newExpectedPathMatchIndex++;
+                                mayContinue &= m.MayContinue;
+                                dependencyMatchOrNull = m;
+                            }
                         }
-                    }
 
-                    if (newExpectedPathMatchIndex < expectedInnerPathMatches.Length) {
-                        var m = expectedInnerPathMatches[newExpectedPathMatchIndex];
-                        if (m != null && m.Matches(nextTail)) {
-                            newExpectedPathMatchIndex++;
-                            mayContinue &= m.MayContinue;
-                            itemMatchOrNull = m;
+                        if (newExpectedPathMatchIndex < expectedInnerPathMatches.Length) {
+                            var m = expectedInnerPathMatches[newExpectedPathMatchIndex];
+                            if (m != null && m.Matches(nextTail)) {
+                                newExpectedPathMatchIndex++;
+                                mayContinue &= m.MayContinue;
+                                itemMatchOrNull = m;
+                            }
                         }
-                    }
 
-                    if (newExpectedPathMatchIndex == expectedPathMatchIndex) {
-                        // Check that no "used up" non-multiple-occurrence positive ("MayContinue") path 
-                        // match matches - but only if none of the two previous tests matched explicitly.
-                        // This, I hope & believe, captures what one expects to hold implicitly:
-                        // "No loop backs" to previous positive single patterns
-                        mayContinue &= !expectedInnerPathMatches
-                            .Take(expectedPathMatchIndex)
-                            .Where(m => m != null && m.MayContinue && !m.MultipleOccurrencesAllowed)
-                            .Any(m => m.Matches(nextDep) || m.Matches(nextTail));
-                    }
-
-                    if (mayContinue) {
-                        _currentPath.Push(nextDep);
+                        if (newExpectedPathMatchIndex == expectedPathMatchIndex) {
+                            // Check that no "used up" non-multiple-occurrence positive path 
+                            // match matches - but only if none of the two previous tests matched explicitly.
+                            // This, I hope & believe, captures what one expects to hold implicitly:
+                            // "No loop backs" to previous positive single patterns
+                            mayContinue &= !expectedInnerPathMatches
+                                .Take(expectedPathMatchIndex)
+                                .Where(m => m != null && m.MayContinue && !m.MultipleOccurrencesAllowed)
+                                .Any(m => m.Matches(nextDep) || m.Matches(nextTail));
+                        }
 
                         bool isEnd;
-                        if (expectedPathMatchIndex >= expectedInnerPathMatches.Length) {
-                            // We are at or behind the path match end; if the current item or dependency match, we have a real path end!
-                            // Check whether we are end
-                            isEnd = endMatch == null || endMatch.Matches(nextTail) || endMatch.Matches(nextDep);
+                        if (newExpectedPathMatchIndex >= expectedInnerPathMatches.Length) {
+                            // We are at or behind the path match end; if the current item or dependency matches, we have a real path end!
+                            // Check whether we are really at an end.
+                            if (endMatch == null) {
+                                // If no end match was provided (i.e., only a start pattern given), all items are accepted as end items.
+                                isEnd = true;
+                            } else {
+                                // Otherwise, we check whether the last item or dependency matches the end match.
+                                isEnd = endMatch.Matches(nextTail) || endMatch.Matches(nextDep);
+                            }
                         } else {
                             isEnd = false;
                         }
 
-                        DownAndSave downAndSave = AfterPushDependency(_currentPath, expectedPathMatchIndex, dependencyMatchOrNull, itemMatchOrNull, isEnd, rawDown);
+                        if (mayContinue) {
+                            _currentPath.Push(nextDep);
 
-                        TUpInfo childUp = Traverse(nextTail, incidentDependencies, expectedInnerPathMatches, newExpectedPathMatchIndex, endMatch, downAndSave.Down);
+                            DownAndHere downAndHere = AfterPushDependency(_currentPath, expectedPathMatchIndex, dependencyMatchOrNull, itemMatchOrNull, isEnd, rawDown);
 
-                        upSum = BeforePopDependency(_currentPath, expectedPathMatchIndex, dependencyMatchOrNull, itemMatchOrNull, isEnd, downAndSave.Save, upSum, childUp);
+                            TUpInfo childUp = Traverse(nextTail, incidentDependencies, expectedInnerPathMatches, newExpectedPathMatchIndex, endMatch, isEnd, downAndHere.Down);
 
-                        _currentPath.Pop();
+                            upSum = BeforePopDependency(_currentPath, expectedPathMatchIndex, dependencyMatchOrNull, itemMatchOrNull, isEnd, downAndHere.Save, upSum, childUp);
+
+                            _currentPath.Pop();
+                        }
                     }
                 }
             }

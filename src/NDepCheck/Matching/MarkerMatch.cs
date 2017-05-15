@@ -4,8 +4,6 @@ using NDepCheck.Markers;
 
 namespace NDepCheck.Matching {
     public class MarkerMatch : CountPattern<IMatcher> {
-        private const string MARKER_PATTERN = @"^[\p{L}\p{N}_./\\]+$";
-
         private readonly IEnumerable<Eval> _evals;
 
         public MarkerMatch(string pattern, bool ignoreCase) {
@@ -15,7 +13,7 @@ namespace NDepCheck.Matching {
         }
 
         public static Eval CreateEval(string pattern, bool ignoreCase) {
-            return CreateEval(pattern, MARKER_PATTERN, s => CreateMatcher(s, ignoreCase));
+            return CreateEval(pattern, AbstractMarkerSet.MARKER_PATTERN, s => CreateMatcher(s, ignoreCase));
         }
 
         public static IMatcher CreateMatcher(string pattern, bool ignoreCase) {

@@ -43,7 +43,7 @@ namespace NDepCheck.Matching {
 
         public ItemPattern ItemPattern => _itemPattern;
 
-        public MatchResult Matches<TItem>(AbstractItem<TItem> item, [CanBeNull] string[] references = null) where TItem : AbstractItem<TItem> {
+        public MatchResult Matches<TItem>([NotNull] AbstractItem<TItem> item, [CanBeNull] string[] references = null) where TItem : AbstractItem<TItem> {
             return _markerPattern.IsMatch(item.MarkerSet) 
                 ? _itemPattern.Matches(item, _inverse, references) 
                 : _inverse ? SUCCESS : FAIL;

@@ -19,7 +19,7 @@ namespace NDepCheck.Transforming.CycleChecking {
 
             public FindCycleDepsPathFinder([NotNull, ItemNotNull] IEnumerable<TDependency> dependencies, 
                     ItemMatch cycleAnchorsMatch, bool ignoreSelfCycles, int maxCycleLength, 
-                    [NotNull, ItemCanBeNull] IPathMatch<TDependency, TItem>[] expectedPathMatches) {
+                    [NotNull, ItemCanBeNull] IPathMatch[] expectedPathMatches) {
                 Dictionary<TItem, TDependency[]> outgoing = AbstractItem<TItem>.CollectOutgoingDependenciesMap(dependencies);
                 _maxCycleLength = maxCycleLength;
                 _visited2RestLength = new Dictionary<TItem, int>();
@@ -30,7 +30,7 @@ namespace NDepCheck.Transforming.CycleChecking {
                 }
             }
 
-            protected override bool VisitSuccessors(TItem tail, Stack<TDependency> currentPath, int expectedPathMatchIndex, 
+            protected override bool ShouldVisitSuccessors(TItem tail, Stack<TDependency> currentPath, int expectedPathMatchIndex, 
                     out Ignore initUpSum) {
                 initUpSum = Ignore.Om;
                 if (currentPath.Count == 0) {
@@ -69,10 +69,10 @@ namespace NDepCheck.Transforming.CycleChecking {
                 }
             }
 
-            protected override DownAndSave AfterPushDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex, 
-                    IPathMatch<TDependency, TItem> dependencyMatchOrNull, IPathMatch<TDependency, TItem> itemMatchOrNull, 
+            protected override DownAndHere AfterPushDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex, 
+                    IPathMatch dependencyMatchOrNull, IPathMatch itemMatchOrNull, 
                     bool isEnd, Ignore down) {
-                return new DownAndSave();
+                return new DownAndHere();
             }
 
             private void RecordCycleToRoot(Stack<TDependency> currentPath) {
@@ -100,8 +100,8 @@ namespace NDepCheck.Transforming.CycleChecking {
             }
 
             protected override Ignore BeforePopDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex, 
-                    IPathMatch<TDependency, TItem> dependencyMatchOrNull, IPathMatch<TDependency, TItem> itemMatchOrNull, 
-                    bool isEnd, Ignore save, Ignore upSum, Ignore childUp) {
+                    IPathMatch dependencyMatchOrNull, IPathMatch itemMatchOrNull, 
+                    bool isEnd, Ignore here, Ignore upSum, Ignore childUp) {
                 return childUp;
             }
 
@@ -172,7 +172,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 });
 
             // TODO: Cycles via path matches would also be a nice feature ...
-            var cycleFinder = new FindCycleDepsPathFinder<Dependency, Item>(dependencies, cycleAnchorsMatch, ignoreSelfCycles, maxCycleLength, new IPathMatch<Dependency, Item>[0]);
+            var cycleFinder = new FindCycleDepsPathFinder<Dependency, Item>(dependencies, cycleAnchorsMatch, ignoreSelfCycles, maxCycleLength, new IPathMatch[0]);
             HashSet<Dependency> dependenciesOnCycles = cycleFinder.DependenciesOnCycles;
             HashSet<int> foundCycleHashs = cycleFinder.FoundCycleHashs;
 

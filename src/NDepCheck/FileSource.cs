@@ -6,5 +6,13 @@ namespace NDepCheck {
 
         public string ContainerUri { get; }
         public virtual string AsDipString() => ContainerUri;
+
+        public static ISourceLocation Create(string[] fields) {
+            return ProgramFileSource.MaybeCreate(fields)
+                   ?? TextFileSource.MaybeCreate(fields)
+                   ?? new FileSource(string.Join("/", fields));
+
+
+        }
     }
 }

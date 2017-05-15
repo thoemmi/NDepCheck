@@ -208,9 +208,9 @@ namespace NDepCheck.Tests {
             using (var sw = new StreamReader(outFile)) {
                 string o = sw.ReadToEnd();
 
-                Assert.IsTrue(o.Contains("SIMPLE:C'#0000"));
-                Assert.IsTrue(o.Contains("SIMPLE:B'#0001"));
-                Assert.IsTrue(o.Contains("SIMPLE:A'#0002"));
+                Assert.IsTrue(o.Contains("SIMPLE:C'_0000"));
+                Assert.IsTrue(o.Contains("SIMPLE:B'_0001"));
+                Assert.IsTrue(o.Contains("SIMPLE:A'_0002"));
                 Assert.IsTrue(o.Contains("SIMPLE:D "));
             }
         }

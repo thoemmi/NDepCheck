@@ -259,10 +259,10 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
 
             [NotNull]
-            public Dependency ToDependencyWithTail(int depth, string containerUrl) {
+            public Dependency ToDependencyWithTail(int depth, string containerUri) {
                 // ?? fires if reader == null (i.e., target assembly is not read in), or if assemblies do not match (different compiles) and hence a used item is not found in target reader.
                 Item usedItem = (_readerForUsedItem == null ? null : UsedItem.ToItemWithTail(_type, _readerForUsedItem, depth)) ?? UsedItem.ToItem(_type);
-                return ToDependency(usedItem, containerUrl);
+                return ToDependency(usedItem, containerUri);
             }
         }
 
