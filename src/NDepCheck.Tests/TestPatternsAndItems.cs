@@ -53,7 +53,7 @@ namespace NDepCheck.Tests {
 
         private static DependencyRule CreateDependencyRule(ItemType itemType, string left, string right) {
             return new DependencyRule(new DependencyMatch(itemType, left, "", itemType, right, IGNORECASE), 
-                new DependencyRuleRepresentation("TEST", 0, left + "--->" + right, false, left)
+                new DependencyRuleSource("TEST", 0, left + "--->" + right, false, left)
                 
                 );
         }

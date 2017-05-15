@@ -279,9 +279,9 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
         public override void AfterAllTransforms(GlobalContext globalContext) {
             foreach (var r in _allCheckedGroups.SelectMany(g => g.AllRules)
-                                               .Select(r => r.Representation)
+                                               .Select(r => r.Source)
                                                .Distinct()
-                                               .OrderBy(r => r.RuleFileName)
+                                               .OrderBy(r => r.RuleSourceName)
                                                .ThenBy(r => r.LineNo)) {
                 if (_showUnusedQuestionableRules && r.IsQuestionableRule && !r.WasHit) {
                     Log.WriteInfo("Questionable rule " + r + " was never matched - maybe you can remove it!");

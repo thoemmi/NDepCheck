@@ -1,13 +1,15 @@
+using System.Diagnostics;
 using JetBrains.Annotations;
 
 namespace NDepCheck {
-    public class DependencyRuleRepresentation {
+    [DebuggerDisplay("{" + nameof(ToString) + "()}")]
+    public class DependencyRuleSource {
         private readonly string _line;
         private int _hitCount;
 
-        public DependencyRuleRepresentation([NotNull] string ruleFileName, int lineNo, [NotNull] string line, 
+        public DependencyRuleSource([NotNull] string ruleSourceName, int lineNo, [NotNull] string line, 
                                             bool isQuestionableRule, [NotNull] string trimmedUsingPattern) {
-            RuleFileName = ruleFileName;
+            RuleSourceName = ruleSourceName;
             LineNo = lineNo;
             _line = line;
             IsQuestionableRule = isQuestionableRule;
@@ -28,7 +30,7 @@ namespace NDepCheck {
         public string TrimmedUsingPattern { get; }
 
         [NotNull]
-        public string RuleFileName { get; }
+        public string RuleSourceName { get; }
 
         public int LineNo { get; }
 
@@ -37,7 +39,7 @@ namespace NDepCheck {
         }
 
         public override string ToString() {
-            return _line + " (at " + RuleFileName + ":" + LineNo + ")";
+            return _line + " (at " + RuleSourceName + ":" + LineNo + ")";
         }
     }
 }

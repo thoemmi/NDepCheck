@@ -79,11 +79,13 @@ namespace NDepCheck.Transforming.ViolationChecking {
                 string rawTrimmedUsedPattern = match.Groups[2].Value.Trim();
                 {
                     ItemMatch @using = new ItemMatch(usingItemTypeHint, rawTrimmedUsingPattern, 0, ignoreCase);
-                    ItemMatch used = new ItemMatch(usedItemTypeHint, rawTrimmedUsedPattern, 0, ignoreCase);
 
-                    CopyRulesWithNewUsing(rawTrimmedUsedPattern, _allowed, used, @using);
-                    CopyRulesWithNewUsing(rawTrimmedUsedPattern, _questionable, used, @using);
-                    CopyRulesWithNewUsing(rawTrimmedUsedPattern, _forbidden, used, @using);
+                    CopyRulesWithNewUsing(rawTrimmedUsingPattern, rawTrimmedUsedPattern,
+                        _allowed, @using, ruleSourceName, lineNo, line);
+                    CopyRulesWithNewUsing(rawTrimmedUsingPattern, rawTrimmedUsedPattern,
+                        _questionable, @using, ruleSourceName, lineNo, line);
+                    CopyRulesWithNewUsing(rawTrimmedUsingPattern, rawTrimmedUsedPattern,
+                        _forbidden, @using, ruleSourceName, lineNo, line);
                 }
 
                 // using may also use the right side of ===>; in other words, ===> is an implicit --->.
@@ -96,12 +98,18 @@ namespace NDepCheck.Transforming.ViolationChecking {
             }
         }
 
-        private static void CopyRulesWithNewUsing(string rawTrimmedUsedPattern, List<DependencyRule> rules, ItemMatch used, ItemMatch @using) {
+        private static void CopyRulesWithNewUsing([NotNull] string trimmedUsingPattern, [NotNull] string rawTrimmedUsedPattern, 
+                                                  List<DependencyRule> rules, ItemMatch @using,
+                                                  [NotNull] string ruleSourceName, int lineNo, [NotNull] string line) {
             IEnumerable<DependencyRule> indirectRulesWithMatchingUsingPattern =
                 rules.Where(r => r.MatchesUsingPattern(rawTrimmedUsedPattern)).ToArray(); // make a copy!
 
             rules.AddRange(indirectRulesWithMatchingUsingPattern.Select(
-                    tail => new DependencyRule(new DependencyMatch(@using, tail.DependencyPattern, tail.Used), tail.Representation)));
+                    tail => new DependencyRule(
+                                new DependencyMatch(@using, tail.DependencyPattern, tail.Used),                     
+                                new DependencyRuleSource(ruleSourceName, lineNo, line + "|" + tail.Source.ToString(), 
+                                                         tail.Source.IsQuestionableRule, trimmedUsingPattern))
+                    ));
         }
 
         private bool TryMatch(string line, string pattern, out Match match) {
@@ -118,7 +126,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
             string trimmedUsedPattern = usedPattern.Trim();
 
             string repString = trimmedUsingPattern + " " + leftRepresentationPart + trimmedDependencyPattern + rightRepresentationPart + trimmedUsedPattern;
-            DependencyRuleRepresentation rep = new DependencyRuleRepresentation(ruleSourceName, lineNo, repString, questionableRule, trimmedUsingPattern);
+            DependencyRuleSource rep = new DependencyRuleSource(ruleSourceName, lineNo, repString, questionableRule, trimmedUsingPattern);
 
             var match = new DependencyMatch(usingItemTypeHint, trimmedUsingPattern, trimmedDependencyPattern, usedItemTypeHint, trimmedUsedPattern, ignoreCase);
             var head = new DependencyRule(match, rep);

@@ -173,7 +173,7 @@
     <Compile Include="Transforming\ViolationChecking\DependencyRuleSet.cs" />
     <Compile Include="Transforming\ViolationChecking\DependencyRule.cs" />
     <Compile Include="Dependency.cs" />
-    <Compile Include="Transforming\ViolationChecking\DependencyRuleRepresentation.cs" />
+    <Compile Include="Transforming\ViolationChecking\DependencyRuleSource.cs" />
     <Compile Include="ConsoleLogger.cs" />
     <Compile Include="Reading\DipReading\DipReader.cs" />
     <Compile Include="Rendering\TextWriting\DipWriter.cs" />

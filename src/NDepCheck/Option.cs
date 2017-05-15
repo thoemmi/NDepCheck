@@ -317,7 +317,7 @@ namespace NDepCheck {
                 new HashSet<Option>(optionActions.Where(oa => oa.Option != null && oa.Option.Required).Select(oa => oa.Option));
 
             for (int i = 0; i < args.Length; i++) {
-                string arg = args[i];
+                string arg = args[i].Trim();
                 OptionAction optionAction = optionActions.FirstOrDefault(oa => oa.Option.IsMatch(arg));
                 if (optionAction != null) {
                     requiredOptions.Remove(optionAction.Option);

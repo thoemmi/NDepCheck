@@ -10,15 +10,15 @@ namespace NDepCheck.Transforming.ViolationChecking {
             
         private int _hitCount;
 
-        public DependencyRule([NotNull] DependencyMatch match, [NotNull] DependencyRuleRepresentation rep) {
+        public DependencyRule([NotNull] DependencyMatch match, [NotNull] DependencyRuleSource source) {
             _match = match;
-            Representation = rep;
+            Source = source;
         }
 
         public int HitCount => _hitCount;
 
         [NotNull]
-        public DependencyRuleRepresentation Representation { get; }
+        public DependencyRuleSource Source { get; }
 
         [CanBeNull]
         public ItemMatch Using => _match.UsingMatch;
@@ -32,13 +32,13 @@ namespace NDepCheck.Transforming.ViolationChecking {
             bool result = _match.IsMatch(dependency);
             if (result) {
                 _hitCount++;
-                Representation.MarkHit();
+                Source.MarkHit();
             }
             return result;
         }
 
         public bool MatchesUsingPattern(string pattern) {
-            return Representation.TrimmedUsingPattern == pattern;
+            return Source.TrimmedUsingPattern == pattern;
         }
     }
 }
