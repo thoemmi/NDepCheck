@@ -164,6 +164,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
             int reorgCount = 0;
             int nextReorg = 200;
 
+            // If there is no allowed or questionable rule, then there is an implicit ** ---> ** rule; and we check only against the bad rules.
             bool checkFully = _allowed.Any() || _questionable.Any();
 
             foreach (Dependency d in dependencies) {
@@ -196,8 +197,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
                 // First, we check for forbidden rules - "if it is forbidden, it is definitely forbidden"
                 d.MarkAsBad(_groupMarker);
             } else if (_allowed.Any(r => r.IsMatch(d))) {
-                // Then we check for allowed - "if it is not forbidden and allowed, it is definitely allowed"
-                // If there is no allowed or questionable rule, then there is an implicit 
+                // Then we check for allowed - "if it is not forbidden, and it is allowed, then it is definitely allowed"
             } else if (_questionable.Any(r => r.IsMatch(d))) {
                 // Last, we check for questionable - "if it is neither allowed nor forbidden, but questionably allowed, well, so be it"
                 d.MarkAsQuestionable(_groupMarker);
@@ -211,7 +211,8 @@ namespace NDepCheck.Transforming.ViolationChecking {
             if (_forbidden.Any(r => r.IsMatch(d))) {
                 // First, we check for forbidden rules - "if it is forbidden, it is definitely forbidden"
                 d.MarkAsBad(_groupMarker);
-            }   // If there is no allowed or questionable rule, then there is an implicit ** ---> ** rule.
+            }   
+            // If there is no allowed or questionable rule, then there is an implicit ** ---> ** rule.
         }
 
         [NotNull]
