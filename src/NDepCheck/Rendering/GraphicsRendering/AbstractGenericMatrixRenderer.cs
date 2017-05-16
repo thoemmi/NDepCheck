@@ -152,7 +152,7 @@ $@"  Write a textual matrix representation of dependencies.
 
         public abstract void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase);
 
-        public abstract void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream stream, string testOption);
+        public abstract void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, Stream stream, string testOption);
 
         public string GetHelp() {
             return $"{GetType().Name} usage: -___ outputfileName";

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
 using NDepCheck.Markers;
@@ -6,7 +7,7 @@ using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.DependencyCreating {
     public class AddTransitiveDeps : ITransformer {
-        public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions();
+        public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions("traverse");
 
         //public static readonly Option RemoveOriginalOption = new Option("ro", "remove-original", "", "If present, original dependency of a newly created reverse dependency is removed", @default: false);
         public static readonly Option AddMarkerOption = new Option("am", "add-marker", "&", "Marker added to newly created transitive dependencies", @default: "none");
@@ -82,7 +83,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             var result = new List<Dependency>();
             foreach (var from in matchingFroms) {
                 RecursivelyFlood(from, from, new HashSet<Item> { from }, checkPresence, idempotentPattern, outgoing,
-                                 toItemMatches, matches, excludes, markersToAddAsDictionary, result, null);
+                                 toItemMatches, matches, excludes, markersToAddAsDictionary, result, null, globalContext.CheckAbort);
             }
 
             transformedDependencies.AddRange(dependencies);
@@ -96,11 +97,11 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             return !itemMatches.Any() || itemMatches.Any(m => m.Matches(i).Success);
         }
 
-        private void RecursivelyFlood(Item root, Item from, HashSet<Item> visited, Dictionary<FromTo, Dependency> checkPresence,
-                DependencyPattern idempotentPattern, Dictionary<Item, Dependency[]> outgoing, IEnumerable<ItemMatch> toItemMatches,
-                List<DependencyMatch> matches, List<DependencyMatch> excludes, Dictionary<string,int> markersToAddOrNull,
-                List<Dependency> result, Dependency collectedEdge) {
+        private void RecursivelyFlood(Item root, Item @from, HashSet<Item> visited, Dictionary<FromTo, Dependency> checkPresence, DependencyPattern idempotentPattern, 
+            Dictionary<Item, Dependency[]> outgoing, IEnumerable<ItemMatch> toItemMatches, List<DependencyMatch> matches, List<DependencyMatch> excludes,
+            Dictionary<string, int> markersToAddOrNull, List<Dependency> result, Dependency collectedEdge, [NotNull] Action checkAbort) {
             if (outgoing.ContainsKey(from)) {
+                checkAbort();
                 foreach (var d in outgoing[from].Where(d => d.IsMatch(matches, excludes))) {
                     Item target = d.UsedItem;
                     if (visited.Add(target)) {
@@ -124,7 +125,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
                         // Continue search
                         RecursivelyFlood(root, target, visited, checkPresence, idempotentPattern, outgoing,
-                                         toItemMatches, matches, excludes, markersToAddOrNull, result, rootToTarget);
+                                         toItemMatches, matches, excludes, markersToAddOrNull, result, rootToTarget, checkAbort);
                     }
                 }
             }

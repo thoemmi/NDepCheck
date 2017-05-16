@@ -10,7 +10,7 @@ namespace NDepCheck {
 
         public override string AsDipString() => $"{ContainerUri}|{Line}";
 
-        public override string ToString() => base.AsDipString() + $"/{ContainerUri}{(Line.HasValue ? "/" + Line : "")}";
+        public override string ToString() => base.ToString() + $"/{ContainerUri}{(Line.HasValue ? "/" + Line : "")}";
 
         public static ISourceLocation MaybeCreate(string[] fields) {
             if (fields.Length == 2) {

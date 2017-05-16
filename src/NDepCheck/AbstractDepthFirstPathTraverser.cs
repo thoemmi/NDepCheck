@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
@@ -6,6 +7,8 @@ namespace NDepCheck {
     public abstract class AbstractDepthFirstPathTraverser<TDependency, TItem, TDownInfo, THereInfo, TUpInfo>
             where TDependency : AbstractDependency<TItem>
             where TItem : AbstractItem<TItem> {
+        private readonly Action _checkAbort;
+
         public struct ItemAndInt {
             [NotNull]
             private readonly TItem _item;
@@ -44,16 +47,19 @@ namespace NDepCheck {
 
         private readonly Stack<TDependency> _currentPath = new Stack<TDependency>();
 
+        protected AbstractDepthFirstPathTraverser([NotNull] Action checkAbort) {
+            _checkAbort = checkAbort;
+        }
+
         protected abstract bool ShouldVisitSuccessors(TItem tail, Stack<TDependency> currentPath, int expectedPathMatchIndex,
                 out TUpInfo initUpSum);
 
         protected abstract DownAndHere AfterPushDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex,
-                IPathMatch dependencyMatchOrNull,
-                IPathMatch itemMatchOrNull, bool isEnd, TDownInfo down);
+                AbstractPathMatch<TDependency, TItem> pathMatchOrNull, bool isEnd, TDownInfo down);
 
         protected abstract TUpInfo BeforePopDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex,
-                IPathMatch dependencyMatchOrNull,
-                IPathMatch itemMatchOrNull, bool isEnd,
+                AbstractPathMatch<TDependency, TItem> pathMatchOrNull,
+                AbstractPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd,
                 THereInfo here, TUpInfo upSum, TUpInfo childUp);
 
         protected abstract TUpInfo AfterVisitingSuccessors(bool visitSuccessors, TItem tail, Stack<TDependency> currentPath,
@@ -61,16 +67,17 @@ namespace NDepCheck {
 
         protected TUpInfo Traverse([NotNull] TItem root,
                 [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies,
-                [NotNull] [ItemCanBeNull] IPathMatch[] expectedInnerPathMatches,
-                [CanBeNull] IPathMatch endMatch, TDownInfo down) {
+                [NotNull] [ItemCanBeNull] AbstractPathMatch<TDependency, TItem>[] expectedInnerPathMatches,
+                [CanBeNull] AbstractPathMatch<TDependency, TItem> endMatch, TDownInfo down) {
 
             return Traverse(root, incidentDependencies, expectedInnerPathMatches, 0, endMatch, false, down);
         }
 
         private TUpInfo Traverse([NotNull] TItem tail,
                 [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies,
-                [NotNull, ItemCanBeNull] IPathMatch[] expectedInnerPathMatches,
-                int expectedPathMatchIndex, IPathMatch endMatch, bool parentIsEnd, TDownInfo rawDown) {
+                [NotNull, ItemCanBeNull] AbstractPathMatch<TDependency, TItem>[] expectedInnerPathMatches,
+                int expectedPathMatchIndex, AbstractPathMatch<TDependency, TItem> endMatch, bool parentIsEnd, TDownInfo rawDown) {
+            _checkAbort();
 
             TUpInfo upSum;
             bool visitSuccessors = ShouldVisitSuccessors(tail, _currentPath, expectedPathMatchIndex, out upSum);
@@ -91,24 +98,23 @@ namespace NDepCheck {
 
                         bool mayContinue = true;
 
-                        IPathMatch dependencyMatchOrNull = null;
-                        IPathMatch itemMatchOrNull = null;
+                        AbstractPathMatch< TDependency,TItem> pathMatchOrNull = null;
 
                         if (newExpectedPathMatchIndex < expectedInnerPathMatches.Length) {
-                            IPathMatch m = expectedInnerPathMatches[newExpectedPathMatchIndex];
-                            if (m != null && m.Matches(nextDep)) {
-                                newExpectedPathMatchIndex++;
-                                mayContinue &= m.MayContinue;
-                                dependencyMatchOrNull = m;
-                            }
-                        }
-
-                        if (newExpectedPathMatchIndex < expectedInnerPathMatches.Length) {
-                            var m = expectedInnerPathMatches[newExpectedPathMatchIndex];
-                            if (m != null && m.Matches(nextTail)) {
-                                newExpectedPathMatchIndex++;
-                                mayContinue &= m.MayContinue;
-                                itemMatchOrNull = m;
+                            AbstractPathMatch<TDependency, TItem> m = expectedInnerPathMatches[newExpectedPathMatchIndex];
+                            PathMatchResult pathResult = m.Match(nextDep, nextTail);
+                            switch (pathResult) {
+                                case PathMatchResult.Match:
+                                    newExpectedPathMatchIndex++;
+                                    pathMatchOrNull = m;
+                                    break;
+                                case PathMatchResult.Stop:
+                                    mayContinue = false;
+                                    break;
+                                case PathMatchResult.Continue:
+                                    break;
+                                default:
+                                    throw new ArgumentOutOfRangeException();
                             }
                         }
 
@@ -118,9 +124,9 @@ namespace NDepCheck {
                             // This, I hope & believe, captures what one expects to hold implicitly:
                             // "No loop backs" to previous positive single patterns
                             mayContinue &= !expectedInnerPathMatches
-                                .Take(expectedPathMatchIndex)
-                                .Where(m => m != null && m.MayContinue && !m.MultipleOccurrencesAllowed)
-                                .Any(m => m.Matches(nextDep) || m.Matches(nextTail));
+                                            .Take(expectedPathMatchIndex)
+                                            .Where(m => m != null && m.MayContinue && !m.MultipleOccurrencesAllowed)
+                                            .Any(m => m.IsMatch(nextDep, nextTail));
                         }
 
                         bool isEnd;
@@ -132,7 +138,7 @@ namespace NDepCheck {
                                 isEnd = true;
                             } else {
                                 // Otherwise, we check whether the last item or dependency matches the end match.
-                                isEnd = endMatch.Matches(nextTail) || endMatch.Matches(nextDep);
+                                isEnd = endMatch.IsMatch(nextDep, nextTail);
                             }
                         } else {
                             isEnd = false;
@@ -141,11 +147,11 @@ namespace NDepCheck {
                         if (mayContinue) {
                             _currentPath.Push(nextDep);
 
-                            DownAndHere downAndHere = AfterPushDependency(_currentPath, expectedPathMatchIndex, dependencyMatchOrNull, itemMatchOrNull, isEnd, rawDown);
+                            DownAndHere downAndHere = AfterPushDependency(_currentPath, expectedPathMatchIndex, pathMatchOrNull, isEnd, rawDown);
 
                             TUpInfo childUp = Traverse(nextTail, incidentDependencies, expectedInnerPathMatches, newExpectedPathMatchIndex, endMatch, isEnd, downAndHere.Down);
 
-                            upSum = BeforePopDependency(_currentPath, expectedPathMatchIndex, dependencyMatchOrNull, itemMatchOrNull, isEnd, downAndHere.Save, upSum, childUp);
+                            upSum = BeforePopDependency(_currentPath, expectedPathMatchIndex, pathMatchOrNull, /*TODO RAUS*/pathMatchOrNull, isEnd, downAndHere.Save, upSum, childUp);
 
                             _currentPath.Pop();
                         }

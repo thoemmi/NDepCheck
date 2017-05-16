@@ -22,8 +22,7 @@ namespace NDepCheck {
         /// <summary>
         /// Render dependencies to stream for tests
         /// </summary>
-        void RenderToStreamForUnitTests([ItemNotNull] [NotNull] IEnumerable<Dependency> dependencies, 
-                                        [NotNull] Stream stream, [CanBeNull] string option);
+        void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [ItemNotNull] [NotNull] IEnumerable<Dependency> dependencies, [NotNull] Stream stream, [CanBeNull] string option);
 
         IEnumerable<Dependency> CreateSomeTestDependencies();
     }

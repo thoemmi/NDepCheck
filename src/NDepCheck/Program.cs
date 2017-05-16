@@ -14,7 +14,7 @@ using NDepCheck.WebServing;
 
 namespace NDepCheck {
     public class Program {
-        public const string VERSION = "V.3.82";
+        public const string VERSION = "V.3.83";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 180;
@@ -80,6 +80,7 @@ namespace NDepCheck {
         public static readonly Option DoDefineOption = new ProgramOption(shortname: "dd", name: "do-define", usage: "name value", description: "define name gobally as value");
         public static readonly Option DoResetOption = new ProgramOption(shortname: "dr", name: "do-reset", usage: "[filename]", description: "reset state; and read file as dip file if provided");
         public static readonly Option DoTimeOption = new ProgramOption(shortname: "dt", name: "do-time", usage: "secs", description: "log execution time for commands running longer than secs seconds; default: 10");
+        public static readonly Option DoAbortTimeOption = new ProgramOption(shortname: "da", name: "do-abort-after", usage: "secs", description: "stop execution of transform and read commands running longer than secs seconds; default: 10");
 
         public static readonly Option WatchFilesOption = new ProgramOption(shortname: "aw", name: "watch-files", usage: "[filepattern [- filepattern] script", description: "Watch files");
         public static readonly Option UnwatchFilesOption = new ProgramOption(shortname: "au", name: "unwatch-files", usage: "filepattern", description: "Unwatch files specified by filepattern");
@@ -232,6 +233,8 @@ namespace NDepCheck {
                         return UsageAndExit(message: null, globalContext: globalContext, withIntro: true,
                                             detailed: true, filter: filter ?? "");
                     } else if (Option.ArgMatches(arg, "debug")) {
+                        globalContext.StopAbortWatchDog();
+                        globalContext.AbortTime = TimeSpan.FromMilliseconds(int.MaxValue); // max. value allowed for CancellationTokenSource.CancelAfter()
                         Debugger.Launch();
                     } else if (ReadPluginOption.IsMatch(arg)) {
                         // -rp    assembly reader filepattern [ +|- filepattern ...]
@@ -421,7 +424,7 @@ namespace NDepCheck {
                         // -dc    command
                         string cmd = ExtractRequiredOptionValue(globalContext, args, ref i, "Missing command after -dc");
                         int maxRunTime = ExtractIntOptionValue(globalContext, args, ref i, "Missing maximum runtime in seconds after -dc");
-                        string cmdArgs = ExtractNextValue(globalContext, args, ref i).TrimStart('{', ' ', '\r', '\n').TrimEnd('}', ' ', '\r', '\n').Replace("\r\n", " ");
+                        string cmdArgs = ExtractNextValue(globalContext, args, ref i).TrimStart('{', ' ', '\r', '\n').TrimEnd('}', ' ', '\r', '\n').Replace(Environment.NewLine, " ");
                         try {
                             var process = new Process {
                                 StartInfo =
@@ -490,6 +493,8 @@ namespace NDepCheck {
                         }
                     } else if (DoTimeOption.IsMatch(arg)) {
                         globalContext.TimeLongerThan = TimeSpan.FromSeconds(ExtractIntOptionValue(globalContext, args, ref i, "Missing seconds"));
+                    } else if (DoAbortTimeOption.IsMatch(arg)) {
+                        globalContext.AbortTime = TimeSpan.FromSeconds(ExtractIntOptionValue(globalContext, args, ref i, "Missing seconds"));
                     } else if (WatchFilesOption.IsMatch(arg)) {
                         // -aw    [filepattern [- filepattern]] script
                         string positive = ExtractOptionValue(globalContext, args, ref i);

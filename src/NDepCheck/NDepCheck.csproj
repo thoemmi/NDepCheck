@@ -142,11 +142,13 @@
     <Compile Include="Transforming\CycleChecking\FindCycleDeps.cs" />
     <Compile Include="Transforming\DependencyCreating\AddTransitiveDeps.cs" />
     <Compile Include="Matching\DependencyPattern.cs" />
+    <Compile Include="Transforming\DependencyEffectOptions.cs" />
     <Compile Include="Transforming\EffectOptions.cs" />
     <Compile Include="Transforming\ExtendedDependencyEffectOptions.cs" />
     <Compile Include="Matching\ItemMatch.cs" />
     <Compile Include="Matching\DependencyMatch.cs" />
     <Compile Include="Matching\DependencyMatchOptions.cs" />
+    <Compile Include="Transforming\ItemEffectOptions.cs" />
     <Compile Include="Transforming\Modifying\KeepOnlyDeps.cs" />
     <Compile Include="Transforming\Modifying\MarkDeps.cs" />
     <Compile Include="Matching\Matchers.cs" />

@@ -19,7 +19,7 @@ namespace NDepCheck.Tests {
             using (var s = new MemoryStream()) {
                 var w = new ItemWriter();
                 IEnumerable<Dependency> dependencies = w.CreateSomeTestDependencies();
-                w.RenderToStreamForUnitTests(dependencies, s);
+                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "");
 
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"$ AMO(Assembly:Module:Order)

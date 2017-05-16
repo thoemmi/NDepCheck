@@ -21,8 +21,8 @@ namespace NDepCheck.Tests {
             };
 
             using (var s = new MemoryStream()) {
-                var w = new PathWriter();
-                w.RenderToStreamForUnitTests(dependencies, s, "SI");
+                var w = new PathMarker();
+                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "SI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a
 .b $ (1)
@@ -43,8 +43,8 @@ namespace NDepCheck.Tests {
             };
 
             using (var s = new MemoryStream()) {
-                var w = new PathWriter();
-                w.RenderToStreamForUnitTests(dependencies, s, "SI");
+                var w = new PathMarker();
+                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "SI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a
 .b $ (1)
@@ -65,8 +65,8 @@ namespace NDepCheck.Tests {
             };
 
             using (var s = new MemoryStream()) {
-                var w = new PathWriter();
-                w.RenderToStreamForUnitTests(dependencies, s, "SI");
+                var w = new PathMarker();
+                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "SI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a
 .b $ (1)", result.Trim());
@@ -87,8 +87,8 @@ namespace NDepCheck.Tests {
             };
 
             using (var s = new MemoryStream()) {
-                var w = new PathWriter();
-                w.RenderToStreamForUnitTests(dependencies, s, "LI");
+                var w = new PathMarker();
+                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "LI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a
 +-b $ (1)
@@ -99,9 +99,9 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestTreeLineWriter() {
             using (var s = new MemoryStream()) {
-                var w = new PathWriter();
+                var w = new PathMarker();
                 IEnumerable<Dependency> dependencies = w.CreateSomeTestDependencies();
-                w.RenderToStreamForUnitTests(dependencies, s, "LI");
+                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "LI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a:aa:aaa
 +-b:bb:bbb $ (1)
@@ -120,9 +120,9 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestSimpleTreePathWriter() {
             using (var s = new MemoryStream()) {
-                var w = new PathWriter();
+                var w = new PathMarker();
                 IEnumerable<Dependency> dependencies = w.CreateSomeTestDependencies();
-                w.RenderToStreamForUnitTests(dependencies, s, "SI");
+                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "SI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a:aa:aaa
 .b:bb:bbb $ (1)

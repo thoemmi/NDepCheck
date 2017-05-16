@@ -281,7 +281,8 @@ namespace NDepCheck {
         }
 
         internal static void ThrowArgumentException(string message, string argsAsString) {
-            throw new ArgumentException(message + " (provided options: " + (argsAsString.Length > 305 ? argsAsString.Substring(0, 300) + "..." : argsAsString) + ")");
+            string singleLine = argsAsString.Replace(Environment.NewLine, " ");
+            throw new ArgumentException(message + Environment.NewLine + "Provided options: " + (singleLine.Length > 305 ? singleLine.Substring(0, 300) + "..." : singleLine));
         }
 
         internal static void Parse([NotNull] GlobalContext globalContext, [CanBeNull] string argsAsString, params OptionAction[] optionActions) {
@@ -332,7 +333,7 @@ namespace NDepCheck {
                     } else {
                         message = "Invalid option " + arg;
                     }
-                    message += "\r\nAllowed options: " +
+                    message += Environment.NewLine + "Allowed options: " +
                                CreateHelp(optionActions.Select(oa => oa.Option), detailed: false, filter: "");
                     ThrowArgumentException(message, argsAsString);
                 }

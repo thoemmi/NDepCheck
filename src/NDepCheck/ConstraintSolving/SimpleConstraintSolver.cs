@@ -68,7 +68,7 @@ namespace NDepCheck.ConstraintSolving {
 
         public int Now => _now;
 
-        public void Solve() {
+        public void Solve([NotNull] Action checkAbort) {
             // Remove all constraints subsumed by others
             MarkSubsumingConstraints(_allVariables.Values);
 
@@ -79,6 +79,7 @@ namespace NDepCheck.ConstraintSolving {
                 var modifiedVariables = new HashSet<NumericVariable>();
 
                 foreach (var v in variablesWhoseDependentConstraintsShouldBePropagated) {
+                    checkAbort();
                     foreach (var c in v.ActiveConstraints.ToArray()) {
                         IEnumerable<NumericVariable> changed = c.Propagate(this).ToArray();
                         foreach (var ch in changed) {

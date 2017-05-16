@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using JetBrains.Annotations;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Rendering.GraphicsRendering {
@@ -34,7 +35,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             output.WriteLine(cts);
         }
 
-        public override void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
+        public override void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
             using (var sw = new StreamWriter(stream)) {
                 Render(dependencies, null, sw, null, true);
             }

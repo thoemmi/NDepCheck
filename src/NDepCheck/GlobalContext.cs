@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading;
 using JetBrains.Annotations;
 using NDepCheck.Matching;
 
@@ -15,12 +16,15 @@ namespace NDepCheck {
         internal bool RenderingDone {
             get; set;
         }
+
         internal bool TransformingDone {
             get; set;
         }
+
         internal bool InputFilesOrTestDataSpecified {
             get; set;
         }
+
         internal bool HelpShown {
             get; private set;
         }
@@ -55,6 +59,10 @@ namespace NDepCheck {
         }
 
         public TimeSpan TimeLongerThan { get; set; } = TimeSpan.FromSeconds(10);
+        public TimeSpan AbortTime { get; set; } = TimeSpan.FromSeconds(10);
+
+        [CanBeNull]
+        private CancellationTokenSource _cancellationTokenSource;
 
         private static int _cxtId = 0;
 
@@ -80,7 +88,7 @@ namespace NDepCheck {
         public static string ExpandHexChars([CanBeNull] string s) {
             return s != null && s.Contains('%')
                 ? Regex.Replace(s, "%[0-9a-fA-F][0-9a-fA-F]",
-                    m => "" + (char)int.Parse(m.Value.Substring(1), NumberStyles.HexNumber))
+                    m => "" + (char) int.Parse(m.Value.Substring(1), NumberStyles.HexNumber))
                 : s;
         }
 
@@ -104,9 +112,9 @@ namespace NDepCheck {
             }
             try {
                 // Plugins can have state, therefore we must manage them in a repository. A simple list is sufficient.
-                T result = (T)_plugins.FirstOrDefault(t => t.GetType() == pluginType);
+                T result = (T) _plugins.FirstOrDefault(t => t.GetType() == pluginType);
                 if (result == null) {
-                    _plugins.Add(result = (T)Activator.CreateInstance(pluginType));
+                    _plugins.Add(result = (T) Activator.CreateInstance(pluginType));
                 }
                 return result;
             } catch (Exception ex) {
@@ -141,7 +149,7 @@ namespace NDepCheck {
         private IEnumerable<T> CreatePlugins<T>(string assemblyName) where T : class, IPlugin {
             return GetPluginTypes<T>(assemblyName).Select(t => {
                 try {
-                    return (T)Activator.CreateInstance(t);
+                    return (T) Activator.CreateInstance(t);
                 } catch (Exception ex) {
                     Log.WriteError($"Cannot get help for renderer '{t.FullName}'; reason: {ex.Message}");
                     return null;
@@ -156,9 +164,9 @@ namespace NDepCheck {
             foreach (var plugin in CreatePlugins<T>(assemblyName)) {
                 string fullName = plugin.GetType().FullName;
                 try {
-                    string help = fullName + ":\r\n" + plugin.GetHelp(detailedHelp: false, filter: "");
+                    string help = fullName + ":" + Environment.NewLine + plugin.GetHelp(detailedHelp: false, filter: "");
                     if (help.IndexOf(filter ?? "", StringComparison.InvariantCultureIgnoreCase) >= 0) {
-                        matched.Add(fullName, HELP_SEPARATOR + "\r\n" + help + "\r\n");
+                        matched.Add(fullName, HELP_SEPARATOR + Environment.NewLine + help + Environment.NewLine);
                     }
                 } catch (Exception ex) {
                     Log.WriteError($"Cannot get help for renderer '{fullName}'; reason: {ex.Message}");
@@ -267,6 +275,10 @@ namespace NDepCheck {
             _dependencies.Push(newDependenciesCollector);
         }
 
+        public void CheckAbort() {
+            _cancellationTokenSource?.Token.ThrowIfCancellationRequested();
+        }
+
         public int Transform([CanBeNull] string assemblyName, [NotNull] string transformerClass,
             [CanBeNull] string transformerOptions) {
             if (Option.IsHelpOption(transformerOptions)) {
@@ -276,6 +288,8 @@ namespace NDepCheck {
                 try {
                     ITransformer transformer = GetOrCreatePlugin<ITransformer>(assemblyName, transformerClass);
                     Log.WriteInfo($"Transforming with {assemblyName}.{transformerClass}");
+
+                    RestartAbortWatchDog();
 
                     var newDependenciesCollector = new List<Dependency>();
 
@@ -295,8 +309,19 @@ namespace NDepCheck {
                     Log.WriteError(
                         $"Error while transforming with '{transformerClass}': {ex.GetType().Name} - {ex.Message}");
                     return Program.EXCEPTION_RESULT;
+                } finally {
+                    StopAbortWatchDog();
                 }
             }
+        }
+
+        public void RestartAbortWatchDog() {
+            _cancellationTokenSource = new CancellationTokenSource();
+            _cancellationTokenSource.CancelAfter(AbortTime);
+        }
+
+        public void StopAbortWatchDog() {
+            _cancellationTokenSource?.Dispose();
         }
 
         public void Calculate(string valueKey, string assemblyName, string calculatorClass,
@@ -333,19 +358,24 @@ namespace NDepCheck {
                 ShowDetailedHelp<ITransformer>(assemblyName, rendererClassName, "");
                 return null;
             } else {
-                IRenderer renderer = GetOrCreatePlugin<IRenderer>(assemblyName, rendererClassName);
+                try {
+                    IRenderer renderer = GetOrCreatePlugin<IRenderer>(assemblyName, rendererClassName);
 
-                Dependency[] allDependencies = AllDependencies.ToArray();
-                string masterFileName = renderer.GetMasterFileName(this, rendererOptions, fileName);
-                if (WorkLazily && File.Exists(masterFileName)) {
-                    // we dont do anything - TODO check change dates of input files vs. the master file's last update date
-                } else {
-                    renderer.Render(this, allDependencies, allDependencies.Length, rendererOptions ?? "", fileName,
-                        IgnoreCase);
+                    Dependency[] allDependencies = AllDependencies.ToArray();
+                    string masterFileName = renderer.GetMasterFileName(this, rendererOptions, fileName);
+                    if (WorkLazily && File.Exists(masterFileName)) {
+                        // we dont do anything - TODO check change dates of input files vs. the master file's last update date
+                    } else {
+                        RestartAbortWatchDog();
+
+                        renderer.Render(this, allDependencies, allDependencies.Length, rendererOptions ?? "", fileName, IgnoreCase);
+                    }
+                    RenderingDone = true;
+
+                    return masterFileName;
+                } finally {
+                    StopAbortWatchDog();
                 }
-                RenderingDone = true;
-
-                return masterFileName;
             }
         }
 
@@ -378,8 +408,8 @@ namespace NDepCheck {
             [CanBeNull] string filter) where T : IPlugin {
             try {
                 T plugin = GetOrCreatePlugin<T>(assemblyName, pluginClassName);
-                Log.WriteInfo(plugin.GetType().FullName + ":\r\n" +
-                              plugin.GetHelp(detailedHelp: true, filter: filter) + "\r\n");
+                Log.WriteInfo(plugin.GetType().FullName + ":" + Environment.NewLine +
+                              plugin.GetHelp(detailedHelp: true, filter: filter) + Environment.NewLine);
             } catch (Exception ex) {
                 Log.WriteError(
                     $"Cannot print help for plugin '{pluginClassName}' in assembly '{ShowAssemblyName(assemblyName)}'; reason: {ex.Message}");

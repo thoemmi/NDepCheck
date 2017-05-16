@@ -5,7 +5,10 @@ namespace NDepCheck {
         }
 
         public string ContainerUri { get; }
+
         public virtual string AsDipString() => ContainerUri;
+
+        public override string ToString() => ContainerUri;
 
         public static ISourceLocation Create(string[] fields) {
             return ProgramFileSource.MaybeCreate(fields)

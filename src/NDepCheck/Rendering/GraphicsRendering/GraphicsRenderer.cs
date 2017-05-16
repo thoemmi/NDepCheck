@@ -773,7 +773,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         }
 
         private Bitmap Render(IEnumerable<Dependency> dependencies, float minTextHeight,
-                              ref int width, ref int height, StringBuilder htmlForClicks) {
+                              ref int width, ref int height, StringBuilder htmlForClicks, [NotNull] Action checkAbort) {
             PlaceObjects(dependencies);
 
             // I tried it with SVG - but SVG support in .Net seems to be non-existent.
@@ -790,7 +790,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             }
 
             try {
-                _solver.Solve();
+                _solver.Solve(checkAbort);
             } catch (SolverException) {
                 Console.WriteLine(_solver.GetState(maxLines: 20000));
                 throw;
@@ -914,7 +914,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
 
 
             StringBuilder htmlForClicks = new StringBuilder();
-            Bitmap bitMap = Render(dependencies, minTextHeight, ref width, ref height, htmlForClicks);
+            Bitmap bitMap = Render(dependencies, minTextHeight, ref width, ref height, htmlForClicks, globalContext.CheckAbort);
 
             string gifFileName = GetGifFileName(baseFileName);
             try {
@@ -946,10 +946,10 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             return GlobalContext.CreateFullFileName(baseFileName, ".gif");
         }
 
-        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
+        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
             int width = 1000;
             int height = 1000;
-            Bitmap bitMap = Render(dependencies, 15, ref width, ref height, htmlForClicks: null);
+            Bitmap bitMap = Render(dependencies, 15, ref width, ref height, htmlForClicks: null, checkAbort: () => {});
 
             bitMap.Save(stream, ImageFormat.Gif);
         }

@@ -126,7 +126,7 @@ Examples:
                     return j;
                 }), ProjectionsOption.Action((args, j) => {
                     orderedProjections = GetOrReadChildConfiguration(globalContext,
-                            () => new StringReader(string.Join("\r\n", args.Skip(j + 1))),
+                            () => new StringReader(string.Join(Environment.NewLine, args.Skip(j + 1))),
                             ProjectionsOption.ShortName, globalContext.IgnoreCase, "????", forceReload: true);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;

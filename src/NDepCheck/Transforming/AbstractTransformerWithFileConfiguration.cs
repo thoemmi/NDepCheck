@@ -112,7 +112,7 @@ namespace NDepCheck.Transforming {
                         }
                     }
                     if (differences.Length > 0) {
-                        throw new ApplicationException($"File {containerUri} is read with different values:\r\n{differences}");
+                        throw new ApplicationException($"File {containerUri} is read with different values:{Environment.NewLine}{differences}");
                     }
                 }
                 previousConfigValues = null; // no collecting of config values!

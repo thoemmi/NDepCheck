@@ -8,6 +8,8 @@ namespace NDepCheck.Tests {
     public class TestConstraints {
         private const double EPS = 1E-40;
 
+        private static readonly Action _noAbortCheck = () => { };
+
         [TestMethod]
         public void TestRangeOperators() {
             var r1 = new Range(1, 5, EPS);
@@ -107,7 +109,7 @@ namespace NDepCheck.Tests {
 
             a.RestrictRange(2, 2);
             b.RestrictRange(3, 3);
-            solver.Solve();
+            solver.Solve(_noAbortCheck );
             Assert.AreEqual(5, c.Value.Lo);
             Assert.AreEqual(5, c.Value.Hi);
         }
@@ -121,7 +123,7 @@ namespace NDepCheck.Tests {
 
             a.RestrictRange(2, 2);
             c.RestrictRange(5, 5);
-            solver.Solve();
+            solver.Solve(_noAbortCheck );
             Assert.AreEqual(new Range(3, 3, EPS), b.Value);
         }
 
@@ -135,7 +137,7 @@ namespace NDepCheck.Tests {
 
                 a.RestrictRange(2, 3);
                 b.RestrictRange(5, 6);
-                solver.Solve();
+                solver.Solve(_noAbortCheck );
                 Assert.AreEqual(new Range(-4, -2, EPS), c.Value);
             }
             {
@@ -146,7 +148,7 @@ namespace NDepCheck.Tests {
 
                 a.RestrictRange(2, 3);
                 c.RestrictRange(5, 6);
-                solver.Solve();
+                solver.Solve(_noAbortCheck );
                 Assert.AreEqual(new Range(-4, -2, EPS), b.Value);
             }
             {
@@ -157,7 +159,7 @@ namespace NDepCheck.Tests {
 
                 b.RestrictRange(2, 3);
                 c.RestrictRange(5, 6);
-                solver.Solve();
+                solver.Solve(_noAbortCheck );
                 Assert.AreEqual(new Range(7, 9, EPS), a.Value);
             }
         }
@@ -170,7 +172,7 @@ namespace NDepCheck.Tests {
                 var b = a * 3;
 
                 a.RestrictRange(2, 3);
-                solver.Solve();
+                solver.Solve(_noAbortCheck );
                 Assert.AreEqual(new Range(6, 9, EPS), b.Value);
             }
             {
@@ -179,7 +181,7 @@ namespace NDepCheck.Tests {
                 var b = a * 3;
 
                 b.RestrictRange(2, 3);
-                solver.Solve();
+                solver.Solve(_noAbortCheck );
                 Assert.AreEqual(new Range(2 / 3.0, 1, EPS), a.Value);
             }
         }
@@ -192,7 +194,7 @@ namespace NDepCheck.Tests {
 
                 var r = new Range(3, 4, EPS);
                 RangeConstraint.CreateRangeConstraint(a, r);
-                solver.Solve();
+                solver.Solve(_noAbortCheck );
                 Assert.AreEqual(r, a.Value);
             }
         }
@@ -207,7 +209,7 @@ namespace NDepCheck.Tests {
 
                 var r = new Range(3, 4, EPS);
                 a.RestrictRange(r);
-                solver.Solve();
+                solver.Solve(_noAbortCheck );
                 Assert.AreEqual(r, b.Value);
             }
             {
@@ -218,7 +220,7 @@ namespace NDepCheck.Tests {
 
                 var r = new Range(3, 4, EPS);
                 b.RestrictRange(r);
-                solver.Solve();
+                solver.Solve(_noAbortCheck );
                 Assert.AreEqual(r, a.Value);
             }
         }
@@ -233,7 +235,7 @@ namespace NDepCheck.Tests {
 
                 var r = new Range(3, 4, EPS);
                 a.RestrictRange(r);
-                solver.Solve();
+                solver.Solve(_noAbortCheck );
                 Assert.AreEqual(-r, b.Value);
             }
             {
@@ -244,7 +246,7 @@ namespace NDepCheck.Tests {
 
                 var r = new Range(3, 4, EPS);
                 b.RestrictRange(r);
-                solver.Solve();
+                solver.Solve(_noAbortCheck );
                 Assert.AreEqual(-r, a.Value);
             }
         }
@@ -258,7 +260,7 @@ namespace NDepCheck.Tests {
                 AtLeastConstraint.CreateAtLeastConstraint(a, b);
 
                 a.RestrictRange(new Range(3, 4, EPS));
-                solver.Solve();
+                solver.Solve(_noAbortCheck );
                 // (3..4) >= (x..y) means that y is at most 4
                 Assert.AreEqual(new Range(double.NegativeInfinity, 4, EPS), b.Value);
             }
@@ -269,7 +271,7 @@ namespace NDepCheck.Tests {
                 AtLeastConstraint.CreateAtLeastConstraint(a, b);
 
                 b.RestrictRange(new Range(3, 4, EPS));
-                solver.Solve();
+                solver.Solve(_noAbortCheck );
                 Assert.AreEqual(new Range(3, double.PositiveInfinity, EPS), a.Value);
             }
         }
@@ -283,7 +285,7 @@ namespace NDepCheck.Tests {
                 ProportionalConstraint.CreateProportionalConstraint(5, a, b);
 
                 b.RestrictRange(new Range(30, 40, EPS));
-                solver.Solve();
+                solver.Solve(_noAbortCheck );
                 Assert.AreEqual(new Range(6, 8, EPS), a.Value);
             }
             {
@@ -293,7 +295,7 @@ namespace NDepCheck.Tests {
                 ProportionalConstraint.CreateProportionalConstraint(5, a, b);
 
                 a.RestrictRange(new Range(30, 40, EPS));
-                solver.Solve();
+                solver.Solve(_noAbortCheck );
                 Assert.AreEqual(new Range(150, 200, EPS), b.Value);
             }
         }
@@ -309,7 +311,7 @@ namespace NDepCheck.Tests {
 
                 a.RestrictRange(new Range(30, 50, EPS));
                 b.RestrictRange(new Range(10, double.PositiveInfinity, EPS));
-                solver.Solve();
+                solver.Solve(_noAbortCheck );
                 Assert.AreEqual(new Range(double.NegativeInfinity, -40, EPS), c.Value);
             }
         }
@@ -338,7 +340,7 @@ namespace NDepCheck.Tests {
                 x.RestrictRange(rx);
                 var ry = new Range(30, 50, EPS);
                 y.RestrictRange(ry);
-                solver.Solve();
+                solver.Solve(_noAbortCheck );
                 Assert.AreEqual(new Range(50, 50, EPS), r.Value);
             }
             {
@@ -367,7 +369,7 @@ namespace NDepCheck.Tests {
                 UnidirectionalComputationConstraint.CreateUnidirectionalComputationConstraint(new[] { b }, new[] { c }, OneMore);
                 UnidirectionalComputationConstraint.CreateUnidirectionalComputationConstraint(new[] { c }, new[] { d }, OneMore);
                 a.Set(10);
-                solver.Solve();
+                solver.Solve(_noAbortCheck );
                 Assert.AreEqual(10, a.GetValue());
                 Assert.AreEqual(11, b.GetValue());
                 Assert.AreEqual(12, c.GetValue());

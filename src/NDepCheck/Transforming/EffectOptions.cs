@@ -22,7 +22,7 @@ namespace NDepCheck.Transforming {
 
         protected internal virtual IEnumerable<Action<T>> Parse([NotNull] GlobalContext globalContext, 
                 [CanBeNull] string argsAsString, string defaultReasonForSetBad, bool ignoreCase,
-                [NotNull] [ItemNotNull] IEnumerable<OptionAction> moreOptions) {
+                [NotNull] [ItemNotNull] IEnumerable<OptionAction> moreOptionActions) {
             var result = new List<Action<T>>();
 
             Option.Parse(globalContext, argsAsString, new[] {
@@ -40,7 +40,7 @@ namespace NDepCheck.Transforming {
                     result.Add(DELETE_ACTION_MARKER);
                     return j;
                 })
-            }.Concat(moreOptions).ToArray());
+            }.Concat(moreOptionActions).ToArray());
             return result;
         }
 
@@ -50,36 +50,6 @@ namespace NDepCheck.Transforming {
                     e(d);
                 }
             }
-        }
-    }
-
-    public class ItemEffectOptions : EffectOptions<Item> {
-        public ItemEffectOptions() : base("item") {
-        }
-
-        public IEnumerable<Option> AllOptions => BaseOptions;
-    }
-
-    public class DependencyEffectOptions : EffectOptions<Dependency> {
-        public readonly Option SetBadOption = new Option("s!", "set-bad", "", "Set bad counter to edge counter", @default: "");
-
-        public DependencyEffectOptions() : base("dependency") {
-        }
-
-        public virtual IEnumerable<Option> AllOptions => BaseOptions.Concat(new[] { SetBadOption });
-
-        protected internal override IEnumerable<Action<Dependency>> Parse(GlobalContext globalContext, 
-                [CanBeNull] string argsAsString, string defaultReasonForSetBad, bool ignoreCase,
-                [NotNull] [ItemNotNull] IEnumerable<OptionAction> moreOptions) {
-            var localResult = new List<Action<Dependency>>();
-            IEnumerable<Action<Dependency>> baseResult = base.Parse(globalContext, argsAsString, defaultReasonForSetBad, ignoreCase, new[] {
-                SetBadOption.Action((args, j) => {
-                    localResult.Add(d => d.MarkAsBad(SetBadOption.Name));
-                    return j;
-                }),
-            }.Concat(moreOptions).ToArray());
-            IEnumerable<Action<Dependency>> result = baseResult.Concat(localResult);
-            return result.Any() ? result : new Action<Dependency>[] { d => d.MarkAsBad(defaultReasonForSetBad) };
         }
     }
 }

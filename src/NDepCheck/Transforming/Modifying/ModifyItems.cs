@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
@@ -74,7 +75,7 @@ Examples:
                 }),
                 ModificationsOption.Action((args, j) => {
                     _orderedActions = GetOrReadChildConfiguration(globalContext,
-                        () => new StringReader(string.Join("\r\n", args.Skip(j + 1))),
+                        () => new StringReader(string.Join(Environment.NewLine, args.Skip(j + 1))),
                         ModificationsOption.ShortName, globalContext.IgnoreCase, "????", forceReload: true);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;

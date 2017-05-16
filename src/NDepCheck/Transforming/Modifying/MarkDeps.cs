@@ -6,7 +6,7 @@ using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.Modifying {
     public class MarkDeps : ITransformer {
-        public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions();
+        public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions("mark");
 
         public static readonly Option MarkLeftItemOption = new Option("ml", "mark-left", "marker", "Marker to add to item on left", @default: "", multiple: true);
         public static readonly Option MarkDependencyItemOption = new Option("md", "mark-dependency", "marker", "Marker to add to dependency", @default: "", multiple: true);

@@ -4,7 +4,7 @@ using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.DependencyCreating {
     public class AddReverseDeps : ITransformer {
-        public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions();
+        public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions("reverse");
 
         public static readonly Option RemoveOriginalOption = new Option("ro", "remove-original", "", "If present, original dependency of a newly created reverse dependency is removed", @default:false);
         public static readonly Option AddMarkerOption = new Option("am", "add-marker", "&", "Marker added to newly created reverse dependencies", @default: "none");

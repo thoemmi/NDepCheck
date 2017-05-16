@@ -4,7 +4,7 @@ using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.Modifying {
     public class KeepOnlyDeps : ITransformer {
-        private static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions();
+        private static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions("keep");
 
         private bool _ignoreCase;
 

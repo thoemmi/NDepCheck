@@ -18,7 +18,7 @@ namespace NDepCheck.Tests {
             SetupDAG(out items, out dependencies);
 
             using (var s = new MemoryStream()) {
-                new MatrixRenderer1().RenderToStreamForUnitTests(dependencies, s);
+                new MatrixRenderer1().RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "");
 
                 Assert.AreEqual(@"Id;Name;1;  ;2;  ;3;  
 1;n3  ; 1;  ;  ;  ;  ;  
@@ -36,7 +36,7 @@ namespace NDepCheck.Tests {
 
 
             using (var s = new MemoryStream()) {
-                new MatrixRenderer1().RenderToStreamForUnitTests(edges, s);
+                new MatrixRenderer1().RenderToStreamForUnitTests(new GlobalContext(), edges, s, "");
                 Assert.AreEqual(@"Id;Name;1;  ;2;  ;3;  
 1;n3  ; 1;  ;  ;  ;  ;  
 2;n2  ; 1;  ;  ;  ;  ;  
@@ -76,7 +76,7 @@ namespace NDepCheck.Tests {
             };
 
             using (var s = new MemoryStream()) {
-                new MatrixRenderer1().RenderToStreamForUnitTests(edges, s);
+                new MatrixRenderer1().RenderToStreamForUnitTests(new GlobalContext(), edges, s, "");
                 Assert.AreEqual(@"Id  ;Name;001;    ;002;    ;003;    
 001;n3  ;    ;    ;    ;    ;#  7;    
 002;n2  ;  55;    ;    ;    ;    ;    
@@ -98,7 +98,7 @@ namespace NDepCheck.Tests {
             Dependency[] edges = nodes.SelectMany(from => nodes.Select(to => CreateDependency(from, to, ++ct, ct / 2))).ToArray();
 
             using (var s = new MemoryStream()) {
-                new MatrixRenderer1().RenderToStreamForUnitTests(edges, s);
+                new MatrixRenderer1().RenderToStreamForUnitTests(new GlobalContext(), edges, s, "");
                 Assert.AreEqual(@"Id  ;Name;001;    ;002;    ;003;    
 001;n3  ; 109;~ 54;#106;* 53;#103;* 51
 002;n2  ; 108;~ 54; 105;~ 52;#102;* 51

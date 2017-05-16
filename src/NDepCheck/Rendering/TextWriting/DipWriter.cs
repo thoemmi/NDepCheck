@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using JetBrains.Annotations;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Rendering.TextWriting {
@@ -9,7 +10,7 @@ namespace NDepCheck.Rendering.TextWriting {
     /// Writer for dependencies in standard "DIP" format
     /// </summary>
     public class DipWriter : IRenderer {
-        public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions();
+        public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions("write");
         public static readonly Option NoExampleInfoOption = new Option("ne", "no-example", "", "Does not write example info", @default: false);
 
         private static readonly Option[] _allOptions = DependencyMatchOptions.WithOptions(NoExampleInfoOption);
@@ -54,7 +55,7 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        public void RenderToStreamForUnitTests(IEnumerable<Dependency> dependencies, Stream output, string option) {
+        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, Stream output, string option) {
             using (var sw = new StreamWriter(output)) {
                 Write(dependencies, sw, withExampleInfo: true, matches: null, excludes: null);
             }

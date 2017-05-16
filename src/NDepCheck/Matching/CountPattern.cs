@@ -1,22 +1,30 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Matching {
     public class CountPattern {
         protected static readonly Dictionary<string, Func<int, int, bool>> _ops = new Dictionary<string, Func<int, int, bool>> {
-            { ">", (v1,v2) => v1 > v2 },
-            { "<", (v1,v2) => v1 < v2 },
-            { "<=", (v1,v2) => v1 <= v2 },
-            { ">=", (v1,v2) => v1 >= v2 },
-            { "<>", (v1,v2) => v1 != v2 },
-            { "!=", (v1,v2) => v1 != v2 },
-            { "=", (v1,v2) => v1 == v2 },
-            { "==", (v1,v2) => v1 == v2 },
+            { ">", (v1, v2) => v1 > v2 },
+            { "<", (v1, v2) => v1 < v2 },
+            { "<=", (v1, v2) => v1 <= v2 },
+            { ">=", (v1, v2) => v1 >= v2 },
+            { "<>", (v1, v2) => v1 != v2 },
+            { "!=", (v1, v2) => v1 != v2 },
+            { "=", (v1, v2) => v1 == v2 },
+            { "==", (v1, v2) => v1 == v2 },
+            { "|", (v1, v2) => (v1 & v2) != 0 },
+            { "^", (v1, v2) => (v1 & v2) == 0 },
         };
 
-        protected static readonly string _regex = $"^(.*)({string.Join("|", _ops.Keys)})(.*)$";
+        protected static readonly string _regex = $"^(.*)({string.Join("|", _ops.Keys.Select(s => AsRegex(s)))})(.*)$";
+
+        private static string AsRegex(string s) {
+            return string.Join("", s.Select(c => "[" + (c == '^' ? @"\^" : "" + c) + "]"));
+
+        }
     }
 
     public abstract class CountPattern<T> : CountPattern where T : class {
