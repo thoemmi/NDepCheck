@@ -24,7 +24,7 @@ namespace NDepCheck.Tests {
                 w.RenderToStreamForUnitTests(dependencies, s, "F");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a:aa:aaa
-b:bb:bbb $", result.Trim());
+b:bb:bbb $ (1)", result.Trim());
             }
         }
 
@@ -55,25 +55,25 @@ b:bb:bbb $", result.Trim());
                 w.RenderToStreamForUnitTests(dependencies, s, "F");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a:aa:aaa
-b:bb:bbb $
-c:cc:ccc
-d:dd:ddd $
-e:ee:eee $
-f:ff:fff $
+b:bb:bbb $ (1)
+c:cc:ccc (1)
+d:dd:ddd $ (1)
+e:ee:eee $ (1)
+f:ff:fff $ (1)
 
 a:aa:aaa
-b:bb:bbb $
-c:cc:ccc
-d:dd:ddd $
-<= b:bb:bbb $
+b:bb:bbb $ (1)
+c:cc:ccc (1)
+d:dd:ddd $ (1)
+<= b:bb:bbb $ (1)
 
 a:aa:aaa
-b:bb:bbb $
-g:gg:ggg $
+b:bb:bbb $ (1)
+g:gg:ggg $ (1)
 
 a:aa:aaa
-h:hh:hhh $
-g:gg:ggg $", result.Trim());
+h:hh:hhh $ (1)
+g:gg:ggg $ (1)", result.Trim());
             }
         }
 
@@ -97,8 +97,8 @@ g:gg:ggg $", result.Trim());
                 w.RenderToStreamForUnitTests(dependencies, s, "F");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a:aa:aaa
-b:bb:bbb $
-d:dd:ddd $", result.Trim());
+b:bb:bbb $ (1)
+d:dd:ddd $ (1)", result.Trim());
             }
         }
 

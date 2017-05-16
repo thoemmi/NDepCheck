@@ -25,8 +25,8 @@ namespace NDepCheck.Tests {
                 w.RenderToStreamForUnitTests(dependencies, s, "SI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a
-.b $
-.d $", result.Trim());
+.b $ (1)
+.d $ (1)", result.Trim());
             }
         }
 
@@ -47,9 +47,9 @@ namespace NDepCheck.Tests {
                 w.RenderToStreamForUnitTests(dependencies, s, "SI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a
-.b $
-..c
-...<= b $", result.Trim());
+.b $ (1)
+..c (1)
+...<= b $ (1)", result.Trim());
             }
         }
 
@@ -69,7 +69,7 @@ namespace NDepCheck.Tests {
                 w.RenderToStreamForUnitTests(dependencies, s, "SI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a
-.b $", result.Trim());
+.b $ (1)", result.Trim());
             }
         }
 
@@ -91,8 +91,8 @@ namespace NDepCheck.Tests {
                 w.RenderToStreamForUnitTests(dependencies, s, "LI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a
-+-b $
-\-d $", result.Trim());
++-b $ (1)
+\-d $ (1)", result.Trim());
             }
         }
 
@@ -104,16 +104,16 @@ namespace NDepCheck.Tests {
                 w.RenderToStreamForUnitTests(dependencies, s, "LI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a:aa:aaa
-+-b:bb:bbb $
-|.+-c:cc:ccc
-|.|.\-d:dd:ddd $
-|.|...+-e:ee:eee $
-|.|...|.\-f:ff:fff $
-|.|...\-<= b:bb:bbb $
++-b:bb:bbb $ (1)
+|.+-c:cc:ccc (1)
+|.|.\-d:dd:ddd $ (1)
+|.|...+-e:ee:eee $ (1)
+|.|...|.\-f:ff:fff $ (1)
+|.|...\-<= b:bb:bbb $ (1)
 |.|.
-|.\-g:gg:ggg $
-\-h:hh:hhh $
-..\-g:gg:ggg $", result.Trim());
+|.\-g:gg:ggg $ (1)
+\-h:hh:hhh $ (1)
+..\-g:gg:ggg $ (1)", result.Trim());
             }
         }
 
@@ -125,16 +125,16 @@ namespace NDepCheck.Tests {
                 w.RenderToStreamForUnitTests(dependencies, s, "SI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a:aa:aaa
-.b:bb:bbb $
-..c:cc:ccc
-...d:dd:ddd $
-....e:ee:eee $
-.....f:ff:fff $
-....<= b:bb:bbb $
+.b:bb:bbb $ (1)
+..c:cc:ccc (1)
+...d:dd:ddd $ (1)
+....e:ee:eee $ (1)
+.....f:ff:fff $ (1)
+....<= b:bb:bbb $ (1)
 ..
-..g:gg:ggg $
-.h:hh:hhh $
-..g:gg:ggg $", result.Trim());
+..g:gg:ggg $ (1)
+.h:hh:hhh $ (1)
+..g:gg:ggg $ (1)", result.Trim());
             }
         }
     }

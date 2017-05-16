@@ -63,7 +63,7 @@ namespace NDepCheck.Rendering.TextWriting {
             }
 
             public void Traverse(IEnumerable<TDependency> dependencies, ItemMatch pathAnchor,
-                IPathMatch[] expectedPathMatches) {
+                bool pathAnchorIsCountMatch, IPathMatch[] expectedPathMatches) {
                 Dictionary<TItem, TDependency[]> incidentDependencies = _backwards
                     ? AbstractItem<TItem>.CollectIncomingDependenciesMap(dependencies)
                     : AbstractItem<TItem>.CollectOutgoingDependenciesMap(dependencies);
@@ -88,7 +88,9 @@ namespace NDepCheck.Rendering.TextWriting {
 
                 foreach (var item in uniqueStartItems.OrderBy(i => i.Name)) {
                     if (_seenInnerPathStarts.Add(item)) {
-                        List<PathNode<TItem, TDependency>> up = Traverse(root: item, incidentDependencies: incidentDependencies, expectedInnerPathMatches: innerMatches, endMatch: endMatch, down: new DownInfo(null));
+                        List<PathNode<TItem, TDependency>> up = Traverse(root: item, 
+                            incidentDependencies: incidentDependencies, expectedInnerPathMatches: innerMatches,
+                            endMatch: endMatch, down: new DownInfo(pathAnchorIsCountMatch ? item : null));
                         if (up != null) {
                             Paths.Add(item, up);
                         }
@@ -122,7 +124,10 @@ namespace NDepCheck.Rendering.TextWriting {
 
                 IMatchableObject pushDownMatch;
                 bool matchedByCountMatch;
-                if (_countMatch == null) {
+                if (down.BehindCountMatch != null) {
+                    pushDownMatch = down.BehindCountMatch;
+                    matchedByCountMatch = false;
+                } else if (_countMatch == null) {
                     pushDownMatch = null;
                     matchedByCountMatch = false;
                 } else if (_countMatch == itemMatchOrNull) {
@@ -132,7 +137,7 @@ namespace NDepCheck.Rendering.TextWriting {
                     pushDownMatch = tailDependency;
                     matchedByCountMatch = true;
                 } else {
-                    pushDownMatch = down.BehindCountMatch;
+                    pushDownMatch = null;
                     matchedByCountMatch = false;
                 }
 
@@ -292,14 +297,14 @@ namespace NDepCheck.Rendering.TextWriting {
 
         private static void Write(bool backwards, IPathMatch countMatch,
                 bool withHeader, IEnumerable<Dependency> dependencies, ItemMatch pathAnchor,
-                [NotNull] IPathMatch[] expectedPathMatches,
+                bool pathAnchorIsCountMatch, [NotNull] IPathMatch[] expectedPathMatches,
                 IPrintTraverser printTraverser, TextWriter tw) {
             if (withHeader) {
                 tw.WriteLine($"// Written {DateTime.Now} by {typeof(PathWriter).Name} in NDepCheck {Program.VERSION}");
             }
 
             var c = new PathWriterTraverser<Dependency, Item>(backwards, countMatch);
-            c.Traverse(dependencies, pathAnchor, expectedPathMatches);
+            c.Traverse(dependencies, pathAnchor, pathAnchorIsCountMatch, expectedPathMatches);
             printTraverser.Traverse(tw, c.Paths, c.Counts.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count));
         }
 
@@ -311,6 +316,7 @@ namespace NDepCheck.Rendering.TextWriting {
             var excludes = new List<DependencyMatch>();
             //int maxPathLength = int.MaxValue;
             ItemMatch pathAnchor = null;
+            bool pathAnchorIsCountMatch = false;
             var expectedPathMatches = new List<IPathMatch>();
             IPathMatch countMatch = null;
             string styleOption = "SI";
@@ -339,7 +345,12 @@ namespace NDepCheck.Rendering.TextWriting {
                 }),
                 CountItemAnchorOption.Action((args, j) => {
                     CheckPathAnchorSet(pathAnchor);
-                    expectedPathMatches.Add(countMatch = CreateItemPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: true));
+                    if (pathAnchor == null) {
+                        pathAnchor = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item pattern"), ignoreCase);
+                        pathAnchorIsCountMatch = true;
+                    } else {
+                        expectedPathMatches.Add(countMatch = CreateItemPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: true));
+                    }
                     return j;
                 }),
                 CountDependencyAnchorOption.Action((args, j) => {
@@ -400,7 +411,8 @@ namespace NDepCheck.Rendering.TextWriting {
                         throw new ArgumentException($"Style '{styleOption}' not supported for PathWriter");
                 }
 
-                Write(backwards, countMatch, true, dependencies, pathAnchor, expectedPathMatches.ToArray(), traverser, sw.Writer);
+                Write(backwards, countMatch, true, dependencies, pathAnchor, pathAnchorIsCountMatch,
+                      expectedPathMatches.ToArray(), traverser, sw.Writer);
             }
         }
 
@@ -438,8 +450,9 @@ namespace NDepCheck.Rendering.TextWriting {
 
                 Write(backwards: false, countMatch: null, withHeader: false,
                     dependencies: dependencies, pathAnchor: new ItemMatch("a:", true),
-                    expectedPathMatches: new IPathMatch[] {
-                          new ItemPathMatch<Dependency, Item>("~c:", true, multipleOccurrencesAllowed: true, mayContinue: true)
+                    pathAnchorIsCountMatch: true, expectedPathMatches: new IPathMatch[] {
+                          new ItemPathMatch<Dependency, Item>("~c:", ignoreCase: true, 
+                                        multipleOccurrencesAllowed: true, mayContinue: true)
                     }, printTraverser: traverser, tw: sw);
             }
         }
