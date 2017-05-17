@@ -123,7 +123,7 @@
     <Compile Include="IReaderFactory.cs" />
     <Compile Include="Reading\AssemblyReading\DotNetAssemblyDependencyReaderFactory.cs" />
     <Compile Include="Rendering\TextWriting\FlatPathWriter.cs" />
-    <Compile Include="Rendering\TextWriting\PathWriter.cs" />
+    <Compile Include="Rendering\TextWriting\OldPathWriter.cs" />
     <Compile Include="Rendering\TextWriting\ItemWriter.cs" />
     <Compile Include="Rendering\OrderSupport.cs" />
     <Compile Include="TextFileSource.cs" />

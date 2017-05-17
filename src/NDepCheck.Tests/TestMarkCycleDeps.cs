@@ -223,7 +223,7 @@ namespace NDepCheck.Tests {
                 var w = new FlatPathWriter();
                 w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, cycleMarkerPrefix + "* -sm");
                 string result = Encoding.ASCII.GetString(s.ToArray());
-                Assert.AreEqual(@"C0:
+                Assert.AreEqual(@"-- C0
 SIMPLE:c'C0
 SIMPLE:d
 SIMPLE:e
@@ -247,14 +247,14 @@ SIMPLE:e
                 var w = new FlatPathWriter();
                 w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, cycleMarkerPrefix + "* -sm");
                 string result = Encoding.ASCII.GetString(s.ToArray());
-                Assert.AreEqual(@"X0:
+                Assert.AreEqual(@"-- X0
 SIMPLE:a'X0
 SIMPLE:c'X1
 SIMPLE:d
 SIMPLE:e
 <= SIMPLE:a'X0 $
 
-X1:
+-- X1
 SIMPLE:c'X1
 SIMPLE:d
 <= SIMPLE:c'X1 $", result.Trim());

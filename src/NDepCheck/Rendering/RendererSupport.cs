@@ -11,12 +11,11 @@ namespace NDepCheck.Rendering {
                     (from, i) => localItems.Skip(i).Select(to => new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: 10 * i))).ToArray();
         }
 
-        public static string ItemAsString([NotNull] this Item usedItem, bool showItemMarkers, int count, bool isEnd, bool endOfCycle, bool matchedByCountMatch) {
+        public static string ItemAsString([NotNull] this Item usedItem, bool showItemMarkers, bool isEnd, bool endOfCycle, bool matchedByCountMatch) {
             return (endOfCycle ? "<= " : "")
                    + (showItemMarkers ? usedItem.AsFullString() : usedItem.AsString())
                    + (matchedByCountMatch ? " (*)" : "")
-                   + (isEnd ? " $" : "")
-                   + (count > 0 ? " (" + count + ")" : "");
+                   + (isEnd ? " $" : "");
         }
     }
 }

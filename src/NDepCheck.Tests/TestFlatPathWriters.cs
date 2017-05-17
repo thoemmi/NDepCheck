@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NDepCheck.Rendering.PathFinding;
 using NDepCheck.Rendering.TextWriting;
 using NDepCheck.Transforming.PathFinding;
 
@@ -33,16 +34,14 @@ namespace NDepCheck.Tests {
                 var w = new FlatPathWriter();
                 w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "P*");
                 string result = Encoding.ASCII.GetString(s.ToArray());
-                Assert.AreEqual(@"P0:
+                Assert.AreEqual(@"-- P0
 a:aa:aaa
-b:bb:bbb $ (1)", result.Trim());
+b:bb:bbb $", result.Trim());
             }
         }
 
-        #region OldPathWriter
-
         [TestMethod]
-        public void TestOldSimpleFlatPathWriterForOnePath() {
+        public void TestSimplePathSearchAndFlatPathWriterForOnePath() {
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
             var a = Item.New(t3, "a:aa:aaa".Split(':'));
@@ -52,66 +51,83 @@ b:bb:bbb $ (1)", result.Trim());
                 FromTo(a, b),
             };
 
+            string result = FindPathsAndWriteFlat(dependencies, "A", CreateDefaultOptions("A"));
+
+            Assert.AreEqual(@"-- A0
+T3:a:aa:aaa'A0
+T3:b:bb:bbb'A $", result.Trim());
+        }
+
+        private static string FindPathsAndWriteFlat(IEnumerable<Dependency> dependencies, string markerPrefix, string transformOptions) {
+            var gc = new GlobalContext { IgnoreCase = true };
+            var pm = new PathMarker();
+            pm.Configure(gc, "", false);
+            var transformedDependencies = new List<Dependency>();
+            pm.Transform(gc, dependencies, transformOptions, transformedDependencies);
+
+            string result;
             using (var s = new MemoryStream()) {
-                var w = new OldPathWriter();
-                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "F");
-                string result = Encoding.ASCII.GetString(s.ToArray());
-                Assert.AreEqual(@"a:aa:aaa
-b:bb:bbb $ (1)", result.Trim());
+                var w = new FlatPathWriter();
+                w.RenderToStreamForUnitTests(new GlobalContext(), transformedDependencies, s, $"{markerPrefix}* -sm");
+                result = Encoding.ASCII.GetString(s.ToArray());
             }
+            return result;
+        }
+
+        private static string CreateDefaultOptions(string markerPrefix) {
+            return ($"{{ {PathMarker.AddIndexedMarkerOption} {markerPrefix} " +
+                    $"{PathMarker.CountItemAnchorOption} a: " +
+                    $"{PathMarker.MultipleItemAnchorOption} ~c: }}").Replace(" ", Environment.NewLine);
         }
 
         [TestMethod]
-        public void TestOldSimpleFlatPathWriterForNoPath() {
+        public void TestSimpleFlatPathWriterForNoPath() {
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
             var a = Item.New(t3, "a:aa:aaa".Split(':'));
             var c = Item.New(t3, "c:cc:ccc".Split(':'));
 
-            var dependencies = new[] {
-                FromTo(a, c),
-            };
+            var dependencies = new[] { FromTo(a, c) };
 
-            using (var s = new MemoryStream()) {
-                var w = new OldPathWriter();
-                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "F");
-                string result = Encoding.ASCII.GetString(s.ToArray());
-                Assert.AreEqual("", result.Trim());
-            }
+            string result = FindPathsAndWriteFlat(dependencies, "A", CreateDefaultOptions("A"));
+
+            Assert.AreEqual("", result.Trim());
         }
 
         [TestMethod]
-        public void TestOldSimpleFlatPathWriter() {
-            using (var s = new MemoryStream()) {
-                var w = new OldPathWriter();
-                IEnumerable<Dependency> dependencies = w.CreateSomeTestDependencies();
-                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "F");
-                string result = Encoding.ASCII.GetString(s.ToArray());
-                Assert.AreEqual(@"a:aa:aaa
-b:bb:bbb $ (1)
-c:cc:ccc (1)
-d:dd:ddd $ (1)
-e:ee:eee $ (1)
-f:ff:fff $ (1)
+        public void TestSimpleFlatPathWriter() {
+            IEnumerable<Dependency> dependencies = new PathMarker().CreateSomeTestDependencies();
 
-a:aa:aaa
-b:bb:bbb $ (1)
-c:cc:ccc (1)
-d:dd:ddd $ (1)
-<= b:bb:bbb $ (1)
+            string result = FindPathsAndWriteFlat(dependencies, "A", CreateDefaultOptions("A"));
 
-a:aa:aaa
-b:bb:bbb $ (1)
-g:gg:ggg $ (1)
+            Assert.AreEqual(@"-- A0
+T3:a:aa:aaa'A0+A1+A2+A3
+T3:b:bb:bbb'A $
+T3:c:cc:ccc'A
+T3:d:dd:ddd'A $
+T3:e:ee:eee'A $
+T3:f:ff:fff'A $
 
-a:aa:aaa
-h:hh:hhh $ (1)
-g:gg:ggg $ (1)", result.Trim());
-            }
+-- A1
+T3:a:aa:aaa'A0+A1+A2+A3
+T3:b:bb:bbb'A $
+T3:c:cc:ccc'A
+T3:d:dd:ddd'A $
+<= T3:b:bb:bbb'A $
+
+-- A2
+T3:a:aa:aaa'A0+A1+A2+A3
+T3:b:bb:bbb'A $
+T3:g:gg:ggg'A $
+
+-- A3
+T3:a:aa:aaa'A0+A1+A2+A3
+T3:h:hh:hhh'A $
+T3:g:gg:ggg'A $", result.Trim());
         }
 
         [TestMethod]
-        public void TestOldSimpleFlatPathWriterForYPath() {
+        public void TestSimpleFlatPathWriterForYPath() {
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
             var a = Item.New(t3, "a:aa:aaa".Split(':'));
@@ -120,19 +136,17 @@ g:gg:ggg $ (1)", result.Trim());
             var d = Item.New(t3, "d:dd:ddd".Split(':'));
 
             var dependencies = new[] {
-                FromTo(a, b),
-                FromTo(b, c),
-                FromTo(b ,d),
-            };
+                        FromTo(a, b),
+                        FromTo(b, c),
+                        FromTo(b ,d),
+                    };
 
-            using (var s = new MemoryStream()) {
-                var w = new OldPathWriter();
-                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "F");
-                string result = Encoding.ASCII.GetString(s.ToArray());
-                Assert.AreEqual(@"a:aa:aaa
-b:bb:bbb $ (1)
-d:dd:ddd $ (1)", result.Trim());
-            }
+            string result = FindPathsAndWriteFlat(dependencies, "A", CreateDefaultOptions("A"));
+
+            Assert.AreEqual(@"-- A0
+T3:a:aa:aaa'A0
+T3:b:bb:bbb'A $
+T3:d:dd:ddd'A $", result.Trim());
         }
 
         [TestMethod]
@@ -146,26 +160,17 @@ d:dd:ddd $ (1)", result.Trim());
             Item f = Item.New(xy, "f", "4");
             Item g = Item.New(xy, "g", "5");
             Dependency[] dependencies = {
-                FromTo(a, b), FromTo(a, c), FromTo(b, d), FromTo(c, d), FromTo(d, e), FromTo(d, f), FromTo(e, g), FromTo(f, g)
-            };
+                        FromTo(a, b), FromTo(a, c), FromTo(b, d), FromTo(c, d), FromTo(d, e), FromTo(d, f), FromTo(e, g), FromTo(f, g)
+                    };
 
-            using (var temp = DisposingFile.CreateTempFileWithTail(".txt")) {
-                var w = new OldPathWriter();
-                w.Render(new GlobalContext(), dependencies, null,
-                    "{ -ps F -pi a -ci 2 -pi g }".Replace(" ", "\r\n"), temp.Filename, false);
+            string o = FindPathsAndWriteFlat(dependencies, "A", "{ -im A -pi a -ci 2 -pi g }".Replace(" ", Environment.NewLine));
 
-                using (var sw = new StreamReader(temp.Filename)) {
-                    string o = sw.ReadToEnd();
-                    Console.WriteLine(o);
-                    Assert.IsTrue(o.Contains("b:2 (*)"));
-                    Assert.IsTrue(o.Contains("c:2 (*)"));
-                    Assert.IsTrue(o.Contains("d:3 (2)"));
-                    Assert.IsTrue(o.Contains("e:4 (2)"));
-                    Assert.IsTrue(o.Contains("g:5 $ (2)"));
-                }
-            }
+            Console.WriteLine(o);
+            Assert.IsTrue(o.Contains("b:2 (*)"));
+            Assert.IsTrue(o.Contains("c:2 (*)"));
+            Assert.IsTrue(o.Contains("d:3'A=2"));
+            Assert.IsTrue(o.Contains("e:4'A=2"));
+            Assert.IsTrue(o.Contains("g:5'A=2 $"));
         }
-
-        #endregion OldPathWriter
     }
 }

@@ -81,18 +81,15 @@ namespace NDepCheck.Rendering.TextWriting {
             foreach (var kvp in paths) {
                 string marker = kvp.Key;
                 List<Dependency> path = kvp.Value;
+                tw.WriteLine($"-- {marker}");
 
-                tw.WriteLine(marker + ":");
                 Item firstItem = path[0].UsingItem;
-                tw.WriteLine(firstItem.ItemAsString(showItemMarkers, 0, isEnd: false, endOfCycle: false,
+                tw.WriteLine(firstItem.ItemAsString(showItemMarkers, isEnd: false, endOfCycle: false,
                     matchedByCountMatch: (firstItem.MarkerSet.GetValue(marker, ignoreCase) & PathSupport.IS_MATCHED_BY_COUNT_MATCH) != 0));
                 foreach (var d in path) {
                     int dependencyValue = d.MarkerSet.GetValue(marker, ignoreCase);
 
-                    Item usedItem = d.UsedItem;
-                    int itemValue = usedItem.MarkerSet.GetValue(marker, ignoreCase);
-
-                    tw.WriteLine(usedItem.ItemAsString(showItemMarkers, Equals(usedItem, firstItem) ? 0 : itemValue,
+                    tw.WriteLine(d.UsedItem.ItemAsString(showItemMarkers,
                         isEnd : dependencyValue.HasPathFlag(PathSupport.IS_END),
                         endOfCycle : dependencyValue.HasPathFlag(PathSupport.IS_LOOPBACK),
                         matchedByCountMatch : dependencyValue.HasPathFlag(PathSupport.IS_MATCHED_BY_COUNT_MATCH)
