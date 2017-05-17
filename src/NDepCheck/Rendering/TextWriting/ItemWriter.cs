@@ -173,7 +173,7 @@ namespace NDepCheck.Rendering.TextWriting {
 
         public string GetHelp(bool detailedHelp, string filter) {
             return
-$@"  Writes items to .txtfiles.
+$@"  Writes items to .txt files.
 
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }

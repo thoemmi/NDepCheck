@@ -79,7 +79,7 @@ $@"  Writes dependencies to file in .dot format (graphviz; see http://graphviz.o
         }
 
         public IEnumerable<Dependency> CreateSomeTestDependencies() {
-            return SomeRendererTestData.CreateSomeTestItems();
+            return RendererSupport.CreateSomeTestItems();
         }
     }
 }

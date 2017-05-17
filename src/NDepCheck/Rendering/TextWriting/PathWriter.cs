@@ -181,23 +181,11 @@ namespace NDepCheck.Rendering.TextWriting {
         private abstract class AbstractPrintTraverser : IPrintTraverser {
             protected readonly bool _showItemMarkers;
             [NotNull]
-            private readonly Action _checkAbort;
+            protected readonly Action _checkAbort;
 
             protected AbstractPrintTraverser(bool showItemMarkers, [NotNull] Action checkAbort) {
                 _showItemMarkers = showItemMarkers;
                 _checkAbort = checkAbort;
-            }
-
-            protected string ItemAsString(bool showItemMarkers, Dictionary<Item, int> counts, Item usedItem, bool isEnd, bool endOfCycle, bool matchedByCountMatch) {
-                _checkAbort();
-
-                int count;
-                counts.TryGetValue(usedItem, out count);
-                return (endOfCycle ? "<= " : "")
-                       + (showItemMarkers ? usedItem.AsFullString() : usedItem.AsString())
-                       + (matchedByCountMatch ? " (*)" : "")
-                       + (isEnd ? " $" : "")
-                       + (count > 0 ? " (" + count + ")" : "");
             }
 
             public void Traverse(TextWriter tw, Dictionary<Item, List<PathNode<Item, Dependency>>> paths, Dictionary<Item, int> counts) {
@@ -217,14 +205,18 @@ namespace NDepCheck.Rendering.TextWriting {
             protected override void Traverse(TextWriter tw, Dictionary<Item, List<PathNode<Item, Dependency>>> paths,
                 Dictionary<Item, int> counts, Item head) {
                 var stack = new Stack<string>();
-                stack.Push(ItemAsString(_showItemMarkers, counts, head, false, false, false));
+
+                stack.Push(head.ItemAsString(_showItemMarkers, counts.Get(head), false, false, false));
                 foreach (var p in paths[head]) {
                     Traverse(tw, stack, p, counts);
                 }
             }
 
             private void Traverse(TextWriter tw, Stack<string> stack, [NotNull] PathNode<Item, Dependency> node, Dictionary<Item, int> counts) {
-                stack.Push(ItemAsString(_showItemMarkers, counts, node.Dependency.UsedItem, node.IsEnd, node.IsEndOfCycle, node.MatchedByCountMatch));
+                _checkAbort();
+
+                Item item = node.Dependency.UsedItem;
+                stack.Push(item.ItemAsString(_showItemMarkers, counts.Get(item), node.IsEnd, node.IsEndOfCycle, node.MatchedByCountMatch));
                 if (node.Children.Any()) {
                     foreach (var child in node.Children) {
                         Traverse(tw, stack, child, counts);
@@ -257,7 +249,7 @@ namespace NDepCheck.Rendering.TextWriting {
 
             protected override void Traverse(TextWriter tw, Dictionary<Item, List<PathNode<Item, Dependency>>> paths,
                 Dictionary<Item, int> counts, Item head) {
-                tw.WriteLine(ItemAsString(_showItemMarkers, counts, head, false, false, false));
+                tw.WriteLine(head.ItemAsString(_showItemMarkers, counts.Get(head), false, false, false));
                 List<PathNode<Item, Dependency>> path = paths[head];
                 var lastChild = path.LastOrDefault();
                 foreach (var p in path) {
@@ -267,14 +259,17 @@ namespace NDepCheck.Rendering.TextWriting {
             }
 
             private void Traverse(TextWriter tw, bool isLastChild, string currentIndent, [NotNull] PathNode<Item, Dependency> node, Dictionary<Item, int> counts) {
+                _checkAbort();
+
                 if (_popsAfterLastPush >= _manyPopsLimit) {
                     tw.WriteLine(currentIndent + _regularIndent);
                 }
                 _popsAfterLastPush = 0;
+                Item item = node.Dependency.UsedItem;
                 tw.WriteLine(
                     currentIndent
                     + (isLastChild ? _lastPrefix : _regularPrefix)
-                    + ItemAsString(_showItemMarkers, counts, node.Dependency.UsedItem, node.IsEnd, node.IsEndOfCycle, node.MatchedByCountMatch)
+                    + item.ItemAsString(_showItemMarkers, counts.Get(item), node.IsEnd, node.IsEndOfCycle, node.MatchedByCountMatch)
                 );
                 var lastChild = node.Children.LastOrDefault();
                 foreach (var child in node.Children) {
@@ -509,9 +504,7 @@ namespace NDepCheck.Rendering.TextWriting {
 
         public string GetHelp(bool detailedHelp, string filter) {
             return
-    $@"  Writes dependencies to .dip files, which can be read in by 
-  NDepCheck's DipReader. This is very helpful for building pipelines 
-  that process dependencies for different purposes.
+    $@"  Writes complete paths to a .txt files.
 
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }

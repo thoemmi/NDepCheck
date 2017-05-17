@@ -2,12 +2,14 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NDepCheck.Rendering.TextWriting;
 using NDepCheck.Transforming.PathFinding;
 
 namespace NDepCheck.Tests {
     [TestClass]
-    public class TestFindCycleDeps {
+    public class TestMarkCycleDeps {
         private void AssertEdgeCount(int expected, string o) {
             string[] lines = o.Split('\n');
             int actual = lines.Count(line => line.Contains(Dependency.DIP_ARROW));
@@ -15,13 +17,13 @@ namespace NDepCheck.Tests {
         }
 
         [TestMethod]
-        public void TestFindSmallCycle() {
+        public void TestMarkSmallCycle() {
             var a = Item.New(ItemType.SIMPLE, "a");
             var b = Item.New(ItemType.SIMPLE, "b");
             var deps = new[] { new Dependency(a, b, null, "", 1), new Dependency(b, a, null, "", 1), };
             var result = new List<Dependency>();
 
-            new FindCycleDeps().Transform(new GlobalContext(), deps, "", result);
+            new MarkCycleDeps().Transform(new GlobalContext(), deps, "", result);
 
             Assert.AreEqual(2, result.Count);
             Assert.AreEqual(1, result[0].BadCt);
@@ -29,7 +31,7 @@ namespace NDepCheck.Tests {
         }
 
         [TestMethod]
-        public void TestFindLaterCycle() {
+        public void TestMarkLaterCycleWithExplicitAsserts() {
             var a = Item.New(ItemType.SIMPLE, "a");
             var b = Item.New(ItemType.SIMPLE, "b");
             var c = Item.New(ItemType.SIMPLE, "c");
@@ -44,7 +46,7 @@ namespace NDepCheck.Tests {
             };
             var result = new List<Dependency>();
 
-            new FindCycleDeps().Transform(new GlobalContext(), deps, FindCycleDeps.KeepOnlyCyclesOption.Opt, result);
+            new MarkCycleDeps().Transform(new GlobalContext(), deps, MarkCycleDeps.KeepOnlyCyclesOption.Opt, result);
 
             result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
 
@@ -64,6 +66,23 @@ namespace NDepCheck.Tests {
             var c = Item.New(ItemType.SIMPLE, "c");
             var d = Item.New(ItemType.SIMPLE, "d");
             var e = Item.New(ItemType.SIMPLE, "e");
+
+            List<Dependency> result = CreateDependenciesAndFindCycles(a, b, c, d, e, keepOnlyCyclesOption: true, markerPrefix: "Kreis");
+
+            Assert.AreEqual(5, result.Count);
+            Assert.AreEqual(a, result[0].UsingItem);
+            Assert.AreEqual(1, result[0].BadCt);
+            Assert.AreEqual(c, result[1].UsingItem);
+            Assert.AreEqual(1, result[1].BadCt);
+            Assert.AreEqual(d, result[2].UsingItem);
+            Assert.AreEqual(1, result[2].BadCt);
+            Assert.AreEqual(d, result[3].UsingItem);
+            Assert.AreEqual(1, result[3].BadCt);
+            Assert.AreEqual(e, result[4].UsingItem);
+            Assert.AreEqual(1, result[4].BadCt);
+        }
+
+        private static List<Dependency> CreateDependenciesAndFindCycles(Item a, Item b, Item c, Item d, Item e, bool keepOnlyCyclesOption, string markerPrefix) {
             var deps = new[] {
                 // "Confusing" edges to sink b
                 new Dependency(a, b, null, "", 1),
@@ -82,22 +101,12 @@ namespace NDepCheck.Tests {
             };
             var result = new List<Dependency>();
 
-            new FindCycleDeps().Transform(new GlobalContext(), deps,
-                $"{{ {FindCycleDeps.KeepOnlyCyclesOption} {FindCycleDeps.IgnoreSelfCyclesOption} }}".Replace(" ", "\r\n"), result);
+            new MarkCycleDeps().Transform(new GlobalContext(), deps,
+                $"{{ {MarkCycleDeps.AddIndexedMarkerOption} {markerPrefix} {(keepOnlyCyclesOption ? MarkCycleDeps.KeepOnlyCyclesOption.Opt : "")} {MarkCycleDeps.IgnoreSelfCyclesOption}  }}"
+                    .Replace(" ", "\r\n"), result);
 
             result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
-
-            Assert.AreEqual(5, result.Count);
-            Assert.AreEqual(a, result[0].UsingItem);
-            Assert.AreEqual(1, result[0].BadCt);
-            Assert.AreEqual(c, result[1].UsingItem);
-            Assert.AreEqual(1, result[1].BadCt);
-            Assert.AreEqual(d, result[2].UsingItem);
-            Assert.AreEqual(1, result[2].BadCt);
-            Assert.AreEqual(d, result[3].UsingItem);
-            Assert.AreEqual(1, result[3].BadCt);
-            Assert.AreEqual(e, result[4].UsingItem);
-            Assert.AreEqual(1, result[4].BadCt);
+            return result;
         }
 
         [TestMethod]
@@ -122,10 +131,10 @@ namespace NDepCheck.Tests {
             var result = new List<Dependency>();
 
             const string marker = "Cycle";
-            new FindCycleDeps().Transform(new GlobalContext(), deps,
-                ($"{{ {FindCycleDeps.KeepOnlyCyclesOption} " +
-                 $"{FindCycleDeps.MaxCycleLengthOption} 3 " +
-                 $"{FindCycleDeps.EffectOptions.AddMarkerOption} {marker} }}").Replace(" ", "\r\n"), result);
+            new MarkCycleDeps().Transform(new GlobalContext(), deps,
+            ($"{{ {MarkCycleDeps.KeepOnlyCyclesOption} " +
+             $"{MarkCycleDeps.MaxCycleLengthOption} 3 " +
+             $"{MarkCycleDeps.EffectOptions.AddMarkerOption} {marker} }}").Replace(" ", "\r\n"), result);
 
             result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
 
@@ -141,7 +150,7 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                Program.TransformTestDataOption.Opt, ".", typeof(FindCycleDeps).Name, "{", FindCycleDeps.KeepOnlyCyclesOption.Opt, "}",
+                Program.TransformTestDataOption.Opt, ".", typeof(MarkCycleDeps).Name, "{", MarkCycleDeps.KeepOnlyCyclesOption.Opt, "}",
                 Program.WriteDipOption.Opt, outFile
             }));
 
@@ -154,6 +163,12 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestMarkLaterCycle() {
+            const string cycleMarkerPrefix = "C";
+            List<Dependency> result = FindLaterCycle(cycleMarkerPrefix);
+            AssertIsMarkedAsCycle(cycleMarkerPrefix + "0", result.Skip(2), result.Take(2));
+        }
+
+        private static List<Dependency> FindLaterCycle(string cycleMarkerPrefix) {
             var a = Item.New(ItemType.SIMPLE, "a");
             var b = Item.New(ItemType.SIMPLE, "b");
             var c = Item.New(ItemType.SIMPLE, "c");
@@ -168,14 +183,12 @@ namespace NDepCheck.Tests {
             };
             var result = new List<Dependency>();
 
-            const string markerPrefix = "C";
-            new FindCycleDeps().Transform(new GlobalContext(), deps,
-                $"{{ {FindCycleDeps.AddIndexedMarkerOption} {markerPrefix} }}".Replace(" ", Environment.NewLine),
+            new MarkCycleDeps().Transform(new GlobalContext(), deps,
+                $"{{ {MarkCycleDeps.AddIndexedMarkerOption} {cycleMarkerPrefix} }}".Replace(" ", Environment.NewLine),
                 result);
 
             result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
-
-            AssertIsMarkedAsCycle("C0", result.Skip(2), result.Take(2));
+            return result;
         }
 
         private void AssertIsMarkedAsCycle(string marker, IEnumerable<Dependency> cycle, IEnumerable<Dependency> notCycle) {
@@ -184,9 +197,11 @@ namespace NDepCheck.Tests {
                 for (var i = 0; i < cycleAsArray.Length; i++) {
                     int markerValue = cycleAsArray[i].MarkerSet.GetValue(marker, false);
                     Assert.IsTrue(markerValue > 0, $"Wrong marker {markerValue} @ {i}");
-                    Assert.AreEqual(i == 0 ? AbstractPathMarker.IS_START : 0, markerValue & AbstractPathMarker.IS_START, $"Wrong IS_START @ {i}");
-                    Assert.AreEqual(i == cycleAsArray.Length - 1 ? AbstractPathMarker.IS_END : 0, markerValue & AbstractPathMarker.IS_END, $"Wrong IS_END @ {i}");
-                    Assert.AreEqual(i == cycleAsArray.Length - 1 ? AbstractPathMarker.IS_LOOPBACK : 0, markerValue & AbstractPathMarker.IS_LOOPBACK, $"Wrong IS_LOOPBACK @ {i}");
+                    Assert.AreEqual(i == 0 ? PathSupport.IS_START : 0, markerValue & PathSupport.IS_START, $"Wrong IS_START @ {i}");
+                    Assert.AreEqual(i == cycleAsArray.Length - 1 ? PathSupport.IS_END : 0, markerValue & PathSupport.IS_END,
+                        $"Wrong IS_END @ {i}");
+                    Assert.AreEqual(i == cycleAsArray.Length - 1 ? PathSupport.IS_LOOPBACK : 0, markerValue & PathSupport.IS_LOOPBACK,
+                        $"Wrong IS_LOOPBACK @ {i}");
                 }
             }
             {
@@ -196,6 +211,55 @@ namespace NDepCheck.Tests {
                     Assert.AreEqual(0, markerValue, $"Wrong marker @ {i}");
                 }
             }
+        }
+
+
+        [TestMethod]
+        public void TestWriteLaterCycle() {
+            const string cycleMarkerPrefix = "C";
+            List<Dependency> dependencies = FindLaterCycle(cycleMarkerPrefix);
+
+            using (var s = new MemoryStream()) {
+                var w = new FlatPathWriter();
+                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, cycleMarkerPrefix + "* -sm");
+                string result = Encoding.ASCII.GetString(s.ToArray());
+                Assert.AreEqual(@"C0:
+SIMPLE:c'C0
+SIMPLE:d
+SIMPLE:e
+<= SIMPLE:c'C0 $", result.Trim());
+            }
+        }
+
+        [TestMethod]
+        public void TestWriteOverlappingCycles() {
+            const string cycleMarkerPrefix = "X";
+
+            var a = Item.New(ItemType.SIMPLE, "a");
+            var b = Item.New(ItemType.SIMPLE, "b");
+            var c = Item.New(ItemType.SIMPLE, "c");
+            var d = Item.New(ItemType.SIMPLE, "d");
+            var e = Item.New(ItemType.SIMPLE, "e");
+
+            List<Dependency> dependencies = CreateDependenciesAndFindCycles(a, b, c, d, e, keepOnlyCyclesOption: false, markerPrefix: cycleMarkerPrefix);
+
+            using (var s = new MemoryStream()) {
+                var w = new FlatPathWriter();
+                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, cycleMarkerPrefix + "* -sm");
+                string result = Encoding.ASCII.GetString(s.ToArray());
+                Assert.AreEqual(@"X0:
+SIMPLE:a'X0
+SIMPLE:c'X1
+SIMPLE:d
+SIMPLE:e
+<= SIMPLE:a'X0 $
+
+X1:
+SIMPLE:c'X1
+SIMPLE:d
+<= SIMPLE:c'X1 $", result.Trim());
+            }
+
         }
     }
 }

@@ -126,9 +126,9 @@ namespace NDepCheck.Markers {
                 : "";
         }
 
-        public IEnumerable<string> MatchingMarkerStrings(IMatcher matcher) {
-            return Markers.Where(kvp => kvp.Value != 0 && matcher.Matches(kvp.Key, null) != null)
-                          .Select(kvp => kvp.Key + "=" + kvp.Value);
+        public IEnumerable<string> MatchingMarkers(IEnumerable<IMatcher> matchers) {
+            return Markers.Where(kvp => kvp.Value != 0 && matchers.Any(matcher => matcher.Matches(kvp.Key, null) != null))
+                          .Select(kvp => kvp.Key);
         }
 
         public MutableMarkerSet CloneAsMutableMarkerSet(bool b) {

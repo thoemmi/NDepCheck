@@ -13,9 +13,12 @@ namespace NDepCheck.Rendering {
         }
 
         [NotNull]
-        public Func<Item, string> OrderSelector { get; }
+        public Func<Item, IComparable> OrderSelector {
+            get;
+        }
 
-        public OrderSupport([NotNull] Func<Item, string> orderSelector) {
+        /// <param name="orderSelector">must always return not-null</param>
+        public OrderSupport([NotNull] Func<Item, IComparable> orderSelector) {
             OrderSelector = orderSelector;
         }
 
@@ -24,17 +27,17 @@ namespace NDepCheck.Rendering {
             if (int.TryParse(pattern, out field)) {
                 return new OrderSupport(item => item.GetCasedValue(field));
             } else {
-                IMatcher orderMatcher = MarkerMatch.CreateMatcher(pattern, ignoreCase);
-                return new OrderSupport(item => item.MarkerSet.MatchingMarkerStrings(orderMatcher).FirstOrDefault());
+                IMatcher[] orderMatcher = { MarkerMatch.CreateMatcher(pattern, ignoreCase) };
+                return new OrderSupport(item => item.MarkerSet.MatchingMarkers(orderMatcher).Sum(m => item.MarkerSet.GetValue(m, ignoreCase)));
             }
         }
 
         public void SortWithEdgeCount(List<Item> list, Dependency[] relevantDependencies, Func<Item, Dependency, bool> filter) {
             list.Sort((i1, i2) => {
-                string order1 = OrderSelector(i1);
-                string order2 = OrderSelector(i2);
-                return order1 != order2
-                    ? string.Compare(order1, order2, StringComparison.Ordinal)
+                IComparable order1 = OrderSelector(i1);
+                IComparable order2 = OrderSelector(i2);
+                return !Equals(order1, order2)
+                    ? order1.CompareTo(order2)
                     : Sum(relevantDependencies, d => filter(i2, d)) - Sum(relevantDependencies, d => filter(i1, d));
             });
         }

@@ -6,7 +6,7 @@ using NDepCheck.Matching;
 using NDepCheck.Transforming.PathFinding;
 
 namespace NDepCheck.Rendering.PathFinding {
-    public class PathMarker : AbstractPathMarker, ITransformer {
+    public class PathMarker : ITransformer {
         private struct DownInfo {
             public readonly IMatchableObject BehindCountMatch;
 
@@ -204,7 +204,7 @@ namespace NDepCheck.Rendering.PathFinding {
                     pathMarkers.AddRange(Traverse(stack, p, counts));
                 }
                 foreach (var m in pathMarkers) {
-                    MarkPathElement(head, m, 0, true, false /*??*/, false /*??*/, false /*??*/);
+                    head.MarkPathElement(m, 0, true, false /*??*/, false /*??*/, false /*??*/);
                 }
             }
 
@@ -220,8 +220,8 @@ namespace NDepCheck.Rendering.PathFinding {
                 } else {
                     string marker = _markerPrefix + _pathCount++;
                     foreach (var s in stack.Reverse()) {
-                        MarkPathElement(s.Dependency, marker, 0, false/*??*/, node.IsEnd, node.DependencyMatchedByCountMatch, node.IsEndOfCycle);
-                        MarkPathElement(s.Dependency.UsedItem, marker, 0, false/*??*/, node.IsEnd, node.UsedItemMatchedByCountMatch, node.IsEndOfCycle);
+                        s.Dependency.MarkPathElement(marker, 0, false/*??*/, node.IsEnd, node.DependencyMatchedByCountMatch, node.IsEndOfCycle);
+                        s.Dependency.UsedItem.MarkPathElement(marker, 0, false/*??*/, node.IsEnd, node.UsedItemMatchedByCountMatch, node.IsEndOfCycle);
                     }
                     result.Add(marker);
                 }

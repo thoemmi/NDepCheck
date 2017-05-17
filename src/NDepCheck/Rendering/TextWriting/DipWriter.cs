@@ -18,7 +18,6 @@ namespace NDepCheck.Rendering.TextWriting {
         public static int Write(IEnumerable<Dependency> dependencies, TextWriter sw, bool withExampleInfo, IEnumerable<DependencyMatch> matches, IEnumerable<DependencyMatch> excludes) {
             var writtenTypes = new HashSet<ItemType>();
 
-            sw.WriteLine($"// Written {DateTime.Now} by {typeof(DipWriter).Name} in NDepCheck {Program.VERSION}");
             int n = 0;
             foreach (var d in dependencies.Where(d => d.IsMatch(matches, excludes))) {
                 WriteItemType(writtenTypes, d.UsingItem.Type, sw);
@@ -57,6 +56,7 @@ namespace NDepCheck.Rendering.TextWriting {
 
         public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, Stream output, string option) {
             using (var sw = new StreamWriter(output)) {
+                sw.WriteLine($"// Written {DateTime.Now} by {typeof(DipWriter).Name} in NDepCheck {Program.VERSION}");
                 Write(dependencies, sw, withExampleInfo: true, matches: null, excludes: null);
             }
         }

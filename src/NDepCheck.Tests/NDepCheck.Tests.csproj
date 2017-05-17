@@ -78,7 +78,7 @@
     <Compile Include="StringTests.cs" />
     <Compile Include="TestAddTransitiveDeps.cs" />
     <Compile Include="TestCheckDeps.cs" />
-    <Compile Include="TestFindCycleDeps.cs" />
+    <Compile Include="TestMarkCycleDeps.cs" />
     <Compile Include="TestConstraints.cs" />
     <Compile Include="TestFlatPathWriters.cs" />
     <Compile Include="TestHideTransitiveEdges.cs" />

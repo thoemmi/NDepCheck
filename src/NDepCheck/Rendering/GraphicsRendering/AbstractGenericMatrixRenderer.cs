@@ -14,7 +14,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         private static readonly Option[] _allOptions = { MaxNameWidthOption, WriteBadCountOption, InnerMatchOption };
 
         public IEnumerable<Dependency> CreateSomeTestDependencies() {
-            return SomeRendererTestData.CreateSomeTestItems();
+            return RendererSupport.CreateSomeTestItems();
         }
 
         public string GetHelp(bool detailedHelp, string filter) {

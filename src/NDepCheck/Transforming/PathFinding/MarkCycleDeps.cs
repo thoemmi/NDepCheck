@@ -5,7 +5,7 @@ using JetBrains.Annotations;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.PathFinding {
-    public class FindCycleDeps : AbstractPathMarker, ITransformer {
+    public class MarkCycleDeps : ITransformer {
         private class FindCycleDepsPathFinder<TDependency, TItem>
             : AbstractDepthFirstPathTraverser<TDependency, TItem, Ignore, Ignore, Ignore>
                 where TDependency : AbstractDependency<TItem>
@@ -159,7 +159,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             string indexedMarkerPrefix = null;
 
             IEnumerable<Action<Dependency>> effects = EffectOptions.Parse(globalContext: globalContext,
-                argsAsString: transformOptions, defaultReasonForSetBad: typeof(FindCycleDeps).Name,
+                argsAsString: transformOptions, defaultReasonForSetBad: typeof(MarkCycleDeps).Name,
                     ignoreCase: _ignoreCase, moreOptionActions: new[] {
                     IgnoreSelfCyclesOption.Action((args, j) => {
                         ignoreSelfCycles = true;
@@ -189,12 +189,13 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             if (indexedMarkerPrefix != null) {
                 recordNewCycleToRoot += (cycleIndex, cycle) => {
                     string indexedMarker = indexedMarkerPrefix + cycleIndex;
-                    var cycleDependencies = cycle.Reverse().ToArray();
+                    Dependency[] cycleDependencies = cycle.Reverse().ToArray();
+                    cycleDependencies[0].UsingItem.MarkPathElement(indexedMarker, 0, isStart: true, isEnd: false, isMatchedByCountMatch: false, isLoopBack: false);
                     for (var i = 0; i < cycleDependencies.Length; i++) {
-                        var d = cycleDependencies[i];
-                        var isEnd = i == cycleDependencies.Length - 1;
-                        MarkPathElement(d, indexedMarker, i, isStart: i == 0, isEnd: isEnd, isMatchedByCountMatch: false, isLoopBack: isEnd);
-                        MarkPathElement(d.UsingItem, indexedMarker, i, isStart: i == 0, isEnd: i == 0, isMatchedByCountMatch: false, isLoopBack: isEnd);
+                        Dependency d = cycleDependencies[i];
+                        bool isEnd = i == cycleDependencies.Length - 1;
+                        d.MarkPathElement(indexedMarker, i, isStart: i == 0, isEnd: isEnd, isMatchedByCountMatch: false, isLoopBack: isEnd);
+                        // Currently no reachability counts, as no path match options are implemented
                     }
                 };
             }

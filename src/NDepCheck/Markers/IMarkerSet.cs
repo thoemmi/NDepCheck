@@ -11,7 +11,7 @@ namespace NDepCheck.Markers {
 
         string AsFullString();
 
-        IEnumerable<string> MatchingMarkerStrings(IMatcher matcher);
+        IEnumerable<string> MatchingMarkers(IEnumerable<IMatcher> matchers);
 
         MutableMarkerSet CloneAsMutableMarkerSet(bool b);
     }

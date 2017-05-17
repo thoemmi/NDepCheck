@@ -1,0 +1,118 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using NDepCheck.Matching;
+using NDepCheck.Transforming.PathFinding;
+
+namespace NDepCheck.Rendering.TextWriting {
+    public class FlatPathWriter : IRenderer {
+        public static readonly Option PathMarkerOption = new Option("pm", "path-marker", "pattern", "path marker prefix to be used to extract paths", @default: "no item matches", multiple: true);
+        public static readonly Option ShowItemMarkersOption = new Option("sm", "show-markers", "", "Shows markers on items", @default: false);
+
+        private static readonly Option[] _allOptions = { PathMarkerOption, ShowItemMarkersOption };
+
+        public string GetHelp(bool detailedHelp, string filter) {
+            var result =
+    $@"  Writes complete paths to a .txt files. The paths are defined by specfic
+  markers together with their values as follows:
+
+{Option.CreateHelp(_allOptions, detailedHelp, filter)}";
+            if (detailedHelp) {
+                result += @"
+    All items and dependencies that have an identical marker are assumed to be a 
+    path in ascending order of the marker value.
+
+    If the integer marker value has certain bits set, the items or dependencies
+    are special:
+    - If the lowest bit is set (i.e., the value is odd), this is a 'start element'.
+    - If the second bit is set, this is an 'end element'.
+    - ___MORE INFO MISSING___
+
+    FindCycleDeps and PathMarker are two transformers that create such markers.";
+            }
+            return result;
+        }
+
+        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
+            return GlobalContext.CreateFullFileName(baseFileName, ".txt");
+        }
+
+        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName,
+            bool ignoreCase) {
+            var markerMatchers = new List<IMatcher>();
+            bool showItemMarkers = false;
+
+            Option.Parse(globalContext, argsAsString,
+                PathMarkerOption.Action((args, j) => {
+                    markerMatchers.Add(MarkerMatch.CreateMatcher(Option.ExtractRequiredOptionValue(args, ref j, "Missing item match"), globalContext.IgnoreCase));
+                    return j;
+                }),
+                ShowItemMarkersOption.Action((args, j) => {
+                    showItemMarkers = true;
+                    return j;
+                }));
+
+            using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(globalContext, argsAsString, baseFileName))) {
+                TextWriter tw = sw.Writer;
+                tw.WriteLine($"// Written {DateTime.Now} by {typeof(FlatPathWriter).Name} in NDepCheck {Program.VERSION}");
+                tw.WriteLine();
+                WritePaths(dependencies, ignoreCase, markerMatchers, tw, showItemMarkers);
+            }
+        }
+
+        private static void WritePaths(IEnumerable<Dependency> dependencies, bool ignoreCase, IEnumerable<IMatcher> markerMatchers, TextWriter tw, bool showItemMarkers) {
+            var paths = new SortedDictionary<string, List<Dependency>>();
+
+            foreach (var d in dependencies) {
+                foreach (var marker in d.MarkerSet.MatchingMarkers(markerMatchers)) {
+                    List<Dependency> path;
+                    if (!paths.TryGetValue(marker, out path)) {
+                        paths.Add(marker, path = new List<Dependency>());
+                    }
+                    path.Add(d);
+                }
+            }
+
+            foreach (var kvp in paths) {
+                kvp.Value.Sort((d1, d2) => d1.MarkerSet.GetValue(kvp.Key, ignoreCase) - d2.MarkerSet.GetValue(kvp.Key, ignoreCase));
+            }
+
+            foreach (var kvp in paths) {
+                string marker = kvp.Key;
+                List<Dependency> path = kvp.Value;
+
+                tw.WriteLine(marker + ":");
+                Item firstItem = path[0].UsingItem;
+                tw.WriteLine(firstItem.ItemAsString(showItemMarkers, 0, isEnd: false, endOfCycle: false,
+                    matchedByCountMatch: (firstItem.MarkerSet.GetValue(marker, ignoreCase) & PathSupport.IS_MATCHED_BY_COUNT_MATCH) != 0));
+                foreach (var d in path) {
+                    int dependencyValue = d.MarkerSet.GetValue(marker, ignoreCase);
+
+                    Item usedItem = d.UsedItem;
+                    int itemValue = usedItem.MarkerSet.GetValue(marker, ignoreCase);
+
+                    tw.WriteLine(usedItem.ItemAsString(showItemMarkers, Equals(usedItem, firstItem) ? 0 : itemValue,
+                        isEnd : dependencyValue.HasPathFlag(PathSupport.IS_END),
+                        endOfCycle : dependencyValue.HasPathFlag(PathSupport.IS_LOOPBACK),
+                        matchedByCountMatch : dependencyValue.HasPathFlag(PathSupport.IS_MATCHED_BY_COUNT_MATCH)
+                    ));
+                }
+                tw.WriteLine();
+            }
+
+            Log.WriteInfo($"... written {paths.Count} paths");
+        }
+
+        public void RenderToStreamForUnitTests(GlobalContext globalContext, IEnumerable<Dependency> dependencies, Stream stream, string option) {
+            using (var sw = new StreamWriter(stream)) {
+                string[] options = (option ?? "").Split(' ');
+                WritePaths(dependencies, globalContext.IgnoreCase, new [] { MarkerMatch.CreateMatcher(options[0], globalContext.IgnoreCase) }, sw, showItemMarkers: options.Contains("-sm"));
+            }
+        }
+
+        public IEnumerable<Dependency> CreateSomeTestDependencies() {
+            return RendererSupport.CreateSomeTestItems();
+        }
+    }
+}

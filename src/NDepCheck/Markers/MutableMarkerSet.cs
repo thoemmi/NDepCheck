@@ -84,7 +84,7 @@ namespace NDepCheck.Markers {
                                                               AbstractMarkerSet rightMarkers, bool ignoreCase) {
             IReadOnlyDictionary<string, int> left = leftMarkers.Markers;
             IReadOnlyDictionary<string, int> right = rightMarkers.Markers;
-            Dictionary<string, int> result = left.ToDictionary(ignoreCase);
+            Dictionary<string, int> result = left.ToDictionary(kvp => kvp.Key, kvp => kvp.Value, GetComparer(ignoreCase));
             result.UnionWith(right);
 
             // a, b, c/d, c/e + a, k, e/f, e/g = a, b, k; c/d, c/f, c/g

@@ -57,7 +57,7 @@ namespace NDepCheck {
         /// string representation of a Dependency.
         /// </summary>
         public override string ToString() {
-            return UsingItem + " ---> " + UsedItem;
+            return UsingItem.AsFullString() + " --" + MarkerSet.AsFullString() + "-> " + UsedItem.AsFullString();
         }
 
         public int NotOkCt => QuestionableCt + BadCt;

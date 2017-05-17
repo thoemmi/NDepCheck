@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace NDepCheck.Rendering {
-    internal static class SomeRendererTestData {
+    internal static class RendererSupport {
         public static IEnumerable<Dependency> CreateSomeTestItems() {
             ItemType simple = ItemType.New("SIMPLE(Name)");
             Item[] localItems = Enumerable.Range(0, 5).Select(i => Item.New(simple, "Item " + i)).ToArray();
@@ -10,5 +11,12 @@ namespace NDepCheck.Rendering {
                     (from, i) => localItems.Skip(i).Select(to => new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: 10 * i))).ToArray();
         }
 
+        public static string ItemAsString([NotNull] this Item usedItem, bool showItemMarkers, int count, bool isEnd, bool endOfCycle, bool matchedByCountMatch) {
+            return (endOfCycle ? "<= " : "")
+                   + (showItemMarkers ? usedItem.AsFullString() : usedItem.AsString())
+                   + (matchedByCountMatch ? " (*)" : "")
+                   + (isEnd ? " $" : "")
+                   + (count > 0 ? " (" + count + ")" : "");
+        }
     }
 }

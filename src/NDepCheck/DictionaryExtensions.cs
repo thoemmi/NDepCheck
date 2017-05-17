@@ -2,23 +2,19 @@ using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
 
-namespace NDepCheck.Markers {
+namespace NDepCheck {
     public static class DictionaryExtensions {
-        public static Dictionary<string, int> ToDictionary(this IReadOnlyDictionary<string, int> source, bool ignoreCase) {
-            return source.ToDictionary(kvp => kvp.Key, kvp => kvp.Value, AbstractMarkerSet.GetComparer(ignoreCase));
-        }
-
-        public static int Get([CanBeNull] this IReadOnlyDictionary<string, int> dictionary, string key) {
+        public static TValue Get<TKey, TValue>([CanBeNull] this IReadOnlyDictionary<TKey, TValue> dictionary, TKey key) {
             if (dictionary == null) {
-                return 0;
+                return default(TValue);
             } else {
-                int result;
+                TValue result;
                 dictionary.TryGetValue(key, out result);
                 return result;
             }
         }
 
-        public static void Set([NotNull] this Dictionary<string, int> dictionary, string key, int value) {
+        public static void Set<TKey, TValue>([NotNull] this Dictionary<TKey, TValue> dictionary, TKey key, TValue value) {
             dictionary[key] = value;
         }
 
