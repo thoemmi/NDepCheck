@@ -23,7 +23,7 @@ namespace NDepCheck.Rendering.TextWriting {
                 WriteItemType(writtenTypes, d.UsingItem.Type, sw);
                 WriteItemType(writtenTypes, d.UsedItem.Type, sw);
 
-                sw.WriteLine(d.AsDipStringWithTypes(withExampleInfo));
+                sw.WriteLine(d.AsLimitableStringWithTypes(withExampleInfo, int.MaxValue));
                 n++;
             }
             return n;

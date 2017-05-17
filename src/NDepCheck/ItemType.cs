@@ -148,7 +148,8 @@ namespace NDepCheck {
 
         public static ItemType New(string format) {
             string[] parts = format.Split(':', ';', ' ', '(', ')');
-            return New(parts[0].TrimEnd('+'), parts.Skip(1).Where(p => p != "").ToArray(), parts[0].EndsWith("+"));
+            string name = parts[0];
+            return New(name.TrimEnd('+'), parts.Skip(1).Where(p => p != "").ToArray(), name.EndsWith("+"));
         }
 
         public static ItemType New(string name, IEnumerable<string> keysAndSubKeys, bool ignoreCase) {

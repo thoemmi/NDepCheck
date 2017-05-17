@@ -10,6 +10,11 @@ using NDepCheck.Transforming.PathFinding;
 namespace NDepCheck.Tests {
     [TestClass]
     public class TestFlatPathWriters : AbstractWriterTest {
+        [TestInitialize]
+        public void TestInitialize() {
+            new GlobalContext().ResetAll();
+        }
+
         private Dependency CreateDependency(Item from, Item to, string pathMarker, bool isStart, bool isEnd, bool isMatchedByCountMatch, bool isLoopBack) {
             Dependency d = FromTo(from, to);
             d.MarkPathElement(pathMarker, 0, isStart: isStart, isEnd: isEnd, isMatchedByCountMatch: isMatchedByCountMatch,

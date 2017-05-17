@@ -62,31 +62,15 @@ namespace NDepCheck.Matching {
 
                     int leftValue;
                     int rightValue;
-                    if (int.TryParse(left, out leftValue)) {
-                        if (int.TryParse(right, out rightValue)) {
-                            return new Eval(null, null, createOperand, _ops[op]);
-                        } else {
-                            CheckOperand(operandPattern, right);
-                            return new Eval(null, right, createOperand, _ops[op]);
-                        }
-                    } else {
-                        CheckOperand(operandPattern, left);
-                        if (int.TryParse(right, out rightValue)) {
-                            return new Eval(left, null, createOperand, _ops[op]);
-                        } else {
-                            CheckOperand(operandPattern, right);
-                            return new Eval(left, right, createOperand, _ops[op]);
-                        }
-                    }
+                    return int.TryParse(left, out leftValue)
+                        ? (int.TryParse(right, out rightValue)
+                            ? new Eval(null, null, createOperand, _ops[op])
+                            : new Eval(null, right, createOperand, _ops[op]))
+                        : (int.TryParse(right, out rightValue)
+                            ? new Eval(left, null, createOperand, _ops[op])
+                            : new Eval(left, right, createOperand, _ops[op]));
                 }
             }
-        }
-
-        // ReSharper disable once UnusedParameter.Local -- checking method
-        private static void CheckOperand(string operandPattern, string operand) {
-            if (!Regex.IsMatch(operand, operandPattern)) {
-                throw new ArgumentException($"Invalid char in operand '{operand}' - must match regex '{operandPattern}'");
-            }
-        }
+        }        
     }
 }

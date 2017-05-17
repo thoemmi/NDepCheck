@@ -122,13 +122,14 @@ namespace NDepCheck {
         }
 
         public override string ToString() {
-            return AsFullString();
+            return AsFullString(300);
         }
 
         [NotNull]
-        public string AsFullString() {
+        public string AsFullString(int maxLength = 250) {
             if (_asFullString == null) {
-                _asFullString = Type.Name + ":" + AsString() + MarkerSet.AsFullString();
+                string s = AsString();
+                _asFullString = Type.Name + ":" + s + MarkerSet.AsFullString(maxLength - s.Length);
             }
             return _asFullString;
         }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using NDepCheck.Matching;
@@ -118,12 +119,24 @@ namespace NDepCheck.Markers {
             return Regex.Replace(m, @"[^\p{L}\p{N}_./\\]", "");
         }
 
-        public string AsFullString() {
+        public string AsFullString(int maxLength = 250) {
             IEnumerable<KeyValuePair<string, int>> nonZeroMarkers = Markers.Where(kvp => kvp.Value != 0);
-            return nonZeroMarkers.Any()
-                ? "'" + string.Join("+", nonZeroMarkers.OrderBy(kvp => kvp.Key)
-                                                       .Select(kvp => kvp.Key + (kvp.Value == 1 ? "" : "=" + kvp.Value)))
-                : "";
+            if (nonZeroMarkers.Any()) {
+                var sb = new StringBuilder();
+                string sep = "'";
+                foreach (var kvp in nonZeroMarkers.OrderBy(kvp => kvp.Key)) {
+                    sb.Append(sep);
+                    if (sb.Length > 100 && sb.Length > maxLength) {
+                        sb.Append("...");
+                        break;
+                    }
+                    sb.Append(kvp.Key + (kvp.Value == 1 ? "" : "=" + kvp.Value));
+                    sep = "+";
+                }
+                return sb.ToString();
+            } else {
+                return "";
+            }
         }
 
         public IEnumerable<string> MatchingMarkers(IEnumerable<IMatcher> matchers) {

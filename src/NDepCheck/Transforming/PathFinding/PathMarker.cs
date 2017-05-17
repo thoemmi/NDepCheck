@@ -154,7 +154,7 @@ namespace NDepCheck.Rendering.PathFinding {
             }
 
             protected override List<PathNode<TItem, TDependency>>  BeforePopDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex,
-                    AbstractPathMatch<TDependency, TItem> pathMatchOrNull, AbstractPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd,
+                    AbstractPathMatch<TDependency, TItem> pathMatchOrNull, bool isEnd,
                     HereInfo here, List<PathNode<TItem, TDependency>>  upSum, List<PathNode<TItem, TDependency>>  childUp) {
 
                 TDependency top = currentPath.Peek();
@@ -181,13 +181,15 @@ namespace NDepCheck.Rendering.PathFinding {
         }
 
         private class PathNodesTraverser {
-            [NotNull] private readonly string _pathMarkerPrefix;
+            [NotNull] private readonly string _pathMarker;
+            private readonly bool _addIndexToMarker;
             [NotNull] private readonly Action _checkAbort;
             private int _pathCount;
             private readonly HashSet<Dependency> _pathDependencies = new HashSet<Dependency>();
 
-            public PathNodesTraverser([NotNull] string pathMarkerPrefix, [NotNull] Action checkAbort) {
-                _pathMarkerPrefix = pathMarkerPrefix;
+            public PathNodesTraverser([NotNull] string pathMarker, bool addIndexToMarker, [NotNull] Action checkAbort) {
+                _pathMarker = pathMarker;
+                _addIndexToMarker = addIndexToMarker;
                 _checkAbort = checkAbort;
             }
 
@@ -198,7 +200,7 @@ namespace NDepCheck.Rendering.PathFinding {
                     Traverse(paths, head);
                 }
                 foreach (var kvp in counts) {
-                    kvp.Key.SetMarker(_pathMarkerPrefix, kvp.Value);
+                    kvp.Key.SetMarker(_pathMarker, kvp.Value);
                 }
             }
 
@@ -223,7 +225,7 @@ namespace NDepCheck.Rendering.PathFinding {
                         result.AddRange(Traverse(stack, child));
                     }
                 } else {
-                    string pathMarker = _pathMarkerPrefix + _pathCount++;
+                    string pathMarker = _addIndexToMarker ? _pathMarker + _pathCount : _pathMarker;
                     PathNode<Item, Dependency>[] pathAsArray = stack.Reverse().ToArray();
                     pathAsArray[0].Dependency.UsingItem.MarkPathElement(pathMarker, 0, isStart: true, isEnd: false, isMatchedByCountMatch: false, isLoopBack: false);
                     for (var i = 0; i < pathAsArray.Length; i++) {
@@ -234,10 +236,13 @@ namespace NDepCheck.Rendering.PathFinding {
                         _pathDependencies.Add(dependency);
                     }
                     result.Add(pathMarker);
+                    _pathCount++;
                 }
                 stack.Pop();
                 return result;
             }
+
+            public int PathCount => _pathCount;
         }
 
         public static readonly Option PathItemAnchorOption = new Option("pi", "path-item", "itempattern", "item pattern to be matched by path", @default: "all items match", multiple: true);
@@ -250,6 +255,7 @@ namespace NDepCheck.Rendering.PathFinding {
         public static readonly Option NoSuchDependencyAnchorOption = new Option("nd", "no-such-dependency", "dependencypattern", "dependency pattern to be matched by path", @default: "all dependencies match", multiple: true);
         public static readonly Option NoExampleInfoOption = new Option("ne", "no-example", "", "Does not write example info", @default: false);
         public static readonly Option BackwardsOption = new Option("bw", "upwards", "", "Traverses dependencies in opposite direction", @default: false);
+        public static readonly Option AddMarkerOption = new Option("am", "add-marker", "&", "add path marker to all dependencies on path &", @default: "_");
         public static readonly Option AddIndexedMarkerOption = new Option("im", "indexed-marker", "&", "add separate path markers starting with &", @default: "");
         public static readonly Option KeepOnlyCyclesOption = new Option("kp", "keep-only-paths", "", "remove all dependencies not on matched paths", @default: false);
 
@@ -258,7 +264,8 @@ namespace NDepCheck.Rendering.PathFinding {
             CountItemAnchorOption, CountDependencyAnchorOption,
             MultipleItemAnchorOption, MultipleDependencyAnchorOption,
             NoSuchItemAnchorOption, NoSuchDependencyAnchorOption,
-            NoExampleInfoOption, BackwardsOption, AddIndexedMarkerOption
+            NoExampleInfoOption, BackwardsOption, AddMarkerOption,
+            AddIndexedMarkerOption
         };
 
         private bool _ignoreCase;
@@ -276,7 +283,8 @@ namespace NDepCheck.Rendering.PathFinding {
             var expectedPathMatches = new List<AbstractPathMatch<Dependency, Item>>();
             var dontMatches = new List<AbstractPathMatch<Dependency, Item>>();
             AbstractPathMatch<Dependency, Item> countMatch = null;
-            string indexedMarkerPrefix = null;
+            string marker = "_";
+            bool addIndex = false;
             bool keepOnlyPathEdges = false;
 
             Option.Parse(globalContext, transformOptions,
@@ -330,9 +338,14 @@ namespace NDepCheck.Rendering.PathFinding {
                     CheckPathAnchorSet(pathAnchor);
                     dontMatches.Add(CreateDependencyPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: false, dontMatches: new AbstractPathMatch<Dependency, Item>[0]));
                     return j;
-                }), 
+                }),
+                AddMarkerOption.Action((args, j) => {
+                    marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
+                    return j;
+                }),
                 AddIndexedMarkerOption.Action((args, j) => {
-                    indexedMarkerPrefix = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
+                    marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
+                    addIndex = true;
                     return j;
                 }),
                 KeepOnlyCyclesOption.Action((args, j) => {
@@ -347,8 +360,10 @@ namespace NDepCheck.Rendering.PathFinding {
             var c = new PathWriterTraverser<Dependency, Item>(backwards, countMatch, globalContext.CheckAbort);
             c.Traverse(dependencies, pathAnchor, pathAnchorIsCountMatch, expectedPathMatches.ToArray());
 
-            var t = new PathNodesTraverser(pathMarkerPrefix: indexedMarkerPrefix, checkAbort: globalContext.CheckAbort);
+            var t = new PathNodesTraverser(pathMarker: marker, addIndexToMarker: addIndex, checkAbort: globalContext.CheckAbort);
             t.Traverse(c.Paths, c.Counts.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count));
+
+            Log.WriteInfo($"... marked {t.PathCount} paths");
 
             transformedDependencies.AddRange(keepOnlyPathEdges ? t.PathDependencies : dependencies);
 

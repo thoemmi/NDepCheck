@@ -104,7 +104,7 @@ namespace NDepCheck.Transforming.PathFinding {
             }
 
             protected override Ignore BeforePopDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex,
-                    AbstractPathMatch<TDependency, TItem> pathMatchOrNull, AbstractPathMatch<TDependency, TItem> itemMatchOrNull,
+                    AbstractPathMatch<TDependency, TItem> pathMatchOrNull,
                     bool isEnd, Ignore here, Ignore upSum, Ignore childUp) {
                 return childUp;
             }

@@ -10,6 +10,11 @@ using NDepCheck.Transforming.PathFinding;
 namespace NDepCheck.Tests {
     [TestClass]
     public class TestMarkCycleDeps {
+        [TestInitialize]
+        public void TestInitialize() {
+            new GlobalContext().ResetAll();
+        }
+
         private void AssertEdgeCount(int expected, string o) {
             string[] lines = o.Split('\n');
             int actual = lines.Count(line => line.Contains(Dependency.DIP_ARROW));

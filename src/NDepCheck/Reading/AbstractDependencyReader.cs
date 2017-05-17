@@ -13,10 +13,14 @@ namespace NDepCheck.Reading {
                 throw new ArgumentException("fileName must be non-empty", nameof(fileName));
             }
             _fullFileName = Path.GetFullPath(fileName);
+            ContainerUri = fileName;
         }
 
         [NotNull]
         public string FullFileName => _fullFileName;
+
+        [NotNull]
+        protected string ContainerUri { get; }
 
         [NotNull]
         public abstract IEnumerable<Dependency> ReadDependencies(int depth, bool ignoreCase);

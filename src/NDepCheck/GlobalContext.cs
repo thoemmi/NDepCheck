@@ -456,7 +456,7 @@ namespace NDepCheck {
             IEnumerable<Dependency> matchingDependencies =
                 AllDependencies.Where(d => m == null || m.IsMatch(d)).Take(maxCount + 1);
             foreach (var d in matchingDependencies.Take(maxCount)) {
-                Log.WriteInfo(d.AsDipStringWithTypes(false));
+                Log.WriteInfo(d.AsLimitableStringWithTypes(false));
             }
             if (matchingDependencies.Skip(maxCount).Any()) {
                 Log.WriteInfo("...");
@@ -480,7 +480,7 @@ namespace NDepCheck {
             int count = AllDependencies.Count(d => m == null || m.IsMatch(d));
             Log.WriteInfo(count + " dependencies" + (m == null ? "" : " matching " + pattern));
             foreach (var d in AllDependencies.Where(d => m == null || m.IsMatch(d)).Take(3)) {
-                Log.WriteInfo(d.AsDipStringWithTypes(false));
+                Log.WriteInfo(d.AsLimitableStringWithTypes(false));
             }
             TransformingDone = true;
         }

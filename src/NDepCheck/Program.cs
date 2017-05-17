@@ -540,14 +540,14 @@ namespace NDepCheck {
                         // -is
                         _interactiveLogFile = null;
                     } else if (ListItemsOption.IsMatch(arg)) {
-                        // -li # [pattern]
-                        int maxCount = ExtractIntOptionValue(globalContext, args, ref i, "Not a valid number");
-                        string pattern = ExtractNextValue(globalContext, args, ref i);
+                        // -li [#] [pattern]
+                        int maxCount;
+                        string pattern = GetListOptions(args, globalContext, ref i, out maxCount);
                         globalContext.LogAboutNItems(maxCount, pattern);
                     } else if (ListDependenciesOption.IsMatch(arg)) {
-                        // -ld # [pattern]
-                        int maxCount = ExtractIntOptionValue(globalContext, args, ref i, "Not a valid number");
-                        string pattern = ExtractNextValue(globalContext, args, ref i);
+                        // -ld [#] [pattern]
+                        int maxCount;
+                        string pattern = GetListOptions(args, globalContext, ref i, out maxCount);
                         globalContext.LogAboutNDependencies(maxCount, pattern);
                     } else if (CountDependenciesOption.IsMatch(arg)) {
                         // -id [pattern]
@@ -658,6 +658,20 @@ namespace NDepCheck {
             }
 
             return result;
+        }
+
+        private static string GetListOptions(string[] args, GlobalContext globalContext, ref int i, out int maxCount) {
+            string s = ExtractOptionValue(globalContext, args, ref i);
+            string pattern = ExtractNextValue(globalContext, args, ref i);
+            if (pattern == null) {
+                maxCount = 10;
+                pattern = s;
+            } else {
+                if (!int.TryParse(s, out maxCount)) {
+                    throw new ArgumentException($"'{s}' is not a valid number");
+                }
+            }
+            return pattern;
         }
 
         private void SetResult(ref int result, int localResult) {

@@ -58,8 +58,7 @@ namespace NDepCheck {
                 AbstractPathMatch<TDependency, TItem> pathMatchOrNull, bool isEnd, TDownInfo down);
 
         protected abstract TUpInfo BeforePopDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex,
-                AbstractPathMatch<TDependency, TItem> pathMatchOrNull,
-                AbstractPathMatch<TDependency, TItem> itemMatchOrNull, bool isEnd,
+                AbstractPathMatch<TDependency, TItem> pathMatchOrNull, bool isEnd,
                 THereInfo here, TUpInfo upSum, TUpInfo childUp);
 
         protected abstract TUpInfo AfterVisitingSuccessors(bool visitSuccessors, TItem tail, Stack<TDependency> currentPath,
@@ -118,9 +117,22 @@ namespace NDepCheck {
                             }
                         }
 
-                        if (newExpectedPathMatchIndex == expectedPathMatchIndex) {
+                        bool isEnd;
+                        if (newExpectedPathMatchIndex >= expectedInnerPathMatches.Length) {
+                            // We are at or behind the path match end; if the current item or dependency matches, we have a real path end!
+                            // Check whether we are really at an end.
+                            // If no end match was provided (i.e., only a start pattern given), all items are accepted as end items.
+                            // Otherwise, we check whether the last item or dependency matches the end match.
+                            isEnd = endMatch == null || endMatch.IsMatch(nextDep, nextTail);
+                        } else {
+                            isEnd = false;
+                        }
+
+                        if (!isEnd && newExpectedPathMatchIndex == expectedPathMatchIndex) {
                             // Check that no "used up" non-multiple-occurrence positive path 
-                            // match matches - but only if none of the two previous tests matched explicitly.
+                            // match matches - but only if we did not find a path match exactly here,
+                            // and we are not at the end (which is also "finding a match", namely
+                            // the endMatch).
                             // This, I hope & believe, captures what one expects to hold implicitly:
                             // "No loop backs" to previous positive single patterns
                             mayContinue &= !expectedInnerPathMatches
@@ -129,29 +141,17 @@ namespace NDepCheck {
                                             .Any(m => m.IsMatch(nextDep, nextTail));
                         }
 
-                        bool isEnd;
-                        if (newExpectedPathMatchIndex >= expectedInnerPathMatches.Length) {
-                            // We are at or behind the path match end; if the current item or dependency matches, we have a real path end!
-                            // Check whether we are really at an end.
-                            if (endMatch == null) {
-                                // If no end match was provided (i.e., only a start pattern given), all items are accepted as end items.
-                                isEnd = true;
-                            } else {
-                                // Otherwise, we check whether the last item or dependency matches the end match.
-                                isEnd = endMatch.IsMatch(nextDep, nextTail);
-                            }
-                        } else {
-                            isEnd = false;
-                        }
-
                         if (mayContinue) {
                             _currentPath.Push(nextDep);
 
-                            DownAndHere downAndHere = AfterPushDependency(_currentPath, expectedPathMatchIndex, pathMatchOrNull, isEnd, rawDown);
+                            DownAndHere downAndHere = AfterPushDependency(_currentPath, expectedPathMatchIndex, 
+                                                                          pathMatchOrNull, isEnd, rawDown);
 
-                            TUpInfo childUp = Traverse(nextTail, incidentDependencies, expectedInnerPathMatches, newExpectedPathMatchIndex, endMatch, isEnd, downAndHere.Down);
+                            TUpInfo childUp = Traverse(nextTail, incidentDependencies, expectedInnerPathMatches, 
+                                                       newExpectedPathMatchIndex, endMatch, isEnd, downAndHere.Down);
 
-                            upSum = BeforePopDependency(_currentPath, expectedPathMatchIndex, pathMatchOrNull, /*TODO RAUS*/pathMatchOrNull, isEnd, downAndHere.Save, upSum, childUp);
+                            upSum = BeforePopDependency(_currentPath, expectedPathMatchIndex, pathMatchOrNull, 
+                                                        isEnd, downAndHere.Save, upSum, childUp);
 
                             _currentPath.Pop();
                         }

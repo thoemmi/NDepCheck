@@ -57,7 +57,7 @@ namespace NDepCheck {
         /// string representation of a Dependency.
         /// </summary>
         public override string ToString() {
-            return UsingItem.AsFullString() + " --" + MarkerSet.AsFullString() + "-> " + UsedItem.AsFullString();
+            return UsingItem.AsFullString(50) + " --" + MarkerSet.AsFullString(50) + "-> " + UsedItem.AsFullString(50);
         }
 
         public int NotOkCt => QuestionableCt + BadCt;
@@ -78,7 +78,7 @@ namespace NDepCheck {
         /// A message presented to the user if this Dependency has a <see cref="BadCt"/>or <see cref="QuestionableCt"/>.
         /// </summary>
         /// <returns></returns>
-        public string NotOkMessage() {
+        public string NotOkMessage(int maxLength = 600) {
             string nounTail = Ct > 1 ? "ependencies" : "ependency";
             string prefix = BadCt > 0
                 ? QuestionableCt > 0 ? "Bad and questionable d" : "Bad d"
@@ -87,8 +87,9 @@ namespace NDepCheck {
             string ct = BadCt > 0
                 ? QuestionableCt > 0 ? $";{QuestionableCt};{BadCt}" : $";;{BadCt}"
                 : QuestionableCt > 0 ? $";{QuestionableCt};" : ";;";
-            string markers = MarkerSet.AsFullString();
-            return $"{prefix}{nounTail}{reason}: {UsingItem} --{ct}{markers}-> {UsedItem}" + (Source != null ? (Ct > 1 ? " (e.g. at " : " (at ") + Source + ")" : "");
+            string markers = MarkerSet.AsFullString(maxLength / 3);
+            return $"{prefix}{nounTail}{reason}: {UsingItem.AsFullString(maxLength / 3)} --{ct}{markers}-> {UsedItem.AsFullString(maxLength / 3)}"
+                    + (Source != null ? (Ct > 1 ? " (e.g. at " : " (at ") + Source + ")" : "");
         }
 
         public string GetDotRepresentation(int? stringLengthForIllegalEdges) {
@@ -126,13 +127,12 @@ namespace NDepCheck {
             return s;
         }
 
-        public string AsDipStringWithTypes(bool withExampleInfo) {
-            // Should that be in DipWriter?
+        public string AsLimitableStringWithTypes(bool withExampleInfo, int maxLength = 600) {
             string exampleInfo = withExampleInfo ? ExampleInfo : null;
-            string markers = MarkerSet.AsFullString();
-            return $"{UsingItem.AsFullString()} {DIP_ARROW} "
+            string markers = MarkerSet.AsFullString(maxLength / 3);
+            return $"{UsingItem.AsFullString(maxLength / 3)} {DIP_ARROW} "
                  + $"{markers};{Ct};{QuestionableCt};{BadCt};{Source?.AsDipString()};{exampleInfo} "
-                 + $"{DIP_ARROW} {UsedItem.AsFullString()}";
+                 + $"{DIP_ARROW} {UsedItem.AsFullString(maxLength / 3)}";
         }
     }
 

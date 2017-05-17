@@ -82,7 +82,7 @@ namespace NDepCheck.Reading.AssemblyReading {
         }
 
         public override IEnumerable<Dependency> ReadDependencies(int depth, bool ignoreCase) {
-            return GetOrReadRawDependencies(depth).Where(d => d.UsedItem != null).Select(d => d.ToDependencyWithTail(depth, FullFileName));
+            return GetOrReadRawDependencies(depth).Where(d => d.UsedItem != null).Select(d => d.ToDependencyWithTail(depth, ContainerUri));
         }
 
         private IEnumerable<RawDependency> GetOrReadRawDependencies(int depth) {
