@@ -210,7 +210,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             }
         }
 
-        public IEnumerable<Dependency> GetTestDependencies() {
+        public IEnumerable<Dependency> CreateSomeTestDependencies() {
             // Graph from http://web.stanford.edu/class/cs97si/08-network-flow-problems.pdf p.7
             Item s = Item.New(ItemType.SIMPLE, "s");
             Item a = Item.New(ItemType.SIMPLE, "a");

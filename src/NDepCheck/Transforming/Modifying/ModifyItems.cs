@@ -134,7 +134,7 @@ Examples:
             return Program.OK_RESULT;
         }
 
-        public override IEnumerable<Dependency> GetTestDependencies() {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies() {
             var a = Item.New(ItemType.SIMPLE, "A");
             var b = Item.New(ItemType.SIMPLE, "B");
             return new[] {

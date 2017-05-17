@@ -142,7 +142,7 @@ namespace NDepCheck.Transforming {
         public abstract int Transform(GlobalContext globalContext, IEnumerable<Dependency> dependencies, 
                                       string transformOptions, List<Dependency> transformedDependencies);
 
-        public abstract IEnumerable<Dependency> GetTestDependencies();
+        public abstract IEnumerable<Dependency> CreateSomeTestDependencies();
 
         #endregion Transform
     }

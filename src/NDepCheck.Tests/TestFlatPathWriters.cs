@@ -20,7 +20,7 @@ namespace NDepCheck.Tests {
             };
 
             using (var s = new MemoryStream()) {
-                var w = new PathMarker();
+                var w = new OldPathWriter();
                 w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "F");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a:aa:aaa
@@ -40,7 +40,7 @@ b:bb:bbb $ (1)", result.Trim());
             };
 
             using (var s = new MemoryStream()) {
-                var w = new PathMarker();
+                var w = new OldPathWriter();
                 w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "F");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual("", result.Trim());
@@ -50,7 +50,7 @@ b:bb:bbb $ (1)", result.Trim());
         [TestMethod]
         public void TestSimpleFlatPathWriter() {
             using (var s = new MemoryStream()) {
-                var w = new PathMarker();
+                var w = new OldPathWriter();
                 IEnumerable<Dependency> dependencies = w.CreateSomeTestDependencies();
                 w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "F");
                 string result = Encoding.ASCII.GetString(s.ToArray());
@@ -93,7 +93,7 @@ g:gg:ggg $ (1)", result.Trim());
             };
 
             using (var s = new MemoryStream()) {
-                var w = new PathMarker();
+                var w = new OldPathWriter();
                 w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "F");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a:aa:aaa
@@ -117,7 +117,7 @@ d:dd:ddd $ (1)", result.Trim());
             };
 
             using (var temp = DisposingFile.CreateTempFileWithTail(".txt")) {
-                var w = new PathMarker();
+                var w = new OldPathWriter();
                 w.Render(new GlobalContext(), dependencies, null,
                     "{ -ps F -pi a -ci 2 -pi g }".Replace(" ", "\r\n"), temp.Filename, false);
 

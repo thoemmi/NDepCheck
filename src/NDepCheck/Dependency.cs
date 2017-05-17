@@ -318,6 +318,10 @@ namespace NDepCheck {
             _markerSet.IncrementMarker(marker);
         }
 
+        public void SetMarker(string marker, int value) {
+            _markerSet.SetMarker(marker, value);
+        }
+
         public void UnionWithMarkers(IReadOnlyDictionary<string, int> markerPatterns) {
             _markerSet.MergeWithMarkers(markerPatterns);
         }

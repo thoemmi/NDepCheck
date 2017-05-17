@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.Transforming.CycleChecking;
+using NDepCheck.Transforming.PathFinding;
 
 namespace NDepCheck.Tests {
     [TestClass]
@@ -122,7 +122,7 @@ namespace NDepCheck.Tests {
             var result = new List<Dependency>();
 
             const string marker = "Cycle";
-            new FindCycleDeps().Transform(new GlobalContext(), deps, 
+            new FindCycleDeps().Transform(new GlobalContext(), deps,
                 ($"{{ {FindCycleDeps.KeepOnlyCyclesOption} " +
                  $"{FindCycleDeps.MaxCycleLengthOption} 3 " +
                  $"{FindCycleDeps.EffectOptions.AddMarkerOption} {marker} }}").Replace(" ", "\r\n"), result);
@@ -141,7 +141,7 @@ namespace NDepCheck.Tests {
             string outFile = Path.GetTempFileName() + "OUT.dip";
 
             Assert.AreEqual(0, Program.Main(new[] {
-                Program.TransformTestDataOption.Opt, ".", typeof(FindCycleDeps).Name, "{", FindCycleDeps.KeepOnlyCyclesOption.Opt, "}",                
+                Program.TransformTestDataOption.Opt, ".", typeof(FindCycleDeps).Name, "{", FindCycleDeps.KeepOnlyCyclesOption.Opt, "}",
                 Program.WriteDipOption.Opt, outFile
             }));
 
@@ -149,6 +149,52 @@ namespace NDepCheck.Tests {
                 string o = sw.ReadToEnd();
 
                 AssertEdgeCount(9, o);
+            }
+        }
+
+        [TestMethod]
+        public void TestMarkLaterCycle() {
+            var a = Item.New(ItemType.SIMPLE, "a");
+            var b = Item.New(ItemType.SIMPLE, "b");
+            var c = Item.New(ItemType.SIMPLE, "c");
+            var d = Item.New(ItemType.SIMPLE, "d");
+            var e = Item.New(ItemType.SIMPLE, "e");
+            var deps = new[] {
+                new Dependency(a, b, null, "", 1),
+                new Dependency(b, c, null, "", 1),
+                new Dependency(c, d, null, "", 1),
+                new Dependency(d, e, null, "", 1),
+                new Dependency(e, c, null, "", 1),
+            };
+            var result = new List<Dependency>();
+
+            const string markerPrefix = "C";
+            new FindCycleDeps().Transform(new GlobalContext(), deps,
+                $"{{ {FindCycleDeps.AddIndexedMarkerOption} {markerPrefix} }}".Replace(" ", Environment.NewLine),
+                result);
+
+            result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
+
+            AssertIsMarkedAsCycle("C0", result.Skip(2), result.Take(2));
+        }
+
+        private void AssertIsMarkedAsCycle(string marker, IEnumerable<Dependency> cycle, IEnumerable<Dependency> notCycle) {
+            {
+                Dependency[] cycleAsArray = cycle.ToArray();
+                for (var i = 0; i < cycleAsArray.Length; i++) {
+                    int markerValue = cycleAsArray[i].MarkerSet.GetValue(marker, false);
+                    Assert.IsTrue(markerValue > 0, $"Wrong marker {markerValue} @ {i}");
+                    Assert.AreEqual(i == 0 ? AbstractPathMarker.IS_START : 0, markerValue & AbstractPathMarker.IS_START, $"Wrong IS_START @ {i}");
+                    Assert.AreEqual(i == cycleAsArray.Length - 1 ? AbstractPathMarker.IS_END : 0, markerValue & AbstractPathMarker.IS_END, $"Wrong IS_END @ {i}");
+                    Assert.AreEqual(i == cycleAsArray.Length - 1 ? AbstractPathMarker.IS_LOOPBACK : 0, markerValue & AbstractPathMarker.IS_LOOPBACK, $"Wrong IS_LOOPBACK @ {i}");
+                }
+            }
+            {
+                Dependency[] notCycleAsArray = notCycle.ToArray();
+                for (var i = 0; i < notCycleAsArray.Length; i++) {
+                    int markerValue = notCycleAsArray[i].MarkerSet.GetValue(marker, false);
+                    Assert.AreEqual(0, markerValue, $"Wrong marker @ {i}");
+                }
             }
         }
     }

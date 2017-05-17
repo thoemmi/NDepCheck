@@ -139,7 +139,8 @@
     <Compile Include="Reading\AssemblyReading\FullDotNetAssemblyDependencyReader.cs" />
     <Compile Include="Gibraltar\StringReference.cs" />
     <Compile Include="Transforming\AbstractTransformerWithFileConfiguration.cs" />
-    <Compile Include="Transforming\CycleChecking\FindCycleDeps.cs" />
+    <Compile Include="Transforming\PathFinding\AbstractPathMarker.cs" />
+    <Compile Include="Transforming\PathFinding\FindCycleDeps.cs" />
     <Compile Include="Transforming\DependencyCreating\AddTransitiveDeps.cs" />
     <Compile Include="Matching\DependencyPattern.cs" />
     <Compile Include="Transforming\DependencyEffectOptions.cs" />
@@ -152,6 +153,7 @@
     <Compile Include="Transforming\Modifying\KeepOnlyDeps.cs" />
     <Compile Include="Transforming\Modifying\MarkDeps.cs" />
     <Compile Include="Matching\Matchers.cs" />
+    <Compile Include="Transforming\PathFinding\PathMarker.cs" />
     <Compile Include="Transforming\Projecting\ProjectItems.AbstractProjector.cs" />
     <Compile Include="Transforming\Projecting\ProjectItems.SelfOptimizingFirstLetterProjector.cs" />
     <Compile Include="Transforming\Projecting\ProjectItems.AbstractSelfOptimizingProjector.cs" />

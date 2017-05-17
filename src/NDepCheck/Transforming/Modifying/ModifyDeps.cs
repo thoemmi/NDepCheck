@@ -129,7 +129,7 @@ Examples:
             return Program.OK_RESULT;
         }
 
-        public override IEnumerable<Dependency> GetTestDependencies() {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies() {
             Item a = Item.New(ItemType.SIMPLE, "A");
             Item b = Item.New(ItemType.SIMPLE, "B");
             return new[] {

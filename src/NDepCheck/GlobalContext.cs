@@ -263,7 +263,7 @@ namespace NDepCheck {
 
         public void TransformTestData(string assemblyName, string transformerClass, string transformerOptions) {
             ITransformer transformer = GetOrCreatePlugin<ITransformer>(assemblyName, transformerClass);
-            _dependencies.Push(transformer.GetTestDependencies());
+            _dependencies.Push(transformer.CreateSomeTestDependencies());
 
             var newDependenciesCollector = new List<Dependency>();
             transformer.Transform(this, AllDependencies, transformerOptions,

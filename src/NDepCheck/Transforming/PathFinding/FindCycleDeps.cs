@@ -4,32 +4,31 @@ using System.Linq;
 using JetBrains.Annotations;
 using NDepCheck.Matching;
 
-namespace NDepCheck.Transforming.CycleChecking {
-    public class FindCycleDeps : ITransformer {
+namespace NDepCheck.Transforming.PathFinding {
+    public class FindCycleDeps : AbstractPathMarker, ITransformer {
         private class FindCycleDepsPathFinder<TDependency, TItem>
             : AbstractDepthFirstPathTraverser<TDependency, TItem, Ignore, Ignore, Ignore>
                 where TDependency : AbstractDependency<TItem>
                 where TItem : AbstractItem<TItem> {
-            //public readonly HashSet<TDependency> DependenciesOnCycles = new HashSet<TDependency>();
             private readonly HashSet<int> _foundCycleHashs = new HashSet<int>();
             private readonly Dictionary<TItem, int> _visited2RestLength;
             private readonly int _maxCycleLength;
             private readonly TItem _root;
             private readonly bool _ignoreSelfCycles;
             [NotNull]
-            private readonly Action<int, Stack<TDependency>> _recordNewCycle;
+            private readonly Action<int, Stack<TDependency>> _recordNewCycleToRoot;
 
             public int FoundCycleCount => _foundCycleHashs.Count;
 
             public FindCycleDepsPathFinder([NotNull, ItemNotNull] IEnumerable<TDependency> dependencies,
                     [CanBeNull] ItemMatch cycleAnchorsMatch, bool ignoreSelfCycles, int maxCycleLength,
-                    [NotNull] Action<int, Stack<TDependency>> recordNewCycle,
+                    [NotNull] Action<int, Stack<TDependency>> recordNewCycleToRoot,
                     [NotNull, ItemCanBeNull] AbstractPathMatch<TDependency, TItem>[] expectedPathMatches, Action checkAbort) : base(checkAbort) {
                 Dictionary<TItem, TDependency[]> outgoing = AbstractItem<TItem>.CollectOutgoingDependenciesMap(dependencies);
                 _maxCycleLength = maxCycleLength;
                 _visited2RestLength = new Dictionary<TItem, int>();
                 _ignoreSelfCycles = ignoreSelfCycles;
-                _recordNewCycle = recordNewCycle;
+                _recordNewCycleToRoot = recordNewCycleToRoot;
                 foreach (var root in outgoing.Keys.Where(i => ItemMatch.IsMatch(cycleAnchorsMatch, i)).OrderBy(i => i.Name)) {
                     _root = root;
                     Traverse(root, outgoing, expectedPathMatches, endMatch: null, down: Ignore.Om);
@@ -100,18 +99,7 @@ namespace NDepCheck.Transforming.CycleChecking {
                     cycleHash = unchecked(cycleHash * 17 + nodeHashes[i]);
                 }
                 if (_foundCycleHashs.Add(cycleHash)) {
-                    _recordNewCycle(_foundCycleHashs.Count, currentPath);
-
-
-                    ////// actually a new cycle
-                    ////DependenciesOnCycles.UnionWith(currentPath);
-
-                    ////if (_indexedMarkerPrefix != null) {
-                    ////    string _indexedMarker = _indexedMarkerPrefix + _foundCycleHashs.Count;
-                    ////    foreach (var d in DependenciesOnCycles) {
-                    ////        d.MarkerSet
-                    ////    }
-                    ////}
+                    _recordNewCycleToRoot(_foundCycleHashs.Count - 1, currentPath);
                 }
             }
 
@@ -140,7 +128,7 @@ namespace NDepCheck.Transforming.CycleChecking {
             "maximum length of cycles found", @default: "arbitrary length");
 
         public static readonly Option AddIndexedMarkerOption = new Option("im", "indexed-marker", "&",
-            "add separate cycle markers starting with &", @default: false);
+            "add separate cycle markers starting with &", @default: "");
 
         public static readonly DependencyEffectOptions EffectOptions = new DependencyEffectOptions();
 
@@ -195,21 +183,24 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     }),
                 });
 
-
             var dependenciesOnCycles = new HashSet<Dependency>();
-            Action<int, Stack<Dependency>> recordNewCycle = (i, cycle) => dependenciesOnCycles.UnionWith(cycle);
+            Action<int, Stack<Dependency>> recordNewCycleToRoot = (cycleIndex, cycle) => dependenciesOnCycles.UnionWith(cycle);
 
             if (indexedMarkerPrefix != null) {
-                recordNewCycle += (i, cycle) => {
-                    string indexedMarker = indexedMarkerPrefix + i;
-                    foreach (var d in cycle) {
-                        d.IncrementMarker(indexedMarker);
+                recordNewCycleToRoot += (cycleIndex, cycle) => {
+                    string indexedMarker = indexedMarkerPrefix + cycleIndex;
+                    var cycleDependencies = cycle.Reverse().ToArray();
+                    for (var i = 0; i < cycleDependencies.Length; i++) {
+                        var d = cycleDependencies[i];
+                        var isEnd = i == cycleDependencies.Length - 1;
+                        MarkPathElement(d, indexedMarker, i, isStart: i == 0, isEnd: isEnd, isMatchedByCountMatch: false, isLoopBack: isEnd);
+                        MarkPathElement(d.UsingItem, indexedMarker, i, isStart: i == 0, isEnd: i == 0, isMatchedByCountMatch: false, isLoopBack: isEnd);
                     }
                 };
             }
 
             var cycleFinder = new FindCycleDepsPathFinder<Dependency, Item>(dependencies, cycleAnchorsMatch, ignoreSelfCycles,
-                                    maxCycleLength, recordNewCycle, new AbstractPathMatch<Dependency, Item>[0], // TODO: Cycles via path matches would also be a nice feature ...
+                                    maxCycleLength, recordNewCycleToRoot, new AbstractPathMatch<Dependency, Item>[0], // TODO: Cycles via path matches would also be a nice feature ...
                                     globalContext.CheckAbort);
 
             Log.WriteInfo($"... found {cycleFinder.FoundCycleCount} cycles");
@@ -225,7 +216,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             return Program.OK_RESULT;
         }
 
-        public IEnumerable<Dependency> GetTestDependencies() {
+        public IEnumerable<Dependency> CreateSomeTestDependencies() {
             Item a = Item.New(ItemType.SIMPLE, "A");
             Item b = Item.New(ItemType.SIMPLE, "B");
             Item c = Item.New(ItemType.SIMPLE, "C");

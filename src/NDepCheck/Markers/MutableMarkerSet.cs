@@ -17,7 +17,7 @@ namespace NDepCheck.Markers {
 
         public MutableMarkerSet(bool ignoreCase, [CanBeNull] IMarkerSet markersOrNull) : base(ignoreCase) {
             _markersOrNull = CreateMarkerSetWithClonedDictionary(ignoreCase,
-                markersOrNull == null ? Empty(ignoreCase) : ((AbstractMarkerSet) markersOrNull).Markers);
+                markersOrNull == null ? Empty(ignoreCase) : ((AbstractMarkerSet)markersOrNull).Markers);
         }
 
         public MutableMarkerSet(bool ignoreCase, [CanBeNull] IReadOnlyDictionary<string, int> markersOrNull) : base(ignoreCase) {
@@ -30,7 +30,7 @@ namespace NDepCheck.Markers {
 
         public void MergeWithMarkers([CanBeNull] IMarkerSet markerSet) {
             if (markerSet != null) {
-                MergeWithMarkers(((AbstractMarkerSet) markerSet).Markers);
+                MergeWithMarkers(((AbstractMarkerSet)markerSet).Markers);
             }
         }
 
@@ -47,9 +47,18 @@ namespace NDepCheck.Markers {
         public void IncrementMarker([NotNull] string marker) {
             CheckMarkerFormat(marker);
             if (_markersOrNull == null) {
-                _markersOrNull = CreateMarkerSetWithClonedDictionary(_ignoreCase, new[] { marker });
+                _markersOrNull = new Dictionary<string, int> { { marker, 1 } };
             } else {
                 _markersOrNull[marker] = _markersOrNull.Get(marker) + 1;
+            }
+        }
+
+        public void SetMarker([NotNull] string marker, int value) {
+            CheckMarkerFormat(marker);
+            if (_markersOrNull == null) {
+                _markersOrNull = new Dictionary<string, int> { { marker, value } };
+            } else {
+                _markersOrNull[marker] = value;
             }
         }
 

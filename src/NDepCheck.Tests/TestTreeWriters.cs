@@ -21,7 +21,7 @@ namespace NDepCheck.Tests {
             };
 
             using (var s = new MemoryStream()) {
-                var w = new PathMarker();
+                var w = new OldPathWriter();
                 w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "SI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a
@@ -43,7 +43,7 @@ namespace NDepCheck.Tests {
             };
 
             using (var s = new MemoryStream()) {
-                var w = new PathMarker();
+                var w = new OldPathWriter();
                 w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "SI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a
@@ -65,7 +65,7 @@ namespace NDepCheck.Tests {
             };
 
             using (var s = new MemoryStream()) {
-                var w = new PathMarker();
+                var w = new OldPathWriter();
                 w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "SI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a
@@ -87,7 +87,7 @@ namespace NDepCheck.Tests {
             };
 
             using (var s = new MemoryStream()) {
-                var w = new PathMarker();
+                var w = new OldPathWriter();
                 w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "LI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"a
@@ -99,7 +99,7 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestTreeLineWriter() {
             using (var s = new MemoryStream()) {
-                var w = new PathMarker();
+                var w = new OldPathWriter();
                 IEnumerable<Dependency> dependencies = w.CreateSomeTestDependencies();
                 w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "LI");
                 string result = Encoding.ASCII.GetString(s.ToArray());
@@ -120,7 +120,7 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestSimpleTreePathWriter() {
             using (var s = new MemoryStream()) {
-                var w = new PathMarker();
+                var w = new OldPathWriter();
                 IEnumerable<Dependency> dependencies = w.CreateSomeTestDependencies();
                 w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "SI");
                 string result = Encoding.ASCII.GetString(s.ToArray());

@@ -178,7 +178,7 @@ Examples:
             }
         }
 
-        public IEnumerable<Dependency> GetTestDependencies() {
+        public IEnumerable<Dependency> CreateSomeTestDependencies() {
             Item am = Item.New(ItemType.SIMPLE, new[] { "A" }, new[] { "M" });
             Item bm = Item.New(ItemType.SIMPLE, new[] { "B" }, new[] { "M" });
             Item cn = Item.New(ItemType.SIMPLE, new[] { "C" }, new[] { "N" });

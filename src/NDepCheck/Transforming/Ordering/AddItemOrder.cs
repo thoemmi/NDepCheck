@@ -82,7 +82,7 @@ Transform options: {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
             return Program.OK_RESULT;
         }
 
-        public IEnumerable<Dependency> GetTestDependencies() {
+        public IEnumerable<Dependency> CreateSomeTestDependencies() {
             var a = Item.New(ItemType.SIMPLE, "A");
             var b = Item.New(ItemType.SIMPLE, "B");
             var c = Item.New(ItemType.SIMPLE, "C");

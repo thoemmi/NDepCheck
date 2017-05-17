@@ -129,7 +129,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             } while (recursive && itemRemoved);
         }
 
-        public IEnumerable<Dependency> GetTestDependencies() {
+        public IEnumerable<Dependency> CreateSomeTestDependencies() {
             Item a = Item.New(ItemType.SIMPLE, "Ax");
             Item b = Item.New(ItemType.SIMPLE, "Bx");
             Item c = Item.New(ItemType.SIMPLE, "Cloop");

@@ -80,7 +80,7 @@ namespace NDepCheck.Markers {
             return evals.All(e => e.Predicate(GetValue(e.LeftOrNullForConstant), GetValue(e.RightOrNullForConstant)));
         }
 
-        private int GetValue(IMatcher m) {
+        public int GetValue(IMatcher m) {
             int value;
             if (m == null) {
                 value = 0;
@@ -91,6 +91,10 @@ namespace NDepCheck.Markers {
                     : Markers.Where(kvp => m.Matches(kvp.Key, null) != null).Sum(kvp => kvp.Value);
             }
             return value;
+        }
+
+        public int GetValue(string marker, bool ignoreCase) {
+            return GetValue(new EqualsMatcher(marker, ignoreCase));
         }
 
         public static string CreateReadableDefaultMarker(IEnumerable<ItemMatch> fromItemMatches, IEnumerable<ItemMatch> toItemMatches, string defaultName) {

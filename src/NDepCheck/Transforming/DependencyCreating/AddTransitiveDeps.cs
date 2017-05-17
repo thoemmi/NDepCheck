@@ -131,7 +131,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             }
         }
 
-        public IEnumerable<Dependency> GetTestDependencies() {
+        public IEnumerable<Dependency> CreateSomeTestDependencies() {
             var s1 = Item.New(ItemType.SIMPLE, "S1");
             var s2 = Item.New(ItemType.SIMPLE, "S2");
             var a = Item.New(ItemType.SIMPLE, "A");

@@ -250,6 +250,11 @@ namespace NDepCheck {
             MarkersHaveChanged();
         }
 
+        public void SetMarker(string marker, int value) {
+            _markerSet.SetMarker(marker, value);
+            MarkersHaveChanged();
+        }
+
         public void RemoveMarkers(string markerPattern, bool ignoreCase) {
             _markerSet.RemoveMarkers(markerPattern, ignoreCase);
             MarkersHaveChanged();

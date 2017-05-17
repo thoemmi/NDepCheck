@@ -310,7 +310,7 @@ Examples:
             }
         }
 
-        public override IEnumerable<Dependency> GetTestDependencies() {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies() {
             ItemType abc = ItemType.New("AB+(A:B)");
             Item a1 = Item.New(abc, "a", "1");
             Item a2 = Item.New(abc, "a", "2");
