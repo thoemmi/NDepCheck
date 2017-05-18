@@ -12,7 +12,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             public int NotOkCt => 0;
         }
 
-        protected override void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<Item> topItems, string itemFormat,
+        protected override void Write(ITargetWriter output, int colWidth, int labelWidth, IEnumerable<Item> topItems, string itemFormat,
            Dictionary<Item, int> item2Index, bool withNotOkCt, IEnumerable<Item> sortedItems, string ctFormat, IDictionary<Item, IEnumerable<Dependency>> itemsAndDependencies) {
             WriteFormat1Line(output, Limit("Id", colWidth), Limit("Name", labelWidth),
                 topItems.Select(n => GetItemId(n, itemFormat, item2Index) + (withNotOkCt ? ";" + Repeat(' ', colWidth) : "")));
@@ -28,7 +28,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             }
         }
 
-        private static void WriteFormat1Line(TextWriter output, string index, string label, IEnumerable<string> columns) {
+        private static void WriteFormat1Line(ITargetWriter output, string index, string label, IEnumerable<string> columns) {
             char sep = ';';
             output.Write(index);
             output.Write(sep);
@@ -41,7 +41,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         }
 
         public override void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
-            using (var sw = new StreamWriter(stream)) {
+            using (var sw = new TargetStreamWriter(stream)) {
                 Render(dependencies, null, sw, null, true);
             }
         }
@@ -52,7 +52,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             ItemMatch itemMatchOrNull;
             ParseOptions(globalContext, argsAsString, ignoreCase, out labelWidthOrNull, out withNotOkCt, out itemMatchOrNull);
 
-            using (TextWriter sw = target.ChangeExtension(".csv").CreateTextWriter()) {
+            using (var sw = target.ChangeExtension(".csv").CreateWriter()) {
                 Render(dependencies, null/*TODO: InnerMatch?*/, sw, labelWidthOrNull, withNotOkCt);
             }
         }

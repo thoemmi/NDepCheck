@@ -81,7 +81,7 @@ namespace NDepCheck.Rendering.TextWriting {
                 }));
 
             WriteTarget masterFile = GetMasterFileName(globalContext, argsAsString, target);
-            using (var sw = masterFile.CreateTextWriter()) {
+            using (var sw = masterFile.CreateWriter()) {
                 bool writeHeader = masterFile.IsConsoleOut;
                 if (!writeHeader) {
                     sw.WriteLine($"// Written {DateTime.Now} by {typeof(ItemWriter).Name} in NDepCheck {Program.VERSION}");
@@ -95,14 +95,14 @@ namespace NDepCheck.Rendering.TextWriting {
         }
 
         public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream output, string option) {
-            using (var sw = new StreamWriter(output)) {
+            using (var sw = new TargetStreamWriter(output)) {
                 Write(dependencies, sw, itemMatches: null, itemExcludes: null, indegreeMatches: null, indegreeExcludes: null,
                       outdegreeMatches: null, outdegreeExcludes: null, 
                       writeOnlyIfIndegreeNotZero: false, writeOnlyIfOutdegreeNotZero: false, showMarkers: true, ignoreCase: false);
             }
         }
 
-        private void Write([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, TextWriter sw, List<ItemMatch> itemMatches, List<ItemMatch> itemExcludes,
+        private void Write([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, ITargetWriter sw, List<ItemMatch> itemMatches, List<ItemMatch> itemExcludes,
                             List<DependencyMatch> indegreeMatches, List<DependencyMatch> indegreeExcludes,
                             List<DependencyMatch> outdegreeMatches, List<DependencyMatch> outdegreeExcludes,
                             bool writeOnlyIfIndegreeNotZero, bool writeOnlyIfOutdegreeNotZero, bool showMarkers, bool ignoreCase) {
@@ -125,7 +125,7 @@ namespace NDepCheck.Rendering.TextWriting {
                 ItemType itemType = i.Type;
                 if (writtenTypes.Add(itemType)) {
                     sw.Write("$ ");
-                    sw.WriteLine(itemType);
+                    sw.WriteLine(itemType.ToString());
                 }
 
                 int ict = GetCount(incoming, i, indegreeMatches, indegreeExcludes);
@@ -166,7 +166,7 @@ namespace NDepCheck.Rendering.TextWriting {
         }
 
         private Dependency FromTo(Item from, Item to, int ct = 1, int questionable = 0) {
-            return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: ct, questionableCt: questionable);
+            return new Dependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
         }
 
         public string GetHelp(bool detailedHelp, string filter) {

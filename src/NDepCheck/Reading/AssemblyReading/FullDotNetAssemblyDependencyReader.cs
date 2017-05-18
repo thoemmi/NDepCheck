@@ -98,19 +98,19 @@ namespace NDepCheck.Reading.AssemblyReading {
         }
 
         protected IEnumerable<RawDependency> ReadRawDependencies(int depth) {
-            Log.WriteInfo(new string(' ', 2 * depth) + "Reading " + _fullFileName);
+            Log.WriteInfo(new string(' ', 2 * depth) + "Reading " + FullFileName);
             var resolver = new DefaultAssemblyResolver();
-            resolver.AddSearchDirectory(Path.GetDirectoryName(_fullFileName));
+            resolver.AddSearchDirectory(Path.GetDirectoryName(FullFileName));
             // TODO: Additional search directories should be specifiable in options
             resolver.AddSearchDirectory(@"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\Silverlight\v5.0");
-            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(_fullFileName, new ReaderParameters {
+            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(FullFileName, new ReaderParameters {
                 AssemblyResolver = resolver
             });
 
             try {
                 assembly.MainModule.ReadSymbols();
             } catch (Exception ex) {
-                Log.WriteWarning($"Loading symbols for assembly {_fullFileName} failed - maybe .PDB file is missing. ({ex.Message})", _fullFileName, 0);
+                Log.WriteWarning($"Loading symbols for assembly {FullFileName} failed - maybe .PDB file is missing. ({ex.Message})", FullFileName, 0);
             }
 
             ItemTail customSections = GetCustomSections(assembly.CustomAttributes, null);
@@ -177,7 +177,7 @@ namespace NDepCheck.Reading.AssemblyReading {
             ItemTail typeCustomSections = GetCustomSections(type.CustomAttributes, parentCustomSections);
             {
                 RawUsingItem usingItem = GetClassItem(type, typeCustomSections, GetMemberMarkers(type, _typeDefinitionMarkers));
-                // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
+                // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, usingItem, null, null);
 
                 foreach (var dependency_ in AnalyzeCustomAttributes(usingItem, type.CustomAttributes)) {
                     yield return dependency_;
@@ -201,7 +201,7 @@ namespace NDepCheck.Reading.AssemblyReading {
                 foreach (FieldDefinition field in type.Fields) {
                     //if (IsLinked(field.FieldType, type.DeclaringType)) {
                     ItemTail fieldCustomSections = GetCustomSections(field.CustomAttributes, typeCustomSections);
-                    // TODO: WHY??? yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, field.Name, "", fieldCustomSections), null, null);
+                    // TODO: WHY??? yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, GetFullnameItem(type, field.Name, "", fieldCustomSections), null, null);
 
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(field, _fieldDefinitionMarkers),
                              field.FieldType, usage: Usage._declaresfield, sequencePoint: null, memberName: field.Name)) {
@@ -212,7 +212,7 @@ namespace NDepCheck.Reading.AssemblyReading {
 
                 foreach (EventDefinition @event in type.Events) {
                     ItemTail eventCustomSections = GetCustomSections(@event.CustomAttributes, typeCustomSections);
-                    // TODO: WHY??? yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, GetFullnameItem(type, @event.Name, "", eventCustomSections), null, null);
+                    // TODO: WHY??? yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, GetFullnameItem(type, @event.Name, "", eventCustomSections), null, null);
 
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(@event, _eventDefinitionMarkers),
                              @event.EventType, usage: Usage._declaresevent, sequencePoint: null, memberName: @event.Name)) {
@@ -234,7 +234,7 @@ namespace NDepCheck.Reading.AssemblyReading {
                 ItemTail methodCustomSections = GetCustomSections(method.CustomAttributes, typeCustomSections);
 
                 RawUsingItem usingItem = GetFullNameItem(type, method.Name, GetMemberMarkers(method, _methodDefinitionMarkers), methodCustomSections);
-                // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
+                // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, usingItem, null, null);
 
                 foreach (var dependency_ in AnalyzeMethod(type, usingItem, method)) {
                     yield return dependency_;
@@ -299,7 +299,7 @@ namespace NDepCheck.Reading.AssemblyReading {
                                                                [CanBeNull] MethodDefinition getterSetter) {
             if (getterSetter != null) {
                 RawUsingItem usingItem = GetFullNameItem(property.DeclaringType, property.Name, markers, propertyCustomSections);
-                // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, null, null);
+                // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, usingItem, null, null);
 
                 foreach (var dependency in AnalyzeMethod(owner, usingItem, getterSetter)) {
                     yield return dependency;
@@ -470,7 +470,7 @@ namespace NDepCheck.Reading.AssemblyReading {
                 // to get a useful Dependency_ for the user.
 
                 RawUsedItem usedItem = GetFullNameItem(usedType, memberName, usedMarkers);
-                yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETCALL, usingItem, usedItem, usage, sequencePoint,
+                yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, usingItem, usedItem, usage, sequencePoint,
                     _readerGang.OfType<AbstractDotNetAssemblyDependencyReader>().FirstOrDefault(r => r.AssemblyName == usedItem.AssemblyName));
             }
 
@@ -489,7 +489,7 @@ namespace NDepCheck.Reading.AssemblyReading {
         ////public Func<TypeReference, string, ItemTail> GetCustomSectionComputation() {
         ////    // Simple version - does not work for cyclic assembly dependencies!
         ////    [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies = ReadOrGetDependencies();
-        ////    IEnumerable<Item> items = dependencies.Select(d => d.UsingItem).Where(it => it.Type == DotNetAssemblyDependencyReaderFactory.DOTNETCALL).Distinct();
+        ////    IEnumerable<Item> items = dependencies.Select(d => d.UsingItem).Where(it => it.Type == DotNetAssemblyDependencyReaderFactory.DOTNETITEM).Distinct();
 
         ////    Dictionary<Tuple<string, string, string>, ItemTail> convertDict = items.ToDictionary(it => Tuple.Create(it.Values[0], it.Values[1], it.Values[5]), it => new ItemTail(it.Type, it.Values.Skip(6).ToArray()));
         ////    return (tr, m) => convertDict.ContainsKey(Tuple.Create(tr.Namespace, tr.Name, m)) ? convertDict[Tuple.Create(tr.Namespace, tr.Name, m)] : null;

@@ -30,8 +30,8 @@ namespace NDepCheck.Tests {
                 ItemType simple = ItemType.New("SIMPLE(Name)");
                 Item i1 = Item.New(simple, "I1");
                 Item i2 = Item.New(simple, "I2");
-                return new[] { new Dependency(i1, i1, new TextFileSource("Test", 1), "Test", ct: 1),
-                                       new Dependency(i1, i2, new TextFileSource("Test", 2), "Test", ct: 1) };
+                return new[] { new Dependency(i1, i1, new TextFileSourceLocation("Test", 1), "Test", ct: 1),
+                                       new Dependency(i1, i2, new TextFileSourceLocation("Test", 2), "Test", ct: 1) };
             }
 
             public override string GetHelp(bool extensiveHelp, string filter) {
@@ -41,7 +41,7 @@ namespace NDepCheck.Tests {
 
         private static void CreateAndRender(Action<LambdaTestRenderer> placeObjects) {
             new LambdaTestRenderer(placeObjects).Render(new GlobalContext(), Enumerable.Empty<Dependency>(), 0,
-                                    "", new WriteTarget(Path.GetTempFileName(), append: false), ignoreCase: false);
+                                    "", new WriteTarget(Path.GetTempFileName(), append: false, limitLinesForConsole: 100), ignoreCase: false);
         }
 
         [TestMethod]
@@ -261,7 +261,7 @@ namespace NDepCheck.Tests {
                 ItemType simple = ItemType.New("SIMPLE(Name)");
                 var localItems = Enumerable.Range(0, n).Select(i => Item.New(simple, prefix + i)).ToArray();
                 return localItems.SelectMany(
-                        (from, i) => localItems.Skip(i).Select(to => new Dependency(from, to, new TextFileSource(prefix, i), "Use", 10 * i))).ToArray();
+                        (from, i) => localItems.Skip(i).Select(to => new Dependency(from, to, new TextFileSourceLocation(prefix, i), "Use", 10 * i))).ToArray();
             }
 
             public override IEnumerable<Dependency> CreateSomeTestDependencies() {
@@ -278,10 +278,10 @@ namespace NDepCheck.Tests {
             Item[] items = Enumerable.Range(0, n).Select(i => Item.New(simple, prefix + i)).ToArray();
             Dependency[] dependencies =
                 items.SelectMany(
-                    (from, i) => items.Skip(i).Select(to => new Dependency(from, to, new TextFileSource(prefix, i), "Use", 10 * i))).ToArray();
+                    (from, i) => items.Skip(i).Select(to => new Dependency(from, to, new TextFileSourceLocation(prefix, i), "Use", 10 * i))).ToArray();
 
             new SomewhatComplexTestRenderer(boxHeight).Render(new GlobalContext(), dependencies, dependencies.Length,
-                argsAsString: "", target: new WriteTarget(Path.GetTempFileName(), append: false),ignoreCase: false);
+                argsAsString: "", target: new WriteTarget(Path.GetTempFileName(), append: false, limitLinesForConsole: 100),ignoreCase: false);
         }
 
         [TestMethod]

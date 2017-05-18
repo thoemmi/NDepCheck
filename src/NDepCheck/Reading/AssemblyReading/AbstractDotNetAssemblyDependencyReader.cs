@@ -20,7 +20,7 @@ namespace NDepCheck.Reading.AssemblyReading {
         private Dictionary<RawUsedItem, Item> _rawItems2Items;
 
         protected AbstractDotNetAssemblyDependencyReader(DotNetAssemblyDependencyReaderFactory factory, string fileName)
-            : base(fileName) {
+            : base(Path.GetFullPath(fileName), Path.GetFileName(fileName)) {
             _factory = factory;
             Assemblyname = Path.GetFileNameWithoutExtension(fileName);
         }
@@ -38,12 +38,12 @@ namespace NDepCheck.Reading.AssemblyReading {
 
 
         protected abstract class RawAbstractItem {
-            private readonly string _namespaceName;
+            public readonly string NamespaceName;
             public readonly string ClassName;
             public readonly string AssemblyName;
             private readonly string _assemblyVersion;
             private readonly string _assemblyCulture;
-            private readonly string _memberName;
+            public readonly string MemberName;
             [CanBeNull, ItemNotNull]
             private readonly string[] _markers;
 
@@ -58,43 +58,43 @@ namespace NDepCheck.Reading.AssemblyReading {
                 if (assemblyName == null) {
                     throw new ArgumentNullException(nameof(assemblyName));
                 }
-                _namespaceName = string.Intern(namespaceName);
+                NamespaceName = string.Intern(namespaceName);
                 ClassName = string.Intern(className);
                 AssemblyName = string.Intern(assemblyName);
                 _assemblyVersion = string.Intern(assemblyVersion ?? "");
                 _assemblyCulture = string.Intern(assemblyCulture ?? "");
-                _memberName = string.Intern(memberName ?? "");
+                MemberName = string.Intern(memberName ?? "");
                 _markers = markers;
             }
 
             public override string ToString() {
-                return _namespaceName + ":" + ClassName + ":" + AssemblyName + ";" + _assemblyVersion + ";" +
-                       _assemblyCulture + ":" + _memberName + (_markers == null ? "" : "'" + string.Join("+", _markers));
+                return NamespaceName + ":" + ClassName + ":" + AssemblyName + ";" + _assemblyVersion + ";" +
+                       _assemblyCulture + ":" + MemberName + (_markers == null ? "" : "'" + string.Join("+", _markers));
             }
 
             [NotNull]
             public virtual Item ToItem(ItemType type) {
-                return Item.New(type, new[] { _namespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, _memberName }, _markers);
+                return Item.New(type, new[] { NamespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, MemberName }, _markers);
             }
 
             [NotNull]
             protected RawUsedItem ToRawUsedItem() {
-                return RawUsedItem.New(_namespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, _memberName, _markers);
+                return RawUsedItem.New(NamespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, MemberName, _markers);
             }
 
             protected bool EqualsRawAbstractItem(RawAbstractItem other) {
                 return this == other
                     || other != null
-                       && other._namespaceName == _namespaceName
+                       && other.NamespaceName == NamespaceName
                        && other.ClassName == ClassName
                        && other.AssemblyName == AssemblyName
                        && other._assemblyVersion == _assemblyVersion
                        && other._assemblyCulture == _assemblyCulture
-                       && other._memberName == _memberName;
+                       && other.MemberName == MemberName;
             }
 
             protected int GetRawAbstractItemHashCode() {
-                return unchecked(_namespaceName.GetHashCode() ^ ClassName.GetHashCode() ^ AssemblyName.GetHashCode() ^ (_memberName ?? "").GetHashCode());
+                return unchecked(NamespaceName.GetHashCode() ^ ClassName.GetHashCode() ^ AssemblyName.GetHashCode() ^ (MemberName ?? "").GetHashCode());
             }
         }
 
@@ -184,7 +184,7 @@ namespace NDepCheck.Reading.AssemblyReading {
                 _rawItems2Items = new Dictionary<RawUsedItem, Item>();
                 foreach (var u in ReadUsingItems(depth + 1)) {
                     RawUsedItem usedItem = u.ToRawUsedItem();
-                    _rawItems2Items[usedItem] = u.ToItem(DotNetAssemblyDependencyReaderFactory.DOTNETCALL);
+                    _rawItems2Items[usedItem] = u.ToItem(DotNetAssemblyDependencyReaderFactory.DOTNETITEM);
                 }
             }
             Item result;
@@ -253,8 +253,8 @@ namespace NDepCheck.Reading.AssemblyReading {
             [NotNull]
             private Dependency ToDependency(Item usedItem, string containerUri) {
                 return new Dependency(UsingItem.ToItem(_type), usedItem, _sequencePoint == null 
-                            ? new FileSource(containerUri) 
-                            : new ProgramFileSource(containerUri, _sequencePoint.Document.Url, _sequencePoint.StartLine, _sequencePoint.StartColumn, _sequencePoint.EndLine, _sequencePoint.EndColumn),
+                            ? (ISourceLocation) new LocalSourceLocation(containerUri, UsingItem.NamespaceName + "." + UsingItem.ClassName + (string.IsNullOrWhiteSpace(UsingItem.MemberName) ? "" : "." + UsingItem.MemberName))
+                            : new ProgramFileSourceLocation(containerUri, _sequencePoint.Document.Url, _sequencePoint.StartLine, _sequencePoint.StartColumn, _sequencePoint.EndLine, _sequencePoint.EndColumn),
                         Usage.ToString(), 1);
             }
 
@@ -329,8 +329,8 @@ namespace NDepCheck.Reading.AssemblyReading {
 
         private ItemType GetOrDeclareType(string itemTypeName, IEnumerable<string> keys, IEnumerable<string> subkeys) {
             return _factory.GetOrCreateDotNetType(itemTypeName,
-                DotNetAssemblyDependencyReaderFactory.DOTNETCALL.Keys.Concat(keys).ToArray(),
-                DotNetAssemblyDependencyReaderFactory.DOTNETCALL.SubKeys.Concat(subkeys).ToArray());
+                DotNetAssemblyDependencyReaderFactory.DOTNETITEM.Keys.Concat(keys).ToArray(),
+                DotNetAssemblyDependencyReaderFactory.DOTNETITEM.SubKeys.Concat(subkeys).ToArray());
         }
 
         protected static void GetTypeInfo(TypeReference reference, out string namespaceName, out string className,

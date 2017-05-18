@@ -311,7 +311,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestProblemWithEmptyNamespace() {
-            ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
+            ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
             var @using = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
             var used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "");
             var d = new Dependency(@using, used, null, "Test", ct: 1);
@@ -322,7 +322,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestEmptyNamespaceInRule() {
-            ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
+            ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
 
             Item @using = Item.New(itemType, "NDepCheck.TestAssembly.dir1.dir2", "SomeClass", "NDepCheck.TestAssembly", "1.0.0.0", "", "AnotherMethod");
             Item used = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "I");
@@ -335,7 +335,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestAmpersand() {
-            ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
+            ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
 
             var ga = new Projection(itemType, itemType, "(**):(**):(**)", new[] { "\\1", "\\2", "\\3", "", "", "" },
                                     ignoreCase: false, forLeftSide: true, forRightSide: true);
@@ -349,7 +349,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestSimpleNamedCall() {
-            ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
+            ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
             Item @using = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
             Item used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "");
             var d = new Dependency(@using, used, null, "Test", ct: 1);
@@ -360,7 +360,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestReverseFieldsInNamedCall() {
-            ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETCALL;
+            ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
             Item @using = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
             Item used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "");
             var d = new Dependency(@using, used, null, "Test", ct: 1);

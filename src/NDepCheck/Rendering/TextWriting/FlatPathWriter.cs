@@ -54,14 +54,17 @@ namespace NDepCheck.Rendering.TextWriting {
                     return j;
                 }));
 
-            using (TextWriter tw = GetMasterFileName(globalContext, argsAsString, target).CreateTextWriter()) {
+            int pathCount;
+            using (ITargetWriter tw = GetMasterFileName(globalContext, argsAsString, target).CreateWriter()) {
                 tw.WriteLine($"// Written {DateTime.Now} by {typeof(FlatPathWriter).Name} in NDepCheck {Program.VERSION}");
                 tw.WriteLine();
-                WritePaths(dependencies, ignoreCase, markerMatchers, tw, showItemMarkers);
+                pathCount = WritePaths(dependencies, ignoreCase, markerMatchers, tw, showItemMarkers);
             }
+            Log.WriteInfo($"... written {pathCount} paths");
         }
 
-        private static void WritePaths([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, bool ignoreCase, IEnumerable<IMatcher> markerMatchers, TextWriter tw, bool showItemMarkers) {
+        private static int WritePaths([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, bool ignoreCase, IEnumerable<IMatcher> markerMatchers, 
+                                        ITargetWriter tw, bool showItemMarkers) {
             var paths = new SortedDictionary<string, List<Dependency>>();
 
             foreach (var d in dependencies) {
@@ -97,12 +100,11 @@ namespace NDepCheck.Rendering.TextWriting {
                 }
                 tw.WriteLine();
             }
-
-            Log.WriteInfo($"... written {paths.Count} paths");
+            return paths.Count;
         }
 
         public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string option) {
-            using (var sw = new StreamWriter(stream)) {
+            using (var sw = new TargetStreamWriter(stream)) {
                 string[] options = (option ?? "").Split(' ');
                 WritePaths(dependencies, globalContext.IgnoreCase, new [] { MarkerMatch.CreateMatcher(options[0], globalContext.IgnoreCase) }, sw, showItemMarkers: options.Contains("-sm"));
             }

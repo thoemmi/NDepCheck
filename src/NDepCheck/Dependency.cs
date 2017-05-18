@@ -127,12 +127,13 @@ namespace NDepCheck {
             return s;
         }
 
-        public string AsLimitableStringWithTypes(bool withExampleInfo, int maxLength = 600) {
+        public string AsLimitableStringWithTypes(bool withExampleInfo, bool threeLines, int maxLength = 600) {
+            string nl = threeLines ? Environment.NewLine + "    " : "";
             string exampleInfo = withExampleInfo ? ExampleInfo : null;
             string markers = MarkerSet.AsFullString(maxLength / 3);
-            return $"{UsingItem.AsFullString(maxLength / 3)} {DIP_ARROW} "
-                 + $"{markers};{Ct};{QuestionableCt};{BadCt};{Source?.AsDipString()};{exampleInfo} "
-                 + $"{DIP_ARROW} {UsedItem.AsFullString(maxLength / 3)}";
+            return $"{UsingItem.AsFullString(maxLength / 3)} "
+                 + nl + $"{DIP_ARROW} {markers};{Ct};{QuestionableCt};{BadCt};{Source?.AsDipString()};{exampleInfo} "
+                 + nl + $"{DIP_ARROW} {UsedItem.AsFullString(maxLength / 3)}";
         }
     }
 

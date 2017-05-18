@@ -45,7 +45,7 @@ namespace NDepCheck.Tests {
             IEnumerable<Dependency> result = Run($"{{ {MarkMinimalCutDeps.MatchSourceOption} a " +
                                                  $"{MarkMinimalCutDeps.MatchTargetOption} d " +
                                                  $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
-            Assert.IsTrue(result.All(z => z.MarkersContain(mark) == (z.Ct == 20)), string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(false))));
+            Assert.IsTrue(result.All(z => z.MarkersContain(mark) == (z.Ct == 20)), string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
         }
 
         [TestMethod]
@@ -76,7 +76,7 @@ namespace NDepCheck.Tests {
                                                  $"{MarkMinimalCutDeps.MatchTargetOption} t " +
                                                  $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
             Assert.IsTrue(result.All(z => z.MarkersContain(mark) == (Equals(z.UsingItem, s))),
-                          string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(false))));
+                          string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
         }
 
         private static Dependency[] CreateExampleGraph() {
@@ -112,7 +112,7 @@ namespace NDepCheck.Tests {
                                                  $"{MarkMinimalCutDeps.MatchTargetOption} t " +
                                                  $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
             Assert.IsTrue(result.All(z => z.MarkersContain(mark) == new[] { 12, 36, 78 }.Contains(z.Ct)),
-                          string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(false))));
+                          string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
         }
 
         [TestMethod]
@@ -133,7 +133,7 @@ namespace NDepCheck.Tests {
                                                  $"{MarkMinimalCutDeps.MatchTargetOption} t " +
                                                  $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
             Assert.IsTrue(result.All(z => z.MarkersContain(mark) == new[] { 12, 36, 78 }.Contains(z.Ct)),
-                          string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(false))));
+                          string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
         }
 
         [TestMethod]
@@ -161,7 +161,7 @@ namespace NDepCheck.Tests {
                                                  $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} " +
                                                  $"{MarkMinimalCutDeps.SourceMarkerOption} {source} }}", dependencies);
             Assert.IsTrue(result.All(z => z.MarkersContain(mark) == new[] { 102, 104 }.Contains(z.Ct)),
-                          string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(false))));
+                          string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
             Assert.IsTrue(s.MarkersContain(source));
             Assert.IsFalse(n2.MarkersContain(source));
             Assert.IsFalse(n4.MarkersContain(source));
@@ -177,7 +177,7 @@ namespace NDepCheck.Tests {
                                                  $"{MarkMinimalCutDeps.UseQuestionableCountOption} " +
                                                  $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", null);
             Assert.IsTrue(result.All(z => z.MarkersContain(mark) == new[] { 112, 142, 145 }.Contains(z.Ct)),
-                          string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(false))));
+                          string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
         }
 
         [TestMethod]
@@ -200,7 +200,7 @@ namespace NDepCheck.Tests {
                                                  $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} " +
                                                  $"{MarkMinimalCutDeps.SourceMarkerOption} {source} }}", dependencies);
             Assert.IsTrue(result.All(z => !z.MarkersContain(mark)),
-                          string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(false))));
+                          string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
             Assert.IsTrue(a.MarkersContain(source));
             Assert.IsTrue(b.MarkersContain(source));
             Assert.IsFalse(c.MarkersContain(source));

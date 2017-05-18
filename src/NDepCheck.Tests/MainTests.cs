@@ -36,7 +36,7 @@ namespace NDepCheck.Tests {
                     tw.Write(@"
 // Test dependencies for NDepCheck
 
-$ DOTNETCALL ---> DOTNETCALL
+$ DOTNETITEM ---> DOTNETITEM
                   
     // Every class may use all classes from its own namespace.
 (**): ---> \1:
@@ -223,7 +223,7 @@ NDepCheck:Tests ---> **
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
-                    $ DOTNETCALL ---> DOTNETCALL
+                    $ DOTNETITEM ---> DOTNETITEM
                   
                     NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
                     NDepCheck.TestAssembly.**::NDepCheck.TestAssembly ---> System.**::mscorlib
@@ -253,7 +253,7 @@ NDepCheck:Tests ---> **
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
-                    $ DOTNETCALL ---> DOTNETCALL
+                    $ DOTNETITEM ---> DOTNETITEM
                   
                     ::* ---> ::mscorlib
 
@@ -279,7 +279,7 @@ NDepCheck:Tests ---> **
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
-                    $ DOTNETCALL ---> DOTNETCALL
+                    $ DOTNETITEM ---> DOTNETITEM
                   
                     _B.** ---> _B.**
                     _B.** ---> System.**
@@ -313,7 +313,7 @@ NDepCheck:Tests ---> **
                 // The rules are not enough for the test assembly - we expect return result 3
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
-                   $ DOTNETCALL ---> DOTNETCALL
+                   $ DOTNETITEM ---> DOTNETITEM
                   
                    ** ---> blabla
                 ");
@@ -337,7 +337,7 @@ NDepCheck:Tests ---> **
         public void ExitDependenciesNotOkAspects() {
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
-                    tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
+                    tw.Write(@"$ DOTNETITEM ---> DOTNETITEM
 
                     NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
                     NDepCheck.TestAssembly.** ---> System.**
@@ -362,7 +362,7 @@ NDepCheck:Tests ---> **
         public void ExitFileNotFound() {
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
-                    tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
+                    tw.Write(@"$ DOTNETITEM ---> DOTNETITEM
 
                     : ---> blabla
                 ");
@@ -376,7 +376,7 @@ NDepCheck:Tests ---> **
         public void ExitException() {
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
-                    tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
+                    tw.Write(@"$ DOTNETITEM ---> DOTNETITEM
 
                     // Bad - contains --->
                     =---> :=    
@@ -393,7 +393,7 @@ NDepCheck:Tests ---> **
             }
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
-                    tw.Write(@"$ DOTNETCALL ---> DOTNETCALL
+                    tw.Write(@"$ DOTNETITEM ---> DOTNETITEM
 
                     --> :=    
                        ** ---> blabla
@@ -409,7 +409,7 @@ NDepCheck:Tests ---> **
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 using (TextWriter tw = new StreamWriter(d.Filename)) {
                     tw.Write(@"
-                    $ DOTNETCALL ---> DOTNETCALL
+                    $ DOTNETITEM ---> DOTNETITEM
                   
                     NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
                     NDepCheck.TestAssembly.**::NDepCheck.TestAssembly ---> System.**::mscorlib
@@ -420,7 +420,7 @@ NDepCheck:Tests ---> **
                     $ DOTNETREF ---> DOTNETREF
                     **          ---> **
 
-                    $ DOTNETCALL      ---> SIMPLE(Name)
+                    $ DOTNETITEM      ---> SIMPLE(Name)
                     ! System**:**     ---> .Net
                     ! Microsoft**:**  ---> .Net
                     ! (**):(**)       ---> \1#\2

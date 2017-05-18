@@ -49,7 +49,7 @@ namespace NDepCheck.Rendering.TextWriting {
             } else {
                 WriteTarget writeTarget = GetTextFile(target);
                 Log.WriteInfo($"Writing {violationsCount} violations to {writeTarget }");
-                using (var sw = writeTarget.CreateTextWriter()) {
+                using (var sw = writeTarget.CreateWriter()) {
                     RenderToTextWriter(dependencies, sw);
                 }
             }
@@ -73,7 +73,7 @@ namespace NDepCheck.Rendering.TextWriting {
             return xmlOutput;
         }
 
-        private static void RenderToTextWriter([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, TextWriter sw) {
+        private static void RenderToTextWriter([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, ITargetWriter sw) {
             sw.WriteLine($"// Written {DateTime.Now} by {typeof(RuleViolationWriter).Name} in NDepCheck {Program.VERSION}");
             foreach (var d in dependencies.Where(d => d.NotOkCt > 0)) {
                 sw.WriteLine(d.NotOkMessage());
@@ -81,7 +81,7 @@ namespace NDepCheck.Rendering.TextWriting {
         }
 
         public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
-            using (var sw = new StreamWriter(stream)) {
+            using (var sw = new TargetStreamWriter(stream)) {
                 RenderToTextWriter(dependencies, sw);
             }
         }
@@ -93,9 +93,9 @@ namespace NDepCheck.Rendering.TextWriting {
             Item questionable = Item.New(simple, "questionable");
             Item bad = Item.New(simple, "bad");
             return new[] {
-                new Dependency(root, ok, new TextFileSource("Test", 1), "Use", 4, 0, 0, "to root"),
-                new Dependency(root, questionable, new TextFileSource("Test", 1), "Use", 4, 1, 0, "to questionable"),
-                new Dependency(root, bad, new TextFileSource("Test", 1), "Use", 4, 2, 1, "to bad")
+                new Dependency(root, ok, new TextFileSourceLocation("Test", 1), "Use", 4, 0, 0, "to root"),
+                new Dependency(root, questionable, new TextFileSourceLocation("Test", 1), "Use", 4, 1, 0, "to questionable"),
+                new Dependency(root, bad, new TextFileSourceLocation("Test", 1), "Use", 4, 2, 1, "to bad")
             };
         }
 

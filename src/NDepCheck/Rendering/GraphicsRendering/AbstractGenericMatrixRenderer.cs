@@ -119,7 +119,7 @@ $@"  Write a textual matrix representation of dependencies.
         }
 
         protected void Render(IEnumerable<Dependency> edges, ItemMatch innerMatchOrNull,
-            [NotNull] TextWriter output, int? labelWidthOrNull, bool withNotOkCt) {
+            [NotNull] ITargetWriter output, int? labelWidthOrNull, bool withNotOkCt) {
             IDictionary<Item, IEnumerable<Dependency>> itemsAndDependencies = Dependency.Dependencies2ItemsAndDependencies(edges);
 
             var innerAndReachableOuterItems =
@@ -146,7 +146,7 @@ $@"  Write a textual matrix representation of dependencies.
             }
         }
 
-        protected abstract void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<Item> topItems,
+        protected abstract void Write(ITargetWriter output, int colWidth, int labelWidth, IEnumerable<Item> topItems,
             string itemFormat, Dictionary<Item, int> item2Index, bool withNotOkCt, IEnumerable<Item> sortedItems,
             string ctFormat, IDictionary<Item, IEnumerable<Dependency>> itemsAndDependencies);
 

@@ -1,23 +1,19 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Reading {
     public abstract class AbstractDependencyReader : IDependencyReader {
-        [NotNull]
-        protected readonly string _fullFileName;
-
-        protected AbstractDependencyReader([NotNull]string fileName) {
-            if (string.IsNullOrWhiteSpace(fileName)) {
-                throw new ArgumentException("fileName must be non-empty", nameof(fileName));
+        protected AbstractDependencyReader([NotNull]string fullFileName, string containerUri) {
+            if (string.IsNullOrWhiteSpace(fullFileName)) {
+                throw new ArgumentException("fileName must be non-empty", nameof(fullFileName));
             }
-            _fullFileName = Path.GetFullPath(fileName);
-            ContainerUri = fileName;
+            FullFileName = fullFileName;
+            ContainerUri = containerUri;
         }
 
         [NotNull]
-        public string FullFileName => _fullFileName;
+        public string FullFileName { get; }
 
         [NotNull]
         protected string ContainerUri { get; }

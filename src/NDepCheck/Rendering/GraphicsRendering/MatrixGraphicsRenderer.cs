@@ -156,7 +156,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         }
 
         private Dependency FromTo(Item from, Item to, int ct = 1, int questionableCt = 0) {
-            return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
+            return new Dependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
         public static readonly Option BottomRegexOption = new Option("pb", "place-on-bottom", "&", "Regex to select elements to place on bottom", @default: "all items on both axes");

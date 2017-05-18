@@ -10,14 +10,14 @@ namespace NDepCheck.Reading.AssemblyReading {
             new[] { "ASSEMBLY", "ASSEMBLY", "ASSEMBLY" },
             new[] { ".NAME", ".VERSION", ".CULTURE" }, ignoreCase: false, predefined: true);
 
-        public static readonly ItemType DOTNETCALL = ItemType.New(
-            "DOTNETCALL",
+        public static readonly ItemType DOTNETITEM = ItemType.New(
+            "DOTNETITEM",
             new[] { "NAMESPACE", "CLASS", "ASSEMBLY", "ASSEMBLY", "ASSEMBLY", "MEMBER" },
             new[] { null, null, ".NAME", ".VERSION", ".CULTURE", ".NAME" }, ignoreCase: false, predefined: true);
 
         [UsedImplicitly]
         public DotNetAssemblyDependencyReaderFactory() {
-            ItemType.ForceLoadingPredefinedType(DOTNETCALL);
+            ItemType.ForceLoadingPredefinedType(DOTNETITEM);
             ItemType.ForceLoadingPredefinedType(DOTNETREF);
         }
 
@@ -59,7 +59,7 @@ namespace NDepCheck.Reading.AssemblyReading {
             string result = @"Read data from .Net assembly file (.dll or .exe)
 
 This reader returns items of two types:
-    DOTNETCALL(NAMESPACE:CLASS:ASSEMBLY.NAME;ASSEMBLY.VERSION;ASSEMBLY.CULTURE:MEMBER.NAME)
+    DOTNETITEM(NAMESPACE:CLASS:ASSEMBLY.NAME;ASSEMBLY.VERSION;ASSEMBLY.CULTURE:MEMBER.NAME)
     DOTNETREF(ASSEMBLY.NAME;ASSEMBLY.VERSION;ASSEMBLY.CULTURE)
 ";
             if (detailedHelp) {
@@ -71,7 +71,7 @@ ___EXPLANATIONS MISSING___
 
 ...
 * When a type N1.T1 in assembly A1 declares a field V of type N2.T2 in assembly A2, this yields 
-** DOTNETCALL(N1:T1:A1:V) ---> DOTNETCALL(N2:T2:A2)
+** DOTNETITEM(N1:T1:A1:V) ---> DOTNETITEM(N2:T2:A2)
 ...
 The files are read with Mono.Cecil.
 

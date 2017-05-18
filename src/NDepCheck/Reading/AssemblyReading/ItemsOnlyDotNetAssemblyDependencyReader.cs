@@ -14,14 +14,14 @@ namespace NDepCheck.Reading.AssemblyReading {
         }
 
         protected override IEnumerable<RawUsingItem> ReadUsingItems(int depth) {
-            Log.WriteInfo("Reading " + _fullFileName);
-            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(_fullFileName);
+            Log.WriteInfo("Reading " + FullFileName);
+            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(FullFileName);
 
             try {
                 assembly.MainModule.ReadSymbols();
             } catch (Exception ex) {
                 Log.WriteWarning(
-                        $"Loading symbols for assembly {_fullFileName} failed - maybe .PDB file is missing. ({ex.Message})", _fullFileName, 0);
+                        $"Loading symbols for assembly {FullFileName} failed - maybe .PDB file is missing. ({ex.Message})", FullFileName, 0);
             }
 
             ItemTail customSections = GetCustomSections(assembly.CustomAttributes, null);

@@ -55,22 +55,28 @@ namespace NDepCheck.Rendering.PathFinding {
         }
 
         private class PathWriterTraverser<TDependency, TItem> : AbstractDepthFirstPathTraverser<TDependency, TItem,
-            DownInfo, HereInfo, List<PathNode<TItem, TDependency>> >
+            DownInfo, HereInfo, List<PathNode<TItem, TDependency>>>
                 where TDependency : AbstractDependency<TItem>
                 where TItem : AbstractItem<TItem> {
+            private readonly int _maxPathLength;
             private readonly AbstractPathMatch<TDependency, TItem> _countMatch;
             private readonly HashSet<TItem> _seenInnerPathStarts = new HashSet<TItem>();
 
-            public readonly Dictionary<TItem, List<PathNode<TItem, TDependency>> > Paths = new Dictionary<TItem, List<PathNode<TItem, TDependency>> >();
+            public readonly Dictionary<TItem, List<PathNode<TItem, TDependency>>> Paths = new Dictionary<TItem, List<PathNode<TItem, TDependency>>>();
             public readonly Dictionary<TItem, HashSet<IMatchableObject>> Counts = new Dictionary<TItem, HashSet<IMatchableObject>>();
 
             private readonly HashSet<ItemAndInt> _onPath = new HashSet<ItemAndInt>();
             private readonly bool _backwards;
 
-            public PathWriterTraverser(bool backwards, AbstractPathMatch<TDependency, TItem> countMatch, [NotNull] Action checkAbort) : base(checkAbort) {
+            private int _nodesWithEndFlag;
+
+            public PathWriterTraverser(int maxPathLength, bool backwards, AbstractPathMatch<TDependency, TItem> countMatch, [NotNull] Action checkAbort) : base(checkAbort) {
+                _maxPathLength = maxPathLength;
                 _backwards = backwards;
                 _countMatch = countMatch;
             }
+
+            public int NodesWithEndFlag => _nodesWithEndFlag;
 
             public void Traverse(IEnumerable<TDependency> dependencies, ItemMatch pathAnchor,
                 bool pathAnchorIsCountMatch, AbstractPathMatch<TDependency, TItem>[] expectedPathMatches) {
@@ -98,7 +104,7 @@ namespace NDepCheck.Rendering.PathFinding {
 
                 foreach (var item in uniqueStartItems.OrderBy(i => i.Name)) {
                     if (_seenInnerPathStarts.Add(item)) {
-                        List<PathNode<TItem, TDependency>>  up = Traverse(root: item,
+                        List<PathNode<TItem, TDependency>> up = Traverse(root: item,
                             incidentDependencies: incidentDependencies, expectedInnerPathMatches: innerMatches,
                             endMatch: endMatch, down: new DownInfo(pathAnchorIsCountMatch ? item : null));
                         if (up != null) {
@@ -108,14 +114,19 @@ namespace NDepCheck.Rendering.PathFinding {
                 }
             }
 
-            protected override bool ShouldVisitSuccessors(TItem tail, Stack<TDependency> currentPath, int expectedPathMatchIndex, out List<PathNode<TItem, TDependency>>  initUpSum) {
-                initUpSum = new List<PathNode<TItem, TDependency>> ();
-                bool tailNewOnPath = _onPath.Add(new ItemAndInt(tail, expectedPathMatchIndex));
+            protected override bool ShouldVisitSuccessors(TItem tail, Stack<TDependency> currentPath, int expectedPathMatchIndex, out List<PathNode<TItem, TDependency>> initUpSum) {
+                initUpSum = new List<PathNode<TItem, TDependency>>();
+                var onPathItem = new ItemAndInt(tail, expectedPathMatchIndex);
                 if (currentPath.Count == 0) {
                     // Behind head
+                    _onPath.Add(onPathItem);
                     return true;
+                } else if (currentPath.Count >= _maxPathLength) {
+                    // We have reached the checking limit - no further graph traversal
+                    return false;
                 } else {
                     // Check for loop
+                    bool tailNewOnPath = _onPath.Add(onPathItem);
                     return tailNewOnPath;
                 }
             }
@@ -153,24 +164,27 @@ namespace NDepCheck.Rendering.PathFinding {
                 return new DownAndHere(new DownInfo(pushDownMatch), new HereInfo(dependencyMatchedByCountMatch, usedItemMatchedByCountMatch));
             }
 
-            protected override List<PathNode<TItem, TDependency>>  BeforePopDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex,
+            protected override List<PathNode<TItem, TDependency>> BeforePopDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex,
                     AbstractPathMatch<TDependency, TItem> pathMatchOrNull, bool isEnd,
-                    HereInfo here, List<PathNode<TItem, TDependency>>  upSum, List<PathNode<TItem, TDependency>>  childUp) {
+                    HereInfo here, List<PathNode<TItem, TDependency>> upSum, List<PathNode<TItem, TDependency>> childUp) {
 
                 TDependency top = currentPath.Peek();
                 var key = new ItemAndInt(top.UsedItem, expectedPathMatchIndex);
                 bool isEndOfCycle = _onPath.Contains(key);
 
                 if (isEnd || isEndOfCycle || childUp.Any(p => p.LeadsToNodesToBePrinted)) {
-                    PathNode<TItem, TDependency> n = new PathNode<TItem, TDependency>(top, isEnd, 
+                    PathNode<TItem, TDependency> n = new PathNode<TItem, TDependency>(top, isEnd,
                         isEndOfCycle, here.DependencyMatchedByCountMatch, here.UsedItemMatchedByCountMatch, childUp);
+                    if (isEnd || isEndOfCycle) {
+                        _nodesWithEndFlag++; 
+                    }
                     upSum.Add(n);
                 }
                 return upSum;
             }
 
-            protected override List<PathNode<TItem, TDependency>>  AfterVisitingSuccessors(bool visitSuccessors, TItem tail,
-                    Stack<TDependency> currentPath, int expectedPathMatchIndex, List<PathNode<TItem, TDependency>>  upSum) {
+            protected override List<PathNode<TItem, TDependency>> AfterVisitingSuccessors(bool visitSuccessors, TItem tail,
+                    Stack<TDependency> currentPath, int expectedPathMatchIndex, List<PathNode<TItem, TDependency>> upSum) {
                 if (visitSuccessors) {
                     // We visit the children - tail was therefore definitely not in _onPath - so we can safely remove it!
                     var key = new ItemAndInt(tail, expectedPathMatchIndex);
@@ -181,15 +195,17 @@ namespace NDepCheck.Rendering.PathFinding {
         }
 
         private class PathNodesTraverser {
-            [NotNull] private readonly string _pathMarker;
-            private readonly bool _addIndexToMarker;
-            [NotNull] private readonly Action _checkAbort;
+            [NotNull]
+            private readonly string _pathMarker;
+            private readonly string _addIndexToMarkerFormat;
+            [NotNull]
+            private readonly Action _checkAbort;
             private int _pathCount;
             private readonly HashSet<Dependency> _pathDependencies = new HashSet<Dependency>();
 
-            public PathNodesTraverser([NotNull] string pathMarker, bool addIndexToMarker, [NotNull] Action checkAbort) {
+            public PathNodesTraverser([NotNull] string pathMarker, string addIndexToMarkerFormat, [NotNull] Action checkAbort) {
                 _pathMarker = pathMarker;
-                _addIndexToMarker = addIndexToMarker;
+                _addIndexToMarkerFormat = addIndexToMarkerFormat;
                 _checkAbort = checkAbort;
             }
 
@@ -225,13 +241,13 @@ namespace NDepCheck.Rendering.PathFinding {
                         result.AddRange(Traverse(stack, child));
                     }
                 } else {
-                    string pathMarker = _addIndexToMarker ? _pathMarker + _pathCount : _pathMarker;
+                    string pathMarker = _addIndexToMarkerFormat != null ? _pathMarker + _pathCount.ToString(_addIndexToMarkerFormat) : _pathMarker;
                     PathNode<Item, Dependency>[] pathAsArray = stack.Reverse().ToArray();
                     pathAsArray[0].Dependency.UsingItem.MarkPathElement(pathMarker, 0, isStart: true, isEnd: false, isMatchedByCountMatch: false, isLoopBack: false);
                     for (var i = 0; i < pathAsArray.Length; i++) {
                         PathNode<Item, Dependency> pathNode = pathAsArray[i];
                         Dependency dependency = pathNode.Dependency;
-                        dependency.MarkPathElement(pathMarker, i, isStart: i == 0, isEnd: pathNode.IsEnd, 
+                        dependency.MarkPathElement(pathMarker, i, isStart: i == 0, isEnd: pathNode.IsEnd,
                             isMatchedByCountMatch: pathNode.DependencyMatchedByCountMatch || pathNode.UsedItemMatchedByCountMatch, isLoopBack: pathNode.IsEndOfCycle);
                         _pathDependencies.Add(dependency);
                     }
@@ -258,6 +274,7 @@ namespace NDepCheck.Rendering.PathFinding {
         public static readonly Option AddMarkerOption = new Option("am", "add-marker", "&", "add path marker to all dependencies on path &", @default: "_");
         public static readonly Option AddIndexedMarkerOption = new Option("im", "indexed-marker", "&", "add separate path markers starting with &", @default: "");
         public static readonly Option KeepOnlyCyclesOption = new Option("kp", "keep-only-paths", "", "remove all dependencies not on matched paths", @default: false);
+        public static readonly Option MaxPathLengthOption = new Option("ml", "max-length", "#", "maximum length of path found", @default: "twice the number of provided anchors");
 
         private static readonly Option[] _allOptions = {
             PathItemAnchorOption, PathDependencyAnchorOption,
@@ -286,6 +303,7 @@ namespace NDepCheck.Rendering.PathFinding {
             string marker = "_";
             bool addIndex = false;
             bool keepOnlyPathEdges = false;
+            int? maxPathLength = null;
 
             Option.Parse(globalContext, transformOptions,
                 BackwardsOption.Action((args, j) => {
@@ -351,16 +369,19 @@ namespace NDepCheck.Rendering.PathFinding {
                 KeepOnlyCyclesOption.Action((args, j) => {
                     keepOnlyPathEdges = true;
                     return j;
+                }),
+                MaxPathLengthOption.Action((args, j) => {
+                    maxPathLength = Option.ExtractIntOptionValue(args, ref j, "Invalid maximum path length");
+                    return j;
                 })
-    //MaxPathLengthOption.Action((args, j) => {
-    //    maxPathLength = Option.ExtractIntOptionValue(args, ref j, "Invalid maximum path length");
-    //    return j;
-    //})
-                );
-            var c = new PathWriterTraverser<Dependency, Item>(backwards, countMatch, globalContext.CheckAbort);
-            c.Traverse(dependencies, pathAnchor, pathAnchorIsCountMatch, expectedPathMatches.ToArray());
+            );
+            AbstractPathMatch<Dependency, Item>[] expectedPathMatchesArray = expectedPathMatches.ToArray();
+            var c = new PathWriterTraverser<Dependency, Item>(maxPathLength ?? 1 + expectedPathMatchesArray.Length * 2, backwards, countMatch, globalContext.CheckAbort);
+            c.Traverse(dependencies, pathAnchor, pathAnchorIsCountMatch, expectedPathMatchesArray);
 
-            var t = new PathNodesTraverser(pathMarker: marker, addIndexToMarker: addIndex, checkAbort: globalContext.CheckAbort);
+            string addIndexToMarkerFormat = addIndex ? "D" + ("" + c.NodesWithEndFlag).Length : null;
+
+            var t = new PathNodesTraverser(pathMarker: marker, addIndexToMarkerFormat: addIndexToMarkerFormat, checkAbort: globalContext.CheckAbort);
             t.Traverse(c.Paths, c.Counts.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count));
 
             Log.WriteInfo($"... marked {t.PathCount} paths");
@@ -420,7 +441,7 @@ namespace NDepCheck.Rendering.PathFinding {
         }
 
         private Dependency FromTo(Item from, Item to, int ct = 1, int questionable = 0) {
-            return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: ct, questionableCt: questionable);
+            return new Dependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
         }
     }
 }

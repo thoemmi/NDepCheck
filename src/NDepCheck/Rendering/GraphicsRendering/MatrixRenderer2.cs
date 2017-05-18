@@ -6,7 +6,7 @@ using NDepCheck.Matching;
 
 namespace NDepCheck.Rendering.GraphicsRendering {
     public class MatrixRenderer2 : AbstractMatrixRenderer {
-        protected override void Write(TextWriter output, int colWidth, int labelWidth, IEnumerable<Item> topItems, string itemFormat,
+        protected override void Write(ITargetWriter output, int colWidth, int labelWidth, IEnumerable<Item> topItems, string itemFormat,
             Dictionary<Item, int> item2Index, bool withNotOkCt, IEnumerable<Item> sortedItems, string ctFormat, IDictionary<Item, IEnumerable<Dependency>> itemsAndDependencies) {
             var emptyCtCols = Repeat(' ', colWidth) + (withNotOkCt ? ";" + Repeat(' ', colWidth) : "");
             WriteFormat2Line(output, Limit("Id", colWidth), Limit("Name", labelWidth), Limit("Id", colWidth), Limit("Name", labelWidth), emptyCtCols);
@@ -23,7 +23,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             }
         }
 
-        private static void WriteFormat2Line(TextWriter output, string id1, string name1, string id2, string name2, string cts) {
+        private static void WriteFormat2Line(ITargetWriter output, string id1, string name1, string id2, string name2, string cts) {
             output.Write(id1);
             output.Write(';');
             output.Write(name1);
@@ -36,7 +36,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         }
 
         public override void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
-            using (var sw = new StreamWriter(stream)) {
+            using (var sw = new TargetStreamWriter(stream)) {
                 Render(dependencies, null, sw, null, true);
             }
         }
@@ -47,7 +47,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             ItemMatch itemMatchOrNull;
             ParseOptions(globalContext, argsAsString, ignoreCase, out labelWidthOrNull, out withNotOkCt, out itemMatchOrNull);
 
-            using (TextWriter sw = GetCSVTarget(target).CreateTextWriter()) {
+            using (ITargetWriter sw = GetCSVTarget(target).CreateWriter()) {
                 Render(dependencies, null/*TODO: InnerMatch?*/, sw, labelWidthOrNull, withNotOkCt);
             }
         }

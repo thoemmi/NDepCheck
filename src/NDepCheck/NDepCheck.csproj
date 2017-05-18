@@ -95,7 +95,7 @@
     <Compile Include="AbstractDepthFirstPathTraverser.cs" />
     <Compile Include="Annotations.cs" />
     <Compile Include="Calculating\GetHash.cs" />
-    <Compile Include="FileSource.cs" />
+    <Compile Include="AbstractSourceLocation.cs" />
     <Compile Include="ICalculator.cs" />
     <Compile Include="ConstraintSolving\Range.cs" />
     <Compile Include="ConstraintSolving\SimpleConstraintSolver.cs" />
@@ -104,6 +104,7 @@
     <Compile Include="IMatchableObject.cs" />
     <Compile Include="IPathMatch.cs" />
     <Compile Include="ISourceLocation.cs" />
+    <Compile Include="LocalSourceLocation.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="DictionaryExtensions.cs" />
     <Compile Include="Markers\IWithMarkerSet.cs" />

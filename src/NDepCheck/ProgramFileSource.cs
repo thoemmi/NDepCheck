@@ -1,6 +1,6 @@
 namespace NDepCheck {
-    public class ProgramFileSource : FileSource {
-        public ProgramFileSource(string containerUri, string sourceName, int startLine, int startColumn, int endLine, int endColumn) : base(containerUri) {
+    public class ProgramFileSourceLocation : AbstractSourceLocation {
+        public ProgramFileSourceLocation(string containerUri, string sourceName, int startLine, int startColumn, int endLine, int endColumn) : base(containerUri) {
             SourceName = sourceName;
             StartLine = startLine;
             StartColumn = startColumn;
@@ -35,7 +35,7 @@ namespace NDepCheck {
                 int.TryParse(fields[3], out startColumn);
                 int.TryParse(fields[4], out endLine);
                 int.TryParse(fields[5], out endColumn);
-                return new ProgramFileSource(fields[0], fields[1], startLine, startColumn, endColumn, endLine);
+                return new ProgramFileSourceLocation(fields[0], fields[1], startLine, startColumn, endColumn, endLine);
             } else {
                 return null;
             }

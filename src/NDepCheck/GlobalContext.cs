@@ -207,8 +207,8 @@ namespace NDepCheck {
 
             IEnumerable<string> extensionsForDirectoryReading = readerFactory.SupportedFileExtensions;
 
-            string[] fileNames = includes.SelectMany(p => Option.ExpandFilePatternToFullFileNames(p, extensionsForDirectoryReading)).Except(
-                excludes.SelectMany(p => Option.ExpandFilePatternToFullFileNames(p, extensionsForDirectoryReading))).ToArray();
+            string[] fileNames = includes.SelectMany(p => Option.ExpandFilePatternFileNames(p, extensionsForDirectoryReading)).Except(
+                excludes.SelectMany(p => Option.ExpandFilePatternFileNames(p, extensionsForDirectoryReading))).ToArray();
 
             IDependencyReader[] readers = fileNames.Select(fileName => readerFactory.CreateReader(fileName, needsOnlyItemTails: false/*???*/)).ToArray();
 
@@ -416,12 +416,12 @@ namespace NDepCheck {
         // TODO: ---> Option ????????????? or WriteTarget?????????
         public static WriteTarget CreateFullFileName(WriteTarget target, string extension) {
             if (target == null || target.IsConsoleOut) {
-                return new WriteTarget(null, true);
+                return new WriteTarget(null, true, limitLinesForConsole: 100);
             } else {
                 if (extension != null) {
-                    return new WriteTarget(Path.ChangeExtension(target.FullFileName, extension), target.Append);
+                    return new WriteTarget(Path.ChangeExtension(target.FullFileName, extension), target.Append, limitLinesForConsole: 100);
                 } else {
-                    return new WriteTarget(Path.GetFullPath(target.FileName), target.Append);
+                    return new WriteTarget(Path.GetFullPath(target.FileName), target.Append, limitLinesForConsole: 100);
                 }
             }
         }
@@ -436,9 +436,9 @@ namespace NDepCheck {
         public void LogAboutNDependencies(int maxCount, [CanBeNull] string pattern, [NotNull] WriteTarget target) {
             IEnumerable<Dependency> matchingDependencies = LogOnlyDependencyCount(pattern);
             int n = target.IsConsoleOut ? maxCount : int.MaxValue / 2;
-            using (var tw = target.CreateTextWriter()) {
+            using (var tw = target.CreateWriter()) {
                 foreach (var d in matchingDependencies.Take(n)) {
-                    tw.WriteLine(d.AsLimitableStringWithTypes(false));
+                    tw.WriteLine(d.AsLimitableStringWithTypes(false, threeLines: true));
                 }
                 if (matchingDependencies.Skip(n).Any()) {
                     tw.WriteLine("...");
@@ -452,7 +452,7 @@ namespace NDepCheck {
             int n = target.IsConsoleOut ? maxCount : int.MaxValue / 2;
             matchingItems.Sort((i1, i2) => string.Compare(i1.Name, i2.Name,
                         IgnoreCase ? StringComparison.InvariantCultureIgnoreCase : StringComparison.InvariantCulture));
-            using (var tw = target.CreateTextWriter()) {
+            using (var tw = target.CreateWriter()) {
                 foreach (var i in matchingItems.Take(n)) {
                     tw.WriteLine(i.AsFullString());
                 }
@@ -466,7 +466,7 @@ namespace NDepCheck {
         public void LogDependencyCount(string pattern) {
             IEnumerable<Dependency> matchingDependencies = LogOnlyDependencyCount(pattern);
             foreach (var d in matchingDependencies.Take(3)) {
-                Log.WriteInfo(d.AsLimitableStringWithTypes(false));
+                Log.WriteInfo(d.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: true));
             }
             SomethingDone = true;
         }

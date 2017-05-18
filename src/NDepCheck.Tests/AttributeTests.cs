@@ -15,12 +15,12 @@ namespace NDepCheck.Tests {
                 string ruleFile = CreateTempDotNetDepFileName();
                 using (TextWriter tw = new StreamWriter(ruleFile)) {
                     tw.Write(@"
-                    $ DOTNETCALL ---> DOTNETCALL
+                    $ DOTNETITEM ---> DOTNETITEM
 
                     NDepCheck.TestAssembly.For.Attributes.** ---> NDepCheck.TestAssembly.For.Attributes.**
                     NDepCheck.TestAssembly.For.Attributes ---> System.**
 
-                    $ MY_ITEM_TYPE(NAMESPACE:CLASS:ASSEMBLY.NAME:ASSEMBLY.VERSION:ASSEMBLY.CULTURE:MEMBER.NAME:MEMBER.SORT:CUSTOM.SectionA:CUSTOM.SectionB:CUSTOM.SectionC) ---> DOTNETCALL
+                    $ MY_ITEM_TYPE(NAMESPACE:CLASS:ASSEMBLY.NAME:ASSEMBLY.VERSION:ASSEMBLY.CULTURE:MEMBER.NAME:MEMBER.SORT:CUSTOM.SectionA:CUSTOM.SectionB:CUSTOM.SectionC) ---> DOTNETITEM
                     // VORERST ------------------------------                    
                     : ---> :
 

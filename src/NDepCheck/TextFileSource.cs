@@ -1,6 +1,6 @@
 namespace NDepCheck {
-    public class TextFileSource : FileSource {
-        public TextFileSource(string sourceName, int? line) : base(sourceName) {
+    public class TextFileSourceLocation : AbstractSourceLocation {
+        public TextFileSourceLocation(string sourceName, int? line) : base(sourceName) {
             Line = line;
         }
 
@@ -13,9 +13,11 @@ namespace NDepCheck {
         public override string ToString() => base.ToString() + $"/{ContainerUri}{(Line.HasValue ? "/" + Line : "")}";
 
         public static ISourceLocation MaybeCreate(string[] fields) {
-            if (fields.Length == 2) {
-                int line;
-                return new TextFileSource(fields[0], int.TryParse(fields[1], out line) ? (int?) line : null);
+            int line;
+            if (fields.Length == 1) {
+                return new TextFileSourceLocation(fields[0], null);
+            } else if (fields.Length == 2 && int.TryParse(fields[1], out line)) {
+                return new TextFileSourceLocation(fields[0], line);
             } else {
                 return null;
             }

@@ -926,7 +926,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             }
 
             WriteTarget htmlFile = GetHtmlFileName(baseFileName);
-            using (var tw = htmlFile.CreateTextWriter()) {
+            using (var tw = htmlFile.CreateWriter()) {
                 Log.WriteInfo("Writing " + htmlFile);
                 string html = string.Format(htmlFormat,
                     $@"<img src=""{ Path.GetFileName(gifFileName)}"" width=""{width}"" height=""{height}"" usemap=""#map""/>

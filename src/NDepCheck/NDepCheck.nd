@@ -1,7 +1,7 @@
 // Checkable architectural information for NDepCheck
 
 -cf CheckDeps { -rd
-	$DOTNETCALL ---> DOTNETCALL
+	$DOTNETITEM ---> DOTNETITEM
 	
 	// Assembly dependencies
 	::** ---> ::** {
@@ -76,7 +76,7 @@
 
 -wr RuleViolationWriter ..\NDepCheckViolations.txt
 
--cf ProjectItems { -pl $DOTNETCALL---%NC(Namespace:Class) !(**):(**) }
+-cf ProjectItems { -pl $DOTNETITEM---%NC(Namespace:Class) !(**):(**) }
 -tf ProjectItems
 -tf MarkDeps { -cl -cd -cr }
 -wr RuleViolationWriter ..\NDepCheckViolations~NamespaceClass.txt

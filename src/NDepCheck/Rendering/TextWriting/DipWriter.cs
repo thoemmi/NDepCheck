@@ -15,7 +15,7 @@ namespace NDepCheck.Rendering.TextWriting {
 
         private static readonly Option[] _allOptions = DependencyMatchOptions.WithOptions(NoExampleInfoOption);
 
-        public static int Write([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, TextWriter sw, bool withExampleInfo, IEnumerable<DependencyMatch> matches, IEnumerable<DependencyMatch> excludes) {
+        public static int Write([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, ITargetWriter sw, bool withExampleInfo, IEnumerable<DependencyMatch> matches, IEnumerable<DependencyMatch> excludes) {
             var writtenTypes = new HashSet<ItemType>();
 
             int n = 0;
@@ -23,17 +23,17 @@ namespace NDepCheck.Rendering.TextWriting {
                 WriteItemType(writtenTypes, d.UsingItem.Type, sw);
                 WriteItemType(writtenTypes, d.UsedItem.Type, sw);
 
-                sw.WriteLine(d.AsLimitableStringWithTypes(withExampleInfo, int.MaxValue));
+                sw.WriteLine(d.AsLimitableStringWithTypes(withExampleInfo, threeLines: false, maxLength: int.MaxValue));
                 n++;
             }
             return n;
         }
 
-        private static void WriteItemType(HashSet<ItemType> writtenTypes, ItemType itemType, TextWriter sw) {
+        private static void WriteItemType(HashSet<ItemType> writtenTypes, ItemType itemType, ITargetWriter sw) {
             if (writtenTypes.Add(itemType)) {
                 sw.WriteLine();
                 sw.Write("$ ");
-                sw.WriteLine(itemType);
+                sw.WriteLine(itemType.ToString());
                 sw.WriteLine();
             }
         }
@@ -47,14 +47,14 @@ namespace NDepCheck.Rendering.TextWriting {
                     noExampleInfo = true;
                     return j;
                 }));
-            using (var sw = GetMasterFileName(globalContext, argsAsString, target).CreateTextWriter(logToConsoleInfo: true)) {
+            using (var sw = GetMasterFileName(globalContext, argsAsString, target).CreateWriter(logToConsoleInfo: true)) {
                 int n = Write(dependencies, sw, !noExampleInfo, matches, excludes);
                 Log.WriteInfo($"... written {n} dependencies");
             }
         }
 
         public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream output, string option) {
-            using (var sw = new StreamWriter(output)) {
+            using (var sw = new TargetStreamWriter(output)) {
                 sw.WriteLine($"// Written {DateTime.Now} by {typeof(DipWriter).Name} in NDepCheck {Program.VERSION}");
                 Write(dependencies, sw, withExampleInfo: true, matches: null, excludes: null);
             }
@@ -76,7 +76,7 @@ namespace NDepCheck.Rendering.TextWriting {
         }
 
         private Dependency FromTo(Item from, Item to, int ct = 1, int questionable = 0) {
-            return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: ct, questionableCt: questionable);
+            return new Dependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
         }
 
         public string GetHelp(bool detailedHelp, string filter) {

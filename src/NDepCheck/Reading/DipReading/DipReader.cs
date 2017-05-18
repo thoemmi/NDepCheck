@@ -40,16 +40,16 @@ namespace NDepCheck.Reading.DipReading {
 
         private readonly Dictionary<string, ItemType> _registeredItemTypes = new Dictionary<string, ItemType>();
 
-        public DipReader([NotNull] string fileName) : base(fileName) {
+        public DipReader([NotNull] string fileName) : base(Path.GetFullPath(fileName), fileName) {
         }
 
         public override IEnumerable<Dependency> ReadDependencies(int depth, bool ignoreCase) {
-            Log.WriteInfo("Reading " + _fullFileName);
+            Log.WriteInfo("Reading " + FullFileName);
             Regex dipArrow = new Regex($@"\s*{Dependency.DIP_ARROW}\s*");
 
             var result = new List<Dependency>(10000);
             bool thereAreProxies = false;
-            using (var sr = new StreamReader(_fullFileName)) {
+            using (var sr = new StreamReader(FullFileName)) {
                 var itemsDictionary = new Dictionary<Item, Item>();
 
                 for (int lineNo = 1; ; lineNo++) {
@@ -71,7 +71,7 @@ namespace NDepCheck.Reading.DipReading {
                         string[] parts = dipArrow.Split(line);
 
                         if (parts.Length != 3) {
-                            WriteError(_fullFileName, lineNo, $"Line is not ... {Dependency.DIP_ARROW} #;#;... {Dependency.DIP_ARROW} ..., but " + parts.Length, line);
+                            WriteError(FullFileName, lineNo, $"Line is not ... {Dependency.DIP_ARROW} #;#;... {Dependency.DIP_ARROW} ..., but " + parts.Length, line);
                         }
 
                         try {
@@ -96,7 +96,7 @@ namespace NDepCheck.Reading.DipReading {
                             }
 
                             string[] source = Get(properties, 4).Split('|');
-                            ISourceLocation location = FileSource.Create(source);
+                            ISourceLocation location = AbstractSourceLocation.Create(source);
 
                             string exampleInfo = Get(properties, 5);
 
@@ -110,7 +110,7 @@ namespace NDepCheck.Reading.DipReading {
                     }
                 }
 
-                Log.WriteInfo($"... read {result.Count} dependencies from {_fullFileName}");
+                Log.WriteInfo($"... read {result.Count} dependencies from {FullFileName}");
                 if (thereAreProxies) {
                     var proxies = new HashSet<ItemProxy>(itemsDictionary.Keys.OfType<ItemProxy>());
                     Item[] items = itemsDictionary.Keys.Where(i => !(i is ItemProxy)).ToArray();

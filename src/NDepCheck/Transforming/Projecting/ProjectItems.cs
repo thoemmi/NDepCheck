@@ -322,7 +322,7 @@ Examples:
         }
 
         private Dependency FromTo(Item from, Item to) {
-            return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: 1);
+            return new Dependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: 1);
         }
 
         private void AfterAllTransforms() {

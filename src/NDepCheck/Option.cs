@@ -355,7 +355,7 @@ namespace NDepCheck {
         }
 
         [NotNull, ItemNotNull]
-        public static IEnumerable<string> ExpandFilePatternToFullFileNames(string pattern, IEnumerable<string> extensionsForDirectoryReading) {
+        public static IEnumerable<string> ExpandFilePatternFileNames(string pattern, IEnumerable<string> extensionsForDirectoryReading) {
             if (pattern.StartsWith("@")) {
                 using (TextReader nameFile = new StreamReader(pattern.Substring(1))) {
                     for (;;) {
@@ -365,7 +365,7 @@ namespace NDepCheck {
                         }
                         name = name.Trim();
                         if (name != "") {
-                            yield return Path.GetFullPath(name);
+                            yield return name;
                         }
                     }
                 }
@@ -379,12 +379,12 @@ namespace NDepCheck {
                 }
 
                 foreach (string name in Directory.GetFiles(dir, filePattern)) {
-                    yield return Path.GetFullPath(name);
+                    yield return name;
                 }
             } else if (Directory.Exists(pattern)) {
                 foreach (var ext in extensionsForDirectoryReading) {
                     foreach (string name in Directory.GetFiles(pattern, "*" + ext)) {
-                        yield return Path.GetFullPath(name);
+                        yield return name;
                     }
                 }
             } else {

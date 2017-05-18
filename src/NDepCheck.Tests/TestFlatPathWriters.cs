@@ -79,8 +79,9 @@ T3:b:bb:bbb'A $", result.Trim());
             return result;
         }
 
-        private static string CreateDefaultOptions(string markerPrefix) {
+        private static string CreateDefaultOptions(string markerPrefix, int maxPathLength = 5) {
             return ($"{{ {PathMarker.AddIndexedMarkerOption} {markerPrefix} " +
+                    $"{PathMarker.MaxPathLengthOption} {maxPathLength} " +
                     $"{PathMarker.CountItemAnchorOption} a: " +
                     $"{PathMarker.MultipleItemAnchorOption} ~c: }}").Replace(" ", Environment.NewLine);
         }
@@ -112,6 +113,38 @@ T3:c:cc:ccc'A
 T3:d:dd:ddd'A $
 T3:e:ee:eee'A $
 T3:f:ff:fff'A $
+
+-- A1
+T3:a:aa:aaa'A0+A1+A2+A3
+T3:b:bb:bbb'A $
+T3:c:cc:ccc'A
+T3:d:dd:ddd'A $
+<= T3:b:bb:bbb'A $
+
+-- A2
+T3:a:aa:aaa'A0+A1+A2+A3
+T3:b:bb:bbb'A $
+T3:g:gg:ggg'A $
+
+-- A3
+T3:a:aa:aaa'A0+A1+A2+A3
+T3:h:hh:hhh'A $
+T3:g:gg:ggg'A $", result.Trim());
+        }
+
+
+        [TestMethod]
+        public void TestLimitedFlatPathWriter() {
+            IEnumerable<Dependency> dependencies = new PathMarker().CreateSomeTestDependencies();
+
+            string result = FindPathsAndWriteFlat(dependencies, "A", CreateDefaultOptions("A", 4));
+
+            Assert.AreEqual(@"-- A0
+T3:a:aa:aaa'A0+A1+A2+A3
+T3:b:bb:bbb'A $
+T3:c:cc:ccc'A
+T3:d:dd:ddd'A $
+T3:e:ee:eee'A $
 
 -- A1
 T3:a:aa:aaa'A0+A1+A2+A3

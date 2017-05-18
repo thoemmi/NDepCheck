@@ -121,15 +121,9 @@ namespace NDepCheck.Transforming.PathFinding {
         public static readonly Option KeepOnlyCyclesOption = new Option("kc", "keep-only-cycles", "",
             "remove all non-cycle dependencies", @default: false);
 
-        public static readonly Option CycleAnchorsOption = new Option("ca", "cycle-anchors", "itempattern",
-            "items checked for cycles through them", @default: "all items are checked");
-
-        public static readonly Option MaxCycleLengthOption = new Option("ml", "max-length", "#",
-            "maximum length of cycles found", @default: "arbitrary length");
-
-        public static readonly Option AddIndexedMarkerOption = new Option("im", "indexed-marker", "&",
-            "add separate cycle markers starting with &", @default: "");
-
+        public static readonly Option CycleAnchorsOption = new Option("ca", "cycle-anchors", "itempattern", "items checked for cycles through them", @default: "all items are checked");
+        public static readonly Option MaxCycleLengthOption = new Option("ml", "max-length", "#", "maximum length of cycles found", @default: "arbitrary length");
+        public static readonly Option AddIndexedMarkerOption = new Option("im", "indexed-marker", "&", "add separate cycle markers starting with &", @default: "");
         public static readonly DependencyEffectOptions EffectOptions = new DependencyEffectOptions();
 
         private static readonly IEnumerable<Option> _transformOptions =

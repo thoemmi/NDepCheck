@@ -15,7 +15,7 @@ namespace NDepCheck.Rendering.TextWriting {
 
         private static readonly Option[] _allOptions = { MaxExampleLengthOption, InnerMatchOption };
 
-        private void Render([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, [NotNull] TextWriter output, ItemMatch innerMatch, int? maxExampleLength) {
+        private void Render([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, [NotNull] ITargetWriter output, ItemMatch innerMatch, int? maxExampleLength) {
             IDictionary<Item, IEnumerable<Dependency>> itemsAndDependencies = Dependency.Dependencies2ItemsAndDependencies(dependencies);
 
             output.WriteLine("digraph D {");
@@ -49,7 +49,7 @@ namespace NDepCheck.Rendering.TextWriting {
                     innerMatch = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Pattern for selecting inner items missing"), ignoreCase);
                     return j;
                 }));
-            using (TextWriter sw = GetDotFileName(target).CreateTextWriter()) {
+            using (var sw = GetDotFileName(target).CreateWriter()) {
                 Render(dependencies, sw, innerMatch, maxExampleLength);
             }
         }
@@ -59,7 +59,7 @@ namespace NDepCheck.Rendering.TextWriting {
         }
 
         public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
-            using (var sw = new StreamWriter(stream)) {
+            using (var sw = new TargetStreamWriter(stream)) {
                 Render(dependencies, sw, null, null);
             }
         }

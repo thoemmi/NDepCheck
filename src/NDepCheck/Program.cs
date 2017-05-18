@@ -14,7 +14,7 @@ using NDepCheck.WebServing;
 
 namespace NDepCheck {
     public class Program {
-        public const string VERSION = "V.3.85";
+        public const string VERSION = "V.3.86";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 180;
@@ -40,14 +40,15 @@ namespace NDepCheck {
         // d    do
         //   ...  
         // e    environment     NOT YET IMPLEMENTED
-        //   ec [name]     environment-clone
-        //   en [name]     environment-new
-        //   ed [name]     environment-delete
-        //   eu [name...]  environment-union
-        //   ew [name|#    environment-work
-        //   el | ev       environment-list
-        //   et            environment-for-transform
-        //   er            environment-for-read
+        //   ec [name] [name...]    environment-clone (default name: _ + number; default cloned is current one)
+        //   en [name]              environment-new (default name: _ + number)
+        //   ed [name]              environment-delete (default: current; then the previous one on stack becomes current)
+        //   ea [name...]           environment-add (default: previous one)
+        //   ew [name|#]            environment-work (move to top stack position)
+        //   el | ev                environment-list (ev can be typed with one hand ...)
+        //   et [+|-]               environment-for-transform
+        //   er [+|-]               environment-for-read
+        //
         // h    help
         //   ...
         // i    interactive
@@ -185,7 +186,7 @@ namespace NDepCheck {
                 int lastResult = program.Run(args, new string[0], globalContext, writtenMasterFiles: null, logCommands: false);
 
                 while (program._webServer != null || program._interactiveLogFile != null || program._fileWatchers.Any()) {
-                    Console.WriteLine();
+                        Console.WriteLine();
                     Console.ForegroundColor = ConsoleColor.DarkGray;
                     Console.WriteLine(value: "Type /?<enter> for help; or q<enter> for stopping NDepCheck.");
                     Console.Write(value: globalContext.Name + " NDepCheck> ");
@@ -212,9 +213,6 @@ namespace NDepCheck {
                     }
                 }
                 return lastResult;
-            } catch (FileNotFoundException ex) {
-                Log.WriteWarning(ex.Message);
-                return FILE_NOT_FOUND_RESULT;
             } catch (Exception ex) {
                 Log.WriteError(msg: "Exception occurred: " + ex.Message + " (" + ex.GetType().FullName + ")");
                 if (Log.IsChattyEnabled)
@@ -675,8 +673,9 @@ namespace NDepCheck {
                 }
             } catch (ArgumentException ex) {
                 return UsageAndExit(ex.Message, globalContext);
-            } catch (FileNotFoundException) {
-                throw;
+            } catch (FileNotFoundException ex) {
+                Log.WriteError($"Could not run previous command because of missing file {ex.FileName} ({ex.Message})");
+                return FILE_NOT_FOUND_RESULT;
             } catch (Exception ex) {
                 Log.WriteError($"Could not run previous command; reason: {ex.GetType().Name} {ex.Message}");
                 return EXCEPTION_RESULT;
@@ -691,7 +690,7 @@ namespace NDepCheck {
                     // Default action at end if nothing was done
                     SetResult(ref result, globalContext.Transform(assemblyName: "", transformerClass: typeof(CheckDeps).FullName, transformerOptions: ""));
                     globalContext.RenderToFile(assemblyName: "",
-                        rendererClassName: typeof(RuleViolationWriter).FullName, rendererOptions: "", target: new WriteTarget("-", true));
+                        rendererClassName: typeof(RuleViolationWriter).FullName, rendererOptions: "", target: new WriteTarget(null, true, 10000));
                 }
             }
 
@@ -771,27 +770,26 @@ namespace NDepCheck {
 
         private WriteTarget ExtractWriteTarget([NotNull] GlobalContext globalContext, [CanBeNull] string arg,
                                                       [NotNull] string[] args, ref int i) {
-            if (arg == null) {
-                // Console.Out
-                return new WriteTarget(null, append: true);
-            } else if (arg == ">") {
-                return CreateWriteTarget(ExtractNextValue(globalContext, args, ref i), false);
+            if (arg == ">") {
+                return CreateWriteTarget(ExtractNextValue(globalContext, args, ref i), false, 100);
+            } else if (arg == ">!") {
+                return CreateWriteTarget(ExtractNextValue(globalContext, args, ref i), false, int.MaxValue);
             } else if (arg == ">>") {
-                return CreateWriteTarget(ExtractNextValue(globalContext, args, ref i), true);
+                return CreateWriteTarget(ExtractNextValue(globalContext, args, ref i), true, 100);
             } else {
-                return new WriteTarget(arg, append: false);
+                return new WriteTarget(arg, append: false, limitLinesForConsole: 100);
             }
         }
 
-        private WriteTarget CreateWriteTarget(string fileName, bool append) {
+        private WriteTarget CreateWriteTarget(string fileName, bool append, int limitLinesForConsole) {
             if (fileName == ".") {
                 if (_interactiveLogFile != null) {
-                    return new WriteTarget(_interactiveLogFile, append: true);
+                    return new WriteTarget(_interactiveLogFile, append: true, limitLinesForConsole: limitLinesForConsole);
                 } else {
-                    return new WriteTarget(null, append: true);
+                    return new WriteTarget(null, append: true, limitLinesForConsole: limitLinesForConsole);
                 }
             } else {
-                return new WriteTarget(fileName, append: append);
+                return new WriteTarget(fileName, append: append, limitLinesForConsole: limitLinesForConsole);
             }
         }
 
@@ -1060,7 +1058,7 @@ Option overview:
                 //Rules files:
                 //    Rule files contain rule definition commands. Here is a simple example
 
-                //        $ DOTNETCALL   ---> DOTNETCALL 
+                //        $ DOTNETITEM   ---> DOTNETITEM 
 
                 //        // Each assembly can use .Net
                 //        ::**           --->  ::mscorlib
@@ -1249,9 +1247,9 @@ Option overview:
             [NotNull] string scriptName) {
             string[] noExtensionsInDirectories = new string[0];
 
-            IEnumerable<string> files = Option.ExpandFilePatternToFullFileNames(positiveFilePattern, noExtensionsInDirectories).Select(f => Path.GetFullPath(f));
+            IEnumerable<string> files = Option.ExpandFilePatternFileNames(positiveFilePattern, noExtensionsInDirectories).Select(f => Path.GetFullPath(f));
             if (negativeFilePattern != null) {
-                files = files.Except(Option.ExpandFilePatternToFullFileNames(negativeFilePattern, noExtensionsInDirectories)).Select(f => Path.GetFullPath(f));
+                files = files.Except(Option.ExpandFilePatternFileNames(negativeFilePattern, noExtensionsInDirectories)).Select(f => Path.GetFullPath(f));
             }
             string fullScriptName = Path.GetFullPath(scriptName);
             FileWatcher fw = _fileWatchers.FirstOrDefault(f => f.FullScriptName == fullScriptName);
@@ -1266,7 +1264,7 @@ Option overview:
         private void RemoveFileWatchers([NotNull] string filePattern) {
             string[] noExtensionsInDirectories = new string[0];
 
-            IEnumerable<string> files = Option.ExpandFilePatternToFullFileNames(filePattern, noExtensionsInDirectories).Select(f => Path.GetFullPath(f));
+            IEnumerable<string> files = Option.ExpandFilePatternFileNames(filePattern, noExtensionsInDirectories).Select(f => Path.GetFullPath(f));
             foreach (var fw in _fileWatchers) {
                 foreach (var f in files) {
                     fw.RemoveFile(f);
