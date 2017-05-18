@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
@@ -23,6 +24,9 @@ namespace NDepCheck {
         }
 
         public static void UnionWith([NotNull] this Dictionary<string, int> dictionary, IReadOnlyDictionary<string, int> other) {
+            if (dictionary == other) {
+                throw new ArgumentException("Passed dictionaries must not be the same object");
+            }
             foreach (var kvp in other) {
                 dictionary[kvp.Key] = dictionary.Get(kvp.Key) + kvp.Value;
             }

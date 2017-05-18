@@ -56,13 +56,13 @@ namespace NDepCheck {
 
         private ItemType([NotNull] string name, [NotNull] string[] keys, [NotNull] string[] subKeys, bool matchesOnFieldNr, bool ignoreCase, bool predefined) {
             if (keys.Length == 0) {
-                throw new ArgumentException("keys.Length must be > 0", nameof(keys));
+                throw new ArgumentException($"Item type {name} is defined with zero fields; this is not supported. Please correct type definition.", nameof(keys));
             }
             if (keys.Length != subKeys.Length) {
-                throw new ArgumentException("keys.Length != subKeys.Length", nameof(subKeys));
+                throw new ArgumentException($"Item type {name} is defined with a different number of keys and subkeys, namely {keys.Length} vs. {subKeys.Length}; this is not supported. Please correct type definition.", nameof(subKeys));
             }
             if (subKeys.Any(subkey => !string.IsNullOrWhiteSpace(subkey) && subkey.Length < 2 && subkey[0] != '.' && subkey.Substring(1).Contains("."))) {
-                throw new ArgumentException("Subkey must either be empty or .name, but not " + string.Join(" ", subKeys), nameof(subKeys));
+                throw new ArgumentException($"Subkeys of item type {name} must either be empty or .name; there are unsupported subkeys: " + string.Join(" ", subKeys), nameof(subKeys));
             }
 
             Keys = keys.Select(s => s?.Trim()).ToArray();

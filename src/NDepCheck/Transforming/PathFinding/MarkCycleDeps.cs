@@ -16,21 +16,27 @@ namespace NDepCheck.Transforming.PathFinding {
             private readonly TItem _root;
             private readonly bool _ignoreSelfCycles;
             [NotNull]
-            private readonly Action<int, Stack<TDependency>> _recordNewCycleToRoot;
+            private readonly Action<int, Stack<TDependency>, string> _recordNewCycleToRoot;
+
+            private readonly string _addIndexToMarkerFormat;
 
             public int FoundCycleCount => _foundCycleHashs.Count;
 
             public FindCycleDepsPathFinder([NotNull, ItemNotNull] IEnumerable<TDependency> dependencies,
                     [CanBeNull] ItemMatch cycleAnchorsMatch, bool ignoreSelfCycles, int maxCycleLength,
-                    [NotNull] Action<int, Stack<TDependency>> recordNewCycleToRoot,
+                    [NotNull] Action<int, Stack<TDependency>, string> recordNewCycleToRoot,
                     [NotNull, ItemCanBeNull] AbstractPathMatch<TDependency, TItem>[] expectedPathMatches, Action checkAbort) : base(checkAbort) {
                 Dictionary<TItem, TDependency[]> outgoing = AbstractItem<TItem>.CollectOutgoingDependenciesMap(dependencies);
                 _maxCycleLength = maxCycleLength;
-                _visited2RestLength = new Dictionary<TItem, int>();
                 _ignoreSelfCycles = ignoreSelfCycles;
                 _recordNewCycleToRoot = recordNewCycleToRoot;
-                foreach (var root in outgoing.Keys.Where(i => ItemMatch.IsMatch(cycleAnchorsMatch, i)).OrderBy(i => i.Name)) {
+
+                IEnumerable<TItem> roots = outgoing.Keys.Where(i => ItemMatch.IsMatch(cycleAnchorsMatch, i));
+                _addIndexToMarkerFormat = "D" + ("" + roots.Count() / 2).Length;
+
+                foreach (var root in roots.OrderBy(i => i.Name)) {
                     _root = root;
+                    _visited2RestLength = new Dictionary<TItem, int>();
                     Traverse(root, outgoing, expectedPathMatches, endMatch: null, down: Ignore.Om);
                 }
             }
@@ -99,7 +105,7 @@ namespace NDepCheck.Transforming.PathFinding {
                     cycleHash = unchecked(cycleHash * 17 + nodeHashes[i]);
                 }
                 if (_foundCycleHashs.Add(cycleHash)) {
-                    _recordNewCycleToRoot(_foundCycleHashs.Count - 1, currentPath);
+                    _recordNewCycleToRoot(_foundCycleHashs.Count - 1, currentPath, _addIndexToMarkerFormat);
                 }
             }
 
@@ -178,11 +184,11 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 });
 
             var dependenciesOnCycles = new HashSet<Dependency>();
-            Action<int, Stack<Dependency>> recordNewCycleToRoot = (cycleIndex, cycle) => dependenciesOnCycles.UnionWith(cycle);
+            Action<int, Stack<Dependency>, string> recordNewCycleToRoot = (cycleIndex, cycle, addIndexToMarkerFormat) => dependenciesOnCycles.UnionWith(cycle);
 
             if (indexedMarkerPrefix != null) {
-                recordNewCycleToRoot += (cycleIndex, cycle) => {
-                    string indexedMarker = indexedMarkerPrefix + cycleIndex;
+                recordNewCycleToRoot += (cycleIndex, cycle, addIndexToMarkerFormat) => {
+                    string indexedMarker = indexedMarkerPrefix + cycleIndex.ToString(addIndexToMarkerFormat);
                     Dependency[] cycleDependencies = cycle.Reverse().ToArray();
                     cycleDependencies[0].UsingItem.MarkPathElement(indexedMarker, 0, isStart: true, isEnd: false, isMatchedByCountMatch: false, isLoopBack: false);
                     for (var i = 0; i < cycleDependencies.Length; i++) {

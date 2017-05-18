@@ -39,7 +39,9 @@ namespace NDepCheck.Markers {
                 if (_markersOrNull == null) {
                     _markersOrNull = CreateMarkerSetWithClonedDictionary(_ignoreCase, markers);
                 } else {
-                    _markersOrNull.UnionWith(markers);
+                    if (_markersOrNull != markers) { // This can happen on a cycle
+                        _markersOrNull.UnionWith(markers);
+                    }
                 }
             }
         }
@@ -85,7 +87,9 @@ namespace NDepCheck.Markers {
             IReadOnlyDictionary<string, int> left = leftMarkers.Markers;
             IReadOnlyDictionary<string, int> right = rightMarkers.Markers;
             Dictionary<string, int> result = left.ToDictionary(kvp => kvp.Key, kvp => kvp.Value, GetComparer(ignoreCase));
-            result.UnionWith(right);
+            if (result != right) {
+                result.UnionWith(right);
+            }
 
             // a, b, c/d, c/e + a, k, e/f, e/g = a, b, k; c/d, c/f, c/g
             foreach (var l in left.Keys.Where(l => l.Contains("/"))) {
