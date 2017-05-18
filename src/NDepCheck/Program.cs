@@ -463,7 +463,7 @@ namespace NDepCheck {
                     } else if (DoCommandOption.IsMatch(arg)) {
                         // -dc    command
                         string cmd = ExtractRequiredOptionValue(globalContext, args, ref i, "Missing command after -dc");
-                        int maxRunTime = ExtractIntOptionValue(globalContext, args, ref i, "Missing maximum runtime in seconds after -dc");
+                        int maxRunTime = ExtractRequiredIntOptionValue(globalContext, args, ref i, "Missing maximum runtime in seconds after -dc");
                         string cmdArgs = ExtractNextValue(globalContext, args, ref i).TrimStart('{', ' ', '\r', '\n').TrimEnd('}', ' ', '\r', '\n').Replace(Environment.NewLine, " ");
                         try {
                             var process = new Process {
@@ -532,9 +532,9 @@ namespace NDepCheck {
                             globalContext.ReadFiles(includes, excludes, assemblyName: "", readerFactoryClassNameOrNull: null);
                         }
                     } else if (DoTimeOption.IsMatch(arg)) {
-                        globalContext.TimeLongerThan = TimeSpan.FromSeconds(ExtractIntOptionValue(globalContext, args, ref i, "Missing seconds"));
+                        globalContext.TimeLongerThan = TimeSpan.FromSeconds(ExtractRequiredIntOptionValue(globalContext, args, ref i, "Missing seconds"));
                     } else if (DoAbortTimeOption.IsMatch(arg)) {
-                        globalContext.AbortTime = TimeSpan.FromSeconds(ExtractIntOptionValue(globalContext, args, ref i, "Missing seconds"));
+                        globalContext.AbortTime = TimeSpan.FromSeconds(ExtractRequiredIntOptionValue(globalContext, args, ref i, "Missing seconds"));
                     } else if (WatchFilesOption.IsMatch(arg)) {
                         // -aw    [filepattern [- filepattern]] script
                         string positive = ExtractOptionValue(globalContext, args, ref i);
@@ -592,13 +592,15 @@ namespace NDepCheck {
                         WriteTarget target = ExtractWriteTarget(globalContext, args, ref i);
                         globalContext.LogAboutNDependencies(maxCount, pattern, target);
                     } else if (CountDependenciesOption.IsMatch(arg)) {
-                        // -id [pattern]
+                        // -id [pattern] [#]
                         string pattern = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true /* as --x-> patterns start with -*/);
-                        globalContext.LogDependencyCount(pattern);
+                        int maxValue = ExtractIntOptionValue(globalContext, args, ref i) ?? int.MaxValue;
+                        SetResult(ref result, globalContext.LogDependencyCount(pattern, maxValue));
                     } else if (CountItemsOption.IsMatch(arg)) {
-                        // -ii [pattern]
+                        // -ii [pattern] [#]
                         string pattern = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true /* as --x-> patterns start with -*/);
-                        globalContext.LogItemCount(pattern);
+                        int maxValue = ExtractIntOptionValue(globalContext, args, ref i) ?? int.MaxValue;
+                        SetResult(ref result, globalContext.LogItemCount(pattern, maxValue));
                     } else if (CurrentDirectoryOption.IsMatch(arg)) {
                         // -cd    [directory]
                         string directory = ExtractOptionValue(globalContext, args, ref i);
@@ -736,7 +738,20 @@ namespace NDepCheck {
             return globalContext.ExpandDefinesAndHexChars(Option.ExtractOptionValue(args, ref i, allowOptionValue, allowRedirection), null);
         }
 
-        private static int ExtractIntOptionValue([NotNull] GlobalContext globalContext, string[] args, ref int i, string message) {
+        private static int? ExtractIntOptionValue([NotNull] GlobalContext globalContext, string[] args, ref int i) {
+            var s = ExtractOptionValue(globalContext, args, ref i);
+            if (s != null) {
+                int value;
+                if (!int.TryParse(s, out value)) {
+                    Option.ThrowArgumentException($"Invalid number format '{s}'", string.Join(" ", args));
+                }
+                return value;
+            } else {
+                return null;
+            }
+        }
+
+        private static int ExtractRequiredIntOptionValue([NotNull] GlobalContext globalContext, string[] args, ref int i, string message) {
             int value;
             if (!int.TryParse(ExtractOptionValue(globalContext, args, ref i), out value)) {
                 Option.ThrowArgumentException(message, string.Join(" ", args));

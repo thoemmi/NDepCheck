@@ -463,27 +463,35 @@ namespace NDepCheck {
             SomethingDone = true;
         }
 
-        public void LogDependencyCount(string pattern) {
+        public int LogDependencyCount(string pattern, int maxValue) {
             IEnumerable<Dependency> matchingDependencies = LogOnlyDependencyCount(pattern);
             foreach (var d in matchingDependencies.Take(3)) {
                 Log.WriteInfo(d.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: true));
             }
+            if (matchingDependencies.Skip(3).Any()) {
+                Log.WriteInfo("...");
+            }
             SomethingDone = true;
+            return matchingDependencies.Skip(maxValue).Any() ? Program.DEPENDENCIES_NOT_OK : Program.OK_RESULT;
         }
 
         private IEnumerable<Dependency> LogOnlyDependencyCount(string pattern) {
             DependencyMatch m = pattern == null ? null : DependencyMatch.Create(pattern, IgnoreCase);
-            var matchingDependencies = AllDependencies.Where(d => m == null || m.IsMatch(d));
+            IEnumerable<Dependency> matchingDependencies = AllDependencies.Where(d => m == null || m.IsMatch(d));
             Log.WriteInfo(matchingDependencies.Count() + " dependencies" + (m == null ? "" : " matching " + pattern));
             return matchingDependencies;
         }
 
-        public void LogItemCount(string pattern) {
+        public int LogItemCount(string pattern, int maxValue) {
             IEnumerable<Item> matchingItems = LogOnlyItemCount(pattern);
             foreach (var i in matchingItems.Take(3)) {
                 Log.WriteInfo(i.AsFullString());
             }
+            if (matchingItems.Skip(3).Any()) {
+                Log.WriteInfo("...");
+            }
             SomethingDone = true;
+            return matchingItems.Skip(maxValue).Any() ? Program.DEPENDENCIES_NOT_OK : Program.OK_RESULT;
         }
 
         private IEnumerable<Item> LogOnlyItemCount(string pattern) {
