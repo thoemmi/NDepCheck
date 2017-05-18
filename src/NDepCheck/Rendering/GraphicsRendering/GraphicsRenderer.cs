@@ -772,7 +772,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             return arrowBuilder;
         }
 
-        private Bitmap Render(IEnumerable<Dependency> dependencies, float minTextHeight,
+        private Bitmap Render([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, float minTextHeight,
                               ref int width, ref int height, StringBuilder htmlForClicks, [NotNull] Action checkAbort) {
             PlaceObjects(dependencies);
 
@@ -877,16 +877,16 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             return bitmap;
         }
 
-        public virtual void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
-            DoRender(globalContext, dependencies, argsAsString, baseFileName);
+        public virtual void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
+            DoRender(globalContext, dependencies, argsAsString, target);
         }
 
-        protected string DoRender(GlobalContext globalContext, IEnumerable<Dependency> dependencies, string argsAsString, string baseFileName, params OptionAction[] additionalOptions) {
+        protected string DoRender([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, WriteTarget baseFileName, params OptionAction[] additionalOptions) {
             int width = -1;
             int height = -1;
             int minTextHeight = 15;
             string htmlFormat = DEFAULT_HTML_FORMAT;
-            if (baseFileName == null || GlobalContext.IsConsoleOutFileName(baseFileName)) {
+            if (baseFileName == null || baseFileName.IsConsoleOut) {
                 Option.ThrowArgumentException("Cannot write graphics file to Console.Out", argsAsString);
             }
 
@@ -925,9 +925,9 @@ namespace NDepCheck.Rendering.GraphicsRendering {
                 throw;
             }
 
-            string htmlFileName = GetHtmlFileName(baseFileName);
-            using (var tw = new StreamWriter(htmlFileName)) {
-                Log.WriteInfo("Writing " + htmlFileName);
+            WriteTarget htmlFile = GetHtmlFileName(baseFileName);
+            using (var tw = htmlFile.CreateTextWriter()) {
+                Log.WriteInfo("Writing " + htmlFile);
                 string html = string.Format(htmlFormat,
                     $@"<img src=""{ Path.GetFileName(gifFileName)}"" width=""{width}"" height=""{height}"" usemap=""#map""/>
 <map name=""map"">
@@ -935,18 +935,18 @@ namespace NDepCheck.Rendering.GraphicsRendering {
 </map>");
                 tw.WriteLine(html);
             }
-            return htmlFileName;
+            return htmlFile.FullFileName;
         }
 
-        private static string GetHtmlFileName(string baseFileName) {
-            return GlobalContext.CreateFullFileName(baseFileName, ".html");
+        private static WriteTarget GetHtmlFileName(WriteTarget target) {
+            return target.ChangeExtension(".html");
         }
 
-        private static string GetGifFileName(string baseFileName) {
-            return GlobalContext.CreateFullFileName(baseFileName, ".gif");
+        private static string GetGifFileName(WriteTarget target) {
+            return target.ChangeExtension(".gif").FullFileName;
         }
 
-        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
+        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
             int width = 1000;
             int height = 1000;
             Bitmap bitMap = Render(dependencies, 15, ref width, ref height, htmlForClicks: null, checkAbort: () => {});
@@ -958,14 +958,14 @@ namespace NDepCheck.Rendering.GraphicsRendering {
 
         protected SimpleConstraintSolver Solver => _solver;
 
-        protected abstract void PlaceObjects(IEnumerable<Dependency> dependencies);
+        protected abstract void PlaceObjects([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies);
 
         public abstract IEnumerable<Dependency> CreateSomeTestDependencies();
 
         public abstract string GetHelp(bool detailedHelp, string filter);
 
-        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
-            return GetHtmlFileName(baseFileName);
+        public WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget) {
+            return GetHtmlFileName(baseTarget);
         }
     }
 }

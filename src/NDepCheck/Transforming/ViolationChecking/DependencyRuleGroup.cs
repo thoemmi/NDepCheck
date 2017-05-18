@@ -160,7 +160,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
                 _forbidden.Union(other._forbidden));
         }
 
-        public void Check([NotNull] IEnumerable<Dependency> dependencies, bool addMarker, ref int badCt, ref int questionableCt) {
+        public void Check([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, bool addMarker, ref int badCt, ref int questionableCt) {
             int reorgCount = 0;
             int nextReorg = 200;
 

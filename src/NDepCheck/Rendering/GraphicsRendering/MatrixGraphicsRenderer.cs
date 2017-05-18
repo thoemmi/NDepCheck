@@ -31,7 +31,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         private bool _showOnlyReferencedOnBottom = false;
         private bool _showOnlyReferencingOnLeft = false;
 
-        protected override void PlaceObjects(IEnumerable<Dependency> dependencies) {
+        protected override void PlaceObjects([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies) {
             // ASCII-art sketch of what I want to accomplish:
             //   +-----+
             //   |     |--------------------------------------------->|
@@ -130,7 +130,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             // TODO: Add option and computation to split this into .,?,!
         }
 
-        //private string SumAsString(IEnumerable<Dependency> dependencies, Func<Dependency, bool> filter) {
+        //private string SumAsString([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Func<Dependency, bool> filter) {
         //    int ct = Sum(dependencies, filter);
         //    return ct >= 1000000 ? ct / 1000 + "M" : ct >= 1000 ? ct / 1000 + "K" : "" + ct;
         //}
@@ -167,9 +167,8 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         protected static readonly Option[] _allOptions = _allGraphicsRendererOptions
                         .Concat(new[] { BottomRegexOption, OrderFieldOption, NoEmptiesOnBottomOption, NoEmptiesOnLeftOption }).ToArray();
 
-        public override void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, 
-                                    string argsAsString, string baseFileName, bool ignoreCase) {
-            DoRender(globalContext, dependencies, argsAsString, baseFileName,
+        public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
+            DoRender(globalContext, dependencies, argsAsString, target,
                 BottomRegexOption.Action((args, j) => {
                     string pattern = Option.ExtractRequiredOptionValue(args, ref j, "Pattern for selection of bottom items missing");
                     _bottomItemMatch = new ItemMatch(null, pattern, 0, ignoreCase);

@@ -270,12 +270,12 @@ namespace NDepCheck.Rendering.PathFinding {
 
         private bool _ignoreCase;
 
-        public void Configure(GlobalContext globalContext, string configureOptions, bool forceReload) {
+        public void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
             _ignoreCase = globalContext.IgnoreCase;
         }
 
-        public int Transform(GlobalContext globalContext, IEnumerable<Dependency> dependencies, string transformOptions,
-            List<Dependency> transformedDependencies) {
+        public int Transform([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string transformOptions,
+            [NotNull] List<Dependency> transformedDependencies) {
             bool backwards = false;
             //int maxPathLength = int.MaxValue;
             ItemMatch pathAnchor = null;
@@ -377,11 +377,11 @@ namespace NDepCheck.Rendering.PathFinding {
             }
         }
 
-        private static DependencyPathMatch<Dependency, Item> CreateDependencyPathMatch(GlobalContext globalContext, string[] args, ref int j, bool multipleOccurrencesAllowed, bool mayContinue, IEnumerable<AbstractPathMatch<Dependency, Item>> dontMatches) {
+        private static DependencyPathMatch<Dependency, Item> CreateDependencyPathMatch([NotNull] GlobalContext globalContext, string[] args, ref int j, bool multipleOccurrencesAllowed, bool mayContinue, IEnumerable<AbstractPathMatch<Dependency, Item>> dontMatches) {
             return new DependencyPathMatch<Dependency, Item>(Option.ExtractRequiredOptionValue(args, ref j, "missing anchor name"), globalContext.IgnoreCase, multipleOccurrencesAllowed: multipleOccurrencesAllowed, mayContinue: mayContinue, dontMatches: dontMatches);
         }
 
-        private static ItemPathMatch<Dependency, Item> CreateItemPathMatch(GlobalContext globalContext, string[] args, ref int j, bool multipleOccurrencesAllowed, bool mayContinue, IEnumerable<AbstractPathMatch<Dependency, Item>> dontMatches) {
+        private static ItemPathMatch<Dependency, Item> CreateItemPathMatch([NotNull] GlobalContext globalContext, string[] args, ref int j, bool multipleOccurrencesAllowed, bool mayContinue, IEnumerable<AbstractPathMatch<Dependency, Item>> dontMatches) {
             return new ItemPathMatch<Dependency, Item>(Option.ExtractRequiredOptionValue(args, ref j, "missing anchor name"), globalContext.IgnoreCase, multipleOccurrencesAllowed: multipleOccurrencesAllowed, mayContinue: mayContinue, dontMatches: dontMatches);
         }
 
@@ -392,10 +392,6 @@ namespace NDepCheck.Rendering.PathFinding {
   that process dependencies for different purposes.
 
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
-        }
-
-        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
-            return GlobalContext.CreateFullFileName(baseFileName, ".txt");
         }
 
         public IEnumerable<Dependency> CreateSomeTestDependencies() {

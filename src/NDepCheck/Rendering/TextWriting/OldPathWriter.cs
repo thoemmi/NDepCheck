@@ -300,7 +300,7 @@
 //            NoExampleInfoOption, StyleOption, BackwardsOption, ShowItemMarkersOption};
 
 //        private static void Write(bool backwards, AbstractPathMatch<Dependency, Item> countMatch,
-//                bool withHeader, IEnumerable<Dependency> dependencies, ItemMatch pathAnchor,
+//                bool withHeader, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, ItemMatch pathAnchor,
 //                bool pathAnchorIsCountMatch, [NotNull] AbstractPathMatch<Dependency, Item>[] expectedPathMatches,
 //                IPrintTraverser printTraverser, TextWriter tw, [NotNull] GlobalContext globalContext) {
 //            if (withHeader) {
@@ -322,7 +322,7 @@
 //            }
 //        }
 
-//        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount,
+//        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount,
 //                           string argsAsString, string baseFileName, bool ignoreCase) {
 //            bool showItemMarkers = false;
 //            bool backwards = false;
@@ -436,15 +436,15 @@
 //            }
 //        }
 
-//        private static DependencyPathMatch<Dependency, Item> CreateDependencyPathMatch(GlobalContext globalContext, string[] args, ref int j, bool multipleOccurrencesAllowed, bool mayContinue, IEnumerable<AbstractPathMatch<Dependency, Item>> dontMatches) {
+//        private static DependencyPathMatch<Dependency, Item> CreateDependencyPathMatch([NotNull] GlobalContext globalContext, string[] args, ref int j, bool multipleOccurrencesAllowed, bool mayContinue, IEnumerable<AbstractPathMatch<Dependency, Item>> dontMatches) {
 //            return new DependencyPathMatch<Dependency, Item>(Option.ExtractRequiredOptionValue(args, ref j, "missing anchor name"), globalContext.IgnoreCase, multipleOccurrencesAllowed: multipleOccurrencesAllowed, mayContinue: mayContinue, dontMatches: dontMatches);
 //        }
 
-//        private static ItemPathMatch<Dependency, Item> CreateItemPathMatch(GlobalContext globalContext, string[] args, ref int j, bool multipleOccurrencesAllowed, bool mayContinue, IEnumerable<AbstractPathMatch<Dependency, Item>> dontMatches) {
+//        private static ItemPathMatch<Dependency, Item> CreateItemPathMatch([NotNull] GlobalContext globalContext, string[] args, ref int j, bool multipleOccurrencesAllowed, bool mayContinue, IEnumerable<AbstractPathMatch<Dependency, Item>> dontMatches) {
 //            return new ItemPathMatch<Dependency, Item>(Option.ExtractRequiredOptionValue(args, ref j, "missing anchor name"), globalContext.IgnoreCase, multipleOccurrencesAllowed: multipleOccurrencesAllowed, mayContinue: mayContinue, dontMatches: dontMatches);
 //        }
 
-//        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, Stream output, string option) {
+//        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream output, string option) {
 //            using (var sw = new StreamWriter(output)) {
 //                IPrintTraverser traverser;
 //                switch (option) {
@@ -509,7 +509,7 @@
 //{Option.CreateHelp(_allOptions, detailedHelp, filter)}";
 //        }
 
-//        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
+//        public string GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, string baseFileName) {
 //            return GlobalContext.CreateFullFileName(baseFileName, ".txt");
 //        }
 //    }

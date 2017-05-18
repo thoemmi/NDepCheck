@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 namespace NDepCheck.Transforming {
     public class MatrixDictionary {
         [NotNull]
-        public static MatrixDictionary<Item, int> CreateCounts([NotNull] IEnumerable<Dependency> dependencies,
+        public static MatrixDictionary<Item, int> CreateCounts([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
             [NotNull] Func<Dependency, int> getCount) {
             var aggregated = new Dictionary<FromTo, Dependency>();
             foreach (var d in dependencies) {

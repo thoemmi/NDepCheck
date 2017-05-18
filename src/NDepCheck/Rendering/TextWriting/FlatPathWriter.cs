@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using JetBrains.Annotations;
 using NDepCheck.Matching;
 using NDepCheck.Transforming.PathFinding;
 
@@ -34,12 +35,12 @@ namespace NDepCheck.Rendering.TextWriting {
             return result;
         }
 
-        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
-            return GlobalContext.CreateFullFileName(baseFileName, ".txt");
+        public WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget) {
+            return GlobalContext.CreateFullFileName(baseTarget, ".txt");
         }
 
-        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName,
-            bool ignoreCase) {
+        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
+            int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
             var markerMatchers = new List<IMatcher>();
             bool showItemMarkers = false;
 
@@ -53,15 +54,14 @@ namespace NDepCheck.Rendering.TextWriting {
                     return j;
                 }));
 
-            using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(globalContext, argsAsString, baseFileName))) {
-                TextWriter tw = sw.Writer;
+            using (TextWriter tw = GetMasterFileName(globalContext, argsAsString, target).CreateTextWriter()) {
                 tw.WriteLine($"// Written {DateTime.Now} by {typeof(FlatPathWriter).Name} in NDepCheck {Program.VERSION}");
                 tw.WriteLine();
                 WritePaths(dependencies, ignoreCase, markerMatchers, tw, showItemMarkers);
             }
         }
 
-        private static void WritePaths(IEnumerable<Dependency> dependencies, bool ignoreCase, IEnumerable<IMatcher> markerMatchers, TextWriter tw, bool showItemMarkers) {
+        private static void WritePaths([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, bool ignoreCase, IEnumerable<IMatcher> markerMatchers, TextWriter tw, bool showItemMarkers) {
             var paths = new SortedDictionary<string, List<Dependency>>();
 
             foreach (var d in dependencies) {
@@ -101,7 +101,7 @@ namespace NDepCheck.Rendering.TextWriting {
             Log.WriteInfo($"... written {paths.Count} paths");
         }
 
-        public void RenderToStreamForUnitTests(GlobalContext globalContext, IEnumerable<Dependency> dependencies, Stream stream, string option) {
+        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string option) {
             using (var sw = new StreamWriter(stream)) {
                 string[] options = (option ?? "").Split(' ');
                 WritePaths(dependencies, globalContext.IgnoreCase, new [] { MarkerMatch.CreateMatcher(options[0], globalContext.IgnoreCase) }, sw, showItemMarkers: options.Contains("-sm"));

@@ -34,7 +34,7 @@ namespace NDepCheck.Transforming {
             return this;
         }
 
-        public static Dictionary<FromTo, Dependency> AggregateAllDependencies(IEnumerable<Dependency> dependencies) {
+        public static Dictionary<FromTo, Dependency> AggregateAllDependencies([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies) {
             var result = new Dictionary<FromTo, Dependency>();
             foreach (var d in dependencies) {
                 new FromTo(d.UsingItem, d.UsedItem).AggregateDependency(d, result);

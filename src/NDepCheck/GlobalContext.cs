@@ -13,11 +13,7 @@ namespace NDepCheck {
     public class GlobalContext {
         private const string HELP_SEPARATOR = "=============================================";
 
-        internal bool RenderingDone {
-            get; set;
-        }
-
-        internal bool TransformingDone {
+        internal bool SomethingDone {
             get; set;
         }
 
@@ -88,7 +84,7 @@ namespace NDepCheck {
         public static string ExpandHexChars([CanBeNull] string s) {
             return s != null && s.Contains('%')
                 ? Regex.Replace(s, "%[0-9a-fA-F][0-9a-fA-F]",
-                    m => "" + (char) int.Parse(m.Value.Substring(1), NumberStyles.HexNumber))
+                    m => "" + (char)int.Parse(m.Value.Substring(1), NumberStyles.HexNumber))
                 : s;
         }
 
@@ -112,9 +108,9 @@ namespace NDepCheck {
             }
             try {
                 // Plugins can have state, therefore we must manage them in a repository. A simple list is sufficient.
-                T result = (T) _plugins.FirstOrDefault(t => t.GetType() == pluginType);
+                T result = (T)_plugins.FirstOrDefault(t => t.GetType() == pluginType);
                 if (result == null) {
-                    _plugins.Add(result = (T) Activator.CreateInstance(pluginType));
+                    _plugins.Add(result = (T)Activator.CreateInstance(pluginType));
                 }
                 return result;
             } catch (Exception ex) {
@@ -149,7 +145,7 @@ namespace NDepCheck {
         private IEnumerable<T> CreatePlugins<T>(string assemblyName) where T : class, IPlugin {
             return GetPluginTypes<T>(assemblyName).Select(t => {
                 try {
-                    return (T) Activator.CreateInstance(t);
+                    return (T)Activator.CreateInstance(t);
                 } catch (Exception ex) {
                     Log.WriteError($"Cannot get help for renderer '{t.FullName}'; reason: {ex.Message}");
                     return null;
@@ -269,7 +265,7 @@ namespace NDepCheck {
             transformer.Transform(this, AllDependencies, transformerOptions,
                 newDependenciesCollector);
 
-            TransformingDone = true;
+            SomethingDone = true;
 
             _dependencies.Pop();
             _dependencies.Push(newDependenciesCollector);
@@ -303,7 +299,7 @@ namespace NDepCheck {
 
                     Log.WriteInfo($"... now {dependencies.Length} dependencies");
 
-                    TransformingDone = true;
+                    SomethingDone = true;
                     return result;
                 } catch (Exception ex) {
                     Log.WriteError(
@@ -341,19 +337,19 @@ namespace NDepCheck {
         }
 
         public string RenderTestData([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName,
-            string rendererOptions, [NotNull] string baseFileName) {
+            string rendererOptions, [NotNull] WriteTarget target) {
             IRenderer renderer = GetOrCreatePlugin<IRenderer>(assemblyName, rendererClassName);
 
             IEnumerable<Dependency> dependencies = renderer.CreateSomeTestDependencies();
-            renderer.Render(this, dependencies, dependencies.Count(), rendererOptions, baseFileName, IgnoreCase);
+            renderer.Render(this, dependencies, dependencies.Count(), rendererOptions, target, IgnoreCase);
 
-            RenderingDone = true;
+            SomethingDone = true;
 
-            return renderer.GetMasterFileName(this, rendererOptions, baseFileName);
+            return renderer.GetMasterFileName(this, rendererOptions, target).FullFileName;
         }
 
         public string RenderToFile([CanBeNull] string assemblyName, [CanBeNull] string rendererClassName,
-            [CanBeNull] string rendererOptions, [CanBeNull] string fileName) {
+            [CanBeNull] string rendererOptions, [NotNull] WriteTarget target) {
             if (Option.IsHelpOption(rendererOptions)) {
                 ShowDetailedHelp<ITransformer>(assemblyName, rendererClassName, "");
                 return null;
@@ -362,15 +358,15 @@ namespace NDepCheck {
                     IRenderer renderer = GetOrCreatePlugin<IRenderer>(assemblyName, rendererClassName);
 
                     Dependency[] allDependencies = AllDependencies.ToArray();
-                    string masterFileName = renderer.GetMasterFileName(this, rendererOptions, fileName);
+                    string masterFileName = renderer.GetMasterFileName(this, rendererOptions, target).FullFileName;
                     if (WorkLazily && File.Exists(masterFileName)) {
                         // we dont do anything - TODO check change dates of input files vs. the master file's last update date
                     } else {
                         RestartAbortWatchDog();
 
-                        renderer.Render(this, allDependencies, allDependencies.Length, rendererOptions ?? "", fileName, IgnoreCase);
+                        renderer.Render(this, allDependencies, allDependencies.Length, rendererOptions ?? "", target, IgnoreCase);
                     }
-                    RenderingDone = true;
+                    SomethingDone = true;
 
                     return masterFileName;
                 } finally {
@@ -395,8 +391,8 @@ namespace NDepCheck {
             _dependencies.Clear();
             _dependencies.Push(Enumerable.Empty<Dependency>());
 
-            RenderingDone = false;
-            TransformingDone = false;
+            SomethingDone = false;
+            SomethingDone = false;
 
             ItemType.Reset();
             Item.Reset();
@@ -417,31 +413,17 @@ namespace NDepCheck {
             HelpShown = true;
         }
 
-        // TODO: ---> Option ?????????????
-        public static string CreateFullFileName(string fileName, string extension) {
-            if (fileName == null || IsConsoleOutFileName(fileName)) {
-                return "-";
+        // TODO: ---> Option ????????????? or WriteTarget?????????
+        public static WriteTarget CreateFullFileName(WriteTarget target, string extension) {
+            if (target == null || target.IsConsoleOut) {
+                return new WriteTarget(null, true);
             } else {
                 if (extension != null) {
-                    fileName = Path.ChangeExtension(fileName, extension);
+                    return new WriteTarget(Path.ChangeExtension(target.FullFileName, extension), target.Append);
+                } else {
+                    return new WriteTarget(Path.GetFullPath(target.FileName), target.Append);
                 }
-                fileName = Path.GetFullPath(fileName);
-                return fileName;
             }
-        }
-
-        public static NamedTextWriter CreateTextWriter(string fullFileName) {
-            if (fullFileName == "-") {
-                Log.WriteInfo("Writing to console");
-                return new NamedTextWriter(Console.Out, null);
-            } else {
-                Log.WriteInfo("Writing " + fullFileName);
-                return new NamedTextWriter(new StreamWriter(fullFileName), fullFileName);
-            }
-        }
-
-        public static bool IsConsoleOutFileName(string fileName) {
-            return string.IsNullOrWhiteSpace(fileName) || fileName == "-";
         }
 
         public ItemType GetItemType(string definition) {
@@ -451,38 +433,49 @@ namespace NDepCheck {
             return ItemType.New(name, parts.Skip(1).ToArray(), IgnoreCase);
         }
 
-        public void LogAboutNDependencies(int maxCount, [CanBeNull] string pattern) {
-            DependencyMatch m = pattern == null ? null : DependencyMatch.Create(pattern, IgnoreCase);
-            IEnumerable<Dependency> matchingDependencies =
-                AllDependencies.Where(d => m == null || m.IsMatch(d)).Take(maxCount + 1);
-            foreach (var d in matchingDependencies.Take(maxCount)) {
-                Log.WriteInfo(d.AsLimitableStringWithTypes(false));
+        public void LogAboutNDependencies(int maxCount, [CanBeNull] string pattern, [NotNull] WriteTarget target) {
+            IEnumerable<Dependency> matchingDependencies = LogOnlyDependencyCount(pattern);
+            int n = target.IsConsoleOut ? maxCount : int.MaxValue / 2;
+            using (var tw = target.CreateTextWriter()) {
+                foreach (var d in matchingDependencies.Take(n)) {
+                    tw.WriteLine(d.AsLimitableStringWithTypes(false));
+                }
+                if (matchingDependencies.Skip(n).Any()) {
+                    tw.WriteLine("...");
+                }
             }
-            if (matchingDependencies.Skip(maxCount).Any()) {
-                Log.WriteInfo("...");
-            }
+            SomethingDone = true;
         }
 
-        public void LogAboutNItems(int maxCount, [CanBeNull] string pattern) {
+        public void LogAboutNItems(int maxCount, [CanBeNull] string pattern, [NotNull] WriteTarget target) {
             List<Item> matchingItems = LogOnlyItemCount(pattern).ToList();
-            matchingItems.Sort(
-                (i1, i2) =>
-                    string.Compare(i1.Name, i2.Name,
+            int n = target.IsConsoleOut ? maxCount : int.MaxValue / 2;
+            matchingItems.Sort((i1, i2) => string.Compare(i1.Name, i2.Name,
                         IgnoreCase ? StringComparison.InvariantCultureIgnoreCase : StringComparison.InvariantCulture));
-            foreach (var i in matchingItems.Take(maxCount)) {
-                Log.WriteInfo(i.AsFullString());
+            using (var tw = target.CreateTextWriter()) {
+                foreach (var i in matchingItems.Take(n)) {
+                    tw.WriteLine(i.AsFullString());
+                }
+                if (matchingItems.Skip(n).Any()) {
+                    tw.WriteLine("...");
+                }
             }
-            TransformingDone = true;
+            SomethingDone = true;
         }
 
         public void LogDependencyCount(string pattern) {
-            DependencyMatch m = pattern == null ? null : DependencyMatch.Create(pattern, IgnoreCase);
-            int count = AllDependencies.Count(d => m == null || m.IsMatch(d));
-            Log.WriteInfo(count + " dependencies" + (m == null ? "" : " matching " + pattern));
-            foreach (var d in AllDependencies.Where(d => m == null || m.IsMatch(d)).Take(3)) {
+            IEnumerable<Dependency> matchingDependencies = LogOnlyDependencyCount(pattern);
+            foreach (var d in matchingDependencies.Take(3)) {
                 Log.WriteInfo(d.AsLimitableStringWithTypes(false));
             }
-            TransformingDone = true;
+            SomethingDone = true;
+        }
+
+        private IEnumerable<Dependency> LogOnlyDependencyCount(string pattern) {
+            DependencyMatch m = pattern == null ? null : DependencyMatch.Create(pattern, IgnoreCase);
+            var matchingDependencies = AllDependencies.Where(d => m == null || m.IsMatch(d));
+            Log.WriteInfo(matchingDependencies.Count() + " dependencies" + (m == null ? "" : " matching " + pattern));
+            return matchingDependencies;
         }
 
         public void LogItemCount(string pattern) {
@@ -490,7 +483,7 @@ namespace NDepCheck {
             foreach (var i in matchingItems.Take(3)) {
                 Log.WriteInfo(i.AsFullString());
             }
-            TransformingDone = true;
+            SomethingDone = true;
         }
 
         private IEnumerable<Item> LogOnlyItemCount(string pattern) {

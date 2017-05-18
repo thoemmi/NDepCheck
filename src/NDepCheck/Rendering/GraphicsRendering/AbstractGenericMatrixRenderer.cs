@@ -24,7 +24,7 @@ $@"  Write a textual matrix representation of dependencies.
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
-        protected static void ParseOptions(GlobalContext globalContext, string argsAsString, bool ignoreCase, 
+        protected static void ParseOptions([NotNull] GlobalContext globalContext, string argsAsString, bool ignoreCase, 
                                            out int? labelWidthOrNull, out bool withNotOkCt, out ItemMatch innerMatch) {
             int? lw = null;
             bool wct = false;
@@ -150,14 +150,14 @@ $@"  Write a textual matrix representation of dependencies.
             string itemFormat, Dictionary<Item, int> item2Index, bool withNotOkCt, IEnumerable<Item> sortedItems,
             string ctFormat, IDictionary<Item, IEnumerable<Dependency>> itemsAndDependencies);
 
-        public abstract void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase);
+        public abstract void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase);
 
-        public abstract void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, Stream stream, string testOption);
+        public abstract void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string testOption);
 
         public string GetHelp() {
             return $"{GetType().Name} usage: -___ outputfileName";
         }
 
-        public abstract string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName);
+        public abstract WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget);
     }
 }

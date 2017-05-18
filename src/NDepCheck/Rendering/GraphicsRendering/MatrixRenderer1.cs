@@ -40,29 +40,25 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             output.WriteLine();
         }
 
-        public override void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
+        public override void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
             using (var sw = new StreamWriter(stream)) {
                 Render(dependencies, null, sw, null, true);
             }
         }
 
-        public override void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
+        public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
             int? labelWidthOrNull;
             bool withNotOkCt;
             ItemMatch itemMatchOrNull;
             ParseOptions(globalContext, argsAsString, ignoreCase, out labelWidthOrNull, out withNotOkCt, out itemMatchOrNull);
 
-            using (var sw = new StreamWriter(GetCSVFileName(baseFileName))) {
+            using (TextWriter sw = target.ChangeExtension(".csv").CreateTextWriter()) {
                 Render(dependencies, null/*TODO: InnerMatch?*/, sw, labelWidthOrNull, withNotOkCt);
             }
         }
 
-        private string GetCSVFileName(string baseFileName) {
-            return GlobalContext.CreateFullFileName(baseFileName, ".csv");
-        }
-
-        public override string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
-            return GetCSVFileName(baseFileName);
+        public override WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget) {
+            return baseTarget.ChangeExtension(".csv");
         }
     }
 }

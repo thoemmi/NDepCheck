@@ -4,7 +4,7 @@ using JetBrains.Annotations;
 
 namespace NDepCheck {
     public interface IRenderer : IPlugin {
-        string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName);
+        WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget);
 
         /// <summary>
         /// Render dependencies to some file
@@ -13,16 +13,16 @@ namespace NDepCheck {
         /// <param name="dependencies"></param>
         /// <param name="dependenciesCount"></param>
         /// <param name="argsAsString"></param>
-        /// <param name="baseFileName"></param>
+        /// <param name="target"></param>
         /// <param name="ignoreCase"></param>
         /// <returns>Returns full name of written masterfile; or null if not written</returns>
-        void Render([NotNull] GlobalContext globalContext, [ItemNotNull] [NotNull] IEnumerable<Dependency> dependencies, 
-                    int? dependenciesCount, [NotNull] string argsAsString, [CanBeNull] string baseFileName, bool ignoreCase);
+        void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, 
+            int? dependenciesCount, [NotNull] string argsAsString, [NotNull] WriteTarget target, bool ignoreCase);
 
         /// <summary>
         /// Render dependencies to stream for tests
         /// </summary>
-        void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [ItemNotNull] [NotNull] IEnumerable<Dependency> dependencies, [NotNull] Stream stream, [CanBeNull] string option);
+        void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, [NotNull] Stream stream, [CanBeNull] string option);
 
         IEnumerable<Dependency> CreateSomeTestDependencies();
     }

@@ -41,7 +41,7 @@ namespace NDepCheck.Tests {
 
         private static void CreateAndRender(Action<LambdaTestRenderer> placeObjects) {
             new LambdaTestRenderer(placeObjects).Render(new GlobalContext(), Enumerable.Empty<Dependency>(), 0,
-                                    "", Path.GetTempFileName(), ignoreCase: false);
+                                    "", new WriteTarget(Path.GetTempFileName(), append: false), ignoreCase: false);
         }
 
         [TestMethod]
@@ -280,9 +280,8 @@ namespace NDepCheck.Tests {
                 items.SelectMany(
                     (from, i) => items.Skip(i).Select(to => new Dependency(from, to, new TextFileSource(prefix, i), "Use", 10 * i))).ToArray();
 
-            string tempFile = Path.GetTempFileName();
             new SomewhatComplexTestRenderer(boxHeight).Render(new GlobalContext(), dependencies, dependencies.Length,
-                                                              argsAsString: "", baseFileName: tempFile, ignoreCase: false);
+                argsAsString: "", target: new WriteTarget(Path.GetTempFileName(), append: false),ignoreCase: false);
         }
 
         [TestMethod]

@@ -488,7 +488,7 @@ namespace NDepCheck.Reading.AssemblyReading {
 
         ////public Func<TypeReference, string, ItemTail> GetCustomSectionComputation() {
         ////    // Simple version - does not work for cyclic assembly dependencies!
-        ////    IEnumerable<Dependency> dependencies = ReadOrGetDependencies();
+        ////    [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies = ReadOrGetDependencies();
         ////    IEnumerable<Item> items = dependencies.Select(d => d.UsingItem).Where(it => it.Type == DotNetAssemblyDependencyReaderFactory.DOTNETCALL).Distinct();
 
         ////    Dictionary<Tuple<string, string, string>, ItemTail> convertDict = items.ToDictionary(it => Tuple.Create(it.Values[0], it.Values[1], it.Values[5]), it => new ItemTail(it.Type, it.Values.Skip(6).ToArray()));

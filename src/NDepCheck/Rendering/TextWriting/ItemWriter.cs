@@ -29,8 +29,7 @@ namespace NDepCheck.Rendering.TextWriting {
             ShowMarkersOption, ProjectionOption
         };
 
-        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount,
-                           string argsAsString, string baseFileName, bool ignoreCase) {
+        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
             var itemMatches = new List<ItemMatch>();
             var itemExcludes = new List<ItemMatch>();
 
@@ -81,10 +80,9 @@ namespace NDepCheck.Rendering.TextWriting {
                     return j;
                 }));
 
-            using (var nsw = GlobalContext.CreateTextWriter(GetMasterFileName(globalContext, argsAsString, baseFileName))) {
-                TextWriter sw = nsw.Writer;
-
-                bool writeHeader = nsw.IsConsole;
+            WriteTarget masterFile = GetMasterFileName(globalContext, argsAsString, target);
+            using (var sw = masterFile.CreateTextWriter()) {
+                bool writeHeader = masterFile.IsConsoleOut;
                 if (!writeHeader) {
                     sw.WriteLine($"// Written {DateTime.Now} by {typeof(ItemWriter).Name} in NDepCheck {Program.VERSION}");
                     sw.WriteLine();
@@ -96,7 +94,7 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, Stream output, string option) {
+        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream output, string option) {
             using (var sw = new StreamWriter(output)) {
                 Write(dependencies, sw, itemMatches: null, itemExcludes: null, indegreeMatches: null, indegreeExcludes: null,
                       outdegreeMatches: null, outdegreeExcludes: null, 
@@ -104,7 +102,7 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        private void Write(IEnumerable<Dependency> dependencies, TextWriter sw, List<ItemMatch> itemMatches, List<ItemMatch> itemExcludes,
+        private void Write([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, TextWriter sw, List<ItemMatch> itemMatches, List<ItemMatch> itemExcludes,
                             List<DependencyMatch> indegreeMatches, List<DependencyMatch> indegreeExcludes,
                             List<DependencyMatch> outdegreeMatches, List<DependencyMatch> outdegreeExcludes,
                             bool writeOnlyIfIndegreeNotZero, bool writeOnlyIfOutdegreeNotZero, bool showMarkers, bool ignoreCase) {
@@ -178,8 +176,8 @@ $@"  Writes items to .txt files.
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
-        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
-            return GlobalContext.CreateFullFileName(baseFileName, ".txt");
+        public WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget) {
+            return GlobalContext.CreateFullFileName(baseTarget, ".txt");
         }
     }
 }

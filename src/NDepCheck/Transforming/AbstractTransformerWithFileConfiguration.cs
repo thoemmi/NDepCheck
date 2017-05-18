@@ -21,11 +21,11 @@ namespace NDepCheck.Transforming {
 
         private readonly Dictionary<string, Dictionary<string, string>> _container2configValues = new Dictionary<string, Dictionary<string, string>>();
 
-        public virtual void Configure(GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
+        public virtual void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
             _localVars = new ValuesFrame();
         }
 
-        protected string NormalizeLine(GlobalContext globalContext, [CanBeNull] string line,
+        protected string NormalizeLine([NotNull] GlobalContext globalContext, [CanBeNull] string line,
             [CanBeNull] Dictionary<string, string> configValueCollector) {
             if (line != null) {
                 int commentStart = line.IndexOf("//", StringComparison.InvariantCulture);
@@ -38,7 +38,7 @@ namespace NDepCheck.Transforming {
             }
         }
 
-        protected void ProcessTextInner(GlobalContext globalContext, string fullConfigFileName, int startLineNo,
+        protected void ProcessTextInner([NotNull] GlobalContext globalContext, string fullConfigFileName, int startLineNo,
             TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
             [NotNull] Action<TConfiguration, string> onIncludedConfiguration,
             [NotNull] Func<string, int, string> onLineWithLineNo,
@@ -96,7 +96,7 @@ namespace NDepCheck.Transforming {
             }
         }
 
-        protected TConfiguration GetOrReadChildConfiguration(GlobalContext globalContext,
+        protected TConfiguration GetOrReadChildConfiguration([NotNull] GlobalContext globalContext,
             Func<TextReader> createReader, string containerUri, bool ignoreCase, string fileIncludeStack, bool forceReload) {
             TConfiguration childConfiguration;
 
@@ -131,7 +131,7 @@ namespace NDepCheck.Transforming {
             return childConfiguration;
         }
 
-        protected abstract TConfiguration CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
+        protected abstract TConfiguration CreateConfigurationFromText([NotNull] GlobalContext globalContext, string fullConfigFileName,
             int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
             [CanBeNull] Dictionary<string, string> configValueCollector);
 
@@ -139,8 +139,8 @@ namespace NDepCheck.Transforming {
 
         #region Transform
 
-        public abstract int Transform(GlobalContext globalContext, IEnumerable<Dependency> dependencies, 
-                                      string transformOptions, List<Dependency> transformedDependencies);
+        public abstract int Transform([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, 
+                                      string transformOptions, [NotNull] List<Dependency> transformedDependencies);
 
         public abstract IEnumerable<Dependency> CreateSomeTestDependencies();
 

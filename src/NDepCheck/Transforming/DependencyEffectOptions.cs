@@ -13,7 +13,7 @@ namespace NDepCheck.Transforming {
 
         public virtual IEnumerable<Option> AllOptions => BaseOptions.Concat(new[] { SetBadOption, SetQuestionableOption });
 
-        protected internal override IEnumerable<Action<Dependency>> Parse(GlobalContext globalContext, 
+        protected internal override IEnumerable<Action<Dependency>> Parse([NotNull] GlobalContext globalContext, 
             [CanBeNull] string argsAsString, string defaultReasonForSetBad, bool ignoreCase,
             [NotNull] [ItemNotNull] IEnumerable<OptionAction> moreOptionActions) {
             var localResult = new List<Action<Dependency>>();

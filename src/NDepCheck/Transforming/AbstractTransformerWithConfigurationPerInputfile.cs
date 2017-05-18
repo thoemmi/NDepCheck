@@ -8,8 +8,8 @@ namespace NDepCheck.Transforming {
             : AbstractTransformerWithFileConfiguration<TConfigurationPerContainer> {
         #region Transform
 
-        public override int Transform(GlobalContext globalContext, IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, List<Dependency> transformedDependencies) {
+        public override int Transform([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
+            [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies) {
 
             BeforeAllTransforms(globalContext, transformOptions);
 
@@ -25,12 +25,12 @@ namespace NDepCheck.Transforming {
             return result;
         }
 
-        public abstract void BeforeAllTransforms(GlobalContext globalContext, [CanBeNull] string transformOptions);
+        public abstract void BeforeAllTransforms([NotNull] GlobalContext globalContext, [CanBeNull] string transformOptions);
 
-        public abstract int TransformContainer(GlobalContext globalContext,
-            IEnumerable<Dependency> dependencies, string containerName, List<Dependency> transformedDependencies);
+        public abstract int TransformContainer([NotNull] GlobalContext globalContext,
+            [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string containerName, [NotNull] List<Dependency> transformedDependencies);
 
-        public abstract void AfterAllTransforms(GlobalContext globalContext);
+        public abstract void AfterAllTransforms([NotNull] GlobalContext globalContext);
 
         #endregion Transform
     }

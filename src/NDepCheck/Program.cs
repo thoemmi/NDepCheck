@@ -14,7 +14,7 @@ using NDepCheck.WebServing;
 
 namespace NDepCheck {
     public class Program {
-        public const string VERSION = "V.3.84";
+        public const string VERSION = "V.3.85";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 180;
@@ -30,6 +30,47 @@ namespace NDepCheck {
                 // empty
             }
         }
+
+        // Option groups:
+        //
+        // a    watch
+        //   ...  
+        // c    configure
+        //   ...  
+        // d    do
+        //   ...  
+        // e    environment     NOT YET IMPLEMENTED
+        //   ec [name]     environment-clone
+        //   en [name]     environment-new
+        //   ed [name]     environment-delete
+        //   eu [name...]  environment-union
+        //   ew [name|#    environment-work
+        //   el | ev       environment-list
+        //   et            environment-for-transform
+        //   er            environment-for-read
+        // h    help
+        //   ...
+        // i    interactive
+        //   ...  
+        // l    log/list
+        //   ...  
+        // n    count
+        //   ...
+        // q    quit
+        //   ...  
+        // r    read
+        //   ...  
+        // t    transform
+        //   ...  
+        // w    write
+        //   ...  
+        // x    calculate
+        //   ...  
+        // 
+        // ic           ignore-case
+        // cd [name]    change-directory
+        // gc           garbage-collect
+        // ia [file]    interactive
 
         public static readonly Option HelpAllOption = new ProgramOption(shortname: "?", name: "help-all", usage: "[filter]", description: "write help", moreNames: new[] { "h", "help" });
         public static readonly Option HelpDetailedHelpOption = new ProgramOption(shortname: "!", name: "help-detail", usage: "[filter]", description: "write extensive help", moreNames: new[] { "man" });
@@ -93,10 +134,11 @@ namespace NDepCheck {
 
         public static readonly Option InteractiveOption = new ProgramOption(shortname: "ia", name: "interactive", usage: "[filename]", description: "interactive mode, logging to filename");
         public static readonly Option InteractiveStopOption = new ProgramOption(shortname: "is", name: "interactive-stop", usage: "", description: "stop interactive mode", moreNames: new[] { "q", "quit", "exit" });
+
         public static readonly Option ListDependenciesOption = new ProgramOption(shortname: "ld", name: "list-dependencies", usage: "# [pattern]", description: "write about # dependencies matching pattern from all sources");
         public static readonly Option ListItemsOption = new ProgramOption(shortname: "li", name: "list-items", usage: "# [pattern]", description: "write about # items matching pattern from all sources");
-        public static readonly Option CountDependenciesOption = new ProgramOption(shortname: "id", name: "count-dependencies", usage: "[pattern]", description: "Show number of dependencies matching pattern from all sources");
-        public static readonly Option CountItemsOption = new ProgramOption(shortname: "ii", name: "count-items", usage: "[pattern]", description: "Show number of items matching pattern from all sources");
+        public static readonly Option CountDependenciesOption = new ProgramOption(shortname: "nd", name: "count-dependencies", usage: "[pattern]", description: "Show number of dependencies matching pattern from all sources");
+        public static readonly Option CountItemsOption = new ProgramOption(shortname: "ni", name: "count-items", usage: "[pattern]", description: "Show number of items matching pattern from all sources");
 
         public static readonly Option CurrentDirectoryOption = new ProgramOption(shortname: "cd", name: "current-directory", usage: "[directory]", description: "show or change current directory");
         public static readonly Option ListFilesOption = new ProgramOption(shortname: "ls", name: "list", usage: "[-r] [filespec]", description: "list matching files");
@@ -340,29 +382,29 @@ namespace NDepCheck {
                         // -wp    assembly writer [{ options }] filename
                         string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string writer = ExtractNextValue(globalContext, args, ref i);
-                        string s = ExtractNextValue(globalContext, args, ref i);
+                        string s = ExtractNextValue(globalContext, args, ref i, allowRedirection: true);
                         string masterFileName = Write(globalContext, s, args, ref i,
                             (writerOptions, fileName) => globalContext.RenderToFile(assemblyName, writer, writerOptions, fileName));
                         writtenMasterFiles?.Add(masterFileName);
                     } else if (WriteFileOption.IsMatch(arg)) {
                         // -wr    writer  [{ options }] filename
                         string writer = ExtractOptionValue(globalContext, args, ref i);
-                        string s = ExtractNextRequiredValue(globalContext, args, ref i, "Missing filename or options");
+                        string s = ExtractNextRequiredValue(globalContext, args, ref i, "Missing filename or options", allowRedirection: true);
                         string masterFileName = Write(globalContext, s, args, ref i,
-                            (writerOptions, fileName) => globalContext.RenderToFile("", writer, writerOptions, fileName));
+                            (writerOptions, target) => globalContext.RenderToFile("", writer, writerOptions, target));
                         writtenMasterFiles?.Add(masterFileName);
                     } else if (WriteDipOption.IsMatch(arg)) {
                         // -wd    filename
-                        string fileName = ExtractOptionValue(globalContext, args, ref i);
-                        string masterFileName = globalContext.RenderToFile("", typeof(DipWriter).Name, "", fileName);
+                        WriteTarget target = ExtractWriteTarget(globalContext, args, ref i);
+                        string masterFileName = globalContext.RenderToFile("", typeof(DipWriter).Name, "", target);
                         writtenMasterFiles?.Add(masterFileName);
                     } else if (WriteTestDataOption.IsMatch(arg)) {
                         // -wt    assembly writer [{ options }] filename
                         string assemblyName = ExtractOptionValue(globalContext, args, ref i);
                         string writer = ExtractNextValue(globalContext, args, ref i);
-                        string s = ExtractNextValue(globalContext, args, ref i);
+                        string s = ExtractNextValue(globalContext, args, ref i, allowRedirection: true);
                         Write(globalContext, s, args, ref i,
-                            (writerOptions, fileName) => globalContext.RenderTestData(assemblyName, writer, writerOptions, fileName));
+                            (writerOptions, target) => globalContext.RenderTestData(assemblyName, writer, writerOptions, target));
                     } else if (WritePluginHelpOption.IsMatch(arg)) {
                         // -wp?    assembly
                         string assemblyName = ExtractOptionValue(globalContext, args, ref i);
@@ -543,12 +585,14 @@ namespace NDepCheck {
                         // -li [#] [pattern]
                         int maxCount;
                         string pattern = GetListOptions(args, globalContext, ref i, out maxCount);
-                        globalContext.LogAboutNItems(maxCount, pattern);
+                        WriteTarget target = ExtractWriteTarget(globalContext, args, ref i);
+                        globalContext.LogAboutNItems(maxCount, pattern, target);
                     } else if (ListDependenciesOption.IsMatch(arg)) {
                         // -ld [#] [pattern]
                         int maxCount;
                         string pattern = GetListOptions(args, globalContext, ref i, out maxCount);
-                        globalContext.LogAboutNDependencies(maxCount, pattern);
+                        WriteTarget target = ExtractWriteTarget(globalContext, args, ref i);
+                        globalContext.LogAboutNDependencies(maxCount, pattern, target);
                     } else if (CountDependenciesOption.IsMatch(arg)) {
                         // -id [pattern]
                         string pattern = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true /* as --x-> patterns start with -*/);
@@ -615,7 +659,7 @@ namespace NDepCheck {
                         string transformerOptions = ExtractNextValue(globalContext, args, ref i);
                         SetResult(ref result, globalContext.Transform("", arg, transformerOptions));
                     } else if (IsInternalRendererPlugin(arg)) {
-                        string s = ExtractRequiredOptionValue(globalContext, args, ref i, "Missing filename or options");
+                        string s = ExtractRequiredOptionValue(globalContext, args, ref i, "Missing filename or options", allowRedirection: true);
                         string masterFileName = Write(globalContext, s, args, ref i,
                             (writerOptions, fileName) => globalContext.RenderToFile("", arg, writerOptions, fileName));
                         writtenMasterFiles?.Add(masterFileName);
@@ -643,11 +687,11 @@ namespace NDepCheck {
                     return UsageAndExit(message: "No input files specified", globalContext: globalContext);
                 }
 
-                if (result == OK_RESULT && !globalContext.TransformingDone && !globalContext.RenderingDone) {
+                if (result == OK_RESULT && !globalContext.SomethingDone) {
                     // Default action at end if nothing was done
                     SetResult(ref result, globalContext.Transform(assemblyName: "", transformerClass: typeof(CheckDeps).FullName, transformerOptions: ""));
                     globalContext.RenderToFile(assemblyName: "",
-                        rendererClassName: typeof(RuleViolationWriter).FullName, rendererOptions: "", fileName: null);
+                        rendererClassName: typeof(RuleViolationWriter).FullName, rendererOptions: "", target: new WriteTarget("-", true));
                 }
             }
 
@@ -679,21 +723,21 @@ namespace NDepCheck {
         }
 
         [CanBeNull]
-        private static string ExtractNextValue(GlobalContext globalContext, string[] args, ref int i, bool allowOptionValue = false) {
-            return globalContext.ExpandDefinesAndHexChars(Option.ExtractNextValue(args, ref i, allowOptionValue), null);
+        private static string ExtractNextValue([NotNull] GlobalContext globalContext, string[] args, ref int i, bool allowOptionValue = false, bool allowRedirection = false) {
+            return globalContext.ExpandDefinesAndHexChars(Option.ExtractNextValue(args, ref i, allowOptionValue, allowRedirection), null);
         }
 
         [CanBeNull]
-        private static string ExtractNextRequiredValue(GlobalContext globalContext, string[] args, ref int i, string message, bool allowOptionValue = false) {
-            return globalContext.ExpandDefinesAndHexChars(Option.ExtractNextRequiredValue(args, ref i, message, allowOptionValue), null);
+        private static string ExtractNextRequiredValue([NotNull] GlobalContext globalContext, string[] args, ref int i, string message, bool allowOptionValue = false, bool allowRedirection = false) {
+            return globalContext.ExpandDefinesAndHexChars(Option.ExtractNextRequiredValue(args, ref i, message, allowOptionValue, allowRedirection), null);
         }
 
         [CanBeNull]
-        private static string ExtractOptionValue(GlobalContext globalContext, string[] args, ref int i, bool allowOptionValue = false) {
-            return globalContext.ExpandDefinesAndHexChars(Option.ExtractOptionValue(args, ref i, allowOptionValue), null);
+        private static string ExtractOptionValue([NotNull] GlobalContext globalContext, string[] args, ref int i, bool allowOptionValue = false, bool allowRedirection = false) {
+            return globalContext.ExpandDefinesAndHexChars(Option.ExtractOptionValue(args, ref i, allowOptionValue, allowRedirection), null);
         }
 
-        private static int ExtractIntOptionValue(GlobalContext globalContext, string[] args, ref int i, string message) {
+        private static int ExtractIntOptionValue([NotNull] GlobalContext globalContext, string[] args, ref int i, string message) {
             int value;
             if (!int.TryParse(ExtractOptionValue(globalContext, args, ref i), out value)) {
                 Option.ThrowArgumentException(message, string.Join(" ", args));
@@ -702,11 +746,11 @@ namespace NDepCheck {
         }
 
         [NotNull]
-        private static string ExtractRequiredOptionValue(GlobalContext globalContext, string[] args, ref int i, string message) {
-            return globalContext.ExpandDefinesAndHexChars(Option.ExtractRequiredOptionValue(args, ref i, message), null);
+        private static string ExtractRequiredOptionValue([NotNull] GlobalContext globalContext, string[] args, ref int i, string message, bool allowRedirection = false) {
+            return globalContext.ExpandDefinesAndHexChars(Option.ExtractRequiredOptionValue(args, ref i, message, allowRedirection: allowRedirection), null);
         }
 
-        private static void ExtractFilePatterns(GlobalContext globalContext, string[] args, ref int i, string firstFilePattern, List<string> includes, List<string> excludes) {
+        private static void ExtractFilePatterns([NotNull] GlobalContext globalContext, string[] args, ref int i, string firstFilePattern, List<string> includes, List<string> excludes) {
             includes.Add(firstFilePattern ?? ExtractRequiredOptionValue(globalContext, args, ref i, "missing file pattern"));
 
             while (i + 1 < args.Length) {
@@ -721,7 +765,37 @@ namespace NDepCheck {
             }
         }
 
-        private static string[] GetParamsList(GlobalContext globalContext, string[] args, ref int i) {
+        private WriteTarget ExtractWriteTarget([NotNull] GlobalContext globalContext, string[] args, ref int i) {
+            return ExtractWriteTarget(globalContext, ExtractNextValue(globalContext, args, ref i, allowRedirection: true), args, ref i);
+        }
+
+        private WriteTarget ExtractWriteTarget([NotNull] GlobalContext globalContext, [CanBeNull] string arg,
+                                                      [NotNull] string[] args, ref int i) {
+            if (arg == null) {
+                // Console.Out
+                return new WriteTarget(null, append: true);
+            } else if (arg == ">") {
+                return CreateWriteTarget(ExtractNextValue(globalContext, args, ref i), false);
+            } else if (arg == ">>") {
+                return CreateWriteTarget(ExtractNextValue(globalContext, args, ref i), true);
+            } else {
+                return new WriteTarget(arg, append: false);
+            }
+        }
+
+        private WriteTarget CreateWriteTarget(string fileName, bool append) {
+            if (fileName == ".") {
+                if (_interactiveLogFile != null) {
+                    return new WriteTarget(_interactiveLogFile, append: true);
+                } else {
+                    return new WriteTarget(null, append: true);
+                }
+            } else {
+                return new WriteTarget(fileName, append: append);
+            }
+        }
+
+        private static string[] GetParamsList([NotNull] GlobalContext globalContext, string[] args, ref int i) {
             var result = new List<string>();
             for (;;) {
                 string p = ExtractNextValue(globalContext, args, ref i);
@@ -754,7 +828,7 @@ namespace NDepCheck {
             }
         }
 
-        private static void LogElapsedTime(GlobalContext globalContext, Stopwatch stopwatch, string arg) {
+        private static void LogElapsedTime([NotNull] GlobalContext globalContext, Stopwatch stopwatch, string arg) {
             TimeSpan elapsed = stopwatch.Elapsed;
             if (elapsed >= globalContext.TimeLongerThan) {
                 if (elapsed < TimeSpan.FromMinutes(1)) {
@@ -769,7 +843,7 @@ namespace NDepCheck {
             }
         }
 
-        private static List<string> ExtractInputVars(GlobalContext globalContext, string[] args, ref int i) {
+        private static List<string> ExtractInputVars([NotNull] GlobalContext globalContext, string[] args, ref int i) {
             var input = new List<string>();
             for (var s = ExtractNextValue(globalContext, args, ref i); s != null; s = ExtractNextValue(globalContext, args, ref i)) {
                 input.Add(s);
@@ -777,16 +851,17 @@ namespace NDepCheck {
             return input;
         }
 
-        private static string Write(GlobalContext globalContext, string s, string[] args, ref int i, Func<string, string, string> action) {
-            string writerOptions, fileName;
+        private string Write([NotNull] GlobalContext globalContext, string s, string[] args, ref int i, Func<string, WriteTarget, string> action) {
+            string writerOptions;
+            WriteTarget target;
             if (Option.IsOptionGroupStart(s)) {
                 writerOptions = s;
-                fileName = ExtractNextValue(globalContext, args, ref i);
+                target = ExtractWriteTarget(globalContext, args, ref i);
             } else {
                 writerOptions = "";
-                fileName = s;
+                target = ExtractWriteTarget(globalContext, s, args, ref i);
             }
-            return action(writerOptions, fileName);
+            return action(writerOptions, target);
         }
 
         private static bool IsNdFile(string arg) {

@@ -69,7 +69,7 @@ namespace NDepCheck {
                    (excludes == null || !excludes.Any() || !excludes.Any(m => m.IsMatch(this)));
         }
 
-        public static ISet<Item> GetAllItems(IEnumerable<Dependency> dependencies, Func<Item, bool> selectItem) {
+        public static ISet<Item> GetAllItems([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Func<Item, bool> selectItem) {
             var items = new HashSet<Item>(dependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
             return selectItem == null ? items : new HashSet<Item>(items.Where(i => selectItem(i)));
         }

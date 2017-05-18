@@ -114,7 +114,6 @@
     <Compile Include="Markers\IMutableMarkerSet.cs" />
     <Compile Include="Markers\ReadOnlyMarkerSet.cs" />
     <Compile Include="Matching\Pattern.cs" />
-    <Compile Include="NamedTextWriter.cs" />
     <Compile Include="Markers\MutableMarkerSet.cs" />
     <Compile Include="ProgramFileSource.cs" />
     <Compile Include="Reading\AbstractReaderFactory.cs" />
@@ -204,6 +203,7 @@
     <Compile Include="ValuesFrame.cs" />
     <Compile Include="WebServing\WebServer.cs" />
     <Compile Include="WebServing\StringBuilderLogger.cs" />
+    <Compile Include="WriteTarget.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config">

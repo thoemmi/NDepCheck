@@ -93,7 +93,7 @@ Examples:
             );
         }
 
-        protected override IEnumerable<DependencyAction> CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
+        protected override IEnumerable<DependencyAction> CreateConfigurationFromText([NotNull] GlobalContext globalContext, string fullConfigFileName,
             int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
             Dictionary<string, string> configValueCollector) {
 
@@ -109,8 +109,8 @@ Examples:
             return actions;
         }
 
-        public override int Transform(GlobalContext globalContext, IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, List<Dependency> transformedDependencies) {
+        public override int Transform([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
+            [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies) {
 
             if (_orderedActions == null) {
                 Log.WriteWarning($"No actions configured for {GetType().Name}");

@@ -42,7 +42,7 @@ namespace NDepCheck.Rendering {
             });
         }
 
-        private static int Sum(IEnumerable<Dependency> dependencies, Func<Dependency, bool> filter) {
+        private static int Sum([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Func<Dependency, bool> filter) {
             return dependencies.Where(filter).Sum(d => d.Ct);
         }
     }

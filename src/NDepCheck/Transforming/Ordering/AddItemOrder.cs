@@ -21,12 +21,12 @@ Configure options: None
 Transform options: {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
-        public void Configure(GlobalContext globalContext, string configureOptions, bool forceReload) {
+        public void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
             // empty
         }
 
-        public int Transform(GlobalContext globalContext, IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, List<Dependency> transformedDependencies) {
+        public int Transform([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
+            [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies) {
 
             Func<int, int, decimal> getSortValue = (incoming, outgoing) => incoming / (incoming + outgoing + 0.0001m);
             Func<Dependency, int> orderBy = d => d.Ct;

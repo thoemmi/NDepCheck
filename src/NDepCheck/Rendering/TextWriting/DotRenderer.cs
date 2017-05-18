@@ -15,7 +15,7 @@ namespace NDepCheck.Rendering.TextWriting {
 
         private static readonly Option[] _allOptions = { MaxExampleLengthOption, InnerMatchOption };
 
-        private void Render(IEnumerable<Dependency> dependencies, [NotNull] TextWriter output, ItemMatch innerMatch, int? maxExampleLength) {
+        private void Render([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, [NotNull] TextWriter output, ItemMatch innerMatch, int? maxExampleLength) {
             IDictionary<Item, IEnumerable<Dependency>> itemsAndDependencies = Dependency.Dependencies2ItemsAndDependencies(dependencies);
 
             output.WriteLine("digraph D {");
@@ -36,7 +36,7 @@ namespace NDepCheck.Rendering.TextWriting {
             output.WriteLine("}");
         }
 
-        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [CanBeNull] string baseFileName, bool ignoreCase) {
+        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
             int? maxExampleLength = null;
             ItemMatch innerMatch = null;
             Option.Parse(globalContext, argsAsString,
@@ -49,16 +49,16 @@ namespace NDepCheck.Rendering.TextWriting {
                     innerMatch = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Pattern for selecting inner items missing"), ignoreCase);
                     return j;
                 }));
-            using (TextWriter sw = new StreamWriter(GetDotFileName(baseFileName))) {
+            using (TextWriter sw = GetDotFileName(target).CreateTextWriter()) {
                 Render(dependencies, sw, innerMatch, maxExampleLength);
             }
         }
 
-        private string GetDotFileName(string baseFileName) {
-            return GlobalContext.CreateFullFileName(baseFileName, ".dot");
+        private WriteTarget GetDotFileName(WriteTarget target) {
+            return target.ChangeExtension(".dot");
         }
 
-        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
+        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
             using (var sw = new StreamWriter(stream)) {
                 Render(dependencies, sw, null, null);
             }
@@ -74,8 +74,8 @@ $@"  Writes dependencies to file in .dot format (graphviz; see http://graphviz.o
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
-        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
-            return GetDotFileName(baseFileName);
+        public WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget) {
+            return GetDotFileName(baseTarget);
         }
 
         public IEnumerable<Dependency> CreateSomeTestDependencies() {

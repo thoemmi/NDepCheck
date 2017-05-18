@@ -143,7 +143,7 @@ Examples:
             }
         }
 
-        protected override ProjectionSet CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
+        protected override ProjectionSet CreateConfigurationFromText([NotNull] GlobalContext globalContext, string fullConfigFileName,
             int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
             Dictionary<string, string> configValueCollector) {
 
@@ -221,8 +221,8 @@ Examples:
 
         #region Transform
 
-        public override int Transform(GlobalContext globalContext, IEnumerable<Dependency> dependencies,
-                            string transformOptions, List<Dependency> transformedDependencies) {
+        public override int Transform([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
+                            string transformOptions, [NotNull] List<Dependency> transformedDependencies) {
             string fullDipName = null;
             bool keepOnlyProjected = false;
             Option.Parse(globalContext, transformOptions, BackProjectionDipFileOption.Action((args, j) => {

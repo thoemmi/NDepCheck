@@ -126,8 +126,8 @@ namespace NDepCheck {
         }
 
         [NotNull]
-        public static string ExtractRequiredOptionValue(string[] args, ref int i, string message, bool allowOptionValue = false) {
-            string optionValue = ExtractOptionValue(args, ref i, allowOptionValue);
+        public static string ExtractRequiredOptionValue(string[] args, ref int i, string message, bool allowOptionValue = false, bool allowRedirection = false) {
+            string optionValue = ExtractOptionValue(args, ref i, allowOptionValue, allowRedirection);
             if (string.IsNullOrWhiteSpace(optionValue)) {
                 throw new ArgumentException(message);
             }
@@ -138,7 +138,7 @@ namespace NDepCheck {
         /// Helper method to get option value of value 
         /// </summary>
         [CanBeNull]
-        public static string ExtractOptionValue(string[] args, ref int i, bool allowOptionValue = false) {
+        public static string ExtractOptionValue(string[] args, ref int i, bool allowOptionValue = false, bool allowRedirection = false) {
             string optionValue;
             string arg = args[i];
             string[] argparts = arg.Split(new[] { '=' }, 2);
@@ -160,6 +160,9 @@ namespace NDepCheck {
             } else if (!allowOptionValue && LooksLikeAnOption(optionValue)) {
                 // This is the following option - i is not changed
                 return null;
+            } else if (!allowRedirection && LooksLikeRedirection(optionValue)) {
+                // This is the following option - i is not changed
+                return null;                
             } else if (IsOptionGroupStart(optionValue)) {
                 i = nextI;
                 return CollectMultipleArgs(args, ref i);
@@ -183,6 +186,10 @@ namespace NDepCheck {
                    && (s.StartsWith("-")
                        || s.StartsWith("/") && !s.Substring(1).Contains("/") // this allows some paths with / as option value
                    );
+        }
+
+        private static bool LooksLikeRedirection(string s) {
+            return s == ">" || s == ">>";
         }
 
         public static bool IsHelpOption([CanBeNull] string s) {
@@ -214,8 +221,8 @@ namespace NDepCheck {
         }
 
         [NotNull]
-        public static string ExtractNextRequiredValue(string[] args, ref int i, string message, bool allowOptionValue = false) {
-            var result = ExtractNextValue(args, ref i, allowOptionValue);
+        public static string ExtractNextRequiredValue(string[] args, ref int i, string message, bool allowOptionValue = false, bool allowRedirection = false) {
+            string result = ExtractNextValue(args, ref i, allowOptionValue, allowRedirection);
             if (result == null) {
                 throw new ArgumentException(message);
             }
@@ -223,7 +230,7 @@ namespace NDepCheck {
         }
 
         [CanBeNull]
-        public static string ExtractNextValue(string[] args, ref int i, bool allowOptionValue = false) {
+        public static string ExtractNextValue(string[] args, ref int i, bool allowOptionValue = false, bool allowRedirection = false) {
             if (i >= args.Length - 1) {
                 return null;
             } else {
@@ -231,6 +238,9 @@ namespace NDepCheck {
                 if (IsOptionGroupStart(value)) {
                     return CollectMultipleArgs(args, ref i);
                 } else if (!allowOptionValue && LooksLikeAnOption(value)) {
+                    --i;
+                    return null;
+                } else if (!allowRedirection && LooksLikeRedirection(value)) {
                     --i;
                     return null;
                 } else {

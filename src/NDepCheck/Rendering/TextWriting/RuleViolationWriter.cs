@@ -13,12 +13,12 @@ namespace NDepCheck.Rendering.TextWriting {
 
         private static readonly Option[] _allOptions = { XmlOutputOption };
 
-        public void Render([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
+        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
             bool xmlOutput = ParseArgs(globalContext, argsAsString);
 
             int violationsCount = dependencies.Count(d => d.NotOkCt > 0);
 
-            if (baseFileName == null || GlobalContext.IsConsoleOutFileName(baseFileName)) {
+            if (target.IsConsoleOut) {
                 var consoleLogger = new ConsoleLogger();
                 foreach (var d in dependencies.Where(d => d.QuestionableCt > 0 && d.BadCt == 0)) {
                     consoleLogger.WriteViolation(d);
@@ -41,26 +41,26 @@ namespace NDepCheck.Rendering.TextWriting {
                         ))
                         );
                 var settings = new XmlWriterSettings { Encoding = Encoding.UTF8, Indent = true };
-                string fileName = GetXmlFileName(baseFileName);
-                Log.WriteInfo($"Writing {violationsCount} violations to {fileName}");
-                using (var xmlWriter = XmlWriter.Create(fileName, settings)) {
+                WriteTarget writeTarget = GetXmlFile(target);
+                Log.WriteInfo($"Writing {violationsCount} violations to {writeTarget}");
+                using (var xmlWriter = XmlWriter.Create(writeTarget.FullFileName, settings)) {
                     document.Save(xmlWriter);
                 }
             } else {
-                string fileName = GetTextFileName(baseFileName);
-                Log.WriteInfo($"Writing {violationsCount} violations to {fileName}");
-                using (var sw = new StreamWriter(fileName)) {
-                    RenderToStreamWriter(dependencies, sw);
+                WriteTarget writeTarget = GetTextFile(target);
+                Log.WriteInfo($"Writing {violationsCount} violations to {writeTarget }");
+                using (var sw = writeTarget.CreateTextWriter()) {
+                    RenderToTextWriter(dependencies, sw);
                 }
             }
         }
 
-        private static string GetTextFileName(string baseFileName) {
-            return GlobalContext.CreateFullFileName(baseFileName, null);
+        private static WriteTarget GetTextFile(WriteTarget target) {
+            return GlobalContext.CreateFullFileName(target, null);
         }
 
-        private static string GetXmlFileName(string baseFileName) {
-            return Path.ChangeExtension(baseFileName, ".xml");
+        private static WriteTarget GetXmlFile(WriteTarget target) {
+            return target.ChangeExtension(".xml");
         }
 
         private static bool ParseArgs([NotNull] GlobalContext globalContext, [CanBeNull] string argsAsString) {
@@ -73,16 +73,16 @@ namespace NDepCheck.Rendering.TextWriting {
             return xmlOutput;
         }
 
-        private static void RenderToStreamWriter(IEnumerable<Dependency> dependencies, StreamWriter sw) {
+        private static void RenderToTextWriter([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, TextWriter sw) {
             sw.WriteLine($"// Written {DateTime.Now} by {typeof(RuleViolationWriter).Name} in NDepCheck {Program.VERSION}");
             foreach (var d in dependencies.Where(d => d.NotOkCt > 0)) {
                 sw.WriteLine(d.NotOkMessage());
             }
         }
 
-        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
+        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
             using (var sw = new StreamWriter(stream)) {
-                RenderToStreamWriter(dependencies, sw);
+                RenderToTextWriter(dependencies, sw);
             }
         }
 
@@ -107,9 +107,9 @@ $@"  Writes dependency rule violations to file in text or xml format.
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
-        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
+        public WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget) {
             bool xmlOutput = ParseArgs(globalContext, argsAsString);
-            return xmlOutput ? GetXmlFileName(baseFileName) : GetTextFileName(baseFileName);
+            return xmlOutput ? GetXmlFile(baseTarget) : GetTextFile(baseTarget);
         }
     }
 }

@@ -75,7 +75,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             );
         }
 
-        protected override DependencyRuleSet CreateConfigurationFromText(GlobalContext globalContext, string fullConfigFileName,
+        protected override DependencyRuleSet CreateConfigurationFromText([NotNull] GlobalContext globalContext, string fullConfigFileName,
             int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
             Dictionary<string, string> configValueCollector) {
 
@@ -153,7 +153,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         private bool _addMarker;
         private int _allFilesCt, _okFilesCt;
 
-        public override void BeforeAllTransforms(GlobalContext globalContext, string transformOptions) {
+        public override void BeforeAllTransforms([NotNull] GlobalContext globalContext, string transformOptions) {
             _showUnusedQuestionableRules = _showUnusedRules = _addMarker = false;
 
             Option.Parse(globalContext, transformOptions,
@@ -172,8 +172,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             _allCheckedGroups = new HashSet<DependencyRuleGroup>();
         }
 
-        public override int TransformContainer(GlobalContext globalContext, IEnumerable<Dependency> dependencies,
-            string containerName, List<Dependency> transformedDependencies) {
+        public override int TransformContainer([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
+            [CanBeNull] string containerName, [NotNull] List<Dependency> transformedDependencies) {
 
             transformedDependencies.AddRange(dependencies);
 
@@ -229,8 +229,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             return CheckDependencies(globalContext, dependencies, containerName, ruleSetForAssembly);
         }
 
-        private int CheckDependencies([NotNull] GlobalContext globalContext, [NotNull] IEnumerable<Dependency> dependencies,
-                                      string containerName, DependencyRuleSet ruleSetForAssembly) {
+        private int CheckDependencies([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
+                                      [CanBeNull] string containerName, [CanBeNull] DependencyRuleSet ruleSetForAssembly) {
             if (!dependencies.Any()) {
                 return Program.OK_RESULT;
             }
@@ -277,7 +277,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             throw new NotImplementedException();
         }
 
-        public override void AfterAllTransforms(GlobalContext globalContext) {
+        public override void AfterAllTransforms([NotNull] GlobalContext globalContext) {
             foreach (var r in _allCheckedGroups.SelectMany(g => g.AllRules)
                                                .Select(r => r.Source)
                                                .Distinct()

@@ -29,7 +29,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             return i.Values[1];
         }
 
-        protected override void PlaceObjects(IEnumerable<Dependency> dependencies) {
+        protected override void PlaceObjects([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies) {
             // ASCII-art sketch of what I want to accomplish:
             //
             //    |         |         |             |          |        |<--------+-----+
@@ -203,7 +203,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             }
         }
 
-        private string Sum(IEnumerable<Dependency> dependencies, Func<Dependency, bool> filter) {
+        private string Sum([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Func<Dependency, bool> filter) {
             var ct = dependencies.Where(filter).Sum(d => d.Ct);
             return ct >= 1000000 ? ct / 1000 + "M" : ct >= 1000 ? ct / 1000 + "K" : "" + ct;
         }
@@ -254,8 +254,8 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             return new Dependency(from, to, new TextFileSource("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
-        public override void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, string baseFileName, bool ignoreCase) {
-            DoRender(globalContext, dependencies, argsAsString, baseFileName,
+        public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
+            DoRender(globalContext, dependencies, argsAsString, target,
                 InterfaceSelectorOption.Action((args, j) => {
                     _interfaceSelector = new Regex(Option.ExtractRequiredOptionValue(args, ref j, "Regex for interface selector missing"));
                     return j;

@@ -15,7 +15,7 @@ namespace NDepCheck.Rendering.TextWriting {
 
         private static readonly Option[] _allOptions = DependencyMatchOptions.WithOptions(NoExampleInfoOption);
 
-        public static int Write(IEnumerable<Dependency> dependencies, TextWriter sw, bool withExampleInfo, IEnumerable<DependencyMatch> matches, IEnumerable<DependencyMatch> excludes) {
+        public static int Write([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, TextWriter sw, bool withExampleInfo, IEnumerable<DependencyMatch> matches, IEnumerable<DependencyMatch> excludes) {
             var writtenTypes = new HashSet<ItemType>();
 
             int n = 0;
@@ -38,8 +38,7 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        public void Render(GlobalContext globalContext, IEnumerable<Dependency> dependencies, int? dependenciesCount,
-                           string argsAsString, string baseFileName, bool ignoreCase) {
+        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
             bool noExampleInfo = false;
             var matches = new List<DependencyMatch>();
             var excludes = new List<DependencyMatch>();
@@ -48,13 +47,13 @@ namespace NDepCheck.Rendering.TextWriting {
                     noExampleInfo = true;
                     return j;
                 }));
-            using (var sw = GlobalContext.CreateTextWriter(GetMasterFileName(globalContext, argsAsString, baseFileName))) {
-                int n = Write(dependencies, sw.Writer, !noExampleInfo, matches, excludes);
+            using (var sw = GetMasterFileName(globalContext, argsAsString, target).CreateTextWriter(logToConsoleInfo: true)) {
+                int n = Write(dependencies, sw, !noExampleInfo, matches, excludes);
                 Log.WriteInfo($"... written {n} dependencies");
             }
         }
 
-        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, IEnumerable<Dependency> dependencies, Stream output, string option) {
+        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream output, string option) {
             using (var sw = new StreamWriter(output)) {
                 sw.WriteLine($"// Written {DateTime.Now} by {typeof(DipWriter).Name} in NDepCheck {Program.VERSION}");
                 Write(dependencies, sw, withExampleInfo: true, matches: null, excludes: null);
@@ -89,8 +88,8 @@ $@"  Writes dependencies to .dip files, which can be read in by
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
-        public string GetMasterFileName(GlobalContext globalContext, string argsAsString, string baseFileName) {
-            return GlobalContext.CreateFullFileName(baseFileName, ".dip");
+        public WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget) {
+            return GlobalContext.CreateFullFileName(baseTarget, ".dip");
         }
     }
 }

@@ -22,7 +22,7 @@ namespace NDepCheck.Transforming {
                 IncrementQuestionableOption, ResetQuestionableOption
             });
 
-        protected internal override IEnumerable<Action<Dependency>> Parse(GlobalContext globalContext, 
+        protected internal override IEnumerable<Action<Dependency>> Parse([NotNull] GlobalContext globalContext, 
                 [CanBeNull] string argsAsString, string defaultReasonForSetBad, bool ignoreCase, 
                 [NotNull] [ItemNotNull] IEnumerable<OptionAction> moreOptionActions) {
             var localResult = new List<Action<Dependency>>();
