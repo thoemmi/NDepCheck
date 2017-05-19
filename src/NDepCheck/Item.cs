@@ -223,8 +223,9 @@ namespace NDepCheck {
         }
 
         public static Item New([NotNull] ItemType type, [ItemNotNull] string[] values, [CanBeNull, ItemNotNull] string[] markers) {
-            Item item = Intern<Item>.GetReference(new Item(type, values));
-            item._markerSet.MergeWithMarkers(AbstractMarkerSet.CreateMarkerSetWithClonedDictionary(type.IgnoreCase, markers));
+            Item searchedItem = new Item(type, values);
+            searchedItem._markerSet.MergeWithMarkers(AbstractMarkerSet.CreateMarkerSetWithClonedDictionary(type.IgnoreCase, markers));
+            Item item = Intern<Item>.GetReference(searchedItem);
             return item;
         }
 

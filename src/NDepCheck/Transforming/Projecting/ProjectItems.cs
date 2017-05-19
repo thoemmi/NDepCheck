@@ -19,13 +19,10 @@ namespace NDepCheck.Transforming.Projecting {
         private static readonly Option[] _configOptions = { ProjectionFileOption, ProjectionsOption, MatcherStrategyOption };
 
         public static readonly Option BackProjectionDipFileOption = new Option("bp", "back-projection-input", "filename", "Do back projection of information in dipfile", @default: "no back projection");
-        public static readonly Option BackProjectionTrimOption = new Option("bt", "back-projection-trim", "", "When back projecting, keep only projected edges", @default: false);
 
-        private static readonly Option[] _transformOptions = { BackProjectionDipFileOption, BackProjectionTrimOption };
+        private static readonly Option[] _transformOptions = { BackProjectionDipFileOption };
 
         private IProjector _projector;
-
-        private Dictionary<FromTo, Dependency> _dependenciesForBackProjection;
 
         private Func<Projection[], bool, IProjector> _createProjector;
         private IEnumerable<Projection> _allProjectionsForMatchCountLoggingOnly;
@@ -221,46 +218,53 @@ Examples:
 
         #region Transform
 
-        public override int Transform([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
+        public override int Transform([NotNull] GlobalContext globalContext, 
+                            [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
                             string transformOptions, [NotNull] List<Dependency> transformedDependencies) {
             string fullDipName = null;
-            bool keepOnlyProjected = false;
             Option.Parse(globalContext, transformOptions, BackProjectionDipFileOption.Action((args, j) => {
                 fullDipName = Path.GetFullPath(Option.ExtractRequiredOptionValue(args, ref j, "missing back projection source filename"));
-                return j;
-            }), BackProjectionTrimOption.Action((args, j) => {
-                keepOnlyProjected = true;
                 return j;
             }));
 
             if (fullDipName != null) {
-                // Back projection - ProjectItems may use DipReader by design
-                if (_dependenciesForBackProjection == null) {
-                    IEnumerable<Dependency> dipDependencies = new DipReader(fullDipName).ReadDependencies(0, globalContext.IgnoreCase).ToArray();
-                    _dependenciesForBackProjection = dipDependencies.ToDictionary(
+                Dictionary<FromTo, Dependency> dependenciesForBackProjection = dependencies.ToDictionary(
                         d => new FromTo(d.UsingItem, d.UsedItem), d => d);
-                }
 
-                var localCollector = new Dictionary<FromTo, Dependency>();
+                // Back projection - ProjectItems may use DipReader by design //TODO: replace with environment!!
+                IEnumerable<Dependency> targetsOfBackProjection = new DipReader(fullDipName).ReadDependencies(0, globalContext.IgnoreCase).ToArray();
+
                 var backProjected = new List<Dependency>();
 
                 int missingPatternCount = 0;
-                foreach (var d in dependencies) {
-                    FromTo projectedEdgeFromTo = ProjectDependency(d, localCollector, () => OnMissingPattern(ref missingPatternCount));
+                //int notBackProjected = 0;
+                var localCollector = new Dictionary<FromTo, Dependency>();
+                var mapItems = new Dictionary<Item, Item>();
+                foreach (var d in targetsOfBackProjection) {
+                    FromTo f = ProjectDependency(d, localCollector, () => OnMissingPattern(ref missingPatternCount));
 
-                    if (projectedEdgeFromTo != null) {
-                        // The edge was projected
-                        Dependency replaceDataEdge;
-                        if (_dependenciesForBackProjection.TryGetValue(projectedEdgeFromTo, out replaceDataEdge)) {
-                            d.ResetBad();
-                            d.ResetQuestionable();
-                            d.AggregateMarkersAndCounts(replaceDataEdge);
+                    if (f != null) {
+                        Dependency projected;
+                        if (dependenciesForBackProjection.TryGetValue(f, out projected)) {
+                            //d.ResetBad(); <-- option
+                            //d.ResetQuestionable(); <-- option
+                            d.AggregateMarkersAndCounts(projected);
+                            mapItems[d.UsedItem] = projected.UsedItem;
+                            mapItems[d.UsingItem] = projected.UsingItem;
                             backProjected.Add(d);
+                        } else {
+                            //notBackProjected++;
                         }
-                        // else not back projected -> Warning?
                     }
                 }
-                transformedDependencies.AddRange(keepOnlyProjected ? backProjected : dependencies);
+
+                foreach (var kvp in mapItems) {
+                    Item target = kvp.Key;
+                    Item source = kvp.Value;
+                    target.MergeWithMarkers(source.MarkerSet);
+                }
+
+                transformedDependencies.AddRange(backProjected);
             } else {
                 // Forward projection
                 var localCollector = new Dictionary<FromTo, Dependency>();
@@ -326,9 +330,6 @@ Examples:
         }
 
         private void AfterAllTransforms() {
-            // reset cached back projection dependencies for next transform
-            _dependenciesForBackProjection = null;
-
             if (Log.IsVerboseEnabled) {
                 List<Projection> asList = _allProjectionsForMatchCountLoggingOnly.ToList();
                 asList.Sort((p, q) => p.MatchCount - q.MatchCount);

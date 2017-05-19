@@ -78,29 +78,46 @@ namespace NDepCheck.Rendering.TextWriting {
             }
 
             foreach (var kvp in paths) {
-                kvp.Value.Sort((d1, d2) => d1.MarkerSet.GetValue(kvp.Key, ignoreCase) - d2.MarkerSet.GetValue(kvp.Key, ignoreCase));
-            }
-
-            foreach (var kvp in paths) {
                 string marker = kvp.Key;
-                List<Dependency> path = kvp.Value;
                 tw.WriteLine($"-- {marker}");
 
-                Item firstItem = path[0].UsingItem;
-                tw.WriteLine(firstItem.ItemAsString(showItemMarkers, isEnd: false, endOfCycle: false,
-                    matchedByCountMatch: (firstItem.MarkerSet.GetValue(marker, ignoreCase) & PathSupport.IS_MATCHED_BY_COUNT_MATCH) != 0));
-                foreach (var d in path) {
-                    int dependencyValue = d.MarkerSet.GetValue(marker, ignoreCase);
+                // If a path was backprojected from a projected (i.e., condensed) path, then
+                // multiple dependencies might have the same marker value. For printing the path,
+                // the items on the left and right of such a group of dependencies are considered to
+                // be one item and printed below each other, with an indent from the second onwards.
+                var groupedPath = kvp.Value
+                    .Select(d => new { d.UsingItem, MarkerValue = d.MarkerSet.GetValue(kvp.Key, ignoreCase), d.UsedItem })
+                    .GroupBy(d => d.MarkerValue)
+                    .OrderBy(g1 => g1.Key)
+                    .ToArray();
 
-                    tw.WriteLine(d.UsedItem.ItemAsString(showItemMarkers,
-                        isEnd : dependencyValue.HasPathFlag(PathSupport.IS_END),
-                        endOfCycle : dependencyValue.HasPathFlag(PathSupport.IS_LOOPBACK),
-                        matchedByCountMatch : dependencyValue.HasPathFlag(PathSupport.IS_MATCHED_BY_COUNT_MATCH)
-                    ));
+                string itemSeparator = Environment.NewLine + "  & ";
+                tw.WriteLine(string.Join(itemSeparator, new HashSet<string>(groupedPath[0]
+                    .Select(d => CreateString(showItemMarkers, d.UsingItem, 0, d.UsingItem.MarkerSet.GetValue(marker, ignoreCase)))
+                    .OrderBy(s => s))));
+                var usedItems = new HashSet<Item>(groupedPath[0].Select(d => d.UsedItem));
+                var previousKey = groupedPath[0].Key;
+                foreach (var g in groupedPath.Skip(1)) {
+                    //usedItems.IntersectWith(g.Select(d => d.UsingItem));
+                    tw.WriteLine(string.Join(itemSeparator, new HashSet<string>(usedItems
+                        .Select(d => CreateString(showItemMarkers, d, previousKey, previousKey))
+                        .OrderBy(s => s))));
+                    usedItems = new HashSet<Item>(g.Select(d => d.UsedItem));
+                    previousKey = g.Key;
                 }
+                tw.WriteLine(string.Join(itemSeparator, new HashSet<string>(usedItems
+                    .Select(i => CreateString(showItemMarkers, i, previousKey, previousKey))
+                    .OrderBy(s => s))));
                 tw.WriteLine();
             }
             return paths.Count;
+        }
+
+        private static string CreateString(bool showItemMarkers, Item item, int markerValue, int markerValueForMatchCount) {
+            return item.ItemAsString(showItemMarkers, 
+                isEnd: (markerValue & PathSupport.IS_END) != 0, 
+                endOfCycle: (markerValue & PathSupport.IS_LOOPBACK) != 0,
+                matchedByCountMatch: (markerValueForMatchCount & PathSupport.IS_MATCHED_BY_COUNT_MATCH) != 0);
         }
 
         public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string option) {
