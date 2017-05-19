@@ -78,7 +78,7 @@ namespace NDepCheck.Transforming {
                         }
                     }
                 } catch (Exception ex) {
-                    throw new ApplicationException($"Problem '{ex.Message}' at {fullConfigFileName}:{lineNo}");
+                    throw new ApplicationException($"{ex.Message}{Environment.NewLine}  at {fullConfigFileName}:{lineNo}");
                 }
             }
         }
