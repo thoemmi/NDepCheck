@@ -231,7 +231,9 @@ namespace NDepCheck.Tests {
                 using (var sr = new StreamReader(t.FileName)) {
                     var o = sr.ReadToEnd();
 
-                    Console.WriteLine(o);
+                    //Console.WriteLine(o);
+                    Assert.IsTrue(o.Contains("a:1"));
+                    Assert.IsTrue(o.Contains("<= a:2 $"));
                 }
             }
         }
