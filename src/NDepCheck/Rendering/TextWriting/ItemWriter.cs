@@ -160,12 +160,12 @@ namespace NDepCheck.Rendering.TextWriting {
 
 
             return new[] {
-                    FromTo(kst, bac), FromTo(kst, kah_mi), FromTo(kah, bac), FromTo(vkf, bac), FromTo(vkf, kst), FromTo(vkf, kah, 3), FromTo(vkf, kah_mi, 2, 2)
+                    Dep(kst, bac), Dep(kst, kah_mi), Dep(kah, bac), Dep(vkf, bac), Dep(vkf, kst), Dep(vkf, kah, 3), Dep(vkf, kah_mi, 2, 2)
                     // ... more to come
                 };
         }
 
-        private Dependency FromTo(Item from, Item to, int ct = 1, int questionable = 0) {
+        private Dependency Dep(Item from, Item to, int ct = 1, int questionable = 0) {
             return new Dependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
         }
 

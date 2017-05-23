@@ -32,7 +32,7 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void GeneralSucceedingTest() {
             using (var ruleFile = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
-                using (TextWriter tw = new StreamWriter(ruleFile.Filename, false, Encoding.Default)) {
+                using (TextWriter tw = new StreamWriter(ruleFile.FileName, false, Encoding.Default)) {
                     tw.Write(@"
 // Test dependencies for NDepCheck
 
@@ -129,7 +129,7 @@ NDepCheck:Tests ---> **
                         Program.LogVerboseOption.Opt,
                         Program.ConfigureOption.Opt,
                         typeof(CheckDeps).Name, "<.",
-                            CheckDeps.DefaultRuleFileOption.Opt, ruleFile.Filename,
+                            CheckDeps.DefaultRuleFileOption.Opt, ruleFile.FileName,
                         ".>",
                         Program.ReadOption.Opt,
                         TestAssemblyPath
@@ -221,7 +221,7 @@ NDepCheck:Tests ---> **
         [TestMethod]
         public void ExitOk() {
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
-                using (TextWriter tw = new StreamWriter(d.Filename)) {
+                using (TextWriter tw = new StreamWriter(d.FileName)) {
                     tw.Write(@"
                     $ DOTNETITEM ---> DOTNETITEM
                   
@@ -242,7 +242,7 @@ NDepCheck:Tests ---> **
         private static string[] CreateCheckDepsArgs(DisposingFile d) {
             return new[] {
                 TestAssemblyPath,
-                Program.ConfigureOption.Opt, typeof(CheckDeps).Name, "{", CheckDeps.DefaultRuleFileOption + "=" + d.Filename, "}",
+                Program.ConfigureOption.Opt, typeof(CheckDeps).Name, "{", CheckDeps.DefaultRuleFileOption + "=" + d.FileName, "}",
                 Program.TransformOption.Opt, typeof(CheckDeps).Name,
                 Program.WriteDipOption.Opt, "yyy",
             };
@@ -251,7 +251,7 @@ NDepCheck:Tests ---> **
         [TestMethod]
         public void ExitOkAspects() {
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
-                using (TextWriter tw = new StreamWriter(d.Filename)) {
+                using (TextWriter tw = new StreamWriter(d.FileName)) {
                     tw.Write(@"
                     $ DOTNETITEM ---> DOTNETITEM
                   
@@ -277,7 +277,7 @@ NDepCheck:Tests ---> **
         [TestMethod]
         public void NestedMacroTest1() {
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
-                using (TextWriter tw = new StreamWriter(d.Filename)) {
+                using (TextWriter tw = new StreamWriter(d.FileName)) {
                     tw.Write(@"
                     $ DOTNETITEM ---> DOTNETITEM
                   
@@ -311,7 +311,7 @@ NDepCheck:Tests ---> **
         public void ExitDependenciesNotOk() {
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
                 // The rules are not enough for the test assembly - we expect return result 3
-                using (TextWriter tw = new StreamWriter(d.Filename)) {
+                using (TextWriter tw = new StreamWriter(d.FileName)) {
                     tw.Write(@"
                    $ DOTNETITEM ---> DOTNETITEM
                   
@@ -326,7 +326,7 @@ NDepCheck:Tests ---> **
         [TestMethod]
         public void ExitNoRuleGroupsFoundForEmptyDepFile() {
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
-                using (TextWriter tw = new StreamWriter(d.Filename)) {
+                using (TextWriter tw = new StreamWriter(d.FileName)) {
                     tw.Write("");
                 }
                 Assert.AreEqual(Program.NO_RULE_GROUPS_FOUND, Program.Main(CreateCheckDepsArgs(d)));
@@ -336,7 +336,7 @@ NDepCheck:Tests ---> **
         [TestMethod]
         public void ExitDependenciesNotOkAspects() {
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
-                using (TextWriter tw = new StreamWriter(d.Filename)) {
+                using (TextWriter tw = new StreamWriter(d.FileName)) {
                     tw.Write(@"$ DOTNETITEM ---> DOTNETITEM
 
                     NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
@@ -361,7 +361,7 @@ NDepCheck:Tests ---> **
         [TestMethod]
         public void ExitFileNotFound() {
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
-                using (TextWriter tw = new StreamWriter(d.Filename)) {
+                using (TextWriter tw = new StreamWriter(d.FileName)) {
                     tw.Write(@"$ DOTNETITEM ---> DOTNETITEM
 
                     : ---> blabla
@@ -375,7 +375,7 @@ NDepCheck:Tests ---> **
         [TestMethod]
         public void ExitException() {
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
-                using (TextWriter tw = new StreamWriter(d.Filename)) {
+                using (TextWriter tw = new StreamWriter(d.FileName)) {
                     tw.Write(@"$ DOTNETITEM ---> DOTNETITEM
 
                     // Bad - contains --->
@@ -392,7 +392,7 @@ NDepCheck:Tests ---> **
                 Assert.AreEqual(Program.EXCEPTION_RESULT, Program.Main(CreateCheckDepsArgs(d)));
             }
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
-                using (TextWriter tw = new StreamWriter(d.Filename)) {
+                using (TextWriter tw = new StreamWriter(d.FileName)) {
                     tw.Write(@"$ DOTNETITEM ---> DOTNETITEM
 
                     --> :=    
@@ -407,7 +407,7 @@ NDepCheck:Tests ---> **
         [TestMethod]
         public void TestWritePluginption() {
             using (var d = DisposingFile.CreateTempFileWithTail(".dll.dep")) {
-                using (TextWriter tw = new StreamWriter(d.Filename)) {
+                using (TextWriter tw = new StreamWriter(d.FileName)) {
                     tw.Write(@"
                     $ DOTNETITEM ---> DOTNETITEM
                   
@@ -434,7 +434,7 @@ NDepCheck:Tests ---> **
                             CreateCheckDepsArgs(d)
                                 .Concat(new[] {
                                     Program.WritePluginOption.Opt, "NDepCheck.TestRenderer.dll",
-                                    typeof(TestRendererForLoadFromAssembly).FullName, e.Filename
+                                    typeof(TestRendererForLoadFromAssembly).FullName, e.FileName
                                 })
                                 .ToArray()));
                 }
@@ -448,7 +448,7 @@ NDepCheck:Tests ---> **
                 Assert.AreEqual(0,
                     Program.Main(new[] {
                         TestAssemblyPath, Program.WriteTestDataOption.Opt, "NDepCheck.TestRenderer.dll",
-                        typeof(TestRendererForLoadFromAssembly).Name, d.Filename
+                        typeof(TestRendererForLoadFromAssembly).Name, d.FileName
                     }));
             }
         }
@@ -461,7 +461,7 @@ NDepCheck:Tests ---> **
                         TestAssemblyPath, Program.WriteTestDataOption.Opt, ".",
                         typeof(ModulesAndInterfacesRenderer).Name,
                         $"{{ {GraphicsRenderer.WidthOption} 1500 {GraphicsRenderer.HeightOption} 1000 {GraphicsRenderer.TitleOption} TestGOption {ModulesAndInterfacesRenderer.InterfaceSelectorOption} MI }}",
-                        d.Filename
+                        d.FileName
                     }));
             }
         }
@@ -588,7 +588,7 @@ NDepCheck:Tests ---> **
                     using (DisposingFile s1a = DisposingFile.Create(script1a)) {
                         using (DisposingFile s2 = DisposingFile.Create(script2)) {
                             using (DisposingFile result = DisposingFile.Create(resultTxt)) {
-                                using (var tw = new StreamWriter(m.Filename)) {
+                                using (var tw = new StreamWriter(m.FileName)) {
                                     tw.WriteLine($"-dc cmd.exe 2 {{ /c echo START > {result} }} " +
                                                  "-dd VALUE1 value1 " +
                                                  $"-ds {script1} VALUE1 : value3 " +
@@ -596,7 +596,7 @@ NDepCheck:Tests ---> **
                                                  $"-ds {script2} VALUE1 " + // passes value1
                                                  $"-dc cmd.exe 2 {{ /c echo END >> {result} }} ");
                                 }
-                                using (var tw = new StreamWriter(s1.Filename)) {
+                                using (var tw = new StreamWriter(s1.FileName)) {
                                     tw.WriteLine(
                                         "-fp F1 -fp F2 defaultValue2 -fp F3 defaultValue3 -fp F4 defaultValue4 " +
                                         // receives value1, [null->]defaultValue2, value3, [null->]defaultValue4
@@ -607,7 +607,7 @@ NDepCheck:Tests ---> **
                                         $"-dc cmd.exe 2 {{ /c echo {script1} F1 F2 F3 F4 F5 >> {result} }}");
                                     // third result line: write same as above, but globalF5 at the end
                                 }
-                                using (var tw = new StreamWriter(s1a.Filename)) {
+                                using (var tw = new StreamWriter(s1a.FileName)) {
                                     tw.WriteLine(
                                         "-fp F1 -fp F2 defaultValue2 -fp F3 defaultValue3 -fp F4 defaultValue4 " +
                                         // receives value1a 2=value3 [null->]defaultValue3 [null->]defaultValue4
@@ -615,7 +615,7 @@ NDepCheck:Tests ---> **
                                         $"-dc cmd.exe 2 {{ /c echo {script1a} F1 F2 F3 F4 F5 >> {result} }} ");
                                     // second result line: value1a, 2=value3, defaultValue3, defaultValue4, globalF5
                                 }
-                                using (var tw = new StreamWriter(s2.Filename)) {
+                                using (var tw = new StreamWriter(s2.FileName)) {
                                     tw.WriteLine(
                                         "-fp F1 -fp F2 defaultValue2 -fp F3 defaultValue3 -fp F4 defaultValue4 " +
                                         // receives value1, [null->]defaultValue2, [null->]defaultValue3, [null->]defaultValue4
@@ -626,7 +626,7 @@ NDepCheck:Tests ---> **
                                 int returnValue = Program.Main(new[] { "-ds", mainScript });
                                 Assert.AreEqual(0, returnValue);
 
-                                using (var tr = new StreamReader(result.Filename)) {
+                                using (var tr = new StreamReader(result.FileName)) {
                                     string resultContents = tr.ReadToEnd().Trim();
                                     Assert.IsTrue(resultContents.StartsWith("START"));
                                     Assert.IsTrue(resultContents.EndsWith("END"));

@@ -40,12 +40,12 @@ namespace NDepCheck.Tests {
             using (DisposingFile dipFile = DisposingFile.CreateTempFileWithTail(".dip")) {
                 int result =
                     Program.Main(new[] {
-                        MainTests.TestAssemblyPath, Program.WriteDipOption.Opt, dipFile.Filename,
-                        Program.DoResetOption.Opt, dipFile.Filename, Program.CountDependenciesOption.Opt
+                        MainTests.TestAssemblyPath, Program.WriteDipOption.Opt, dipFile.FileName,
+                        Program.DoResetOption.Opt, dipFile.FileName, Program.CountDependenciesOption.Opt
                     });
                 Assert.AreEqual(Program.OK_RESULT, result);
 
-                Console.WriteLine(dipFile.Filename);
+                Console.WriteLine(dipFile.FileName);
             }
         }
 

@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NDepCheck.Rendering.TextWriting;
+using NDepCheck.Transforming.PathFinding;
 using NDepCheck.Transforming.Projecting;
 
 namespace NDepCheck.Tests {
@@ -160,6 +163,110 @@ namespace NDepCheck.Tests {
 
             Assert.AreEqual(0, result.Count);
         }
+
+        private Dependency Dep(Item from, Item to, int ct = 1, int questionable = 0) {
+            return new Dependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
+        }
+
+        [TestMethod]
+        public void TestBackProjectCycle() {
+            ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
+            Item a1 = Item.New(generic2, "a:1");
+            Item b1 = Item.New(generic2, "b:1");
+            Item c1 = Item.New(generic2, "c:1");
+            Item d1 = Item.New(generic2, "d:1");
+            Item e1 = Item.New(generic2, "e:1");
+            Item a2 = Item.New(generic2, "a:2");
+            Item b2 = Item.New(generic2, "b:2");
+            Item c2 = Item.New(generic2, "c:2");
+            Item d2 = Item.New(generic2, "d:2");
+            Item e2 = Item.New(generic2, "e:2");
+            Item x2 = Item.New(generic2, "x:2");
+
+            var deps = new[] {
+                Dep(a1, b1), Dep(b1, c1), Dep(c1, d1), Dep(d1, e1), Dep(d1, b1),
+                Dep(a2, x2), Dep(b2, x2), Dep(c2, x2), Dep(d2, x2), Dep(e2, x2),
+            };
+
+            List<Dependency> backProjectedDeps = ProjectMarkCyclesAndBackProject(deps, new GlobalContext());
+
+            Assert.IsFalse(Find(backProjectedDeps, a1, b1).MarkersContain("C0"));
+            Assert.IsTrue(Find(backProjectedDeps, b1, c1).MarkersContain("C0"));
+            Assert.IsTrue(Find(backProjectedDeps, c1, d1).MarkersContain("C0"));
+            Assert.IsFalse(Find(backProjectedDeps, d1, e1).MarkersContain("C0"));
+            Assert.IsTrue(Find(backProjectedDeps, d1, b1).MarkersContain("C0"));
+
+            Assert.IsFalse(Find(backProjectedDeps, a2, x2).MarkersContain("C0"));
+            Assert.IsFalse(Find(backProjectedDeps, b2, x2).MarkersContain("C0"));
+            Assert.IsFalse(Find(backProjectedDeps, c2, x2).MarkersContain("C0"));
+            Assert.IsFalse(Find(backProjectedDeps, d2, x2).MarkersContain("C0"));
+            Assert.IsFalse(Find(backProjectedDeps, e2, x2).MarkersContain("C0"));
+        }
+
+        [TestMethod]
+        public void TestBackProjectSmallCycle() {
+            ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
+            Item a1 = Item.New(generic2, "a:1");
+            Item b1 = Item.New(generic2, "b:1");
+            Item a2 = Item.New(generic2, "a:2");
+            Item b2 = Item.New(generic2, "b:2");
+            Item b3 = Item.New(generic2, "b:3");
+
+            var deps = new[] {
+                Dep(a1, b1), Dep(b1, a2), Dep(b2, a2), Dep(a1, b3)
+            };
+
+            var gc = new GlobalContext();
+            List<Dependency> backProjectedDeps = ProjectMarkCyclesAndBackProject(deps, gc);
+
+            Assert.IsTrue(Find(backProjectedDeps, a1, b1).MarkersContain("C0"));
+            Assert.IsTrue(Find(backProjectedDeps, a1, b3).MarkersContain("C0"));
+            Assert.IsTrue(Find(backProjectedDeps, b1, a2).MarkersContain("C0"));
+            Assert.IsTrue(Find(backProjectedDeps, b2, a2).MarkersContain("C0"));
+
+            var pw = new FlatPathWriter();
+            using (var t = DisposingFile.CreateTempFileWithTail(".txt")) {
+                pw.Render(gc, backProjectedDeps, 0, $"{{ {FlatPathWriter.PathMarkerOption} C* }}".Replace(" ", Environment.NewLine), new WriteTarget(t.FileName, append: false, limitLinesForConsole: 100), ignoreCase: false);
+
+                using (var sr = new StreamReader(t.FileName)) {
+                    var o = sr.ReadToEnd();
+
+                    Console.WriteLine(o);
+                }
+            }
+        }
+
+        private static List<Dependency> ProjectMarkCyclesAndBackProject(Dependency[] deps, GlobalContext globalContext) {
+            var backProjectedDeps = new List<Dependency>();
+
+            using (var t = DisposingFile.CreateTempFileWithTail(".dip")) {
+                var dw = new DipWriter();
+                var wt = new WriteTarget(t.FileName, append: false, limitLinesForConsole: int.MaxValue);
+                dw.Render(globalContext, deps, 0, argsAsString: "", target: wt, ignoreCase: false);
+
+                var pi = new ProjectItems();
+                pi.Configure(globalContext,
+                    $"{{ {ProjectItems.ProjectionsOption} $GENERIC_2---%SIMPLE !(**) }}".Replace(" ", Environment.NewLine),
+                    false);
+                var projectedDeps = new List<Dependency>();
+                pi.Transform(globalContext, deps, "", projectedDeps);
+
+                var mc = new MarkCycleDeps();
+                mc.Transform(globalContext, projectedDeps,
+                    $"{{ {MarkCycleDeps.IgnoreSelfCyclesOption} {MarkCycleDeps.AddIndexedMarkerOption} C }}".Replace(" ", Environment.NewLine), new List<Dependency>());
+
+                pi.Transform(globalContext, projectedDeps,
+                    $"{{ {ProjectItems.BackProjectionDipFileOption} {t.FileName} }}".Replace(" ", Environment.NewLine),
+                    backProjectedDeps);
+            }
+            return backProjectedDeps;
+        }
+
+        private Dependency Find(List<Dependency> deps, Item from, Item to) {
+            return deps.FirstOrDefault(
+                    d => d.UsingItemAsString == from.AsString() && d.UsedItemAsString == to.AsString());
+        }
+
 
         //[TestMethod]
         //public void TestDamned() {

@@ -44,7 +44,7 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestCollectArgsFromFile() {
             using (var f = DisposingFile.CreateTempFileWithTail(".nd")) {
-                using (var sw = new StreamWriter(f.Filename)) {
+                using (var sw = new StreamWriter(f.FileName)) {
                     sw.WriteLine(@"
 a b                        // 1 2
 c d { e1 e2                // 3 4 5 6 7 // line starting { is split!
@@ -58,7 +58,7 @@ c d { e1 e2                // 3 4 5 6 7 // line starting { is split!
 r s");                     // 15 16
 
                 }
-                string[] result = Option.CollectArgsFromFile(f.Filename);
+                string[] result = Option.CollectArgsFromFile(f.FileName);
                 Assert.AreEqual(16, result.Length);
                 Assert.IsTrue(result.Contains("e1"));
                 Assert.IsTrue(result.Contains("    f1 f2 f3               // 8"));

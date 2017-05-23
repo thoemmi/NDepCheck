@@ -11,7 +11,7 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestDipWithProxies() {
             using (var f = DisposingFile.CreateTempFileWithTail(".dip")) {
-                using (TextWriter tw = new StreamWriter(f.Filename)) {
+                using (TextWriter tw = new StreamWriter(f.FileName)) {
                     tw.Write(@"$ NKK(Name:Key1:Key2)
                         NKK:a:keyA1:?     => ;1;0;0;src.abc|1            => NKK:?:keyA1:?
                         NKK:?:keyA1:?     => ;2;1;0;src.abc|3;example123 => NKK:a:keyA2:?
@@ -23,7 +23,7 @@ namespace NDepCheck.Tests {
                 }
 
                 IEnumerable<Dependency> dependencies =
-                    new DipReaderFactory().CreateReader(f.Filename, false).ReadDependencies(0, ignoreCase: false);
+                    new DipReaderFactory().CreateReader(f.FileName, false).ReadDependencies(0, ignoreCase: false);
                 Assert.IsNotNull(dependencies);
                 Item[] items = dependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }).Distinct().ToArray();
                 Assert.AreEqual(3, items.Length);
@@ -40,13 +40,13 @@ namespace NDepCheck.Tests {
                 int result =
                     Program.Main(new[] {
                         MainTests.TestAssemblyPath,
-                        Program.WriteDipOption.Opt, dipFile.Filename,
-                        Program.DoResetOption.Opt, dipFile.Filename,
+                        Program.WriteDipOption.Opt, dipFile.FileName,
+                        Program.DoResetOption.Opt, dipFile.FileName,
                         Program.CountDependenciesOption.Opt
                     });
                 Assert.AreEqual(Program.OK_RESULT, result);
 
-                Console.WriteLine(dipFile.Filename);
+                Console.WriteLine(dipFile.FileName);
             }
         }
     }

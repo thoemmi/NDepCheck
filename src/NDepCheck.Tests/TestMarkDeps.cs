@@ -24,10 +24,10 @@ namespace NDepCheck.Tests {
                             MarkDeps.UnmarkRightItemOption.Opt, "M", // removes M from A because of match of 2nd pattern
                         "}",
 
-                        Program.WriteDipOption.Opt, f.Filename
+                        Program.WriteDipOption.Opt, f.FileName
                     }));
 
-                using (var sw = new StreamReader(f.Filename)) {
+                using (var sw = new StreamReader(f.FileName)) {
                     string o = sw.ReadToEnd();
 
                     Assert.IsTrue(o.Contains("SIMPLE:A'LeftMatch+RightMatch "));
@@ -53,10 +53,10 @@ namespace NDepCheck.Tests {
                             MarkDeps.MarkDependencyItemOption.Opt, "DepMatch",
                         "}",
 
-                        Program.WriteDipOption.Opt, f.Filename
+                        Program.WriteDipOption.Opt, f.FileName
                     }));
 
-                using (var sw = new StreamReader(f.Filename)) {
+                using (var sw = new StreamReader(f.FileName)) {
                     string o = sw.ReadToEnd();
 
                     Assert.IsTrue(Regex.IsMatch(o, "SIMPLE:A[^:=]*RightMatch"));

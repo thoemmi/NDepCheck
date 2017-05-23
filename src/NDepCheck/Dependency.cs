@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using JetBrains.Annotations;
@@ -157,6 +158,7 @@ namespace NDepCheck {
         public override string ExampleInfo { get; }
     }
 
+    [DebuggerDisplay("{" + nameof(ToString) + "()}")]
     public class Dependency : AbstractDependency<Item>, IWithMutableMarkerSet {
         [NotNull]
         private readonly MutableMarkerSet _markerSet;

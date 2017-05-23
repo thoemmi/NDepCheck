@@ -4,7 +4,7 @@ using System.IO;
 namespace NDepCheck.Tests {
     public class DisposingFile : IDisposable {
         private bool _doDelete = true;
-        public string Filename { get; }
+        public string FileName { get; }
 
         public DisposingFile Keep {
             get {
@@ -13,17 +13,17 @@ namespace NDepCheck.Tests {
             }
         }
 
-        private DisposingFile(string filename) {
-            Filename = filename;
+        private DisposingFile(string fileName) {
+            FileName = fileName;
         }
 
         public override string ToString() {
-            return Filename;
+            return FileName;
         }
 
         public void Dispose() {
             if (_doDelete) {
-                File.Delete(Filename);
+                File.Delete(FileName);
             }
         }
 
