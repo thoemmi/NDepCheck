@@ -19,12 +19,16 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
         [CanBeNull]
         private readonly string _groupMarker;
+
+        private readonly string _groupPattern;
+
         [CanBeNull]
         private readonly DependencyMatch _groupMatchOrNullForMainGroup;
 
-        private DependencyRuleGroup([CanBeNull] string defaultName, DependencyMatch groupMatchOrNullForMainGroup,
+        private DependencyRuleGroup([CanBeNull] string defaultName, string groupPattern, DependencyMatch groupMatchOrNullForMainGroup,
         [NotNull] IEnumerable<DependencyRule> allowed, [NotNull] IEnumerable<DependencyRule> questionable,
                 [NotNull] IEnumerable<DependencyRule> forbidden) {
+            _groupPattern = groupPattern;
             _groupMatchOrNullForMainGroup = groupMatchOrNullForMainGroup;
             _groupMarker = groupMatchOrNullForMainGroup == null
                 ? null
@@ -37,7 +41,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
         }
 
         public DependencyRuleGroup([NotNull] string groupPattern, bool ignoreCase, ItemType usingTypeHint, ItemType usedTypeHint, string defaultName)
-            : this(defaultName, groupPattern == "" ? null : DependencyMatch.Create(groupPattern, ignoreCase, usingTypeHint: usingTypeHint, usedTypeHint: usedTypeHint),
+            : this(defaultName, groupPattern, groupPattern == "" ? null : DependencyMatch.Create(groupPattern, ignoreCase, usingTypeHint: usingTypeHint, usedTypeHint: usedTypeHint),
                 Enumerable.Empty<DependencyRule>(),
                 Enumerable.Empty<DependencyRule>(),
                 Enumerable.Empty<DependencyRule>()) {
@@ -46,6 +50,9 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
         [NotNull]
         public string GroupMarker => _groupMarker ?? "";
+
+        [NotNull]
+        public string GroupPattern => _groupPattern;
 
         /// <summary>
         /// Add one or more <c>DependencyRules</c>s from a single input line.
@@ -154,21 +161,25 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
         [NotNull]
         public DependencyRuleGroup Combine([NotNull] DependencyRuleGroup other, bool ignoreCase) {
-            return new DependencyRuleGroup(_groupMarker, _groupMatchOrNullForMainGroup,
+            return new DependencyRuleGroup(_groupMarker, _groupPattern + "+" + other._groupPattern, _groupMatchOrNullForMainGroup,
                 _allowed.Union(other._allowed),
                 _questionable.Union(other._questionable),
                 _forbidden.Union(other._forbidden));
         }
 
-        public void Check([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, bool addMarker, ref int badCt, ref int questionableCt) {
+        public int Check([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, bool addMarker, ref int badCt, ref int questionableCt) {
             int reorgCount = 0;
             int nextReorg = 200;
+
+            int matchCount = 0;
 
             // If there is no allowed or questionable rule, then there is an implicit ** ---> ** rule; and we check only against the bad rules.
             bool checkFully = _allowed.Any() || _questionable.Any();
 
             foreach (Dependency d in dependencies) {
                 if (_groupMatchOrNullForMainGroup == null || _groupMatchOrNullForMainGroup.IsMatch(d)) {
+                    matchCount++;
+
                     if (checkFully) {
                         Check(d);
                     } else {
@@ -190,27 +201,29 @@ namespace NDepCheck.Transforming.ViolationChecking {
                     }
                 }
             }
+
+            return matchCount;
         }
 
         private void Check([NotNull] Dependency d) {
             if (_forbidden.Any(r => r.IsMatch(d))) {
                 // First, we check for forbidden rules - "if it is forbidden, it is definitely forbidden"
-                d.MarkAsBad(_groupMarker);
+                d.MarkAsBad(_groupPattern);
             } else if (_allowed.Any(r => r.IsMatch(d))) {
                 // Then we check for allowed - "if it is not forbidden, and it is allowed, then it is definitely allowed"
             } else if (_questionable.Any(r => r.IsMatch(d))) {
                 // Last, we check for questionable - "if it is neither allowed nor forbidden, but questionably allowed, well, so be it"
-                d.MarkAsQuestionable(_groupMarker);
+                d.MarkAsQuestionable(_groupPattern);
             } else {
                 // If no rule matches, it is bad!
-                d.MarkAsBad(_groupMarker);
+                d.MarkAsBad(_groupPattern);
             }
         }
 
         private void CheckBadOnly([NotNull] Dependency d) {
             if (_forbidden.Any(r => r.IsMatch(d))) {
                 // First, we check for forbidden rules - "if it is forbidden, it is definitely forbidden"
-                d.MarkAsBad(_groupMarker);
+                d.MarkAsBad(_groupPattern);
             }   
             // If there is no allowed or questionable rule, then there is an implicit ** ---> ** rule.
         }

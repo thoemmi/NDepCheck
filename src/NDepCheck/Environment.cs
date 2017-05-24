@@ -25,6 +25,8 @@ namespace NDepCheck {
 
         public IEnumerable<Dependency> Dependencies => _dependencies;
 
+        public int DependencyCount => _dependencies.Count;
+
         public void AddDependencies(IEnumerable<Dependency> dependencies) {
             _dependencies.AddRange(dependencies);
         }

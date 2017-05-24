@@ -10,11 +10,13 @@ using JetBrains.Annotations;
 namespace NDepCheck.Rendering.TextWriting {
     public class RuleViolationWriter : IRenderer {
         public static readonly Option XmlOutputOption = new Option("xo", "xml-output", "", "Write output to XML file", @default: false);
+        public static readonly Option NewlineOption = new Option("nl", "newline", "", "Write violations on three lines", @default: false);
 
-        private static readonly Option[] _allOptions = { XmlOutputOption };
+        private static readonly Option[] _allOptions = { XmlOutputOption, NewlineOption };
 
         public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
-            bool xmlOutput = ParseArgs(globalContext, argsAsString);
+            bool xmlOutput, newLine;
+            ParseArgs(globalContext, argsAsString, out xmlOutput, out newLine);
 
             int violationsCount = dependencies.Count(d => d.NotOkCt > 0);
 
@@ -50,7 +52,7 @@ namespace NDepCheck.Rendering.TextWriting {
                 WriteTarget writeTarget = GetTextFile(target);
                 Log.WriteInfo($"Writing {violationsCount} violations to {writeTarget }");
                 using (var sw = writeTarget.CreateWriter()) {
-                    RenderToTextWriter(dependencies, sw);
+                    RenderToTextWriter(dependencies, sw, newLine);
                 }
             }
         }
@@ -63,26 +65,32 @@ namespace NDepCheck.Rendering.TextWriting {
             return target.ChangeExtension(".xml");
         }
 
-        private static bool ParseArgs([NotNull] GlobalContext globalContext, [CanBeNull] string argsAsString) {
-            bool xmlOutput = false;
+        private static void ParseArgs([NotNull] GlobalContext globalContext, [CanBeNull] string argsAsString, out bool xmlOutput, out bool newLine) {
+            bool xml = false;
+            bool nl = false;
             Option.Parse(globalContext, argsAsString,
                 XmlOutputOption.Action((args, j) => {
-                    xmlOutput = true;
+                    xml= true;
+                    return j;
+                }),
+                NewlineOption.Action((args, j) => {
+                    nl = true;
                     return j;
                 }));
-            return xmlOutput;
+            xmlOutput = xml;
+            newLine = nl;
         }
 
-        private static void RenderToTextWriter([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, ITargetWriter sw) {
+        private static void RenderToTextWriter([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, ITargetWriter sw, bool newLine) {
             sw.WriteLine($"// Written {DateTime.Now} by {typeof(RuleViolationWriter).Name} in NDepCheck {Program.VERSION}");
             foreach (var d in dependencies.Where(d => d.NotOkCt > 0)) {
-                sw.WriteLine(d.NotOkMessage());
+                sw.WriteLine(d.NotOkMessage(newLine));
             }
         }
 
         public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
             using (var sw = new TargetStreamWriter(stream)) {
-                RenderToTextWriter(dependencies, sw);
+                RenderToTextWriter(dependencies, sw, false);
             }
         }
 
@@ -108,7 +116,8 @@ $@"  Writes dependency rule violations to file in text or xml format.
         }
 
         public WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget) {
-            bool xmlOutput = ParseArgs(globalContext, argsAsString);
+            bool xmlOutput, ignore;
+            ParseArgs(globalContext, argsAsString, out xmlOutput, out ignore);
             return xmlOutput ? GetXmlFile(baseTarget) : GetTextFile(baseTarget);
         }
     }

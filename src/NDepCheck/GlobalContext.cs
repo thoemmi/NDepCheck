@@ -216,8 +216,20 @@ namespace NDepCheck {
 
             IEnumerable<string> extensionsForDirectoryReading = readerFactory.SupportedFileExtensions;
 
-            string[] fileNames = includes.SelectMany(p => Option.ExpandFilePatternFileNames(p, extensionsForDirectoryReading)).Except(
-                excludes.SelectMany(p => Option.ExpandFilePatternFileNames(p, extensionsForDirectoryReading))).ToArray();
+            IEnumerable<string> includedFilenames = includes.SelectMany(p => Option.ExpandFilePatternFileNames(p, extensionsForDirectoryReading));
+            IEnumerable<string> excludedFilenames = excludes.SelectMany(p => Option.ExpandFilePatternFileNames(p, extensionsForDirectoryReading));
+            string[] fileNames = includedFilenames
+                                         .Except(excludedFilenames)
+                                         .Distinct()
+                                         .OrderBy(s => s)
+                                         .ToArray();
+
+            if (Log.IsVerboseEnabled) {
+                Log.WriteInfo("Files to be read");
+                foreach (var f in fileNames) {
+                    Log.WriteInfo("  " + f);
+                }
+            }
 
             IDependencyReader[] readers = fileNames.Select(fileName => readerFactory.CreateReader(fileName, needsOnlyItemTails: false/*???*/)).ToArray();
 
@@ -241,6 +253,8 @@ namespace NDepCheck {
             } else {
                 CurrentEnvironment.AddDependencies(readSet);
             }
+
+            Log.WriteInfo($"... now {CurrentEnvironment.DependencyCount} dependencies");
         }
 
         private void RemoveSuperfluousEnvironments(int limit, EnvironmentCreationType type) {
@@ -328,7 +342,7 @@ namespace NDepCheck {
 
                     CurrentEnvironment.ReplaceDependencies(newDependenciesCollector);
 
-                    Log.WriteInfo($"... now {newDependenciesCollector.Count} dependencies");
+                    Log.WriteInfo($"... now {CurrentEnvironment.DependencyCount} dependencies");
 
                     SomethingDone = true;
                     return result;

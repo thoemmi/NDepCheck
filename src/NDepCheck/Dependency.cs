@@ -79,7 +79,7 @@ namespace NDepCheck {
         /// A message presented to the user if this Dependency has a <see cref="BadCt"/>or <see cref="QuestionableCt"/>.
         /// </summary>
         /// <returns></returns>
-        public string NotOkMessage(int maxLength = 600) {
+        public string NotOkMessage(bool newLine = false, int maxLength = 600) {
             string nounTail = Ct > 1 ? "ependencies" : "ependency";
             string prefix = BadCt > 0
                 ? QuestionableCt > 0 ? "Bad and questionable d" : "Bad d"
@@ -89,8 +89,9 @@ namespace NDepCheck {
                 ? QuestionableCt > 0 ? $";{QuestionableCt};{BadCt}" : $";;{BadCt}"
                 : QuestionableCt > 0 ? $";{QuestionableCt};" : ";;";
             string markers = MarkerSet.AsFullString(maxLength / 3);
-            return $"{prefix}{nounTail}{reason}: {UsingItem.AsFullString(maxLength / 3)} --{ct}{markers}-> {UsedItem.AsFullString(maxLength / 3)}"
-                    + (Source != null ? (Ct > 1 ? " (e.g. at " : " (at ") + Source + ")" : "");
+            string brk = newLine ? System.Environment.NewLine + "    " : "";
+            return $"{prefix}{nounTail}{reason}: {brk}{UsingItem.AsFullString(maxLength / 3)} --{brk}{ct}{markers}{brk}-> {UsedItem.AsFullString(maxLength / 3)}"
+                    + (Source != null ? (Ct > 1 ? " (e.g. at " : " (at ") + Source + ")" : "") + (newLine ? System.Environment.NewLine : "");
         }
 
         public string GetDotRepresentation(int? stringLengthForIllegalEdges) {

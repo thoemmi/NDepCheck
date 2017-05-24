@@ -152,6 +152,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         private bool _showUnusedRules;
         private bool _addMarker;
         private int _allFilesCt, _okFilesCt;
+        private Dictionary<string, int> _matchesByGroup;
 
         public override void BeforeAllTransforms([NotNull] GlobalContext globalContext, string transformOptions) {
             _showUnusedQuestionableRules = _showUnusedRules = _addMarker = false;
@@ -170,6 +171,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
             _allFilesCt = _okFilesCt = 0;
             _allCheckedGroups = new HashSet<DependencyRuleGroup>();
+
+            _matchesByGroup = new Dictionary<string, int>();
         }
 
         public override int TransformContainer([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
@@ -245,8 +248,15 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 Log.WriteInfo("Checking " + containerName);
                 int badCount = 0;
                 int questionableCount = 0;
+
                 foreach (var group in checkedGroups) {
-                    group.Check(dependencies, _addMarker, ref badCount, ref questionableCount);
+                    int matchCount = group.Check(dependencies, _addMarker, ref badCount, ref questionableCount);
+
+                    if (!_matchesByGroup.ContainsKey(group.GroupPattern)) {
+                        _matchesByGroup[group.GroupPattern] = matchCount;
+                    } else {
+                        _matchesByGroup[group.GroupPattern] += matchCount;
+                    }
                 }
                 _allCheckedGroups.UnionWith(checkedGroups);
 
@@ -278,6 +288,10 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         }
 
         public override void AfterAllTransforms([NotNull] GlobalContext globalContext) {
+            foreach (var kvp in _matchesByGroup.OrderBy(kvp => kvp.Key)) {
+                Log.WriteInfo($"Checked {kvp.Value} dependencies matching group {kvp.Key}");
+            }
+
             foreach (var r in _allCheckedGroups.SelectMany(g => g.AllRules)
                                                .Select(r => r.Source)
                                                .Distinct()

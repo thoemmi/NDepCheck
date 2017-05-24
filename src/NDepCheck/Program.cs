@@ -13,7 +13,7 @@ using NDepCheck.WebServing;
 
 namespace NDepCheck {
     public class Program {
-        public const string VERSION = "V.3.87";
+        public const string VERSION = "V.3.88";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 180;
