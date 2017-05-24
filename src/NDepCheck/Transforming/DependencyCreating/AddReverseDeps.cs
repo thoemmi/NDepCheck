@@ -79,9 +79,9 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             return Program.OK_RESULT;
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies() {
-            var a = Item.New(ItemType.SIMPLE, "A");
-            var b = Item.New(ItemType.SIMPLE, "B");
+        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
+            var a = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "A");
+            var b = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "B");
             return new[] {
                 new Dependency(a, a, source: null, markers: "inherit", ct:10, questionableCt:5, badCt:3),
                 new Dependency(a, b, source: null, markers: "inherit+define", ct:1, questionableCt:0,badCt: 0),

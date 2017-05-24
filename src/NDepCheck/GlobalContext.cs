@@ -13,6 +13,8 @@ namespace NDepCheck {
     public class GlobalContext {
         private const string HELP_SEPARATOR = "=============================================";
 
+        private static readonly string NewLine = System.Environment.NewLine;
+
         internal bool SomethingDone {
             get; set;
         }
@@ -32,9 +34,17 @@ namespace NDepCheck {
         private readonly ValuesFrame _globalValues = new ValuesFrame();
         private ValuesFrame _localParameters = new ValuesFrame();
 
-        private readonly Stack<IEnumerable<Dependency>> _dependencies = new Stack<IEnumerable<Dependency>>();
+        private readonly List<Environment> _environments = new List<Environment> { CreateDefaultEnvironment() };
 
-        private IEnumerable<Dependency> AllDependencies => _dependencies.Peek();
+        public Environment CurrentEnvironment => _environments[_environments.Count - 1];
+
+        private int _autoEnvironmentForTransform = 10;
+        private int _autoEnvironmentForRead = 0;
+
+
+        //private readonly Stack<IEnumerable<Dependency>> _dependencies = new Stack<IEnumerable<Dependency>>();
+
+        //private IEnumerable<Dependency> AllDependencies => _dependencies.Peek();
 
         [NotNull]
         private readonly List<IPlugin> _plugins = new List<IPlugin>();
@@ -64,7 +74,6 @@ namespace NDepCheck {
 
         public GlobalContext() {
             Name = "[" + ++_cxtId + "]";
-            _dependencies.Push(Enumerable.Empty<Dependency>());
         }
 
         public void SetDefine(string key, string value, string location) {
@@ -116,7 +125,7 @@ namespace NDepCheck {
             } catch (Exception ex) {
                 throw new ApplicationException(
                     $"Cannot create '{pluginClassName}' from assembly '{ShowAssemblyName(assemblyName)}' running in working " +
-                    $"directory {Environment.CurrentDirectory}; problem: {ex.Message}", ex);
+                    $"directory {System.Environment.CurrentDirectory}; problem: {ex.Message}", ex);
             }
         }
 
@@ -160,9 +169,9 @@ namespace NDepCheck {
             foreach (var plugin in CreatePlugins<T>(assemblyName)) {
                 string fullName = plugin.GetType().FullName;
                 try {
-                    string help = fullName + ":" + Environment.NewLine + plugin.GetHelp(detailedHelp: false, filter: "");
+                    string help = fullName + ":" + NewLine + plugin.GetHelp(detailedHelp: false, filter: "");
                     if (help.IndexOf(filter ?? "", StringComparison.InvariantCultureIgnoreCase) >= 0) {
-                        matched.Add(fullName, HELP_SEPARATOR + Environment.NewLine + help + Environment.NewLine);
+                        matched.Add(fullName, HELP_SEPARATOR + NewLine + help + NewLine);
                     }
                 } catch (Exception ex) {
                     Log.WriteError($"Cannot get help for renderer '{fullName}'; reason: {ex.Message}");
@@ -217,16 +226,36 @@ namespace NDepCheck {
             }
 
             // Currently, we add the previous set of dependencies to the newly read ones; with the introduction of a useful "working set" concept, this should vanish ...
-            var readSet = new List<Dependency>(_dependencies.Peek());
+            var readSet = new List<Dependency>();
             foreach (var r in readers) {
-                Dependency[] dependencies = r.ReadDependencies(0, IgnoreCase).ToArray();
+                Dependency[] dependencies = r.ReadDependencies(CurrentEnvironment, 0, IgnoreCase).ToArray();
                 if (!dependencies.Any()) {
                     Log.WriteWarning("No dependencies found in " + r.FullFileName);
                 }
 
                 readSet.AddRange(dependencies);
             }
-            _dependencies.Push(readSet);
+            if (_autoEnvironmentForRead > 0) {
+                CreateEnvironment(readerFactory.GetType().Name, EnvironmentCreationType.AutoRead, readSet);
+                RemoveSuperfluousEnvironments(_autoEnvironmentForRead, EnvironmentCreationType.AutoRead);
+            } else {
+                CurrentEnvironment.AddDependencies(readSet);
+            }
+        }
+
+        private void RemoveSuperfluousEnvironments(int limit, EnvironmentCreationType type) {
+            if (limit <= 0) {
+                throw new ArgumentException("internal error", nameof(limit));
+            }
+            var matchingEnvironments = _environments.Where(e => e.Type == type).ToArray();
+            if (matchingEnvironments.Length > limit) {
+                var toBeRemoved = matchingEnvironments.Take(matchingEnvironments.Length - limit);
+                _environments.RemoveAll(e => toBeRemoved.Contains(e));
+            }
+        }
+
+        private void CreateEnvironment(string namePrefix, EnvironmentCreationType type, IEnumerable<Dependency> dependencies) {
+            _environments.Add(new Environment(GetNewEnvironmentNameStartingWith(namePrefix), type, dependencies));
         }
 
         [CanBeNull]
@@ -259,16 +288,14 @@ namespace NDepCheck {
 
         public void TransformTestData(string assemblyName, string transformerClass, string transformerOptions) {
             ITransformer transformer = GetOrCreatePlugin<ITransformer>(assemblyName, transformerClass);
-            _dependencies.Push(transformer.CreateSomeTestDependencies());
+            CreateEnvironment(transformerClass + ".TestDependencies", EnvironmentCreationType.AutoTransform, transformer.CreateSomeTestDependencies(CurrentEnvironment));
 
             var newDependenciesCollector = new List<Dependency>();
-            transformer.Transform(this, AllDependencies, transformerOptions,
-                newDependenciesCollector);
+            transformer.Transform(this, CurrentEnvironment.Dependencies, transformerOptions, newDependenciesCollector);
+
+            CurrentEnvironment.ReplaceDependencies(newDependenciesCollector);
 
             SomethingDone = true;
-
-            _dependencies.Pop();
-            _dependencies.Push(newDependenciesCollector);
         }
 
         public void CheckAbort() {
@@ -287,17 +314,21 @@ namespace NDepCheck {
 
                     RestartAbortWatchDog();
 
-                    var newDependenciesCollector = new List<Dependency>();
-
-                    int result = transformer.Transform(this, AllDependencies.ToArray(), transformerOptions, newDependenciesCollector);
-
-                    Dependency[] dependencies = newDependenciesCollector.ToArray();
-                    if (dependencies.Contains(null)) {
-                        throw new ArgumentNullException(nameof(dependencies), "Contains null item");
+                    if (_autoEnvironmentForTransform > 0) {
+                        CreateEnvironment(transformerClass, EnvironmentCreationType.AutoTransform, CurrentEnvironment.Dependencies);
+                        RemoveSuperfluousEnvironments(_autoEnvironmentForTransform, EnvironmentCreationType.AutoTransform);
                     }
-                    _dependencies.Push(dependencies);
 
-                    Log.WriteInfo($"... now {dependencies.Length} dependencies");
+                    var newDependenciesCollector = new List<Dependency>();
+                    int result = transformer.Transform(this, CurrentEnvironment.Dependencies, transformerOptions, newDependenciesCollector);
+
+                    if (newDependenciesCollector.Contains(null)) {
+                        throw new ArgumentNullException(nameof(newDependenciesCollector), "Contains null item");
+                    }
+
+                    CurrentEnvironment.ReplaceDependencies(newDependenciesCollector);
+
+                    Log.WriteInfo($"... now {newDependenciesCollector.Count} dependencies");
 
                     SomethingDone = true;
                     return result;
@@ -340,8 +371,8 @@ namespace NDepCheck {
             string rendererOptions, [NotNull] WriteTarget target) {
             IRenderer renderer = GetOrCreatePlugin<IRenderer>(assemblyName, rendererClassName);
 
-            IEnumerable<Dependency> dependencies = renderer.CreateSomeTestDependencies();
-            renderer.Render(this, dependencies, dependencies.Count(), rendererOptions, target, IgnoreCase);
+            IEnumerable<Dependency> dependencies = renderer.CreateSomeTestDependencies(CurrentEnvironment);
+            renderer.Render(this, dependencies, rendererOptions, target, IgnoreCase);
 
             SomethingDone = true;
 
@@ -357,14 +388,13 @@ namespace NDepCheck {
                 try {
                     IRenderer renderer = GetOrCreatePlugin<IRenderer>(assemblyName, rendererClassName);
 
-                    Dependency[] allDependencies = AllDependencies.ToArray();
                     string masterFileName = renderer.GetMasterFileName(this, rendererOptions, target).FullFileName;
                     if (WorkLazily && File.Exists(masterFileName)) {
                         // we dont do anything - TODO check change dates of input files vs. the master file's last update date
                     } else {
                         RestartAbortWatchDog();
 
-                        renderer.Render(this, allDependencies, allDependencies.Length, rendererOptions ?? "", target, IgnoreCase);
+                        renderer.Render(this, CurrentEnvironment.Dependencies, rendererOptions ?? "", target, IgnoreCase);
                     }
                     SomethingDone = true;
 
@@ -375,27 +405,19 @@ namespace NDepCheck {
             }
         }
 
-        public void UndoTransform() {
-            if (_dependencies.Count > 1) {
-                _dependencies.Pop();
-                int sum = _dependencies.Peek().Count();
-                Log.WriteInfo($"{sum} dependencies");
-            }
-        }
-
         public RegexOptions GetIgnoreCase() {
             return IgnoreCase ? RegexOptions.IgnoreCase : RegexOptions.None;
         }
 
         public void ResetAll() {
-            _dependencies.Clear();
-            _dependencies.Push(Enumerable.Empty<Dependency>());
+            _environments.Clear();
+            _environments.Add(CreateDefaultEnvironment());
 
             SomethingDone = false;
             SomethingDone = false;
 
             ItemType.Reset();
-            Item.Reset();
+            ////Item.Reset();
 
             _globalValues.Clear();
         }
@@ -404,8 +426,8 @@ namespace NDepCheck {
             [CanBeNull] string filter) where T : IPlugin {
             try {
                 T plugin = GetOrCreatePlugin<T>(assemblyName, pluginClassName);
-                Log.WriteInfo(plugin.GetType().FullName + ":" + Environment.NewLine +
-                              plugin.GetHelp(detailedHelp: true, filter: filter) + Environment.NewLine);
+                Log.WriteInfo(plugin.GetType().FullName + ":" + NewLine +
+                              plugin.GetHelp(detailedHelp: true, filter: filter) + NewLine);
             } catch (Exception ex) {
                 Log.WriteError(
                     $"Cannot print help for plugin '{pluginClassName}' in assembly '{ShowAssemblyName(assemblyName)}'; reason: {ex.Message}");
@@ -477,7 +499,7 @@ namespace NDepCheck {
 
         private IEnumerable<Dependency> LogOnlyDependencyCount(string pattern) {
             DependencyMatch m = pattern == null ? null : DependencyMatch.Create(pattern, IgnoreCase);
-            IEnumerable<Dependency> matchingDependencies = AllDependencies.Where(d => m == null || m.IsMatch(d));
+            IEnumerable<Dependency> matchingDependencies = CurrentEnvironment.Dependencies.Where(d => m == null || m.IsMatch(d));
             Log.WriteInfo(matchingDependencies.Count() + " dependencies" + (m == null ? "" : " matching " + pattern));
             return matchingDependencies;
         }
@@ -497,7 +519,7 @@ namespace NDepCheck {
         private IEnumerable<Item> LogOnlyItemCount(string pattern) {
             ItemMatch m = pattern == null ? null : new ItemMatch(pattern, IgnoreCase);
             IEnumerable<Item> allItems =
-                new HashSet<Item>(AllDependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
+                new HashSet<Item>(CurrentEnvironment.Dependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
             IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.IsMatch(m, i));
             Log.WriteInfo(matchingItems.Count() + " items" + (m == null ? "" : " matching " + pattern));
             return matchingItems;
@@ -516,6 +538,119 @@ namespace NDepCheck {
 
         public static bool IsInternalPlugin<T>(string name) where T : IPlugin {
             return GetPluginTypes<T>("").Any(t => t.Name == name);
+        }
+
+        #region Environment handling
+
+        private string GetNewEnvironmentNameStartingWith(string s) {
+            int ct = _environments.Count(e => e.Name.StartsWith(s));
+            return s + (ct == 0 ? "" : "_" + ct);
+        }
+
+        public void AutoForTransform(string flagArgument) {
+            SetAutoFlag(flagArgument, ref _autoEnvironmentForTransform);
+        }
+
+        public void AutoForRead(string flagArgument) {
+            SetAutoFlag(flagArgument, ref _autoEnvironmentForRead);
+        }
+
+        private static void SetAutoFlag(string arg, ref int flag) {
+            int ct;
+            if (arg == null) {
+                flag = 10;
+            } else if (arg == "-") {
+                flag = 0;
+            } else if (int.TryParse(arg, out ct) && ct >= 0 && ct < 100) {
+                flag = ct;
+            } else {
+                throw new ArgumentException("Possible arguments: 0...100, none for 10, - for 0");
+            }
+        }
+
+        #endregion Environment handling
+
+        private static Environment CreateDefaultEnvironment() {
+            return new Environment("#0", EnvironmentCreationType.Manual, new Dependency[0]);
+        }
+
+        public void CloneEnvironments(string newName, IEnumerable<string> clonedNames) {
+            if (clonedNames.Any()) {
+                foreach (var n in clonedNames) {
+                    Environment e = FindEnvironment(n);
+                    if (e == null) {
+                        Log.WriteError($"No environment with name '{n}' found");
+                    } else {
+                        CreateEnvironment(e.Name, EnvironmentCreationType.Manual, e.Dependencies.Select(d => d.Clone()));
+                    }
+                }
+            } else {
+                var e = CurrentEnvironment;
+                CreateEnvironment(e.Name, EnvironmentCreationType.Manual, e.Dependencies.Select(d => d.Clone()));
+            }
+        }
+
+        private Environment FindEnvironment(string name) {
+            Environment result = _environments.FirstOrDefault(e => e.Name == name) ??
+                                 _environments.FirstOrDefault(e => e.Name.StartsWith(name));
+            if (result == null) {
+                int id;
+                if (int.TryParse(name, out id) && id > 1 && id <= _environments.Count) {
+                    result = _environments[_environments.Count - id];
+                }
+            }
+            return result;
+        }
+
+        public void PushNewEnvironment(string newName) {
+            CreateEnvironment(newName, EnvironmentCreationType.Manual, new Dependency[0]);
+        }
+
+        public void DeleteEnvironments(IEnumerable<string> namesToBeDeleted) {
+            foreach (var n in namesToBeDeleted) {
+                Environment e = FindEnvironment(n);
+                if (e == null) {
+                    Log.WriteWarning($"No environment with name '{n}' found");
+                } else {
+                    _environments.Remove(e);
+                }
+            }
+            if (!_environments.Any()) {
+                _environments.Add(CreateDefaultEnvironment());
+            }
+        }
+
+        public void AddEnvironments(IEnumerable<string> namesToBeAdded, bool removeUnioned) {
+            if (namesToBeAdded.Contains(CurrentEnvironment.Name)) {
+                Log.WriteError($"Cannot add current environment to itself");
+            }
+            foreach (var n in namesToBeAdded) {
+                Environment e = FindEnvironment(n);
+                if (e == null) {
+                    Log.WriteError($"No environment with name '{n}' found");
+                } else {
+                    CurrentEnvironment.AddDependencies(e.Dependencies);
+                    if (removeUnioned) {
+                        _environments.Remove(e);
+                    }
+                }
+            }
+        }
+
+        public void MakeTop(string name) {
+            Environment e = FindEnvironment(name);
+            if (e == null) {
+                Log.WriteError($"No environment with name '{name}' found");
+            } else {
+                _environments.Remove(e);
+                _environments.Add(e);
+            }
+        }
+
+        public void ListEnvironments() {
+            for (int i = _environments.Count - 1; i >= 0; i++) {
+                Log.WriteInfo(_environments.Count - i + ": " + _environments[i]);
+            }
         }
     }
 }

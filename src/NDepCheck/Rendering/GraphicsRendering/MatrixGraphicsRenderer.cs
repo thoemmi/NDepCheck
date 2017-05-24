@@ -135,16 +135,16 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         //    return ct >= 1000000 ? ct / 1000 + "M" : ct >= 1000 ? ct / 1000 + "K" : "" + ct;
         //}
 
-        public override IEnumerable<Dependency> CreateSomeTestDependencies() {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
             ItemType ar = ItemType.New("AR(Assembly:Ref)");
 
-            var wlg = Item.New(ar, "WLG:1".Split(':'));
-            var kst = Item.New(ar, "KST:2".Split(':'));
-            var vkf = Item.New(ar, "VKF:3".Split(':'));
-            var impA = Item.New(ar, "IMP.A:4".Split(':'));
-            var impB = Item.New(ar, "IMP.B:5".Split(':'));
-            var impC = Item.New(ar, "IMP.C:6".Split(':'));
-            var impD = Item.New(ar, "IMP.D:".Split(':'));
+            var wlg = Item.New(renderingEnvironment.ItemCache, ar, "WLG:1".Split(':'));
+            var kst = Item.New(renderingEnvironment.ItemCache, ar, "KST:2".Split(':'));
+            var vkf = Item.New(renderingEnvironment.ItemCache, ar, "VKF:3".Split(':'));
+            var impA = Item.New(renderingEnvironment.ItemCache, ar, "IMP.A:4".Split(':'));
+            var impB = Item.New(renderingEnvironment.ItemCache, ar, "IMP.B:5".Split(':'));
+            var impC = Item.New(renderingEnvironment.ItemCache, ar, "IMP.C:6".Split(':'));
+            var impD = Item.New(renderingEnvironment.ItemCache, ar, "IMP.D:".Split(':'));
 
             return new[] {
                     FromTo(vkf, impA), FromTo(vkf, impD),
@@ -167,7 +167,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         protected static readonly Option[] _allOptions = _allGraphicsRendererOptions
                         .Concat(new[] { BottomRegexOption, OrderFieldOption, NoEmptiesOnBottomOption, NoEmptiesOnLeftOption }).ToArray();
 
-        public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
+        public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
             DoRender(globalContext, dependencies, argsAsString, target,
                 BottomRegexOption.Action((args, j) => {
                     string pattern = Option.ExtractRequiredOptionValue(args, ref j, "Pattern for selection of bottom items missing");

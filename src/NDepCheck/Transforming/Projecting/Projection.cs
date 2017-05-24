@@ -60,11 +60,12 @@ namespace NDepCheck.Transforming.Projecting {
         /// <summary>
         /// Return projected string for some item.
         /// </summary>
+        /// <param name="cachingEnvironment"></param>
         /// <param name="item">Iitem to be projected.</param>
         /// <param name="left">Item is on left side of dependency</param>
         /// <returns>Projected item; or <c>null</c> if item does not 
         /// match projection</returns>
-        public Item Match([NotNull] Item item, bool left) {
+        public Item Match(Environment cachingEnvironment, [NotNull] Item item, bool left) {
             if (left && !_forLeftSide || !left && !_forRightSide) {
                 return null;
             } else {
@@ -79,7 +80,7 @@ namespace NDepCheck.Transforming.Projecting {
                         targets = targets.Select(s => s.Replace("\\" + (matchResultIndex + 1), matchResultGroups.Groups[matchResultIndex]));
                     }
                     _matchCount++;
-                    return Item.New(_targetItemType, targets.Select(t => GlobalContext.ExpandHexChars(t)).ToArray());
+                    return Item.New(cachingEnvironment.ItemCache, _targetItemType, targets.Select(t => GlobalContext.ExpandHexChars(t)).ToArray());
                 }
             }
         }

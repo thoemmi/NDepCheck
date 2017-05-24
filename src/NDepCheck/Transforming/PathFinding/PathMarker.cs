@@ -415,17 +415,17 @@ namespace NDepCheck.Rendering.PathFinding {
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies() {
+        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
-            var a = Item.New(t3, "a:aa:aaa".Split(':'));
-            var b = Item.New(t3, "b:bb:bbb".Split(':'));
-            var c = Item.New(t3, "c:cc:ccc".Split(':'));
-            var d = Item.New(t3, "d:dd:ddd".Split(':'));
-            var e = Item.New(t3, "e:ee:eee".Split(':'));
-            var f = Item.New(t3, "f:ff:fff".Split(':'));
-            var g = Item.New(t3, "g:gg:ggg".Split(':'));
-            var h = Item.New(t3, "h:hh:hhh".Split(':'));
+            var a = Item.New(transformingEnvironment.ItemCache, t3, "a:aa:aaa".Split(':'));
+            var b = Item.New(transformingEnvironment.ItemCache, t3, "b:bb:bbb".Split(':'));
+            var c = Item.New(transformingEnvironment.ItemCache, t3, "c:cc:ccc".Split(':'));
+            var d = Item.New(transformingEnvironment.ItemCache, t3, "d:dd:ddd".Split(':'));
+            var e = Item.New(transformingEnvironment.ItemCache, t3, "e:ee:eee".Split(':'));
+            var f = Item.New(transformingEnvironment.ItemCache, t3, "f:ff:fff".Split(':'));
+            var g = Item.New(transformingEnvironment.ItemCache, t3, "g:gg:ggg".Split(':'));
+            var h = Item.New(transformingEnvironment.ItemCache, t3, "h:hh:hhh".Split(':'));
 
             return new[] {
                 FromTo(a, b),

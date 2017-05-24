@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using Gibraltar;
 using JetBrains.Annotations;
 
 namespace NDepCheck {
@@ -161,11 +160,10 @@ namespace NDepCheck {
         public static void Reset() {
             ItemType[] predefinedTypes = _allTypes.Values.Where(kvp => kvp._predefined).ToArray();
 
-            Intern<ItemType>.Reset();
             _allTypes.Clear();
 
             foreach (var p in predefinedTypes) {
-                _allTypes.Add(p.Name, Intern<ItemType>.GetReference(p));
+                _allTypes.Add(p.Name, p);
             }
         }
 

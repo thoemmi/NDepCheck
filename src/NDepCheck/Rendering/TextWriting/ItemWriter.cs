@@ -29,7 +29,7 @@ namespace NDepCheck.Rendering.TextWriting {
             ShowMarkersOption, ProjectionOption
         };
 
-        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
+        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
             var itemMatches = new List<ItemMatch>();
             var itemExcludes = new List<ItemMatch>();
 
@@ -149,14 +149,14 @@ namespace NDepCheck.Rendering.TextWriting {
             return adjacency.TryGetValue(i, out dependencies) ? dependencies.Count(d => d.IsMatch(matches, excludes)) : 0;
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies() {
+        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
             ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
 
-            var bac = Item.New(amo, "BAC:BAC:0100".Split(':'), "area".Split(','));
-            var kst = Item.New(amo, "KST:KST:0200".Split(':'), "area".Split(','));
-            var kah = Item.New(amo, "KAH:KAH:0300".Split(':'), "area".Split(','));
-            var kah_mi = Item.New(amo, "Kah.MI:KAH:0301".Split(':'), "area,mi".Split(','));
-            var vkf = Item.New(amo, "VKF:VKF:0400".Split(':'), "area".Split(','));
+            var bac = Item.New(renderingEnvironment.ItemCache, amo, "BAC:BAC:0100".Split(':'), "area".Split(','));
+            var kst = Item.New(renderingEnvironment.ItemCache, amo, "KST:KST:0200".Split(':'), "area".Split(','));
+            var kah = Item.New(renderingEnvironment.ItemCache, amo, "KAH:KAH:0300".Split(':'), "area".Split(','));
+            var kah_mi = Item.New(renderingEnvironment.ItemCache, amo, "Kah.MI:KAH:0301".Split(':'), "area,mi".Split(','));
+            var vkf = Item.New(renderingEnvironment.ItemCache, amo, "VKF:VKF:0400".Split(':'), "area".Split(','));
 
 
             return new[] {

@@ -13,7 +13,7 @@ namespace NDepCheck.Rendering.TextWriting {
 
         private static readonly Option[] _allOptions = { XmlOutputOption };
 
-        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
+        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
             bool xmlOutput = ParseArgs(globalContext, argsAsString);
 
             int violationsCount = dependencies.Count(d => d.NotOkCt > 0);
@@ -86,12 +86,12 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies() {
+        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
             ItemType simple = ItemType.New("SIMPLE(Name)");
-            Item root = Item.New(simple, "root");
-            Item ok = Item.New(simple, "ok");
-            Item questionable = Item.New(simple, "questionable");
-            Item bad = Item.New(simple, "bad");
+            Item root = Item.New(renderingEnvironment.ItemCache, simple, "root");
+            Item ok = Item.New(renderingEnvironment.ItemCache, simple, "ok");
+            Item questionable = Item.New(renderingEnvironment.ItemCache, simple, "questionable");
+            Item bad = Item.New(renderingEnvironment.ItemCache, simple, "bad");
             return new[] {
                 new Dependency(root, ok, new TextFileSourceLocation("Test", 1), "Use", 4, 0, 0, "to root"),
                 new Dependency(root, questionable, new TextFileSourceLocation("Test", 1), "Use", 4, 1, 0, "to questionable"),

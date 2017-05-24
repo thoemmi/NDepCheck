@@ -24,13 +24,13 @@ namespace NDepCheck.Tests {
 }", forceReload: false);
 
             ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
-            Item a = Item.New(generic2, "x:a");
-            Item ab = Item.New(generic2, "x:ab");
-            Item ac = Item.New(generic2, "x:ac");
-            Item ca = Item.New(generic2, "x:ca");
-            Item cb = Item.New(generic2, "x:cb");
-            Item s = Item.New(generic2, "m:s");
-            Item t = Item.New(generic2, "m:t");
+            Item a = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:a");
+            Item ab = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:ab");
+            Item ac = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:ac");
+            Item ca = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:ca");
+            Item cb = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:cb");
+            Item s = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "m:s");
+            Item t = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "m:t");
 
             var result = new List<Dependency>();
             pi.Transform(gc, new[] {
@@ -114,11 +114,11 @@ namespace NDepCheck.Tests {
 }", forceReload: false);
 
             ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
-            Item a = Item.New(generic2, "x:a");
-            Item ab = Item.New(generic2, "x:ab");
-            Item abc = Item.New(generic2, "x:abc");
-            Item abcd = Item.New(generic2, "x:abcd");
-            Item t = Item.New(generic2, "m:t");
+            Item a = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:a");
+            Item ab = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:ab");
+            Item abc = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:abc");
+            Item abcd = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:abcd");
+            Item t = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "m:t");
 
             var result = new List<Dependency>();
             pi.Transform(gc, new[] {
@@ -150,9 +150,9 @@ namespace NDepCheck.Tests {
 }}", forceReload: false);
 
             ItemType threeFields = ItemType.Find(THREE_FIELDS);
-            Item abc = Item.New(threeFields, "a:b:c");
-            Item ab = Item.New(threeFields, "a:b:-");
-            Item a = Item.New(threeFields, "a:-:-");
+            Item abc = Item.New(gc.CurrentEnvironment.ItemCache, threeFields, "a:b:c");
+            Item ab = Item.New(gc.CurrentEnvironment.ItemCache, threeFields, "a:b:-");
+            Item a = Item.New(gc.CurrentEnvironment.ItemCache, threeFields, "a:-:-");
 
             var result = new List<Dependency>();
             pi.Transform(gc, new[] {
@@ -171,24 +171,27 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestBackProjectCycle() {
             ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
-            Item a1 = Item.New(generic2, "a:1");
-            Item b1 = Item.New(generic2, "b:1");
-            Item c1 = Item.New(generic2, "c:1");
-            Item d1 = Item.New(generic2, "d:1");
-            Item e1 = Item.New(generic2, "e:1");
-            Item a2 = Item.New(generic2, "a:2");
-            Item b2 = Item.New(generic2, "b:2");
-            Item c2 = Item.New(generic2, "c:2");
-            Item d2 = Item.New(generic2, "d:2");
-            Item e2 = Item.New(generic2, "e:2");
-            Item x2 = Item.New(generic2, "x:2");
+
+            var gc = new GlobalContext();
+
+            Item a1 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "a:1");
+            Item b1 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "b:1");
+            Item c1 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "c:1");
+            Item d1 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "d:1");
+            Item e1 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "e:1");
+            Item a2 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "a:2");
+            Item b2 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "b:2");
+            Item c2 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "c:2");
+            Item d2 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "d:2");
+            Item e2 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "e:2");
+            Item x2 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:2");
 
             var deps = new[] {
                 Dep(a1, b1), Dep(b1, c1), Dep(c1, d1), Dep(d1, e1), Dep(d1, b1),
                 Dep(a2, x2), Dep(b2, x2), Dep(c2, x2), Dep(d2, x2), Dep(e2, x2),
             };
 
-            List<Dependency> backProjectedDeps = ProjectMarkCyclesAndBackProject(deps, new GlobalContext());
+            List<Dependency> backProjectedDeps = ProjectMarkCyclesAndBackProject(deps, gc);
 
             Assert.IsFalse(Find(backProjectedDeps, a1, b1).MarkersContain("C0"));
             Assert.IsTrue(Find(backProjectedDeps, b1, c1).MarkersContain("C0"));
@@ -206,17 +209,17 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestBackProjectSmallCycle() {
             ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
-            Item a1 = Item.New(generic2, "a:1");
-            Item b1 = Item.New(generic2, "b:1");
-            Item a2 = Item.New(generic2, "a:2");
-            Item b2 = Item.New(generic2, "b:2");
-            Item b3 = Item.New(generic2, "b:3");
+            var gc = new GlobalContext();
+            Item a1 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "a:1");
+            Item b1 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "b:1");
+            Item a2 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "a:2");
+            Item b2 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "b:2");
+            Item b3 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "b:3");
 
             var deps = new[] {
                 Dep(a1, b1), Dep(b1, a2), Dep(b2, a2), Dep(a1, b3)
             };
 
-            var gc = new GlobalContext();
             List<Dependency> backProjectedDeps = ProjectMarkCyclesAndBackProject(deps, gc);
 
             Assert.IsTrue(Find(backProjectedDeps, a1, b1).MarkersContain("C0"));
@@ -226,7 +229,7 @@ namespace NDepCheck.Tests {
 
             var pw = new FlatPathWriter();
             using (var t = DisposingFile.CreateTempFileWithTail(".txt")) {
-                pw.Render(gc, backProjectedDeps, 0, $"{{ {FlatPathWriter.PathMarkerOption} C* }}".Replace(" ", Environment.NewLine), new WriteTarget(t.FileName, append: false, limitLinesForConsole: 100), ignoreCase: false);
+                pw.Render(gc, backProjectedDeps, $"{{ {FlatPathWriter.PathMarkerOption} C* }}".Replace(" ", System.Environment.NewLine), new WriteTarget(t.FileName, append: false, limitLinesForConsole: 100), ignoreCase: false);
 
                 using (var sr = new StreamReader(t.FileName)) {
                     var o = sr.ReadToEnd();
@@ -244,21 +247,21 @@ namespace NDepCheck.Tests {
             using (var t = DisposingFile.CreateTempFileWithTail(".dip")) {
                 var dw = new DipWriter();
                 var wt = new WriteTarget(t.FileName, append: false, limitLinesForConsole: int.MaxValue);
-                dw.Render(globalContext, deps, 0, argsAsString: "", target: wt, ignoreCase: false);
+                dw.Render(globalContext, deps, argsAsString: "", target: wt, ignoreCase: false);
 
                 var pi = new ProjectItems();
                 pi.Configure(globalContext,
-                    $"{{ {ProjectItems.ProjectionsOption} $GENERIC_2---%SIMPLE !(**) }}".Replace(" ", Environment.NewLine),
+                    $"{{ {ProjectItems.ProjectionsOption} $GENERIC_2---%SIMPLE !(**) }}".Replace(" ", System.Environment.NewLine),
                     false);
                 var projectedDeps = new List<Dependency>();
                 pi.Transform(globalContext, deps, "", projectedDeps);
 
                 var mc = new MarkCycleDeps();
                 mc.Transform(globalContext, projectedDeps,
-                    $"{{ {MarkCycleDeps.IgnoreSelfCyclesOption} {MarkCycleDeps.AddIndexedMarkerOption} C }}".Replace(" ", Environment.NewLine), new List<Dependency>());
+                    $"{{ {MarkCycleDeps.IgnoreSelfCyclesOption} {MarkCycleDeps.AddIndexedMarkerOption} C }}".Replace(" ", System.Environment.NewLine), new List<Dependency>());
 
                 pi.Transform(globalContext, projectedDeps,
-                    $"{{ {ProjectItems.BackProjectionDipFileOption} {t.FileName} }}".Replace(" ", Environment.NewLine),
+                    $"{{ {ProjectItems.BackProjectionDipFileOption} {t.FileName} }}".Replace(" ", System.Environment.NewLine),
                     backProjectedDeps);
             }
             return backProjectedDeps;

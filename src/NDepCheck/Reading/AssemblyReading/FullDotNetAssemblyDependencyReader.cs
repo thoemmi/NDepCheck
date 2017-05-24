@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Gibraltar;
 using JetBrains.Annotations;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -81,27 +82,27 @@ namespace NDepCheck.Reading.AssemblyReading {
             _readerGang = readerGang;
         }
 
-        public override IEnumerable<Dependency> ReadDependencies(int depth, bool ignoreCase) {
-            return GetOrReadRawDependencies(depth).Where(d => d.UsedItem != null).Select(d => d.ToDependencyWithTail(depth, ContainerUri));
+        public override IEnumerable<Dependency> ReadDependencies(Environment readingEnvironment, int depth, bool ignoreCase) {
+            return GetOrReadRawDependencies(depth, readingEnvironment.ItemTailCache).Where(d => d.UsedItem != null).Select(d => d.ToDependencyWithTail(readingEnvironment.ItemCache, readingEnvironment.ItemTailCache, depth, ContainerUri));
         }
 
-        private IEnumerable<RawDependency> GetOrReadRawDependencies(int depth) {
+        private IEnumerable<RawDependency> GetOrReadRawDependencies(int depth, Intern<ItemTail> itemTailCache) {
             // ReSharper disable once ConvertIfStatementToNullCoalescingExpression
             if (_rawDependencies == null) {
-                _rawDependencies = ReadRawDependencies(depth).ToArray();
+                _rawDependencies = ReadRawDependencies(depth, itemTailCache).ToArray();
             }
             return _rawDependencies;
         }
 
-        protected override IEnumerable<RawUsingItem> ReadUsingItems(int depth) {
-            return GetOrReadRawDependencies(depth).Select(d => d.UsingItem);
+        protected override IEnumerable<RawUsingItem> ReadUsingItems(int depth, Intern<ItemTail> itemTailCache) {
+            return GetOrReadRawDependencies(depth, itemTailCache).Select(d => d.UsingItem);
         }
 
-        protected IEnumerable<RawDependency> ReadRawDependencies(int depth) {
+        protected IEnumerable<RawDependency> ReadRawDependencies(int depth, Intern<ItemTail> itemTailCache) {
             Log.WriteInfo(new string(' ', 2 * depth) + "Reading " + FullFileName);
             var resolver = new DefaultAssemblyResolver();
             resolver.AddSearchDirectory(Path.GetDirectoryName(FullFileName));
-            // TODO: Additional search directories should be specifiable in options
+            // readingEnvironment: Additional search directories should be specifiable in options
             resolver.AddSearchDirectory(@"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\Silverlight\v5.0");
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(FullFileName, new ReaderParameters {
                 AssemblyResolver = resolver
@@ -113,14 +114,14 @@ namespace NDepCheck.Reading.AssemblyReading {
                 Log.WriteWarning($"Loading symbols for assembly {FullFileName} failed - maybe .PDB file is missing. ({ex.Message})", FullFileName, 0);
             }
 
-            ItemTail customSections = GetCustomSections(assembly.CustomAttributes, null);
+            ItemTail customSections = GetCustomSections(itemTailCache, assembly.CustomAttributes, null);
 
             foreach (TypeDefinition type in assembly.MainModule.Types) {
                 if (type.Name == "<Module>") {
                     continue;
                 }
 
-                foreach (var dependency in AnalyzeType(type, customSections)) {
+                foreach (var dependency in AnalyzeType(type, customSections, itemTailCache)) {
                     yield return dependency;
                 }
             }
@@ -173,11 +174,11 @@ namespace NDepCheck.Reading.AssemblyReading {
         }
 
         [NotNull]
-        private IEnumerable<RawDependency> AnalyzeType([NotNull] TypeDefinition type, [CanBeNull] ItemTail parentCustomSections) {
-            ItemTail typeCustomSections = GetCustomSections(type.CustomAttributes, parentCustomSections);
+        private IEnumerable<RawDependency> AnalyzeType([NotNull] TypeDefinition type, [CanBeNull] ItemTail parentCustomSections, Intern<ItemTail> itemTailCache) {
+            ItemTail typeCustomSections = GetCustomSections(itemTailCache, type.CustomAttributes, parentCustomSections);
             {
                 RawUsingItem usingItem = GetClassItem(type, typeCustomSections, GetMemberMarkers(type, _typeDefinitionMarkers));
-                // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, usingItem, null, null);
+                // readingEnvironment: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, usingItem, null, null);
 
                 foreach (var dependency_ in AnalyzeCustomAttributes(usingItem, type.CustomAttributes)) {
                     yield return dependency_;
@@ -200,8 +201,8 @@ namespace NDepCheck.Reading.AssemblyReading {
 
                 foreach (FieldDefinition field in type.Fields) {
                     //if (IsLinked(field.FieldType, type.DeclaringType)) {
-                    ItemTail fieldCustomSections = GetCustomSections(field.CustomAttributes, typeCustomSections);
-                    // TODO: WHY??? yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, GetFullnameItem(type, field.Name, "", fieldCustomSections), null, null);
+                    ItemTail fieldCustomSections = GetCustomSections(itemTailCache, field.CustomAttributes, typeCustomSections);
+                    // readingEnvironment: WHY??? yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, GetFullnameItem(type, field.Name, "", fieldCustomSections), null, null);
 
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(field, _fieldDefinitionMarkers),
                              field.FieldType, usage: Usage._declaresfield, sequencePoint: null, memberName: field.Name)) {
@@ -211,8 +212,8 @@ namespace NDepCheck.Reading.AssemblyReading {
                 }
 
                 foreach (EventDefinition @event in type.Events) {
-                    ItemTail eventCustomSections = GetCustomSections(@event.CustomAttributes, typeCustomSections);
-                    // TODO: WHY??? yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, GetFullnameItem(type, @event.Name, "", eventCustomSections), null, null);
+                    ItemTail eventCustomSections = GetCustomSections(itemTailCache, @event.CustomAttributes, typeCustomSections);
+                    // readingEnvironment: WHY??? yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, GetFullnameItem(type, @event.Name, "", eventCustomSections), null, null);
 
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(@event, _eventDefinitionMarkers),
                              @event.EventType, usage: Usage._declaresevent, sequencePoint: null, memberName: @event.Name)) {
@@ -222,19 +223,18 @@ namespace NDepCheck.Reading.AssemblyReading {
 
                 foreach (var property in type.Properties) {
                     //if (!IsLinked(property.PropertyType, type.DeclaringType)) {
-                    foreach (var dependency_ in AnalyzeProperty(type, usingItem, property, typeCustomSections)) {
+                    foreach (var dependency_ in AnalyzeProperty(type, usingItem, property, typeCustomSections, itemTailCache)) {
                         yield return dependency_;
                     }
                     //}
                 }
-
             }
 
             foreach (MethodDefinition method in type.Methods) {
-                ItemTail methodCustomSections = GetCustomSections(method.CustomAttributes, typeCustomSections);
+                ItemTail methodCustomSections = GetCustomSections(itemTailCache, method.CustomAttributes, typeCustomSections);
 
                 RawUsingItem usingItem = GetFullNameItem(type, method.Name, GetMemberMarkers(method, _methodDefinitionMarkers), methodCustomSections);
-                // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, usingItem, null, null);
+                // readingEnvironment: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, usingItem, null, null);
 
                 foreach (var dependency_ in AnalyzeMethod(type, usingItem, method)) {
                     yield return dependency_;
@@ -242,15 +242,14 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
 
             foreach (TypeDefinition nestedType in type.NestedTypes) {
-                foreach (var dependency_ in AnalyzeType(nestedType, typeCustomSections)) {
+                foreach (var dependency_ in AnalyzeType(nestedType, typeCustomSections, itemTailCache)) {
                     yield return dependency_;
                 }
             }
         }
 
-        private IEnumerable<RawDependency> AnalyzeProperty([NotNull] TypeDefinition owner, [NotNull] RawUsingItem usingItem,
-                                                           [NotNull] PropertyDefinition property, [CanBeNull] ItemTail typeCustomSections) {
-            ItemTail propertyCustomSections = GetCustomSections(property.CustomAttributes, typeCustomSections);
+        private IEnumerable<RawDependency> AnalyzeProperty([NotNull] TypeDefinition owner, [NotNull] RawUsingItem usingItem, [NotNull] PropertyDefinition property, [CanBeNull] ItemTail typeCustomSections, Intern<ItemTail> itemTailCache) {
+            ItemTail propertyCustomSections = GetCustomSections(itemTailCache, property.CustomAttributes, typeCustomSections);
 
             foreach (var dependency_ in AnalyzeCustomAttributes(usingItem, property.CustomAttributes)) {
                 yield return dependency_;
@@ -299,7 +298,7 @@ namespace NDepCheck.Reading.AssemblyReading {
                                                                [CanBeNull] MethodDefinition getterSetter) {
             if (getterSetter != null) {
                 RawUsingItem usingItem = GetFullNameItem(property.DeclaringType, property.Name, markers, propertyCustomSections);
-                // TODO: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, usingItem, null, null);
+                // readingEnvironment: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, usingItem, null, null);
 
                 foreach (var dependency in AnalyzeMethod(owner, usingItem, getterSetter)) {
                     yield return dependency;
@@ -438,7 +437,7 @@ namespace NDepCheck.Reading.AssemblyReading {
         private RawUsingItem GetClassItem([NotNull] TypeReference typeReference, [CanBeNull] ItemTail customSections, [CanBeNull, ItemNotNull] string[] markers) {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
-            return RawUsingItem.New(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, "", markers, customSections);
+            return RawUsingItem.New(_rawUsingItemsCache, namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, "", markers, customSections);
         }
 
         private RawUsedItem GetFullNameItem([NotNull] TypeReference typeReference, [NotNull] string memberName, [CanBeNull, ItemNotNull] string[] markers) {
@@ -450,7 +449,7 @@ namespace NDepCheck.Reading.AssemblyReading {
         private RawUsingItem GetFullNameItem([NotNull] TypeReference typeReference, [NotNull] string memberName, [CanBeNull, ItemNotNull] string[] markers, [CanBeNull] ItemTail customSections) {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
-            return RawUsingItem.New(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, customSections);
+            return RawUsingItem.New(_rawUsingItemsCache, namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, customSections);
         }
 
         /// <summary>

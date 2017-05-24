@@ -82,11 +82,11 @@ Transform options: {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
             return Program.OK_RESULT;
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies() {
-            var a = Item.New(ItemType.SIMPLE, "A");
-            var b = Item.New(ItemType.SIMPLE, "B");
-            var c = Item.New(ItemType.SIMPLE, "C");
-            var d = Item.New(ItemType.SIMPLE, "D");
+        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
+            var a = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "A");
+            var b = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "B");
+            var c = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "C");
+            var d = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "D");
             //    |   A   B   C   D #
             // ---------------------#----
             //  A |  15 100   0   . # 115

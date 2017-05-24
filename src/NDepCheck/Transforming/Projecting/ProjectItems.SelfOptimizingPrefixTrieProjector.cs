@@ -103,8 +103,8 @@ namespace NDepCheck.Transforming.Projecting {
                 _fieldPos = fieldPos;
             }
 
-            public override Item Project(Item item, bool left) {
-                return _root.SelectProjector(item.Values.ElementAtOrDefault(_fieldPos)).Project(item, left);
+            public override Item Project(Environment cachingEnvironment, Item item, bool left) {
+                return _root.SelectProjector(item.Values.ElementAtOrDefault(_fieldPos)).Project(cachingEnvironment, item, left);
             }
 
             public double CostPerProjection => (_root.GetMatchCount() + 1e-3) / (_root.GetProjectCount() + 1e-9);

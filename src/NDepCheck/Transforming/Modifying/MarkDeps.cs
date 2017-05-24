@@ -178,10 +178,10 @@ Examples:
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies() {
-            Item am = Item.New(ItemType.SIMPLE, new[] { "A" }, new[] { "M" });
-            Item bm = Item.New(ItemType.SIMPLE, new[] { "B" }, new[] { "M" });
-            Item cn = Item.New(ItemType.SIMPLE, new[] { "C" }, new[] { "N" });
+        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
+            Item am = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, new[] { "A" }, new[] { "M" });
+            Item bm = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, new[] { "B" }, new[] { "M" });
+            Item cn = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, new[] { "C" }, new[] { "N" });
             return new[] {
                 new Dependency(am, am, source: null, markers: "", ct:10, questionableCt:5, badCt:3),
                 new Dependency(am, bm, source: null, markers: "use+define", ct:1, questionableCt:0,badCt: 0),

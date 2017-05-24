@@ -22,7 +22,7 @@
 
 //            using (var s = new MemoryStream()) {
 //                var w = new OldPathWriter();
-//                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "SI");
+//                w.RenderToStreamForUnitTests(gc, dependencies, s, "SI");
 //                string result = Encoding.ASCII.GetString(s.ToArray());
 //                Assert.AreEqual(@"a
 //.b $ (1)
@@ -44,7 +44,7 @@
 
 //            using (var s = new MemoryStream()) {
 //                var w = new OldPathWriter();
-//                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "SI");
+//                w.RenderToStreamForUnitTests(gc, dependencies, s, "SI");
 //                string result = Encoding.ASCII.GetString(s.ToArray());
 //                Assert.AreEqual(@"a
 //.b $ (1)
@@ -66,7 +66,7 @@
 
 //            using (var s = new MemoryStream()) {
 //                var w = new OldPathWriter();
-//                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "SI");
+//                w.RenderToStreamForUnitTests(gc, dependencies, s, "SI");
 //                string result = Encoding.ASCII.GetString(s.ToArray());
 //                Assert.AreEqual(@"a
 //.b $ (1)", result.Trim());
@@ -88,7 +88,7 @@
 
 //            using (var s = new MemoryStream()) {
 //                var w = new OldPathWriter();
-//                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "LI");
+//                w.RenderToStreamForUnitTests(gc, dependencies, s, "LI");
 //                string result = Encoding.ASCII.GetString(s.ToArray());
 //                Assert.AreEqual(@"a
 //+-b $ (1)
@@ -101,7 +101,7 @@
 //            using (var s = new MemoryStream()) {
 //                var w = new OldPathWriter();
 //                IEnumerable<Dependency> dependencies = w.CreateSomeTestDependencies();
-//                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "LI");
+//                w.RenderToStreamForUnitTests(gc, dependencies, s, "LI");
 //                string result = Encoding.ASCII.GetString(s.ToArray());
 //                Assert.AreEqual(@"a:aa:aaa
 //+-b:bb:bbb $ (1)
@@ -122,7 +122,7 @@
 //            using (var s = new MemoryStream()) {
 //                var w = new OldPathWriter();
 //                IEnumerable<Dependency> dependencies = w.CreateSomeTestDependencies();
-//                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "SI");
+//                w.RenderToStreamForUnitTests(gc, dependencies, s, "SI");
 //                string result = Encoding.ASCII.GetString(s.ToArray());
 //                Assert.AreEqual(@"a:aa:aaa
 //.b:bb:bbb $ (1)

@@ -16,10 +16,11 @@ namespace NDepCheck.Tests {
     public class TestItemWriters : AbstractWriterTest {
         [TestMethod]
         public void TestItemWriter() {
+            var gc = new GlobalContext();
             using (var s = new MemoryStream()) {
                 var w = new ItemWriter();
-                IEnumerable<Dependency> dependencies = w.CreateSomeTestDependencies();
-                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "");
+                IEnumerable<Dependency> dependencies = w.CreateSomeTestDependencies(gc.CurrentEnvironment);
+                w.RenderToStreamForUnitTests(gc, dependencies, s, "");
 
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"$ AMO(Assembly:Module:Order)
@@ -47,22 +48,6 @@ namespace NDepCheck.Tests {
 
                 Console.WriteLine(dipFile.FileName);
             }
-        }
-
-        [TestMethod]
-        private IEnumerable<Dependency> CreateSomeTestDependencies() {
-            ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
-
-            var a = Item.New(t3, "a:aa:aaa".Split(':'));
-            var b = Item.New(t3, "b:bb:bbb".Split(':'));
-            var c = Item.New(t3, "c:cc:ccc".Split(':'));
-            var d = Item.New(t3, "d:dd:ddd".Split(':'));
-            var e = Item.New(t3, "e:ee:eee".Split(':'));
-            var f = Item.New(t3, "f:ff:fff".Split(':'));
-            var g = Item.New(t3, "g:gg:ggg".Split(':'));
-
-            return new[]
-                {FromTo(a, b), FromTo(b, c), FromTo(c, d), FromTo(d, e), FromTo(d, b), FromTo(e, f), FromTo(b, g),};
         }
     }
 }

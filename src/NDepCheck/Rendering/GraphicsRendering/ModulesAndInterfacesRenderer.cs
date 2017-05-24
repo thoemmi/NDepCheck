@@ -223,23 +223,23 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             return _interfaceSelector.IsMatch(GetName(mi));
         }
 
-        public override IEnumerable<Dependency> CreateSomeTestDependencies() {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
             ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
 
-            var bac = Item.New(amo, "BAC:BAC:0100".Split(':'));
-            var kst = Item.New(amo, "KST:KST:0200".Split(':'));
-            var kah = Item.New(amo, "KAH:KAH:0300".Split(':'));
-            var kah_mi = Item.New(amo, "Kah.MI:KAH:0301".Split(':'));
-            var vkf = Item.New(amo, "VKF:VKF:0400".Split(':'));
-            var vkf1_mi = Item.New(amo, "Vkf1.MI:VKF:0401".Split(':'));
-            var vkf2_mi = Item.New(amo, "Vkf2.MI:VKF:0402".Split(':'));
+            var bac = Item.New(renderingEnvironment.ItemCache, amo, "BAC:BAC:0100".Split(':'));
+            var kst = Item.New(renderingEnvironment.ItemCache, amo, "KST:KST:0200".Split(':'));
+            var kah = Item.New(renderingEnvironment.ItemCache, amo, "KAH:KAH:0300".Split(':'));
+            var kah_mi = Item.New(renderingEnvironment.ItemCache, amo, "Kah.MI:KAH:0301".Split(':'));
+            var vkf = Item.New(renderingEnvironment.ItemCache, amo, "VKF:VKF:0400".Split(':'));
+            var vkf1_mi = Item.New(renderingEnvironment.ItemCache, amo, "Vkf1.MI:VKF:0401".Split(':'));
+            var vkf2_mi = Item.New(renderingEnvironment.ItemCache, amo, "Vkf2.MI:VKF:0402".Split(':'));
             //var vkf3_mi = Item.New(amo, "Vkf3.MI:VKF:0402".Split(':'));
             //var vkf4_mi = Item.New(amo, "Vkf4.MI:VKF:0402".Split(':'));
-            var wlg = Item.New(amo, "WLG:WLG:0500".Split(':'));
-            var wlg1_mi = Item.New(amo, "Wlg1.MI:WLG:0501".Split(':'));
-            var wlg2_mi = Item.New(amo, "Wlg2.MI:WLG:0502".Split(':'));
+            var wlg = Item.New(renderingEnvironment.ItemCache, amo, "WLG:WLG:0500".Split(':'));
+            var wlg1_mi = Item.New(renderingEnvironment.ItemCache, amo, "Wlg1.MI:WLG:0501".Split(':'));
+            var wlg2_mi = Item.New(renderingEnvironment.ItemCache, amo, "Wlg2.MI:WLG:0502".Split(':'));
             //var imp = Item.New(amo, "IMP:IMP:0600".Split(':'));
-            var imp_mi = Item.New(amo, "Imp.MI:IMP:0601".Split(':'));
+            var imp_mi = Item.New(renderingEnvironment.ItemCache, amo, "Imp.MI:IMP:0601".Split(':'));
             //var top = Item.New(amo, "Top:TOP:0700".Split(':'));
 
             return new[] {
@@ -254,7 +254,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             return new Dependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
-        public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
+        public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
             DoRender(globalContext, dependencies, argsAsString, target,
                 InterfaceSelectorOption.Action((args, j) => {
                     _interfaceSelector = new Regex(Option.ExtractRequiredOptionValue(args, ref j, "Regex for interface selector missing"));

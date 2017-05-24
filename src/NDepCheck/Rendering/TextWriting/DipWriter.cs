@@ -38,7 +38,7 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
+        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
             bool noExampleInfo = false;
             var matches = new List<DependencyMatch>();
             var excludes = new List<DependencyMatch>();
@@ -60,14 +60,14 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies() {
+        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
             ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
 
-            var bac = Item.New(amo, "BAC:BAC:0100".Split(':'));
-            var kst = Item.New(amo, "KST:KST:0200".Split(':'));
-            var kah = Item.New(amo, "KAH:KAH:0300".Split(':'));
-            var kah_mi = Item.New(amo, "Kah.MI:KAH:0301".Split(':'));
-            var vkf = Item.New(amo, "VKF:VKF:0400".Split(':'));
+            var bac = Item.New(renderingEnvironment.ItemCache, amo, "BAC:BAC:0100".Split(':'));
+            var kst = Item.New(renderingEnvironment.ItemCache, amo, "KST:KST:0200".Split(':'));
+            var kah = Item.New(renderingEnvironment.ItemCache, amo, "KAH:KAH:0300".Split(':'));
+            var kah_mi = Item.New(renderingEnvironment.ItemCache, amo, "Kah.MI:KAH:0301".Split(':'));
+            var vkf = Item.New(renderingEnvironment.ItemCache, amo, "VKF:VKF:0400".Split(':'));
 
             return new[] {
                     FromTo(kst, bac), FromTo(kst, kah_mi), FromTo(kah, bac), FromTo(vkf, bac), FromTo(vkf, kst), FromTo(vkf, kah, 3), FromTo(vkf, kah_mi, 2, 2)

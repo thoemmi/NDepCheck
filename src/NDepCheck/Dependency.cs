@@ -129,7 +129,7 @@ namespace NDepCheck {
         }
 
         public string AsLimitableStringWithTypes(bool withExampleInfo, bool threeLines, int maxLength = 600) {
-            string nl = threeLines ? Environment.NewLine + "    " : "";
+            string nl = threeLines ? System.Environment.NewLine + "    " : "";
             string exampleInfo = withExampleInfo ? ExampleInfo : null;
             string markers = MarkerSet.AsFullString(maxLength / 3);
             return $"{UsingItem.AsFullString(maxLength / 3)} "
@@ -339,6 +339,10 @@ namespace NDepCheck {
 
         public void ClearMarkers() {
             _markerSet.ClearMarkers();
+        }
+
+        public Dependency Clone() {
+            return new Dependency(UsingItem, UsedItem, Source, MarkerSet, Ct, QuestionableCt, BadCt, ExampleInfo);
         }
     }
 }

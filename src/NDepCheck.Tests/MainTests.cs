@@ -179,9 +179,9 @@ NDepCheck:Tests ---> **
         private static readonly ItemType ITEMTYPE = ItemType.New("TEST", new[] { "AS", "NS", "CL" },
             new string[] { null, null, null }, ignoreCase: false);
 
-        private Dependency NewDependency(string usingA, string usingN, string usingC, string usedA, string usedN,
+        private Dependency NewDependency(Environment environment, string usingA, string usingN, string usingC, string usedA, string usedN,
             string usedC) {
-            return new Dependency(Item.New(ITEMTYPE, usingA, usingN, usingC), Item.New(ITEMTYPE, usedA, usedN, usedC),
+            return new Dependency(Item.New(environment.ItemCache, ITEMTYPE, usingA, usingN, usingC), Item.New(environment.ItemCache, ITEMTYPE, usedA, usedN, usedC),
                 null, "Test", ct: 1);
         }
 

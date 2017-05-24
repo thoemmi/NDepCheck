@@ -96,6 +96,7 @@
     <Compile Include="Annotations.cs" />
     <Compile Include="Calculating\GetHash.cs" />
     <Compile Include="AbstractSourceLocation.cs" />
+    <Compile Include="Environment.cs" />
     <Compile Include="ICalculator.cs" />
     <Compile Include="ConstraintSolving\Range.cs" />
     <Compile Include="ConstraintSolving\SimpleConstraintSolver.cs" />
@@ -138,7 +139,7 @@
     <Compile Include="Rendering\GraphicsRendering\MatrixRenderer1.cs" />
     <Compile Include="Rendering\TextWriting\DotRenderer.cs" />
     <Compile Include="Reading\AssemblyReading\FullDotNetAssemblyDependencyReader.cs" />
-    <Compile Include="Gibraltar\StringReference.cs" />
+    <Compile Include="Gibraltar\Intern.cs" />
     <Compile Include="Transforming\AbstractTransformerWithFileConfiguration.cs" />
     <Compile Include="Transforming\PathFinding\PathSupport.cs" />
     <Compile Include="Transforming\PathFinding\MarkCycleDeps.cs" />

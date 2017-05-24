@@ -24,12 +24,14 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestSimpleFlatPathWriterForOnePath() {
+            var gc = new GlobalContext { IgnoreCase = true };
+
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
             var pathMarker = "P0";
 
-            Item a = Item.New(t3, "a:aa:aaa".Split(':'));
+            Item a = Item.New(gc.CurrentEnvironment.ItemCache, t3, "a:aa:aaa".Split(':'));
             a.MarkPathElement(pathMarker, 0, isStart: false, isEnd: false, isMatchedByCountMatch: false, isLoopBack: false);
-            Item b = Item.New(t3, "b:bb:bbb".Split(':'));
+            Item b = Item.New(gc.CurrentEnvironment.ItemCache, t3, "b:bb:bbb".Split(':'));
             b.SetMarker(pathMarker, 1);
 
             var d = CreateDependency(a, b, pathMarker, true, true, false, false);
@@ -37,7 +39,7 @@ namespace NDepCheck.Tests {
 
             using (var s = new MemoryStream()) {
                 var w = new FlatPathWriter();
-                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, "P*");
+                w.RenderToStreamForUnitTests(gc, dependencies, s, "P*");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"-- P0
 a:aa:aaa
@@ -49,22 +51,23 @@ b:bb:bbb $", result.Trim());
         public void TestSimplePathSearchAndFlatPathWriterForOnePath() {
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
-            var a = Item.New(t3, "a:aa:aaa".Split(':'));
-            var b = Item.New(t3, "b:bb:bbb".Split(':'));
+            var gc = new GlobalContext();
+
+            var a = Item.New(gc.CurrentEnvironment.ItemCache, t3, "a:aa:aaa".Split(':'));
+            var b = Item.New(gc.CurrentEnvironment.ItemCache, t3, "b:bb:bbb".Split(':'));
 
             var dependencies = new[] {
                 FromTo(a, b),
             };
 
-            string result = FindPathsAndWriteFlat(dependencies, "A", CreateDefaultOptions("A"));
+            string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A"));
 
             Assert.AreEqual(@"-- A0
 T3:a:aa:aaa'A0
 T3:b:bb:bbb'A $", result.Trim());
         }
 
-        private static string FindPathsAndWriteFlat(IEnumerable<Dependency> dependencies, string markerPrefix, string transformOptions) {
-            var gc = new GlobalContext { IgnoreCase = true };
+        private static string FindPathsAndWriteFlat(GlobalContext gc, IEnumerable<Dependency> dependencies, string markerPrefix, string transformOptions) {
             var pm = new PathMarker();
             pm.Configure(gc, "", false);
             var transformedDependencies = new List<Dependency>();
@@ -73,7 +76,7 @@ T3:b:bb:bbb'A $", result.Trim());
             string result;
             using (var s = new MemoryStream()) {
                 var w = new FlatPathWriter();
-                w.RenderToStreamForUnitTests(new GlobalContext(), transformedDependencies, s, $"{markerPrefix}* -sm");
+                w.RenderToStreamForUnitTests(gc, transformedDependencies, s, $"{markerPrefix}* -sm");
                 result = Encoding.ASCII.GetString(s.ToArray());
             }
             return result;
@@ -83,28 +86,32 @@ T3:b:bb:bbb'A $", result.Trim());
             return ($"{{ {PathMarker.AddIndexedMarkerOption} {markerPrefix} " +
                     $"{PathMarker.MaxPathLengthOption} {maxPathLength} " +
                     $"{PathMarker.CountItemAnchorOption} a: " +
-                    $"{PathMarker.MultipleItemAnchorOption} ~c: }}").Replace(" ", Environment.NewLine);
+                    $"{PathMarker.MultipleItemAnchorOption} ~c: }}").Replace(" ", System.Environment.NewLine);
         }
 
         [TestMethod]
         public void TestSimpleFlatPathWriterForNoPath() {
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
-            var a = Item.New(t3, "a:aa:aaa".Split(':'));
-            var c = Item.New(t3, "c:cc:ccc".Split(':'));
+            var gc = new GlobalContext();
+
+            var a = Item.New(gc.CurrentEnvironment.ItemCache, t3, "a:aa:aaa".Split(':'));
+            var c = Item.New(gc.CurrentEnvironment.ItemCache, t3, "c:cc:ccc".Split(':'));
 
             var dependencies = new[] { FromTo(a, c) };
 
-            string result = FindPathsAndWriteFlat(dependencies, "A", CreateDefaultOptions("A"));
+            string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A"));
 
             Assert.AreEqual("", result.Trim());
         }
 
         [TestMethod]
         public void TestSimpleFlatPathWriter() {
-            IEnumerable<Dependency> dependencies = new PathMarker().CreateSomeTestDependencies();
+            var gc = new GlobalContext();
 
-            string result = FindPathsAndWriteFlat(dependencies, "A", CreateDefaultOptions("A"));
+            IEnumerable<Dependency> dependencies = new PathMarker().CreateSomeTestDependencies(gc.CurrentEnvironment);
+
+            string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A"));
 
             Assert.AreEqual(@"-- A0
 T3:a:aa:aaa'A0+A1+A2+A3
@@ -135,9 +142,11 @@ T3:g:gg:ggg'A $", result.Trim());
 
         [TestMethod]
         public void TestLimitedFlatPathWriter() {
-            IEnumerable<Dependency> dependencies = new PathMarker().CreateSomeTestDependencies();
+            var gc = new GlobalContext();
 
-            string result = FindPathsAndWriteFlat(dependencies, "A", CreateDefaultOptions("A", 4));
+            IEnumerable<Dependency> dependencies = new PathMarker().CreateSomeTestDependencies(gc.CurrentEnvironment);
+
+            string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A", 4));
 
             Assert.AreEqual(@"-- A0
 T3:a:aa:aaa'A0+A1+A2+A3
@@ -168,10 +177,12 @@ T3:g:gg:ggg'A $", result.Trim());
         public void TestSimpleFlatPathWriterForYPath() {
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
-            var a = Item.New(t3, "a:aa:aaa".Split(':'));
-            var b = Item.New(t3, "b:bb:bbb".Split(':'));
-            var c = Item.New(t3, "c:cc:ccc".Split(':'));
-            var d = Item.New(t3, "d:dd:ddd".Split(':'));
+            var gc = new GlobalContext();
+
+            var a = Item.New(gc.CurrentEnvironment.ItemCache, t3, "a:aa:aaa".Split(':'));
+            var b = Item.New(gc.CurrentEnvironment.ItemCache, t3, "b:bb:bbb".Split(':'));
+            var c = Item.New(gc.CurrentEnvironment.ItemCache, t3, "c:cc:ccc".Split(':'));
+            var d = Item.New(gc.CurrentEnvironment.ItemCache, t3, "d:dd:ddd".Split(':'));
 
             var dependencies = new[] {
                         FromTo(a, b),
@@ -179,7 +190,7 @@ T3:g:gg:ggg'A $", result.Trim());
                         FromTo(b ,d),
                     };
 
-            string result = FindPathsAndWriteFlat(dependencies, "A", CreateDefaultOptions("A"));
+            string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A"));
 
             Assert.AreEqual(@"-- A0
 T3:a:aa:aaa'A0
@@ -190,18 +201,20 @@ T3:d:dd:ddd'A $", result.Trim());
         [TestMethod]
         public void TestOldCountPaths() {
             ItemType xy = ItemType.New("NL(Name:Layer)");
-            Item a = Item.New(xy, "a", "1");
-            Item b = Item.New(xy, "b", "2");
-            Item c = Item.New(xy, "c", "2");
-            Item d = Item.New(xy, "d", "3");
-            Item e = Item.New(xy, "e", "4");
-            Item f = Item.New(xy, "f", "4");
-            Item g = Item.New(xy, "g", "5");
+            var gc = new GlobalContext();
+
+            Item a = Item.New(gc.CurrentEnvironment.ItemCache, xy, "a", "1");
+            Item b = Item.New(gc.CurrentEnvironment.ItemCache, xy, "b", "2");
+            Item c = Item.New(gc.CurrentEnvironment.ItemCache, xy, "c", "2");
+            Item d = Item.New(gc.CurrentEnvironment.ItemCache, xy, "d", "3");
+            Item e = Item.New(gc.CurrentEnvironment.ItemCache, xy, "e", "4");
+            Item f = Item.New(gc.CurrentEnvironment.ItemCache, xy, "f", "4");
+            Item g = Item.New(gc.CurrentEnvironment.ItemCache, xy, "g", "5");
             Dependency[] dependencies = {
                         FromTo(a, b), FromTo(a, c), FromTo(b, d), FromTo(c, d), FromTo(d, e), FromTo(d, f), FromTo(e, g), FromTo(f, g)
                     };
 
-            string o = FindPathsAndWriteFlat(dependencies, "A", "{ -im A -pi a -ci 2 -pi g }".Replace(" ", Environment.NewLine));
+            string o = FindPathsAndWriteFlat(gc, dependencies, "A", "{ -im A -pi a -ci 2 -pi g }".Replace(" ", System.Environment.NewLine));
 
             Console.WriteLine(o);
             Assert.IsTrue(o.Contains("b:2 (*)"));

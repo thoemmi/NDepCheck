@@ -123,7 +123,7 @@ Examples:
                     return j;
                 }), ProjectionsOption.Action((args, j) => {
                     orderedProjections = GetOrReadChildConfiguration(globalContext,
-                            () => new StringReader(string.Join(Environment.NewLine, args.Skip(j + 1))),
+                            () => new StringReader(string.Join(System.Environment.NewLine, args.Skip(j + 1))),
                             ProjectionsOption.ShortName, globalContext.IgnoreCase, "????", forceReload: true);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;
@@ -232,7 +232,7 @@ Examples:
                         d => new FromTo(d.UsingItem, d.UsedItem), d => d);
 
                 // Back projection - ProjectItems may use DipReader by design //TODO: replace with environment!!
-                IEnumerable<Dependency> targetsOfBackProjection = new DipReader(fullDipName).ReadDependencies(0, globalContext.IgnoreCase).ToArray();
+                IEnumerable<Dependency> targetsOfBackProjection = new DipReader(fullDipName).ReadDependencies(globalContext.CurrentEnvironment, 0, globalContext.IgnoreCase).ToArray();
 
                 var backProjected = new List<Dependency>();
 
@@ -241,7 +241,7 @@ Examples:
                 var localCollector = new Dictionary<FromTo, Dependency>();
                 var mapItems = new Dictionary<Item, Item>();
                 foreach (var d in targetsOfBackProjection) {
-                    FromTo f = ProjectDependency(d, localCollector, () => OnMissingPattern(ref missingPatternCount));
+                    FromTo f = ProjectDependency(globalContext.CurrentEnvironment, d, localCollector, () => OnMissingPattern(ref missingPatternCount));
 
                     if (f != null) {
                         Dependency projected;
@@ -270,7 +270,7 @@ Examples:
                 var localCollector = new Dictionary<FromTo, Dependency>();
                 int missingPatternCount = 0;
                 foreach (var d in dependencies) {
-                    ProjectDependency(d, localCollector, () => OnMissingPattern(ref missingPatternCount));
+                    ProjectDependency(globalContext.CurrentEnvironment, d, localCollector, () => OnMissingPattern(ref missingPatternCount));
                 }
                 transformedDependencies.AddRange(localCollector.Values);
             }
@@ -289,12 +289,13 @@ Examples:
         }
 
         public interface IProjector {
-            Item Project(Item item, bool left);
+            Item Project(Environment cachingEnvironment, Item item, bool left);
         }
 
-        private FromTo ProjectDependency(Dependency d, Dictionary<FromTo, Dependency> localCollector, Func<bool> onMissingPattern) {
-            Item usingItem = _projector.Project(d.UsingItem, left: true);
-            Item usedItem = _projector.Project(d.UsedItem, left: false);
+        private FromTo ProjectDependency(Environment cachingEnvironment, Dependency d, Dictionary<FromTo, Dependency> localCollector, 
+                                         Func<bool> onMissingPattern) {
+            Item usingItem = _projector.Project(cachingEnvironment: cachingEnvironment, item: d.UsingItem, left: true);
+            Item usedItem = _projector.Project(cachingEnvironment: cachingEnvironment, item: d.UsedItem, left: false);
 
             if (usingItem == null) {
                 if (onMissingPattern()) {
@@ -314,11 +315,11 @@ Examples:
             }
         }
 
-        public override IEnumerable<Dependency> CreateSomeTestDependencies() {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
             ItemType abc = ItemType.New("AB+(A:B)");
-            Item a1 = Item.New(abc, "a", "1");
-            Item a2 = Item.New(abc, "a", "2");
-            Item b = Item.New(abc, "b", "");
+            Item a1 = Item.New(transformingEnvironment.ItemCache, abc, "a", "1");
+            Item a2 = Item.New(transformingEnvironment.ItemCache, abc, "a", "2");
+            Item b = Item.New(transformingEnvironment.ItemCache, abc, "b", "");
 
             return new[] {
                 FromTo(a1, a1), FromTo(a1, a2), FromTo(a2, a1), FromTo(a2, a2), FromTo(a1, b)

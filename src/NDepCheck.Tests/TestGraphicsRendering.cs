@@ -26,10 +26,10 @@ namespace NDepCheck.Tests {
                 _placeObjects(this);
             }
 
-            public override IEnumerable<Dependency> CreateSomeTestDependencies() {
+            public override IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
                 ItemType simple = ItemType.New("SIMPLE(Name)");
-                Item i1 = Item.New(simple, "I1");
-                Item i2 = Item.New(simple, "I2");
+                Item i1 = Item.New(renderingEnvironment.ItemCache, simple, "I1");
+                Item i2 = Item.New(renderingEnvironment.ItemCache, simple, "I2");
                 return new[] { new Dependency(i1, i1, new TextFileSourceLocation("Test", 1), "Test", ct: 1),
                                        new Dependency(i1, i2, new TextFileSourceLocation("Test", 2), "Test", ct: 1) };
             }
@@ -39,21 +39,21 @@ namespace NDepCheck.Tests {
             }
         }
 
-        private static void CreateAndRender(Action<LambdaTestRenderer> placeObjects) {
-            new LambdaTestRenderer(placeObjects).Render(new GlobalContext(), Enumerable.Empty<Dependency>(), 0,
+        private static void CreateAndRender(Action<LambdaTestRenderer> placeObjects, GlobalContext globalContext) {
+            new LambdaTestRenderer(placeObjects).Render(globalContext, Enumerable.Empty<Dependency>(),
                                     "", new WriteTarget(Path.GetTempFileName(), append: false, limitLinesForConsole: 100), ignoreCase: false);
         }
 
         [TestMethod]
         public void TestSingleBox() {
             CreateAndRender(r => r.Box(r.F(100, 100), "B", r.F(70, 200),
-                borderWidth: 10, textFont: new Font(FontFamily.GenericSansSerif, 30)));
+                borderWidth: 10, textFont: new Font(FontFamily.GenericSansSerif, 30)), new GlobalContext());
         }
 
         [TestMethod]
         public void TestSingleBoxWithText() {
             CreateAndRender(r => r.Box(r.F(100, 100), "A long text", r.F(null, 200),
-                borderWidth: 10, textFont: new Font(FontFamily.GenericSansSerif, 30)));
+                borderWidth: 10, textFont: new Font(FontFamily.GenericSansSerif, 30)), new GlobalContext());
         }
 
         [TestMethod]
@@ -65,7 +65,7 @@ namespace NDepCheck.Tests {
                         boxTextPlacement: e, textFont: new Font(FontFamily.GenericSansSerif, 8));
                     pos += r.F(100, 5);
                 }
-            });
+            }, new GlobalContext());
         }
 
         [TestMethod]
@@ -80,7 +80,7 @@ namespace NDepCheck.Tests {
                     delta = !delta;
                     head += delta;
                 }
-            });
+            }, new GlobalContext());
         }
 
         [TestMethod]
@@ -97,12 +97,12 @@ namespace NDepCheck.Tests {
                     delta = !delta;
                     head += delta;
                 }
-            });
+            }, new GlobalContext());
         }
 
         [TestMethod]
         public void TestSingleArrow() {
-            CreateAndRender(r => r.Arrow(r.F(30, -100), r.F(170, 300), 10, Color.Red));
+            CreateAndRender(r => r.Arrow(r.F(30, -100), r.F(170, 300), 10, Color.Red), new GlobalContext());
         }
 
         [TestMethod]
@@ -111,7 +111,7 @@ namespace NDepCheck.Tests {
                 r.Arrow(r.F(0, 0), r.F(100, 0), 2, Color.Green);
                 r.Arrow(r.F(0, 0), r.F(0, 100), 2, Color.Green);
                 r.Arrow(r.F(30, -100), r.F(170, 300), 10, Color.Red);
-            });
+            }, new GlobalContext());
         }
 
         [TestMethod]
@@ -128,7 +128,7 @@ namespace NDepCheck.Tests {
                     var farAway = r.F(300 * Math.Sin(angle), 300 * Math.Cos(angle));
                     r.Arrow(farAway, b.GetBestConnector(farAway), 2 + i, name: "LINE_" + i);
                 }
-            });
+            }, new GlobalContext());
         }
 
         [TestMethod]
@@ -140,7 +140,7 @@ namespace NDepCheck.Tests {
                 r.Arrow(box.Center, far, width: 5, color: Color.Blue); // center to far point
                 r.Arrow(box.Center, r.F(400, 400), width: 2, color: Color.Green); // 45° diagonal from center
                 r.Arrow(box.GetBestConnector(far), far, width: 10, color: Color.Brown); // anchor to far point
-            });
+            }, new GlobalContext());
         }
 
         [TestMethod]
@@ -200,7 +200,7 @@ namespace NDepCheck.Tests {
                 r.Arrow(b.UpperRight, r.F(230, 230), 4, text: "UpperRight");
                 r.Arrow(b.CenterRight, r.F(250, 150), 4, text: "CenterRight");
                 r.Arrow(b.LowerRight, r.F(250, 0), 4, text: "LowerRight");
-            });
+            }, new GlobalContext());
         }
 
         [TestMethod]
@@ -213,7 +213,7 @@ namespace NDepCheck.Tests {
                 r.Box(b.UpperLeft, "C", r.F(50, 200), borderWidth: 5,
                     boxAnchoring: BoxAnchoring.LowerLeft,
                     textFont: new Font(FontFamily.GenericSansSerif, 30));
-            });
+            }, new GlobalContext());
         }
 
         #endregion Simple tests
@@ -257,15 +257,15 @@ namespace NDepCheck.Tests {
                 }
             }
 
-            public static IEnumerable<Dependency> CreateSomeTestItems(int n, string prefix) {
+            public static IEnumerable<Dependency> CreateSomeTestItems(int n, string prefix, Environment renderingEnvironment) {
                 ItemType simple = ItemType.New("SIMPLE(Name)");
-                var localItems = Enumerable.Range(0, n).Select(i => Item.New(simple, prefix + i)).ToArray();
+                var localItems = Enumerable.Range(0, n).Select(i => Item.New(renderingEnvironment.ItemCache, simple, prefix + i)).ToArray();
                 return localItems.SelectMany(
                         (from, i) => localItems.Skip(i).Select(to => new Dependency(from, to, new TextFileSourceLocation(prefix, i), "Use", 10 * i))).ToArray();
             }
 
-            public override IEnumerable<Dependency> CreateSomeTestDependencies() {
-                return CreateSomeTestItems(5, "spiral");
+            public override IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
+                return CreateSomeTestItems(5, "spiral", renderingEnvironment);
             }
 
             public override string GetHelp(bool extensiveHelp, string filter) {
@@ -274,13 +274,14 @@ namespace NDepCheck.Tests {
         }
 
         private void CreateAndRender(int n, string prefix, int boxHeight = 15) {
+            var gc = new GlobalContext();
             ItemType simple = ItemType.New("SIMPLE(Name)");
-            Item[] items = Enumerable.Range(0, n).Select(i => Item.New(simple, prefix + i)).ToArray();
+            Item[] items = Enumerable.Range(0, n).Select(i => Item.New(gc.CurrentEnvironment.ItemCache, simple, prefix + i)).ToArray();
             Dependency[] dependencies =
                 items.SelectMany(
                     (from, i) => items.Skip(i).Select(to => new Dependency(from, to, new TextFileSourceLocation(prefix, i), "Use", 10 * i))).ToArray();
 
-            new SomewhatComplexTestRenderer(boxHeight).Render(new GlobalContext(), dependencies, dependencies.Length,
+            new SomewhatComplexTestRenderer(boxHeight).Render(gc, dependencies,
                 argsAsString: "", target: new WriteTarget(Path.GetTempFileName(), append: false, limitLinesForConsole: 100),ignoreCase: false);
         }
 
@@ -326,8 +327,10 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TwoItemBoxes() {
+            var gc = new GlobalContext();
+
             ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
-            Item i = Item.New(amo, "VKF", "VKF", "01");
+            Item i = Item.New(gc.CurrentEnvironment.ItemCache, amo, "VKF", "VKF", "01");
 
             CreateAndRender(r => {
                 VariableVector pos = r.F(0, 0);
@@ -339,7 +342,7 @@ namespace NDepCheck.Tests {
                 VariableVector interfacePos = mainBox.UpperLeft;
                 r.Box(interfacePos, text: name + ".I", minDiagonal: r.F(10, 200),
                     boxAnchoring: BoxAnchoring.LowerLeft, borderWidth: 1, boxColor: Color.Coral, name: name + ".I");
-            });
+            }, gc);
         }
 
         #endregion Somewhat complex tests

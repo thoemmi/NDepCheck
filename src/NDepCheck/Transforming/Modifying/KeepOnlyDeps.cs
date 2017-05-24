@@ -35,9 +35,9 @@ Transformer options: {Option.CreateHelp(DependencyMatchOptions.WithOptions(), de
             return Program.OK_RESULT;
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies() {
-            Item a = Item.New(ItemType.SIMPLE, "A");
-            Item b = Item.New(ItemType.SIMPLE, "B");
+        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
+            Item a = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "A");
+            Item b = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "B");
             return new[] {
                 new Dependency(a, a, source: null, markers: "", ct:10, questionableCt:5, badCt:3),
                 new Dependency(a, b, source: null, markers: "use+define", ct:1, questionableCt:0,badCt: 0),

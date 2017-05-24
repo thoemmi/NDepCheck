@@ -65,14 +65,14 @@ namespace NDepCheck.WebServing {
                         // Each call runs with its own environment=GlobalContext; this is necessary
                         // so that each one can set its own defines.
 
-                        string previousCurrentDirectory = Environment.CurrentDirectory;
+                        string previousCurrentDirectory = System.Environment.CurrentDirectory;
                         int runResult;
                         try {
-                            Environment.CurrentDirectory = _fullFileDirectory;
+                            System.Environment.CurrentDirectory = _fullFileDirectory;
                             runResult = _program.Run(args.ToArray(), new string[0], new GlobalContext(), writtenMasterFiles,
                                 logCommands: true);
                         } finally {
-                            Environment.CurrentDirectory = previousCurrentDirectory;
+                            System.Environment.CurrentDirectory = previousCurrentDirectory;
                         }
 
                         if (runResult != Program.OK_RESULT) {
@@ -142,7 +142,7 @@ namespace NDepCheck.WebServing {
         }
 
         private string WrapAsHtmlBody(string s) {
-            return $@"<!DOCTYPE HTML><html><body>{s.Replace(Environment.NewLine, "<br>" + Environment.NewLine)}</body></html>";
+            return $@"<!DOCTYPE HTML><html><body>{s.Replace(System.Environment.NewLine, "<br>" + System.Environment.NewLine)}</body></html>";
         }
     }
 }

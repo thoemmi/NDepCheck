@@ -130,17 +130,17 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             } while (recursive && itemRemoved);
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies() {
-            Item a = Item.New(ItemType.SIMPLE, "Ax");
-            Item b = Item.New(ItemType.SIMPLE, "Bx");
-            Item c = Item.New(ItemType.SIMPLE, "Cloop");
-            Item d = Item.New(ItemType.SIMPLE, "Dloop");
-            Item e = Item.New(ItemType.SIMPLE, "Eselfloop");
-            Item f = Item.New(ItemType.SIMPLE, "Fy");
-            Item g = Item.New(ItemType.SIMPLE, "Gy");
-            Item h = Item.New(ItemType.SIMPLE, "Hy");
-            Item i = Item.New(ItemType.SIMPLE, "Iy");
-            Item j = Item.New(ItemType.SIMPLE, "Jy");
+        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
+            Item a = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Ax");
+            Item b = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Bx");
+            Item c = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Cloop");
+            Item d = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Dloop");
+            Item e = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Eselfloop");
+            Item f = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Fy");
+            Item g = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Gy");
+            Item h = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Hy");
+            Item i = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Iy");
+            Item j = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Jy");
             return new[] {
                 // Pure sources
                 new Dependency(a, b, source: null, markers: "", ct: 10, questionableCt: 5, badCt: 3),

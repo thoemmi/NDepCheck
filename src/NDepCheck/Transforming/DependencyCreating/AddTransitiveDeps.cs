@@ -131,17 +131,17 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies() {
-            var s1 = Item.New(ItemType.SIMPLE, "S1");
-            var s2 = Item.New(ItemType.SIMPLE, "S2");
-            var a = Item.New(ItemType.SIMPLE, "A");
-            var t1 = Item.New(ItemType.SIMPLE, "T1");
-            var t2 = Item.New(ItemType.SIMPLE, "T2");
-            var b = Item.New(ItemType.SIMPLE, "B");
-            var c = Item.New(ItemType.SIMPLE, "C");
-            var d = Item.New(ItemType.SIMPLE, "D");
-            var t3 = Item.New(ItemType.SIMPLE, "T3");
-            var t4 = Item.New(ItemType.SIMPLE, "T4");
+        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
+            var s1 = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "S1");
+            var s2 = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "S2");
+            var a = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "A");
+            var t1 = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "T1");
+            var t2 = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "T2");
+            var b = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "B");
+            var c = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "C");
+            var d = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "D");
+            var t3 = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "T3");
+            var t4 = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "T4");
             return new[] {
                 new Dependency(s1, a, source: null, markers: "1", ct:10, questionableCt:5, badCt:3),
                 new Dependency(s1, d, source: null, markers: "D", ct:10, questionableCt:5, badCt:3),

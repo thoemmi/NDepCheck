@@ -78,7 +78,7 @@ namespace NDepCheck.Transforming {
                         }
                     }
                 } catch (Exception ex) {
-                    throw new ApplicationException($"{ex.Message}{Environment.NewLine}  at {fullConfigFileName}:{lineNo}");
+                    throw new ApplicationException($"{ex.Message}{System.Environment.NewLine}  at {fullConfigFileName}:{lineNo}");
                 }
             }
         }
@@ -112,7 +112,7 @@ namespace NDepCheck.Transforming {
                         }
                     }
                     if (differences.Length > 0) {
-                        throw new ApplicationException($"File {containerUri} is read with different values:{Environment.NewLine}{differences}");
+                        throw new ApplicationException($"File {containerUri} is read with different values:{System.Environment.NewLine}{differences}");
                     }
                 }
                 previousConfigValues = null; // no collecting of config values!
@@ -142,7 +142,7 @@ namespace NDepCheck.Transforming {
         public abstract int Transform([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, 
                                       string transformOptions, [NotNull] List<Dependency> transformedDependencies);
 
-        public abstract IEnumerable<Dependency> CreateSomeTestDependencies();
+        public abstract IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment);
 
         #endregion Transform
     }

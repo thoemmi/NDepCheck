@@ -211,14 +211,14 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies() {
+        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
             // Graph from http://web.stanford.edu/class/cs97si/08-network-flow-problems.pdf p.7
-            Item s = Item.New(ItemType.SIMPLE, "s");
-            Item a = Item.New(ItemType.SIMPLE, "a");
-            Item b = Item.New(ItemType.SIMPLE, "b");
-            Item c = Item.New(ItemType.SIMPLE, "c");
-            Item d = Item.New(ItemType.SIMPLE, "d");
-            Item t = Item.New(ItemType.SIMPLE, "t");
+            Item s = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "s");
+            Item a = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "a");
+            Item b = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "b");
+            Item c = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "c");
+            Item d = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "d");
+            Item t = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "t");
             return new[] {
                 new Dependency(s, a, null, "s_a", 101, 16, 0),
                 new Dependency(s, c, null, "s_c", 103, 13, 0),

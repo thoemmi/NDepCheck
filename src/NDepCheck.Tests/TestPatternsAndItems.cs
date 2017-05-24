@@ -30,7 +30,9 @@ namespace NDepCheck.Tests {
             var rnc1 = CreateDependencyRule(itemType, "n*:c*", ":");
             var rnc2 = CreateDependencyRule(itemType, "n**:c**", ":");
 
-            Dependency dep = new Dependency(Item.New(itemType, "n1", "c1"), Item.New(itemType, "n2", "c2"), null, "Test", ct: 1);
+            var gc = new GlobalContext();
+
+            Dependency dep = new Dependency(Item.New(gc.CurrentEnvironment.ItemCache, itemType, "n1", "c1"), Item.New(gc.CurrentEnvironment.ItemCache, itemType, "n2", "c2"), null, "Test", ct: 1);
             Assert.IsTrue(r1.IsMatch(dep));
 
             Assert.IsTrue(rn1.IsMatch(dep));
@@ -54,8 +56,7 @@ namespace NDepCheck.Tests {
         private static DependencyRule CreateDependencyRule(ItemType itemType, string left, string right) {
             return new DependencyRule(new DependencyMatch(itemType, left, "", itemType, right, IGNORECASE), 
                 new DependencyRuleSource("TEST", 0, left + "--->" + right, false, left)
-                
-                );
+            );
         }
 
         [TestMethod]
@@ -67,7 +68,9 @@ namespace NDepCheck.Tests {
             var rn4 = CreateDependencyRule(itemtype, "s(*):t(*)", @"s\1:t\2");
             var rn5 = CreateDependencyRule(itemtype, "s(**):t(**)", @"s\1:t\2");
 
-            Dependency dep = new Dependency(Item.New(itemtype, "s1", "t1"), Item.New(itemtype, "s2", "t2"), null, "Test", ct: 1);
+            var gc = new GlobalContext();
+
+            Dependency dep = new Dependency(Item.New(gc.CurrentEnvironment.ItemCache, itemtype, "s1", "t1"), Item.New(gc.CurrentEnvironment.ItemCache, itemtype, "s2", "t2"), null, "Test", ct: 1);
             Assert.IsTrue(rn1.IsMatch(dep));
             Assert.IsTrue(rn2.IsMatch(dep));
             Assert.IsTrue(rn3.IsMatch(dep));
@@ -81,7 +84,9 @@ namespace NDepCheck.Tests {
             var rn3 = CreateDependencyRule(itemtype, "(s**):(t**)", @"\1*:\2*");
             var rn5 = CreateDependencyRule(itemtype, "(**s**):(**t**)", @"\1:\2");
 
-            Dependency dep = new Dependency(Item.New(itemtype, "sx", "tx"), Item.New(itemtype, "sx", "tx"), null, "Test", ct: 1);
+            var gc = new GlobalContext();
+
+            Dependency dep = new Dependency(Item.New(gc.CurrentEnvironment.ItemCache, itemtype, "sx", "tx"), Item.New(gc.CurrentEnvironment.ItemCache, itemtype, "sx", "tx"), null, "Test", ct: 1);
             Assert.IsTrue(rn3.IsMatch(dep));
             Assert.IsTrue(rn5.IsMatch(dep));
         }
@@ -97,7 +102,9 @@ namespace NDepCheck.Tests {
 
             var rn6 = CreateDependencyRule(itemType, "s*:(t*)", @"s\1:t*");
 
-            Dependency dep = new Dependency(Item.New(itemType, "s1", "t1"), Item.New(itemType, "s1", "t2"), null, "Test", ct: 1);
+            var gc = new GlobalContext();
+
+            Dependency dep = new Dependency(Item.New(gc.CurrentEnvironment.ItemCache, itemType, "s1", "t1"), Item.New(gc.CurrentEnvironment.ItemCache, itemType, "s1", "t2"), null, "Test", ct: 1);
             Assert.IsTrue(rn1.IsMatch(dep));
             Assert.IsTrue(rn2.IsMatch(dep));
             Assert.IsTrue(rn3.IsMatch(dep));
@@ -143,40 +150,42 @@ namespace NDepCheck.Tests {
             var gnc1 = new Projection(testType, simpleType, "n(*):(c)*", new[] { "\\1+\\2" }, IGNORECASE, true, true);
             var gnc2 = new Projection(testType, simpleType, "n(**):(c)**", new[] { "\\1+\\2" }, IGNORECASE, true, true);
 
-            Item i = Item.New(testType, "n1", "c1");
+            var gc = new GlobalContext();
 
-            Assert.AreEqual("", g1.Match(i, true).Name);
+            Item i = Item.New(gc.CurrentEnvironment.ItemCache, testType, "n1", "c1");
 
-            Assert.AreEqual("n", gn1.Match(i, true).Name);
-            Assert.AreEqual("n", gn2.Match(i, true).Name);
-            Assert.AreEqual("n", gn3.Match(i, true).Name);
-            Assert.AreEqual("n", gn4.Match(i, true).Name);
-            Assert.AreEqual("n", gn5.Match(i, true).Name);
-            Assert.AreEqual("n", gn6.Match(i, true).Name);
-            Assert.AreEqual("n", gn7.Match(i, true).Name);
-            Assert.AreEqual("n", gn8.Match(i, true).Name);
+            Assert.AreEqual("", g1.Match(gc.CurrentEnvironment, i, true).Name);
 
-            Assert.AreEqual("1", hn1.Match(i, true).Name);
-            Assert.AreEqual("1", hn2.Match(i, true).Name);
-            Assert.AreEqual("1", hn3.Match(i, true).Name);
-            Assert.AreEqual("1", hn4.Match(i, true).Name);
-            Assert.AreEqual("1", hn5.Match(i, true).Name);
-            Assert.AreEqual("1", hn6.Match(i, true).Name);
-            Assert.AreEqual("1", hn7.Match(i, true).Name);
-            Assert.AreEqual("1", hn8.Match(i, true).Name);
+            Assert.AreEqual("n", gn1.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn2.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn3.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn4.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn5.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn6.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn7.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn8.Match(gc.CurrentEnvironment, i, true).Name);
 
-            Assert.AreEqual("c", gc1.Match(i, true).Name);
-            Assert.AreEqual("c", gc2.Match(i, true).Name);
-            Assert.AreEqual("c", gc3.Match(i, true).Name);
-            Assert.AreEqual("c", gc4.Match(i, true).Name);
+            Assert.AreEqual("1", hn1.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn2.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn3.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn4.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn5.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn6.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn7.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn8.Match(gc.CurrentEnvironment, i, true).Name);
 
-            Assert.AreEqual("1", hc1.Match(i, true).Name);
-            Assert.AreEqual("1", hc2.Match(i, true).Name);
-            Assert.AreEqual("1", hc3.Match(i, true).Name);
-            Assert.AreEqual("1", hc4.Match(i, true).Name);
+            Assert.AreEqual("c", gc1.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("c", gc2.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("c", gc3.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("c", gc4.Match(gc.CurrentEnvironment, i, true).Name);
 
-            Assert.AreEqual("1+c", gnc1.Match(i, true).Name);
-            Assert.AreEqual("1+c", gnc2.Match(i, true).Name);
+            Assert.AreEqual("1", hc1.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hc2.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hc3.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hc4.Match(gc.CurrentEnvironment, i, true).Name);
+
+            Assert.AreEqual("1+c", gnc1.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1+c", gnc2.Match(gc.CurrentEnvironment, i, true).Name);
         }
 
         [TestMethod]
@@ -234,48 +243,50 @@ namespace NDepCheck.Tests {
             //var gnc1 = new GraphAbstraction_("n(*):(c)*", false);
             //var gnc2 = new GraphAbstraction_("n(**):(c)**", false);
 
-            Item i = Item.New(testType, "n1", "c1");
+            var gc = new GlobalContext();
 
-            Assert.AreEqual("", g1.Match(i, true).Name);
+            Item i = Item.New(gc.CurrentEnvironment.ItemCache, testType, "n1", "c1");
 
-            Assert.AreEqual("n", gn1a.Match(i, true).Name);
-            Assert.AreEqual("n", gn1b.Match(i, true).Name);
-            Assert.AreEqual("n", gn1c.Match(i, true).Name);
-            Assert.AreEqual("n", gn2a.Match(i, true).Name);
-            Assert.AreEqual("n", gn2b.Match(i, true).Name);
-            Assert.AreEqual("n", gn2c.Match(i, true).Name);
-            Assert.AreEqual("n", gn5a.Match(i, true).Name);
-            Assert.AreEqual("n", gn5b.Match(i, true).Name);
-            Assert.AreEqual("n", gn5c.Match(i, true).Name);
-            Assert.AreEqual("n", gn6a.Match(i, true).Name);
-            Assert.AreEqual("n", gn6b.Match(i, true).Name);
-            Assert.AreEqual("n", gn6c.Match(i, true).Name);
-            Assert.AreEqual("n", gn7a.Match(i, true).Name);
-            Assert.AreEqual("n", gn7b.Match(i, true).Name);
-            Assert.AreEqual("n", gn7c.Match(i, true).Name);
+            Assert.AreEqual("", g1.Match(gc.CurrentEnvironment, i, true).Name);
 
-            Assert.AreEqual("1", hn1a.Match(i, true).Name);
-            Assert.AreEqual("1", hn1b.Match(i, true).Name);
-            Assert.AreEqual("1", hn1c.Match(i, true).Name);
-            Assert.AreEqual("1", hn2a.Match(i, true).Name);
-            Assert.AreEqual("1", hn2b.Match(i, true).Name);
-            Assert.AreEqual("1", hn2c.Match(i, true).Name);
-            Assert.AreEqual("1", hn5a.Match(i, true).Name);
-            Assert.AreEqual("1", hn5b.Match(i, true).Name);
-            Assert.AreEqual("1", hn5c.Match(i, true).Name);
-            Assert.AreEqual("1", hn6a.Match(i, true).Name);
-            Assert.AreEqual("1", hn6b.Match(i, true).Name);
-            Assert.AreEqual("1", hn6c.Match(i, true).Name);
-            Assert.AreEqual("1", hn7a.Match(i, true).Name);
-            Assert.AreEqual("1", hn7b.Match(i, true).Name);
-            Assert.AreEqual("1", hn7c.Match(i, true).Name);
+            Assert.AreEqual("n", gn1a.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn1b.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn1c.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn2a.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn2b.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn2c.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn5a.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn5b.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn5c.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn6a.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn6b.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn6c.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn7a.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn7b.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn7c.Match(gc.CurrentEnvironment, i, true).Name);
 
-            Assert.AreEqual("c", gc1a.Match(i, true).Name);
-            Assert.AreEqual("c", gc1b.Match(i, true).Name);
-            Assert.AreEqual("c", gc1c.Match(i, true).Name);
-            Assert.AreEqual("c", gc3a.Match(i, true).Name);
-            Assert.AreEqual("c", gc3b.Match(i, true).Name);
-            Assert.AreEqual("c", gc3c.Match(i, true).Name);
+            Assert.AreEqual("1", hn1a.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn1b.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn1c.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn2a.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn2b.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn2c.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn5a.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn5b.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn5c.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn6a.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn6b.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn6c.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn7a.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn7b.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn7c.Match(gc.CurrentEnvironment, i, true).Name);
+
+            Assert.AreEqual("c", gc1a.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("c", gc1b.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("c", gc1c.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("c", gc3a.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("c", gc3b.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("c", gc3c.Match(gc.CurrentEnvironment, i, true).Name);
 
             //Assert.AreEqual("1", hc1.Match(i, true).Name);
             //Assert.AreEqual("1", hc2.Match(i, true).Name);
@@ -292,9 +303,11 @@ namespace NDepCheck.Tests {
             ItemType simpleType = ItemType.New("N", new[] { "NAME", }, new[] { "" }, ignoreCase: false);
             var g1 = new Projection(testType, simpleType, "(**)", null, IGNORECASE, true, true);
 
-            Assert.AreEqual("n1", g1.Match(Item.New(testType, "n1"), true).Name);
-            Assert.AreEqual("n1.n2", g1.Match(Item.New(testType, "n1.n2"), true).Name);
-            Assert.AreEqual("n1.n2.n3", g1.Match(Item.New(testType, "n1.n2.n3"), true).Name);
+            var gc = new GlobalContext();
+
+            Assert.AreEqual("n1", g1.Match(gc.CurrentEnvironment, Item.New(gc.CurrentEnvironment.ItemCache, testType, "n1"), true).Name);
+            Assert.AreEqual("n1.n2", g1.Match(gc.CurrentEnvironment, Item.New(gc.CurrentEnvironment.ItemCache, testType, "n1.n2"), true).Name);
+            Assert.AreEqual("n1.n2.n3", g1.Match(gc.CurrentEnvironment, Item.New(gc.CurrentEnvironment.ItemCache, testType, "n1.n2.n3"), true).Name);
         }
         //
 
@@ -305,15 +318,20 @@ namespace NDepCheck.Tests {
             var g1 = new Projection(testType, simpleType, "**Tests**", null, IGNORECASE, true, true);
             var g2 = new Projection(testType, simpleType, "**Tests**()", null, IGNORECASE, true, true);
 
-            Assert.AreEqual("\\1", g1.Match(Item.New(testType, "Framework.Core.NunitTests.IBOL"), true).Name);
-            Assert.AreEqual("", g2.Match(Item.New(testType, "Framework.Core.NunitTests.IBOL"), true).Name);
+            var gc = new GlobalContext();
+
+            Assert.AreEqual("\\1", g1.Match(gc.CurrentEnvironment, Item.New(gc.CurrentEnvironment.ItemCache, testType, "Framework.Core.NunitTests.IBOL"), true).Name);
+            Assert.AreEqual("", g2.Match(gc.CurrentEnvironment, Item.New(gc.CurrentEnvironment.ItemCache, testType, "Framework.Core.NunitTests.IBOL"), true).Name);
         }
 
         [TestMethod]
         public void TestProblemWithEmptyNamespace() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
-            var @using = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
-            var used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "");
+
+            var gc = new GlobalContext();
+
+            var @using = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
+            var used = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "System", "Object", "mscorlib", "", "", "");
             var d = new Dependency(@using, used, null, "Test", ct: 1);
 
             var r = CreateDependencyRule(itemType, "**", "System.**");
@@ -324,8 +342,10 @@ namespace NDepCheck.Tests {
         public void TestEmptyNamespaceInRule() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
 
-            Item @using = Item.New(itemType, "NDepCheck.TestAssembly.dir1.dir2", "SomeClass", "NDepCheck.TestAssembly", "1.0.0.0", "", "AnotherMethod");
-            Item used = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "I");
+            var gc = new GlobalContext();
+
+            Item @using = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "NDepCheck.TestAssembly.dir1.dir2", "SomeClass", "NDepCheck.TestAssembly", "1.0.0.0", "", "AnotherMethod");
+            Item used = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "I");
             var d = new Dependency(@using, used, null, "Test", ct: 1);
 
             var r = CreateDependencyRule(itemType, "NDepCheck.TestAssembly.dir1.dir2:SomeClass:**", "-:NamespacelessTestClassForNDepCheck::I");
@@ -340,9 +360,11 @@ namespace NDepCheck.Tests {
             var ga = new Projection(itemType, itemType, "(**):(**):(**)", new[] { "\\1", "\\2", "\\3", "", "", "" },
                                     ignoreCase: false, forLeftSide: true, forRightSide: true);
 
-            Item used = Item.New(itemType, "System", "Byte&", "mscorlib", "4.0.0.0", "", "");
+            var gc = new GlobalContext();
 
-            string result = ga.Match(used, true).Name;
+            Item used = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "System", "Byte&", "mscorlib", "4.0.0.0", "", "");
+
+            string result = ga.Match(gc.CurrentEnvironment, used, true).Name;
 
             Assert.AreEqual("System:Byte&:mscorlib;;:", result);
         }
@@ -350,8 +372,9 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestSimpleNamedCall() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
-            Item @using = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
-            Item used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "");
+            var gc = new GlobalContext();
+            Item @using = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
+            Item used = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "System", "Object", "mscorlib", "", "", "");
             var d = new Dependency(@using, used, null, "Test", ct: 1);
 
             DependencyRule r = CreateDependencyRule(itemType, "**", "ASSEMBLY.NAME=mscorlib");
@@ -361,8 +384,9 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestReverseFieldsInNamedCall() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
-            Item @using = Item.New(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
-            Item used = Item.New(itemType, "System", "Object", "mscorlib", "", "", "");
+            var gc = new GlobalContext();
+            Item @using = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
+            Item used = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "System", "Object", "mscorlib", "", "", "");
             var d = new Dependency(@using, used, null, "Test", ct: 1);
 
             DependencyRule r = CreateDependencyRule(itemType, "**", "ASSEMBLY.NAME=mscorlib:CLASS=Object");

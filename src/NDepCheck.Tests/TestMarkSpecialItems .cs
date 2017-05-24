@@ -7,18 +7,18 @@ namespace NDepCheck.Tests {
     [TestClass]
     public class TestMarkSpecialItems {
         private static IEnumerable<Item> Run(string options, string mark) {
-            var globalContext = new GlobalContext();
+            var gc = new GlobalContext();
             try {
                 var msi = new MarkSpecialItems();
                 var result = new List<Dependency>();
-                msi.Transform(globalContext, msi.CreateSomeTestDependencies(), options.Replace(" ", "\r\n"), result);
+                msi.Transform(gc, msi.CreateSomeTestDependencies(gc.CurrentEnvironment), options.Replace(" ", "\r\n"), result);
                 return
                     result.SelectMany(d => new[] { d.UsingItem, d.UsedItem })
                         .Distinct()
                         .Where(i => i.MarkersContain(mark));
             } finally {
                 // Also static caches must be reset, as "Mark" modifies Items
-                globalContext.ResetAll();
+                gc.ResetAll();
             }
         }
 

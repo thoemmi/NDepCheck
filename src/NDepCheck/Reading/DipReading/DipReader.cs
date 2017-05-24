@@ -43,7 +43,7 @@ namespace NDepCheck.Reading.DipReading {
         public DipReader([NotNull] string fileName) : base(Path.GetFullPath(fileName), fileName) {
         }
 
-        public override IEnumerable<Dependency> ReadDependencies(int depth, bool ignoreCase) {
+        public override IEnumerable<Dependency> ReadDependencies(Environment readingEnvironment, int depth, bool ignoreCase) {
             Log.WriteInfo("Reading " + FullFileName);
             Regex dipArrow = new Regex($@"\s*{Dependency.DIP_ARROW}\s*");
 
@@ -75,8 +75,8 @@ namespace NDepCheck.Reading.DipReading {
                         }
 
                         try {
-                            Item foundUsingItem = GetOrCreateItem(parts[0].Trim(), itemsDictionary);
-                            Item foundUsedItem = GetOrCreateItem(parts[2].Trim(), itemsDictionary);
+                            Item foundUsingItem = GetOrCreateItem(parts[0].Trim(), itemsDictionary, readingEnvironment);
+                            Item foundUsedItem = GetOrCreateItem(parts[2].Trim(), itemsDictionary, readingEnvironment);
 
                             bool pointsToProxy = foundUsingItem is ItemProxy || foundUsedItem is ItemProxy;
                             thereAreProxies |= pointsToProxy;
@@ -141,8 +141,8 @@ namespace NDepCheck.Reading.DipReading {
         }
 
         [NotNull]
-        private Item GetOrCreateItem([NotNull] string s, [NotNull] Dictionary<Item, Item> items) {
-            Item item = CreateItem(s);
+        private Item GetOrCreateItem([NotNull] string s, [NotNull] Dictionary<Item, Item> items, Environment readingEnvironment) {
+            Item item = CreateItem(s, readingEnvironment);
             Item foundItem;
             if (!items.TryGetValue(item, out foundItem)) {
                 items.Add(item, foundItem = item);
@@ -151,7 +151,7 @@ namespace NDepCheck.Reading.DipReading {
         }
 
         [NotNull]
-        private Item CreateItem(string s) {
+        private Item CreateItem(string s, Environment readingEnvironment) {
             string[] valuesAndMarkers = s.Split(new[] { '\'' }, 2);
             string[] prefixAndValues = valuesAndMarkers[0].Split(new[] { ':' }, 2);
             string[] prefix = prefixAndValues[0].Split(';');
@@ -165,7 +165,7 @@ namespace NDepCheck.Reading.DipReading {
             } else {
                 string[] values = prefixAndValues.Length > 1 ? prefixAndValues[1].Split(':', ';') : new string[0];
 
-                return values.Contains("?") ? new ItemProxy(foundType, values, markers) : Item.New(foundType, values, markers);
+                return values.Contains("?") ? new ItemProxy(foundType, values, markers) : Item.New(readingEnvironment.ItemCache, foundType, values, markers);
             }
         }
 

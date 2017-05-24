@@ -23,12 +23,13 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestMarkSmallCycle() {
-            var a = Item.New(ItemType.SIMPLE, "a");
-            var b = Item.New(ItemType.SIMPLE, "b");
+            var gc = new GlobalContext();
+            var a = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "a");
+            var b = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "b");
             var deps = new[] { new Dependency(a, b, null, "", 1), new Dependency(b, a, null, "", 1), };
             var result = new List<Dependency>();
 
-            new MarkCycleDeps().Transform(new GlobalContext(), deps, "", result);
+            new MarkCycleDeps().Transform(gc, deps, "", result);
 
             Assert.AreEqual(2, result.Count);
             Assert.AreEqual(1, result[0].BadCt);
@@ -37,11 +38,13 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestMarkLaterCycleWithExplicitAsserts() {
-            var a = Item.New(ItemType.SIMPLE, "a");
-            var b = Item.New(ItemType.SIMPLE, "b");
-            var c = Item.New(ItemType.SIMPLE, "c");
-            var d = Item.New(ItemType.SIMPLE, "d");
-            var e = Item.New(ItemType.SIMPLE, "e");
+            var gc = new GlobalContext();
+
+            var a = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "a");
+            var b = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "b");
+            var c = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "c");
+            var d = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "d");
+            var e = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "e");
             var deps = new[] {
                 new Dependency(a, b, null, "", 1),
                 new Dependency(b, c, null, "", 1),
@@ -51,7 +54,7 @@ namespace NDepCheck.Tests {
             };
             var result = new List<Dependency>();
 
-            new MarkCycleDeps().Transform(new GlobalContext(), deps, MarkCycleDeps.KeepOnlyCyclesOption.Opt, result);
+            new MarkCycleDeps().Transform(gc, deps, MarkCycleDeps.KeepOnlyCyclesOption.Opt, result);
 
             result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
 
@@ -66,13 +69,15 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestOverlappingCycles() {
-            var a = Item.New(ItemType.SIMPLE, "a");
-            var b = Item.New(ItemType.SIMPLE, "b");
-            var c = Item.New(ItemType.SIMPLE, "c");
-            var d = Item.New(ItemType.SIMPLE, "d");
-            var e = Item.New(ItemType.SIMPLE, "e");
+            var gc = new GlobalContext();
 
-            List<Dependency> result = CreateDependenciesAndFindCycles(a, b, c, d, e, keepOnlyCyclesOption: true, markerPrefix: "Kreis");
+            var a = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "a");
+            var b = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "b");
+            var c = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "c");
+            var d = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "d");
+            var e = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "e");
+
+            List<Dependency> result = CreateDependenciesAndFindCycles(gc, a, b, c, d, e, keepOnlyCyclesOption: true, markerPrefix: "Kreis");
 
             Assert.AreEqual(5, result.Count);
             Assert.AreEqual(a, result[0].UsingItem);
@@ -87,7 +92,7 @@ namespace NDepCheck.Tests {
             Assert.AreEqual(1, result[4].BadCt);
         }
 
-        private static List<Dependency> CreateDependenciesAndFindCycles(Item a, Item b, Item c, Item d, Item e, bool keepOnlyCyclesOption, string markerPrefix) {
+        private static List<Dependency> CreateDependenciesAndFindCycles(GlobalContext gc, Item a, Item b, Item c, Item d, Item e, bool keepOnlyCyclesOption, string markerPrefix) {
             var deps = new[] {
                 // "Confusing" edges to sink b
                 new Dependency(a, b, null, "", 1),
@@ -106,7 +111,7 @@ namespace NDepCheck.Tests {
             };
             var result = new List<Dependency>();
 
-            new MarkCycleDeps().Transform(new GlobalContext(), deps,
+            new MarkCycleDeps().Transform(gc, deps,
                 $"{{ {MarkCycleDeps.AddIndexedMarkerOption} {markerPrefix} {(keepOnlyCyclesOption ? MarkCycleDeps.KeepOnlyCyclesOption.Opt : "")} {MarkCycleDeps.IgnoreSelfCyclesOption}  }}"
                     .Replace(" ", "\r\n"), result);
 
@@ -116,11 +121,13 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestMaxLengthOfCycles() {
-            var a = Item.New(ItemType.SIMPLE, "a");
-            var b = Item.New(ItemType.SIMPLE, "b");
-            var c = Item.New(ItemType.SIMPLE, "c");
-            var d = Item.New(ItemType.SIMPLE, "d");
-            var e = Item.New(ItemType.SIMPLE, "e");
+            var gc = new GlobalContext();
+
+            var a = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "a");
+            var b = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "b");
+            var c = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "c");
+            var d = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "d");
+            var e = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "e");
             var deps = new[] {
                 new Dependency(a, b, null, "", 1),
                 new Dependency(b, c, null, "", 1),
@@ -136,7 +143,7 @@ namespace NDepCheck.Tests {
             var result = new List<Dependency>();
 
             const string marker = "Cycle";
-            new MarkCycleDeps().Transform(new GlobalContext(), deps,
+            new MarkCycleDeps().Transform(gc, deps,
             ($"{{ {MarkCycleDeps.KeepOnlyCyclesOption} " +
              $"{MarkCycleDeps.MaxCycleLengthOption} 3 " +
              $"{MarkCycleDeps.EffectOptions.AddMarkerOption} {marker} }}").Replace(" ", "\r\n"), result);
@@ -174,11 +181,13 @@ namespace NDepCheck.Tests {
         }
 
         private static List<Dependency> FindLaterCycle(string cycleMarkerPrefix) {
-            var a = Item.New(ItemType.SIMPLE, "a");
-            var b = Item.New(ItemType.SIMPLE, "b");
-            var c = Item.New(ItemType.SIMPLE, "c");
-            var d = Item.New(ItemType.SIMPLE, "d");
-            var e = Item.New(ItemType.SIMPLE, "e");
+            var gc = new GlobalContext();
+
+            var a = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "a");
+            var b = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "b");
+            var c = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "c");
+            var d = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "d");
+            var e = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "e");
             var deps = new[] {
                 new Dependency(a, b, null, "", 1),
                 new Dependency(b, c, null, "", 1),
@@ -188,8 +197,8 @@ namespace NDepCheck.Tests {
             };
             var result = new List<Dependency>();
 
-            new MarkCycleDeps().Transform(new GlobalContext(), deps,
-                $"{{ {MarkCycleDeps.AddIndexedMarkerOption} {cycleMarkerPrefix} }}".Replace(" ", Environment.NewLine),
+            new MarkCycleDeps().Transform(gc, deps,
+                $"{{ {MarkCycleDeps.AddIndexedMarkerOption} {cycleMarkerPrefix} }}".Replace(" ", System.Environment.NewLine),
                 result);
 
             result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
@@ -223,10 +232,10 @@ namespace NDepCheck.Tests {
         public void TestWriteLaterCycle() {
             const string cycleMarkerPrefix = "C";
             List<Dependency> dependencies = FindLaterCycle(cycleMarkerPrefix);
-
+            var gc = new GlobalContext();
             using (var s = new MemoryStream()) {
                 var w = new FlatPathWriter();
-                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, cycleMarkerPrefix + "* -sm");
+                w.RenderToStreamForUnitTests(gc, dependencies, s, cycleMarkerPrefix + "* -sm");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"-- C0
 SIMPLE:c'C0
@@ -240,17 +249,19 @@ SIMPLE:e
         public void TestWriteOverlappingCycles() {
             const string cycleMarkerPrefix = "X";
 
-            var a = Item.New(ItemType.SIMPLE, "a");
-            var b = Item.New(ItemType.SIMPLE, "b");
-            var c = Item.New(ItemType.SIMPLE, "c");
-            var d = Item.New(ItemType.SIMPLE, "d");
-            var e = Item.New(ItemType.SIMPLE, "e");
+            var gc = new GlobalContext();
 
-            List<Dependency> dependencies = CreateDependenciesAndFindCycles(a, b, c, d, e, keepOnlyCyclesOption: false, markerPrefix: cycleMarkerPrefix);
+            var a = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "a");
+            var b = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "b");
+            var c = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "c");
+            var d = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "d");
+            var e = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "e");
+
+            List<Dependency> dependencies = CreateDependenciesAndFindCycles(gc, a, b, c, d, e, keepOnlyCyclesOption: false, markerPrefix: cycleMarkerPrefix);
 
             using (var s = new MemoryStream()) {
                 var w = new FlatPathWriter();
-                w.RenderToStreamForUnitTests(new GlobalContext(), dependencies, s, cycleMarkerPrefix + "* -sm");
+                w.RenderToStreamForUnitTests(gc, dependencies, s, cycleMarkerPrefix + "* -sm");
                 string result = Encoding.ASCII.GetString(s.ToArray());
                 Assert.AreEqual(@"-- X0
 SIMPLE:a'X0

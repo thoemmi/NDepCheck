@@ -14,6 +14,8 @@ namespace NDepCheck.Reading.AssemblyReading {
         protected readonly DotNetAssemblyDependencyReaderFactory _factory;
         public readonly string Assemblyname;
 
+        protected readonly Intern<RawUsingItem> _rawUsingItemsCache = new Intern<RawUsingItem>();
+
         protected readonly string[] GET_MARKER = { "get" };
         protected readonly string[] SET_MARKER = { "set" };
 
@@ -73,8 +75,8 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
 
             [NotNull]
-            public virtual Item ToItem(ItemType type) {
-                return Item.New(type, new[] { NamespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, MemberName }, _markers);
+            public virtual Item ToItem(Intern<Item> itemCache, ItemType type) {
+                return Item.New(itemCache, type, new[] { NamespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, MemberName }, _markers);
             }
 
             [NotNull]
@@ -108,9 +110,9 @@ namespace NDepCheck.Reading.AssemblyReading {
                 _tail = tail;
             }
 
-            public static RawUsingItem New(string namespaceName, string className, string assemblyName,
+            public static RawUsingItem New(Intern<RawUsingItem> cache, string namespaceName, string className, string assemblyName,
                 string assemblyVersion, string assemblyCulture, string memberName, string[] markers, ItemTail tail) {
-                return Intern<RawUsingItem>.GetReference(new RawUsingItem(namespaceName, className, assemblyName,
+                return cache.GetReference(new RawUsingItem(namespaceName, className, assemblyName,
                                                          assemblyVersion, assemblyCulture, memberName, markers, tail));
             }
 
@@ -126,10 +128,10 @@ namespace NDepCheck.Reading.AssemblyReading {
                 return GetRawAbstractItemHashCode();
             }
 
-            public override Item ToItem(ItemType type) {
+            public override Item ToItem(Intern<Item> itemCache, ItemType type) {
                 // ReSharper disable once ConvertIfStatementToNullCoalescingExpression
                 if (_item == null) {
-                    _item = base.ToItem(type).Append(_tail);
+                    _item = base.ToItem(itemCache, type).Append(_tail);
                 }
                 return _item;
             }
@@ -162,8 +164,8 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
 
             [CanBeNull] // null (I think) if assemblies do not match (different compiles) and hence a used item is not found in target reader.
-            public Item ToItemWithTail(ItemType type, AbstractDotNetAssemblyDependencyReader reader, int depth) {
-                return reader.GetFullItemFor(this, depth);
+            public Item ToItemWithTail(Intern<Item> itemCache, Intern<ItemTail> itemTailCache, ItemType type, AbstractDotNetAssemblyDependencyReader reader, int depth) {
+                return reader.GetFullItemFor(itemCache, itemTailCache, this, depth);
             }
 
             public override bool Equals(object obj) {
@@ -176,15 +178,15 @@ namespace NDepCheck.Reading.AssemblyReading {
         }
 
         [NotNull]
-        protected abstract IEnumerable<RawUsingItem> ReadUsingItems(int depth);
+        protected abstract IEnumerable<RawUsingItem> ReadUsingItems(int depth, Intern<ItemTail> itemTailCache);
 
         [CanBeNull] // null (I think) if assemblies do not match (different compiles) and hence a used item is not found in target reader.
-        protected Item GetFullItemFor(RawUsedItem rawUsedItem, int depth) {
+        protected Item GetFullItemFor(Intern<Item> itemCache, Intern<ItemTail> itemTailCache, RawUsedItem rawUsedItem, int depth) {
             if (_rawItems2Items == null) {
                 _rawItems2Items = new Dictionary<RawUsedItem, Item>();
-                foreach (var u in ReadUsingItems(depth + 1)) {
+                foreach (var u in ReadUsingItems(depth + 1, itemTailCache)) {
                     RawUsedItem usedItem = u.ToRawUsedItem();
-                    _rawItems2Items[usedItem] = u.ToItem(DotNetAssemblyDependencyReaderFactory.DOTNETITEM);
+                    _rawItems2Items[usedItem] = u.ToItem(itemCache, DotNetAssemblyDependencyReaderFactory.DOTNETITEM);
                 }
             }
             Item result;
@@ -251,26 +253,26 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
 
             [NotNull]
-            private Dependency ToDependency(Item usedItem, string containerUri) {
-                return new Dependency(UsingItem.ToItem(_type), usedItem, _sequencePoint == null 
+            private Dependency ToDependency(Intern<Item> itemCache, Item usedItem, string containerUri) {
+                return new Dependency(UsingItem.ToItem(itemCache, _type), usedItem, _sequencePoint == null 
                             ? (ISourceLocation) new LocalSourceLocation(containerUri, UsingItem.NamespaceName + "." + UsingItem.ClassName + (string.IsNullOrWhiteSpace(UsingItem.MemberName) ? "" : "." + UsingItem.MemberName))
                             : new ProgramFileSourceLocation(containerUri, _sequencePoint.Document.Url, _sequencePoint.StartLine, _sequencePoint.StartColumn, _sequencePoint.EndLine, _sequencePoint.EndColumn),
                         Usage.ToString(), 1);
             }
 
             [NotNull]
-            public Dependency ToDependencyWithTail(int depth, string containerUri) {
+            public Dependency ToDependencyWithTail(Intern<Item> itemCache, Intern<ItemTail> itemTailCache, int depth, string containerUri) {
                 // ?? fires if reader == null (i.e., target assembly is not read in), or if assemblies do not match (different compiles) and hence a used item is not found in target reader.
-                Item usedItem = (_readerForUsedItem == null ? null : UsedItem.ToItemWithTail(_type, _readerForUsedItem, depth)) ?? UsedItem.ToItem(_type);
-                return ToDependency(usedItem, containerUri);
+                Item usedItem = (_readerForUsedItem == null ? null : UsedItem.ToItemWithTail(itemCache, itemTailCache, _type, _readerForUsedItem, depth)) ?? UsedItem.ToItem(itemCache, _type);
+                return ToDependency(itemCache, usedItem, containerUri);
             }
         }
 
         [CanBeNull]
-        protected ItemTail GetCustomSections(Collection<CustomAttribute> customAttributes, [CanBeNull] ItemTail customSections) {
+        protected ItemTail GetCustomSections(Intern<ItemTail> itemTailCache, Collection<CustomAttribute> customAttributes, [CanBeNull] ItemTail customSections) {
             ItemTail result = customSections;
             foreach (var customAttribute in customAttributes) {
-                result = ExtractCustomSections(customAttribute, null) ?? result;
+                result = ExtractCustomSections(itemTailCache, customAttribute, null) ?? result;
             }
             return result;
         }
@@ -279,7 +281,7 @@ namespace NDepCheck.Reading.AssemblyReading {
 
         private static readonly HashSet<string> _unresolvableTypeReferences = new HashSet<string>();
 
-        private ItemTail ExtractCustomSections(CustomAttribute customAttribute, ItemTail parent) {
+        private ItemTail ExtractCustomSections(Intern<ItemTail> cache, CustomAttribute customAttribute, ItemTail parent) {
             TypeReference customAttributeTypeReference = customAttribute.AttributeType;
             TypeDefinition attributeType = Resolve(customAttributeTypeReference);
             bool isSectionAttribute = attributeType != null && attributeType.Interfaces.Any(i => i.FullName == "NDepCheck.ISectionAttribute");
@@ -300,7 +302,7 @@ namespace NDepCheck.Reading.AssemblyReading {
                     string[] values = args.Select(a => a.Property.Name == null
                         ? parent?.Values[a.Index]
                         : "" + a.Property.Argument.Value).ToArray();
-                    return ItemTail.New(itemType, values);
+                    return ItemTail.New(cache, itemType, values);
                 }
             } else {
                 return parent;
@@ -358,9 +360,9 @@ namespace NDepCheck.Reading.AssemblyReading {
             return className;
         }
 
-        public static void Reset() {
-            Intern<RawUsingItem>.Reset();
-            Intern<RawUsedItem>.Reset();
-        }
+        ////public static void Reset() {
+        ////    Intern<RawUsingItem>.Reset();
+        ////    Intern<RawUsedItem>.Reset();
+        ////}
     }
 }

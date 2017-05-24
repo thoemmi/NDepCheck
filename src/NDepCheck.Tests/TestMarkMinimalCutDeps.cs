@@ -15,25 +15,25 @@ namespace NDepCheck.Tests {
 
     [TestClass]
     public class TestMarkMinimalCutDeps {
-        private static IEnumerable<Dependency> Run(string options, IEnumerable<Dependency> dependencies) {
-            var globalContext = new GlobalContext();
+        private static IEnumerable<Dependency> Run(GlobalContext gc, string options, IEnumerable<Dependency> dependencies) {
             try {
                 var mmc = new MarkMinimalCutDeps();
                 var result = new List<Dependency>();
-                mmc.Transform(globalContext, dependencies ?? mmc.CreateSomeTestDependencies(), options.Replace(" ", "\r\n"), result);
+                mmc.Transform(gc, dependencies ?? mmc.CreateSomeTestDependencies(gc.CurrentEnvironment), options.Replace(" ", "\r\n"), result);
                 return result;
             } finally {
                 // Also static caches must be reset, as "Mark" modifies Items
-                globalContext.ResetAll();
+                gc.ResetAll();
             }
         }
 
         [TestMethod]
         public void TestMarkTrivialCut() {
-            Item a = Item.New(ItemType.SIMPLE, "a");
-            Item b = Item.New(ItemType.SIMPLE, "b");
-            Item c = Item.New(ItemType.SIMPLE, "c");
-            Item d = Item.New(ItemType.SIMPLE, "d");
+            var gc = new GlobalContext();
+            Item a = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "a");
+            Item b = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "b");
+            Item c = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "c");
+            Item d = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "d");
             var dependencies = new[] {
                 new Dependency(a, b, null, "D10", 10, 0, 4),
                 new Dependency(b, c, null, "D20", 20, 0, 2), // critical edge
@@ -42,21 +42,22 @@ namespace NDepCheck.Tests {
             };
 
             const string mark = "CUT";
-            IEnumerable<Dependency> result = Run($"{{ {MarkMinimalCutDeps.MatchSourceOption} a " +
-                                                 $"{MarkMinimalCutDeps.MatchTargetOption} d " +
-                                                 $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
+            IEnumerable<Dependency> result = Run(gc, $"{{ {MarkMinimalCutDeps.MatchSourceOption} a " +
+                                                     $"{MarkMinimalCutDeps.MatchTargetOption} d " +
+                                                     $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
             Assert.IsTrue(result.All(z => z.MarkersContain(mark) == (z.Ct == 20)), string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
         }
 
         [TestMethod]
         public void TestMarkCutWithBackflow() {
             // Backflow problem from http://www.cs.princeton.edu/courses/archive/spring06/cos226/lectures/maxflow.pdf
-            Item s = Item.New(ItemType.SIMPLE, "s");
-            Item n2 = Item.New(ItemType.SIMPLE, "2");
-            Item n3 = Item.New(ItemType.SIMPLE, "3");
-            Item n4 = Item.New(ItemType.SIMPLE, "4");
-            Item n5 = Item.New(ItemType.SIMPLE, "5");
-            Item t = Item.New(ItemType.SIMPLE, "t");
+            var gc = new GlobalContext();
+            Item s = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "s");
+            Item n2 = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "2");
+            Item n3 = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "3");
+            Item n4 = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "4");
+            Item n5 = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "5");
+            Item t = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "t");
             var dependencies = new[] {
                 new Dependency(s, n2, null, "s_2", 10, 0, 10),
                 new Dependency(s, n4, null, "s_4", 20, 0, 4),
@@ -72,24 +73,24 @@ namespace NDepCheck.Tests {
             };
 
             const string mark = "CUT";
-            IEnumerable<Dependency> result = Run($"{{ {MarkMinimalCutDeps.MatchSourceOption} s " +
-                                                 $"{MarkMinimalCutDeps.MatchTargetOption} t " +
-                                                 $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
+            IEnumerable<Dependency> result = Run(gc, $"{{ {MarkMinimalCutDeps.MatchSourceOption} s " +
+                                                     $"{MarkMinimalCutDeps.MatchTargetOption} t " +
+                                                     $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
             Assert.IsTrue(result.All(z => z.MarkersContain(mark) == (Equals(z.UsingItem, s))),
                           string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
         }
 
-        private static Dependency[] CreateExampleGraph() {
+        private static Dependency[] CreateExampleGraph(GlobalContext gc) {
             // First graph (not the Soviet railways ...) from 
             // http://www.cs.princeton.edu/courses/archive/spring06/cos226/lectures/maxflow.pdf
-            Item s = Item.New(ItemType.SIMPLE, "s");
-            Item n2 = Item.New(ItemType.SIMPLE, "2");
-            Item n3 = Item.New(ItemType.SIMPLE, "3");
-            Item n4 = Item.New(ItemType.SIMPLE, "4");
-            Item n5 = Item.New(ItemType.SIMPLE, "5");
-            Item n6 = Item.New(ItemType.SIMPLE, "6");
-            Item n7 = Item.New(ItemType.SIMPLE, "7");
-            Item t = Item.New(ItemType.SIMPLE, "t");
+            Item s = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "s");
+            Item n2 = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "2");
+            Item n3 = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "3");
+            Item n4 = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "4");
+            Item n5 = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "5");
+            Item n6 = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "6");
+            Item n7 = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "7");
+            Item t = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "t");
             var dependencies = new[] {
                 new Dependency(s, n2, null, "s_2", 12, 0, 10), new Dependency(s, n3, null, "s_3", 13, 0, 5),
                 new Dependency(s, n4, null, "s_4", 14, 0, 15), new Dependency(n2, n3, null, "2_3", 23, 0, 4),
@@ -105,23 +106,25 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestMarkCut() {
-            Dependency[] dependencies = CreateExampleGraph();
+            var gc = new GlobalContext();
+            Dependency[] dependencies = CreateExampleGraph(gc);
 
             const string mark = "CUT";
-            IEnumerable<Dependency> result = Run($"{{ {MarkMinimalCutDeps.MatchSourceOption} s " +
-                                                 $"{MarkMinimalCutDeps.MatchTargetOption} t " +
-                                                 $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
+            IEnumerable<Dependency> result = Run(gc, $"{{ {MarkMinimalCutDeps.MatchSourceOption} s " +
+                                                     $"{MarkMinimalCutDeps.MatchTargetOption} t " +
+                                                     $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
             Assert.IsTrue(result.All(z => z.MarkersContain(mark) == new[] { 12, 36, 78 }.Contains(z.Ct)),
                           string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
         }
 
         [TestMethod]
         public void TestMarkCutFromMultipleSources() {
-            Dependency[] exampleDependencies = CreateExampleGraph();
+            var gc = new GlobalContext();
+            Dependency[] exampleDependencies = CreateExampleGraph(gc);
             Item s = exampleDependencies[0].UsingItem;
-            Item r0 = Item.New(ItemType.SIMPLE, "r0");
-            Item r1 = Item.New(ItemType.SIMPLE, "r1");
-            Item r2 = Item.New(ItemType.SIMPLE, "r2");
+            Item r0 = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "r0");
+            Item r1 = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "r1");
+            Item r2 = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "r2");
             Dependency[] dependencies = exampleDependencies.Concat(new[] {
                 new Dependency(r0, s, null, "r0_s", 1000, 0, 1000),
                 new Dependency(r1, s, null, "r1_s", 1000, 0, 1000),
@@ -129,9 +132,9 @@ namespace NDepCheck.Tests {
             }).ToArray();
 
             const string mark = "CUT";
-            IEnumerable<Dependency> result = Run($"{{ {MarkMinimalCutDeps.MatchSourceOption} r* " +
-                                                 $"{MarkMinimalCutDeps.MatchTargetOption} t " +
-                                                 $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
+            IEnumerable<Dependency> result = Run(gc, $"{{ {MarkMinimalCutDeps.MatchSourceOption} r* " +
+                                                     $"{MarkMinimalCutDeps.MatchTargetOption} t " +
+                                                     $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
             Assert.IsTrue(result.All(z => z.MarkersContain(mark) == new[] { 12, 36, 78 }.Contains(z.Ct)),
                           string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
         }
@@ -139,10 +142,11 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestMarkAnotherCut() {
             // Graph from http://www.cs.princeton.edu/courses/archive/spring06/cos226/lectures/maxflow.pdf p.30 (and Wikipedia)
-            Item s = Item.New(ItemType.SIMPLE, "s");
-            Item n2 = Item.New(ItemType.SIMPLE, "2");
-            Item n4 = Item.New(ItemType.SIMPLE, "4");
-            Item t = Item.New(ItemType.SIMPLE, "t");
+            var gc = new GlobalContext();
+            Item s = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "s");
+            Item n2 = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "2");
+            Item n4 = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "4");
+            Item t = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "t");
             var dependencies = new[] {
                 new Dependency(s, n2, null, "s_2", 102, 0, 100),
                 new Dependency(s, n4, null, "s_4", 104, 0, 100),
@@ -156,10 +160,10 @@ namespace NDepCheck.Tests {
             const string mark = "CUT";
             const string source = "SOURCE";
 
-            IEnumerable<Dependency> result = Run($"{{ {MarkMinimalCutDeps.MatchSourceOption} s " +
-                                                 $"{MarkMinimalCutDeps.MatchTargetOption} t " +
-                                                 $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} " +
-                                                 $"{MarkMinimalCutDeps.SourceMarkerOption} {source} }}", dependencies);
+            IEnumerable<Dependency> result = Run(gc, $"{{ {MarkMinimalCutDeps.MatchSourceOption} s " +
+                                                     $"{MarkMinimalCutDeps.MatchTargetOption} t " +
+                                                     $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} " +
+                                                     $"{MarkMinimalCutDeps.SourceMarkerOption} {source} }}", dependencies);
             Assert.IsTrue(result.All(z => z.MarkersContain(mark) == new[] { 102, 104 }.Contains(z.Ct)),
                           string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
             Assert.IsTrue(s.MarkersContain(source));
@@ -172,20 +176,21 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestMarkYetAnotherCut() {
             const string mark = "CUT";
-            IEnumerable<Dependency> result = Run($"{{ {MarkMinimalCutDeps.MatchSourceOption} s " +
-                                                 $"{MarkMinimalCutDeps.MatchTargetOption} t " +
-                                                 $"{MarkMinimalCutDeps.UseQuestionableCountOption} " +
-                                                 $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", null);
+            IEnumerable<Dependency> result = Run(new GlobalContext(), $"{{ {MarkMinimalCutDeps.MatchSourceOption} s " +
+                                                     $"{MarkMinimalCutDeps.MatchTargetOption} t " +
+                                                     $"{MarkMinimalCutDeps.UseQuestionableCountOption} " +
+                                                     $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", null);
             Assert.IsTrue(result.All(z => z.MarkersContain(mark) == new[] { 112, 142, 145 }.Contains(z.Ct)),
                           string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
         }
 
         [TestMethod]
         public void TestMarkZeroCut() {
-            Item a = Item.New(ItemType.SIMPLE, "a");
-            Item b = Item.New(ItemType.SIMPLE, "b");
-            Item c = Item.New(ItemType.SIMPLE, "c");
-            Item d = Item.New(ItemType.SIMPLE, "d");
+            var gc = new GlobalContext();
+            Item a = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "a");
+            Item b = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "b");
+            Item c = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "c");
+            Item d = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "d");
             var dependencies = new[] {
                 new Dependency(a, b, null, "D10", 10, 0, 4),
                 new Dependency(c, d, null, "D30", 30, 0, 1),
@@ -195,10 +200,10 @@ namespace NDepCheck.Tests {
             const string mark = "CUT";
             const string source = "SOURCE";
 
-            IEnumerable<Dependency> result = Run($"{{ {MarkMinimalCutDeps.MatchSourceOption} a " +
-                                                 $"{MarkMinimalCutDeps.MatchTargetOption} d " +
-                                                 $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} " +
-                                                 $"{MarkMinimalCutDeps.SourceMarkerOption} {source} }}", dependencies);
+            IEnumerable<Dependency> result = Run(gc, $"{{ {MarkMinimalCutDeps.MatchSourceOption} a " +
+                                                     $"{MarkMinimalCutDeps.MatchTargetOption} d " +
+                                                     $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} " +
+                                                     $"{MarkMinimalCutDeps.SourceMarkerOption} {source} }}", dependencies);
             Assert.IsTrue(result.All(z => !z.MarkersContain(mark)),
                           string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
             Assert.IsTrue(a.MarkersContain(source));

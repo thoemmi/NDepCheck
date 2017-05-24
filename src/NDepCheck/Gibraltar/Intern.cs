@@ -13,13 +13,15 @@ using System.Diagnostics;
 
 namespace Gibraltar {
     public class Intern {
-        private static readonly List<Dictionary<int, LinkedList<WeakReference>>> _allReferences = new List<Dictionary<int, LinkedList<WeakReference>>> ();
+        protected static volatile bool _disableCache;
 
-        protected static void AddForClearing(Dictionary<int, LinkedList<WeakReference>> references) {
+        private readonly List<Dictionary<int, LinkedList<WeakReference>>> _allReferences = new List<Dictionary<int, LinkedList<WeakReference>>> ();
+
+        protected void AddForClearing(Dictionary<int, LinkedList<WeakReference>> references) {
             _allReferences.Add(references);
         }
 
-        public static void ResetAll() {
+        public void ResetAll() {
             foreach (var d in _allReferences) {
                 d.Clear();
             }
@@ -30,23 +32,22 @@ namespace Gibraltar {
     /// Provides a way to ensure a string is a reference to a single copy instead of creating multiple copies.
     /// </summary>
     public class Intern<T> : Intern where T : class {
-        // ReSharper disable StaticMemberInGenericType
-        private static readonly Dictionary<int, LinkedList<WeakReference>> _references = new Dictionary<int, LinkedList<WeakReference>>(1024);
-        private static readonly object _lock = new object(); //Multithread Protection lock
+        // ReSharper disable MemberInGenericType
+        private readonly Dictionary<int, LinkedList<WeakReference>> _references = new Dictionary<int, LinkedList<WeakReference>>(1024);
+        private readonly object _lock = new object(); //Multithread Protection lock
 
-        static Intern() {
+        public Intern() {
             AddForClearing(_references);
         }
 
-        private static volatile bool _disableCache;
-        // ReSharper restore StaticMemberInGenericType
+        // ReSharper restore MemberInGenericType
 
         /// <summary>
         /// Indicates if the reference cache is disabled.
         /// </summary>
         /// <remarks>When disabled each method returns immediately and the input string is returned.  This allows comparision of 
         /// behavior with and without the cache without changing code.</remarks>
-        public static bool Disabled {
+        public bool Disabled {
             get {
                 return _disableCache;
             }
@@ -61,7 +62,7 @@ namespace Gibraltar {
         /// <param name="baseline">The string to be looked up and exchanged for its reference</param>
         /// <remarks>If the baseline isn't already in the reference cache it will be added.  The cache is automatically pruned to
         /// prevent it from consuming excess memory.</remarks>
-        public static void SwapReference(ref T baseline) {
+        public  void SwapReference(ref T baseline) {
             baseline = GetReference(baseline);
         }
 
@@ -70,7 +71,7 @@ namespace Gibraltar {
         /// </summary>
         /// <param name="baseline"></param>
         /// <returns></returns>
-        public static T GetReference(T baseline) {
+        public  T GetReference(T baseline) {
             if (_disableCache)
                 return baseline;
 
@@ -167,7 +168,7 @@ namespace Gibraltar {
         /// <summary>
         /// Check the cache for garbage collected values.
         /// </summary>
-        public static void Pack() {
+        public  void Pack() {
 #if DEBUG_GIBRALTAR
             Stopwatch packTimer = Stopwatch.StartNew();
 #endif
@@ -213,7 +214,7 @@ namespace Gibraltar {
 
         #region Private Properties and Methods
 
-        private static void ReleaseCollectedNodes(LinkedList<WeakReference> list) {
+        private  void ReleaseCollectedNodes(LinkedList<WeakReference> list) {
             if (list.Count > 0) {
                 LinkedListNode<WeakReference> currentReferenceNode = list.First;
                 while (currentReferenceNode != null) //lets us clean up as we go.
@@ -248,7 +249,7 @@ namespace Gibraltar {
 
         #endregion
 
-        public static void Reset() {
+        public  void Reset() {
             _references.Clear();
         }
     }

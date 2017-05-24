@@ -39,8 +39,7 @@ namespace NDepCheck.Rendering.TextWriting {
             return GlobalContext.CreateFullFileName(baseTarget, ".txt");
         }
 
-        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
-            int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
+        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
             var markerMatchers = new List<IMatcher>();
             bool showItemMarkers = false;
 
@@ -91,7 +90,7 @@ namespace NDepCheck.Rendering.TextWriting {
                     .OrderBy(g1 => g1.Key)
                     .ToArray();
 
-                string itemSeparator = Environment.NewLine + "  & ";
+                string itemSeparator = System.Environment.NewLine + "  & ";
                 tw.WriteLine(string.Join(itemSeparator, new HashSet<string>(groupedPath[0]
                     .Select(d => CreateString(showItemMarkers, d.UsingItem, 0, d.UsingItem.MarkerSet.GetValue(marker, ignoreCase)))
                     .OrderBy(s => s))));
@@ -127,8 +126,8 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies() {
-            return RendererSupport.CreateSomeTestItems();
+        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
+            return RendererSupport.CreateSomeTestItems(renderingEnvironment);
         }
     }
 }

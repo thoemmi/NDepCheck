@@ -67,7 +67,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 }),
                 DefaultRulesOption.Action((args, j) => {
                     _defaultRuleSet = GetOrReadChildConfiguration(globalContext,
-                        () => new StringReader(string.Join(Environment.NewLine, args.Skip(j + 1))),
+                        () => new StringReader(string.Join(System.Environment.NewLine, args.Skip(j + 1))),
                         DefaultRulesOption.ShortName, globalContext.IgnoreCase, "????", forceReload: true);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;
@@ -273,7 +273,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             }
         }
 
-        public override IEnumerable<Dependency> CreateSomeTestDependencies() {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
             throw new NotImplementedException();
         }
 

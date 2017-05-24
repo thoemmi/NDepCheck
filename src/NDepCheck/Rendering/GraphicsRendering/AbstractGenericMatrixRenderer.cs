@@ -13,8 +13,8 @@ namespace NDepCheck.Rendering.GraphicsRendering {
 
         private static readonly Option[] _allOptions = { MaxNameWidthOption, WriteBadCountOption, InnerMatchOption };
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies() {
-            return RendererSupport.CreateSomeTestItems();
+        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
+            return RendererSupport.CreateSomeTestItems(renderingEnvironment);
         }
 
         public string GetHelp(bool detailedHelp, string filter) {
@@ -150,7 +150,7 @@ $@"  Write a textual matrix representation of dependencies.
             string itemFormat, Dictionary<Item, int> item2Index, bool withNotOkCt, IEnumerable<Item> sortedItems,
             string ctFormat, IDictionary<Item, IEnumerable<Dependency>> itemsAndDependencies);
 
-        public abstract void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase);
+        public abstract void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase);
 
         public abstract void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string testOption);
 

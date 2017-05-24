@@ -877,7 +877,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             return bitmap;
         }
 
-        public virtual void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
+        public virtual void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
             DoRender(globalContext, dependencies, argsAsString, target);
         }
 
@@ -960,7 +960,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
 
         protected abstract void PlaceObjects([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies);
 
-        public abstract IEnumerable<Dependency> CreateSomeTestDependencies();
+        public abstract IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment);
 
         public abstract string GetHelp(bool detailedHelp, string filter);
 

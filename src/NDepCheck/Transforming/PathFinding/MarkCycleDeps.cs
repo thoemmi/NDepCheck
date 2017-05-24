@@ -217,17 +217,17 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             return Program.OK_RESULT;
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies() {
-            Item a = Item.New(ItemType.SIMPLE, "A");
-            Item b = Item.New(ItemType.SIMPLE, "B");
-            Item c = Item.New(ItemType.SIMPLE, "C");
-            Item d = Item.New(ItemType.SIMPLE, "D");
-            Item e = Item.New(ItemType.SIMPLE, "E");
-            Item f = Item.New(ItemType.SIMPLE, "F");
-            Item g = Item.New(ItemType.SIMPLE, "G");
-            Item h = Item.New(ItemType.SIMPLE, "H");
-            Item i = Item.New(ItemType.SIMPLE, "I");
-            Item j = Item.New(ItemType.SIMPLE, "J");
+        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
+            Item a = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "A");
+            Item b = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "B");
+            Item c = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "C");
+            Item d = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "D");
+            Item e = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "E");
+            Item f = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "F");
+            Item g = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "G");
+            Item h = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "H");
+            Item i = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "I");
+            Item j = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "J");
 
             //   a<=>b->c->d->e<=>f->g
             //          ^  ^         |

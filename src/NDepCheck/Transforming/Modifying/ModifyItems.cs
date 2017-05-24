@@ -75,7 +75,7 @@ Examples:
                 }),
                 ModificationsOption.Action((args, j) => {
                     _orderedActions = GetOrReadChildConfiguration(globalContext,
-                        () => new StringReader(string.Join(Environment.NewLine, args.Skip(j + 1))),
+                        () => new StringReader(string.Join(System.Environment.NewLine, args.Skip(j + 1))),
                         ModificationsOption.ShortName, globalContext.IgnoreCase, "????", forceReload: true);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;
@@ -134,9 +134,9 @@ Examples:
             return Program.OK_RESULT;
         }
 
-        public override IEnumerable<Dependency> CreateSomeTestDependencies() {
-            var a = Item.New(ItemType.SIMPLE, "A");
-            var b = Item.New(ItemType.SIMPLE, "B");
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
+            var a = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "A");
+            var b = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "B");
             return new[] {
                 new Dependency(a, a, source: null, markers: "", ct:10, questionableCt:5, badCt:3),
                 new Dependency(a, b, source: null, markers: "use+define", ct:1, questionableCt:0,badCt: 0),

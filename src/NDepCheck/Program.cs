@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Gibraltar;
 using JetBrains.Annotations;
 using NDepCheck.Markers;
 using NDepCheck.Matching;
@@ -77,6 +76,15 @@ namespace NDepCheck {
         public static readonly Option HelpDetailedHelpOption = new ProgramOption(shortname: "!", name: "help-detail", usage: "[filter]", description: "write extensive help", moreNames: new[] { "man" });
         public static readonly Option DebugOption = new ProgramOption(shortname: "debug", name: "debug", usage: "", description: "start .Net debugger");
 
+        public static readonly Option EnvironmentCloneOption = new ProgramOption(shortname: "ec", name: "environment-clone", usage: "[name] [name...]", description: "name: _ + number; default cloned is current one)");
+        public static readonly Option EnvironmentNewOption = new ProgramOption(shortname: "en", name: "environment-new", usage: "[name]", description: "name: _ + number)");
+        public static readonly Option EnvironmentDeleteOption = new ProgramOption(shortname: "ed", name: "environment-delete", usage: "[name]", description: "default: current; then the previous one on stack becomes current");
+        public static readonly Option EnvironmentAddOption = new ProgramOption(shortname: "ea", name: "environment-add", usage: "[name...]", description: "");
+        public static readonly Option EnvironmentUnionOption = new ProgramOption(shortname: "eu", name: "environment-union", usage: "[name...]", description: "");
+        public static readonly Option EnvironmentWorkOption = new ProgramOption(shortname: "ew", name: "environment-work", usage: "[name|#]", description: "move to top stack position");
+        public static readonly Option EnvironmentListOption = new ProgramOption(shortname: "el", name: "environment-list", usage: "| ev", description: "", moreNames: new[] { "ev" });
+        public static readonly Option EnvironmentForTransformOption = new ProgramOption(shortname: "et", name: "environment-for-transform", usage: "[+|-]", description: "");
+        public static readonly Option EnvironmentForReadOption = new ProgramOption(shortname: "er", name: "environment-for-read", usage: "[+|-]", description: "");
         public static readonly Option ReadPluginOption = new ProgramOption(shortname: "rp", name: "read-plugin", usage: "assembly reader filepattern [ +|- filepattern ...]", description: "Use <assembly.reader> to read files matching filepattern, but not second filepattern");
         public static readonly Option ReadFileOption = new ProgramOption(shortname: "rf", name: "read-file", usage: "reader filepattern [ +|- filepattern ...]", description: "Use predefined reader to read files matching filepattern, but not second filepattern");
         public static readonly Option ReadOption = new ProgramOption(shortname: "rd", name: "read", usage: "[filepattern] [ +|- filepattern ...]", description: "Use reader derived from file extension to read files matching filepattern, but not second filepattern");
@@ -90,7 +98,6 @@ namespace NDepCheck {
 
         public static readonly Option TransformPluginOption = new ProgramOption(shortname: "tp", name: "transform-plugin", usage: "assembly transformer [{ options }]", description: "Transform with <assembly.transformer> with options");
         public static readonly Option TransformOption = new ProgramOption(shortname: "tf", name: "transform", usage: "transformer  [{ options }]", description: "Transform with predefined transformer with options");
-        public static readonly Option TransformUndo = new ProgramOption(shortname: "tu", name: "transform-undo", usage: "", description: "Undo transformation");
         public static readonly Option TransformTestDataOption = new ProgramOption(shortname: "tt", name: "transform-testdata", usage: "assembly transformer [{ options }]", description: "Transform internal testdata with <assembly.transformer> with options");
         public static readonly Option TransformPluginHelpOption = new ProgramOption(shortname: "tp?", name: "transform-plugin-help", usage: "assembly [filter]", description: "Show help for all transformers in assembly", moreNames: new[] { "cp?" });
         public static readonly Option TransformHelpOption = new ProgramOption(shortname: "tf?", name: "transform-help", usage: "[filter]", description: "Show help for all predefined transformers", moreNames: new[] { "cf?" });
@@ -153,7 +160,8 @@ namespace NDepCheck {
             HelpAllOption, HelpDetailedHelpOption, DebugOption,
             ReadPluginOption, ReadOption, ReadFileOption, ReadPluginHelpOption, ReadHelpOption, ReadPluginDetailedHelpOption, ReadDetailedHelpOption,
             ConfigurePluginOption, ConfigureOption,
-            TransformPluginOption, TransformOption, TransformUndo, TransformTestDataOption, TransformPluginHelpOption, TransformHelpOption, TransformPluginDetailedHelpOption, TransformDetailedHelpOption,
+            EnvironmentCloneOption, EnvironmentNewOption, EnvironmentDeleteOption, EnvironmentAddOption, EnvironmentWorkOption, EnvironmentListOption, EnvironmentForTransformOption, EnvironmentForReadOption,
+            TransformPluginOption, TransformOption, TransformTestDataOption, TransformPluginHelpOption, TransformHelpOption, TransformPluginDetailedHelpOption, TransformDetailedHelpOption,
             WritePluginOption, WriteFileOption, WriteDipOption, WriteTestDataOption, WritePluginHelpOption, WriteHelpOption, WritePluginDetailedHelpOption, WriteDetailedHelpOption,
             CalculatePluginOption, CalculateOption, CalculatePluginHelpOption, CalculateHelpOption, CalculatePluginDetailedHelpOption, CalculateDetailedHelpOption,
             DoBreakOption, DoCommandOption, DoScriptOption, DoScriptLoggedOption, DoScriptHelpOption, DoDefineOption, DoResetOption, DoTimeOption,
@@ -186,7 +194,7 @@ namespace NDepCheck {
                 int lastResult = program.Run(args, new string[0], globalContext, writtenMasterFiles: null, logCommands: false);
 
                 while (program._webServer != null || program._interactiveLogFile != null || program._fileWatchers.Any()) {
-                        Console.WriteLine();
+                    Console.WriteLine();
                     Console.ForegroundColor = ConsoleColor.DarkGray;
                     Console.WriteLine(value: "Type /?<enter> for help; or q<enter> for stopping NDepCheck.");
                     Console.Write(value: globalContext.Name + " NDepCheck> ");
@@ -218,9 +226,9 @@ namespace NDepCheck {
                 if (Log.IsChattyEnabled)
                     Console.WriteLine(ex);
                 return EXCEPTION_RESULT;
-            } finally {
-                // Main may be called multiple times in tests; therefore we clear all caches
-                Intern.ResetAll();
+            //} finally {
+            //    // Main may be called multiple times in tests; therefore we clear all caches
+            //    Intern.ResetAll();
             }
         }
 
@@ -272,10 +280,42 @@ namespace NDepCheck {
                         string filter = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true);
                         return UsageAndExit(message: null, globalContext: globalContext, withIntro: true,
                                             detailed: true, filter: filter ?? "");
-                    } else if (Option.ArgMatches(arg, "debug")) {
+                    } else if (DebugOption.IsMatch(arg)) {
                         globalContext.StopAbortWatchDog();
                         globalContext.AbortTime = TimeSpan.FromMilliseconds(int.MaxValue); // max. value allowed for CancellationTokenSource.CancelAfter()
                         Debugger.Launch();
+                    } else if (EnvironmentCloneOption.IsMatch(arg)) {
+                        // -ec [name] [name...]    
+                        string newName = ExtractOptionValue(globalContext, args, ref i);
+                        IEnumerable<string> clonedNames = ExtractValueList(globalContext, args, ref i);
+                        globalContext.CloneEnvironments(newName, clonedNames);
+                    } else if (EnvironmentNewOption.IsMatch(arg)) {
+                        // -en [name]              
+                        string newName = ExtractOptionValue(globalContext, args, ref i);
+                        globalContext.PushNewEnvironment(newName);
+                    } else if (EnvironmentDeleteOption.IsMatch(arg)) {
+                        // -ed [name...]
+                        IEnumerable<string> namesToBeDeleted = ExtractValueList(globalContext, args, ref i);
+                        globalContext.DeleteEnvironments(namesToBeDeleted);
+                    } else if (EnvironmentAddOption.IsMatch(arg) || EnvironmentUnionOption.IsMatch(arg)) {
+                        // -ea [name...]
+                        IEnumerable<string> namesToBeAdded = ExtractValueList(globalContext, args, ref i);
+                        globalContext.AddEnvironments(namesToBeAdded, EnvironmentUnionOption.IsMatch(arg));
+                    } else if (EnvironmentWorkOption.IsMatch(arg)) {
+                        // -ew [name|#]      
+                        string id = ExtractOptionValue(globalContext, args, ref i);
+                        globalContext.MakeTop(id);
+                    } else if (EnvironmentListOption.IsMatch(arg)) {
+                        // -el | ev                
+                        globalContext.ListEnvironments();
+                    } else if (EnvironmentForTransformOption.IsMatch(arg)) {
+                        // -et [+|-]               
+                        string flag = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true);
+                        globalContext.AutoForTransform(flag);
+                    } else if (EnvironmentForReadOption.IsMatch(arg)) {
+                        // -er [+|-]               
+                        string flag = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true);
+                        globalContext.AutoForRead(flag);
                     } else if (ReadPluginOption.IsMatch(arg)) {
                         // -rp    assembly reader filepattern [ +|- filepattern ...]
 
@@ -346,9 +386,6 @@ namespace NDepCheck {
                         string transformer = ExtractOptionValue(globalContext, args, ref i);
                         string transformerOptions = ExtractNextValue(globalContext, args, ref i);
                         SetResult(ref result, globalContext.Transform("", transformer, transformerOptions));
-                    } else if (TransformUndo.IsMatch(arg)) {
-                        // -tu
-                        globalContext.UndoTransform();
                     } else if (TransformTestDataOption.IsMatch(arg)) {
                         // -tt    assembly transformer [{ options }]
                         string assemblyName = ExtractOptionValue(globalContext, args, ref i);
@@ -428,13 +465,13 @@ namespace NDepCheck {
                         string varname = ExtractOptionValue(globalContext, args, ref i);
                         string assemblyName = ExtractNextValue(globalContext, args, ref i);
                         string calculator = ExtractNextValue(globalContext, args, ref i);
-                        List<string> input = ExtractInputVars(globalContext, args, ref i);
+                        IEnumerable<string> input = ExtractValueList(globalContext, args, ref i);
                         globalContext.Calculate(varname, assemblyName, calculator, input);
                     } else if (CalculateOption.IsMatch(arg)) {
                         // -xf    varname calculator [varname ...]
                         string varname = ExtractOptionValue(globalContext, args, ref i);
                         string calculator = ExtractNextValue(globalContext, args, ref i);
-                        List<string> input = ExtractInputVars(globalContext, args, ref i);
+                        IEnumerable<string> input = ExtractValueList(globalContext, args, ref i);
                         globalContext.Calculate(varname, "", calculator, input);
                     } else if (CalculatePluginHelpOption.IsMatch(arg)) {
                         // -xa?    assembly [filter]
@@ -464,14 +501,14 @@ namespace NDepCheck {
                         // -dc    command
                         string cmd = ExtractRequiredOptionValue(globalContext, args, ref i, "Missing command after -dc");
                         int maxRunTime = ExtractRequiredIntOptionValue(globalContext, args, ref i, "Missing maximum runtime in seconds after -dc");
-                        string cmdArgs = ExtractNextValue(globalContext, args, ref i).TrimStart('{', ' ', '\r', '\n').TrimEnd('}', ' ', '\r', '\n').Replace(Environment.NewLine, " ");
+                        string cmdArgs = ExtractNextValue(globalContext, args, ref i).TrimStart('{', ' ', '\r', '\n').TrimEnd('}', ' ', '\r', '\n').Replace(System.Environment.NewLine, " ");
                         try {
                             var process = new Process {
                                 StartInfo =
                                     new ProcessStartInfo(cmd) {
                                         UseShellExecute = false,
                                         Arguments = cmdArgs,
-                                        WorkingDirectory = Environment.CurrentDirectory,
+                                        WorkingDirectory = System.Environment.CurrentDirectory,
                                         RedirectStandardError = true,
                                         RedirectStandardOutput = true
                                     }
@@ -605,13 +642,13 @@ namespace NDepCheck {
                         // -cd    [directory]
                         string directory = ExtractOptionValue(globalContext, args, ref i);
                         if (directory == null) {
-                            Log.WriteInfo(Environment.CurrentDirectory);
+                            Log.WriteInfo(System.Environment.CurrentDirectory);
                         } else {
                             if (!Directory.Exists(directory)) {
                                 Log.WriteError($"'{directory}' does not exist");
                             } else {
-                                Environment.CurrentDirectory = directory;
-                                Log.WriteInfo(Path.GetFullPath(Environment.CurrentDirectory));
+                                System.Environment.CurrentDirectory = directory;
+                                Log.WriteInfo(Path.GetFullPath(System.Environment.CurrentDirectory));
                             }
                         }
                     } else if (ListFilesOption.IsMatch(arg)) {
@@ -628,7 +665,7 @@ namespace NDepCheck {
                         ListFilesAndDirectories(recursive, filename);
                     } else if (GarbageCollectionOption.IsMatch(arg)) {
                         GC.Collect(2);
-                        Log.WriteInfo($"Process has {Environment.WorkingSet / 1024 / 1024} MB allocated, " +
+                        Log.WriteInfo($"Process has {System.Environment.WorkingSet / 1024 / 1024} MB allocated, " +
                                       $"{GC.GetTotalMemory(true) / 1024 / 1024} MB managed memory.");
                     } else if (LogVerboseOption.IsMatch(arg)) {
                         // -lv
@@ -824,7 +861,7 @@ namespace NDepCheck {
             const int MAX = 100;
             SearchOption searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
             string directoryName = Path.GetDirectoryName(filename);
-            string directory = string.IsNullOrWhiteSpace(directoryName) ? Environment.CurrentDirectory : directoryName;
+            string directory = string.IsNullOrWhiteSpace(directoryName) ? System.Environment.CurrentDirectory : directoryName;
             string pattern = Path.GetFileName(filename) ?? "*";
             IEnumerable<string> names = Directory.GetFiles(directory, pattern, searchOption)
                 .Select(s => "  " + s)
@@ -856,7 +893,7 @@ namespace NDepCheck {
             }
         }
 
-        private static List<string> ExtractInputVars([NotNull] GlobalContext globalContext, string[] args, ref int i) {
+        private static IEnumerable<string> ExtractValueList([NotNull] GlobalContext globalContext, string[] args, ref int i) {
             var input = new List<string>();
             for (var s = ExtractNextValue(globalContext, args, ref i); s != null; s = ExtractNextValue(globalContext, args, ref i)) {
                 input.Add(s);
@@ -927,15 +964,15 @@ namespace NDepCheck {
                     args = args.Skip(i).ToArray();
 
                     var locallyWrittenFiles = new List<string>();
-                    string previousCurrentDirectory = Environment.CurrentDirectory;
+                    string previousCurrentDirectory = System.Environment.CurrentDirectory;
                     ValuesFrame previousLocals = globalContext.SetLocals(locals);
                     try {
-                        Environment.CurrentDirectory = Path.GetDirectoryName(path: Path.GetFullPath(fileName)) ?? "";
+                        System.Environment.CurrentDirectory = Path.GetDirectoryName(path: Path.GetFullPath(fileName)) ?? "";
                         return Run(args: args, passedValues: passedValues, globalContext: globalContext,
                                    writtenMasterFiles: locallyWrittenFiles, logCommands: logCommands);
                     } finally {
                         writtenMasterFiles?.AddRange(collection: locallyWrittenFiles.Select(Path.GetFullPath));
-                        Environment.CurrentDirectory = previousCurrentDirectory;
+                        System.Environment.CurrentDirectory = previousCurrentDirectory;
                         globalContext.SetLocals(previousLocals);
                     }
                 }

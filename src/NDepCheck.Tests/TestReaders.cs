@@ -10,6 +10,8 @@ namespace NDepCheck.Tests {
     public class TestReaders {
         [TestMethod]
         public void TestDipWithProxies() {
+            var gc = new GlobalContext();
+
             using (var f = DisposingFile.CreateTempFileWithTail(".dip")) {
                 using (TextWriter tw = new StreamWriter(f.FileName)) {
                     tw.Write(@"$ NKK(Name:Key1:Key2)
@@ -23,13 +25,13 @@ namespace NDepCheck.Tests {
                 }
 
                 IEnumerable<Dependency> dependencies =
-                    new DipReaderFactory().CreateReader(f.FileName, false).ReadDependencies(0, ignoreCase: false);
+                    new DipReaderFactory().CreateReader(f.FileName, false).ReadDependencies(gc.CurrentEnvironment, 0, ignoreCase: false);
                 Assert.IsNotNull(dependencies);
                 Item[] items = dependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }).Distinct().ToArray();
                 Assert.AreEqual(3, items.Length);
-                Assert.IsTrue(items.Contains(Item.New(ItemType.Find("NKK"), "a", "keyA1", "KEYa1")));
-                Assert.IsTrue(items.Contains(Item.New(ItemType.Find("NKK"), "a", "keyA2", "KEYa2")));
-                Assert.IsTrue(items.Contains(Item.New(ItemType.Find("NKK"), "b", "", "KEYb")));
+                Assert.IsTrue(items.Contains(Item.New(gc.CurrentEnvironment.ItemCache, ItemType.Find("NKK"), "a", "keyA1", "KEYa1")));
+                Assert.IsTrue(items.Contains(Item.New(gc.CurrentEnvironment.ItemCache, ItemType.Find("NKK"), "a", "keyA2", "KEYa2")));
+                Assert.IsTrue(items.Contains(Item.New(gc.CurrentEnvironment.ItemCache, ItemType.Find("NKK"), "b", "", "KEYb")));
             }
         }
 

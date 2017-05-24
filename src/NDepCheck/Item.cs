@@ -65,8 +65,8 @@ namespace NDepCheck {
         private ItemTail([NotNull]ItemType type, [NotNull]string[] values) : base(type, values) {
         }
 
-        public static ItemTail New([NotNull] ItemType type, [NotNull] string[] values) {
-            return Intern<ItemTail>.GetReference(new ItemTail(type, values));
+        public static ItemTail New(Intern<ItemTail> cache, [NotNull] ItemType type, [NotNull] string[] values) {
+            return cache.GetReference(new ItemTail(type, values));
         }
 
         public override string ToString() {
@@ -188,10 +188,10 @@ namespace NDepCheck {
             return result;
         }
 
-        public static void Reset() {
-            Intern<ItemTail>.Reset();
-            Intern<Item>.Reset();
-        }
+        ////public static void Reset() {
+        ////    Intern<ItemTail>.Reset();
+        ////    Intern<Item>.Reset();
+        ////}
 
         public bool IsMatch([CanBeNull] IEnumerable<ItemMatch> matches, [CanBeNull] IEnumerable<ItemMatch> excludes) {
             return (matches == null || !matches.Any() || matches.Any(m => m.Matches(this).Success)) &&
@@ -218,19 +218,19 @@ namespace NDepCheck {
             _markerSet = new MutableMarkerSet(type.IgnoreCase, markers: null);
         }
 
-        public static Item New([NotNull] ItemType type, [ItemNotNull] params string[] values) {
-            return Intern<Item>.GetReference(new Item(type, values));
+        public static Item New(Intern<Item> itemCache, [NotNull] ItemType type, [ItemNotNull] params string[] values) {
+            return itemCache.GetReference(new Item(type, values));
         }
 
-        public static Item New([NotNull] ItemType type, [ItemNotNull] string[] values, [CanBeNull, ItemNotNull] string[] markers) {
+        public static Item New(Intern<Item> ítemCache, [NotNull] ItemType type, [ItemNotNull] string[] values, [CanBeNull] [ItemNotNull] string[] markers) {
             Item searchedItem = new Item(type, values);
             searchedItem._markerSet.MergeWithMarkers(AbstractMarkerSet.CreateMarkerSetWithClonedDictionary(type.IgnoreCase, markers));
-            Item item = Intern<Item>.GetReference(searchedItem);
+            Item item = ítemCache.GetReference(searchedItem);
             return item;
         }
 
-        public static Item New([NotNull] ItemType type, [NotNull] string reducedName) {
-            return New(type, reducedName.Split(':'));
+        public static Item New(Intern<Item> itemCache, [NotNull] ItemType type, [NotNull] string reducedName) {
+            return New(itemCache, type, reducedName.Split(':'));
         }
 
         public override IMarkerSet MarkerSet => _markerSet;

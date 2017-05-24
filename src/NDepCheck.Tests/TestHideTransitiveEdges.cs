@@ -12,10 +12,10 @@ namespace NDepCheck.Tests {
         ////    fromNode.AddEdgeTo(toNode);
         ////}
 
-        private Item GetOrCreate(Dictionary<string, Item> nodes, string name) {
+        private Item GetOrCreate(Environment environment, Dictionary<string, Item> nodes, string name) {
             Item result;
             if (!nodes.TryGetValue(name, out result)) {
-                nodes.Add(name, result = Item.New(TEST, new[] { name }));
+                nodes.Add(name, result = Item.New(environment.ItemCache, TEST, new[] { name }));
             }
             return result;
         }

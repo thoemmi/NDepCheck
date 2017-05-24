@@ -36,7 +36,7 @@ namespace NDepCheck.Rendering.TextWriting {
             output.WriteLine("}");
         }
 
-        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
+        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
             int? maxExampleLength = null;
             ItemMatch innerMatch = null;
             Option.Parse(globalContext, argsAsString,
@@ -78,8 +78,8 @@ $@"  Writes dependencies to file in .dot format (graphviz; see http://graphviz.o
             return GetDotFileName(baseTarget);
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies() {
-            return RendererSupport.CreateSomeTestItems();
+        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
+            return RendererSupport.CreateSomeTestItems(renderingEnvironment);
         }
     }
 }

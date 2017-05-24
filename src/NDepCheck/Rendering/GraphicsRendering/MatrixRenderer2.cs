@@ -41,7 +41,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             }
         }
 
-        public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, int? dependenciesCount, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
+        public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
             int? labelWidthOrNull;
             bool withNotOkCt;
             ItemMatch itemMatchOrNull;

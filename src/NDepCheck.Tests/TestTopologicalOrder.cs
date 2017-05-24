@@ -165,9 +165,11 @@ namespace NDepCheck.Tests {
         //}
         [TestMethod]
         public void TestOneTopologicalSortStep() {
-            Item a = Item.New(ItemType.SIMPLE, "a");
-            Item b = Item.New(ItemType.SIMPLE, "b");
-            Item c = Item.New(ItemType.SIMPLE, "c");
+            var gc = new GlobalContext();
+
+            Item a = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "a");
+            Item b = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "b");
+            Item c = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "c");
             var dependencies = new[] {
                 new Dependency(a, b, source: null, markers: "", ct:1),
                 new Dependency(c, a, source: null, markers: "", ct:100),
