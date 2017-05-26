@@ -42,7 +42,7 @@ namespace NDepCheck {
         //   ec [name] [name...]    environment-clone (default name: _ + number; default cloned is current one)
         //   en [name]              environment-new (default name: _ + number)
         //   ed [name]              environment-delete (default: current; then the previous one on stack becomes current)
-        //   ea [name...]           environment-add (default: previous one)
+        //   ei [name...]           environment-include (default: previous one)
         //   ew [name|#]            environment-work (move to top stack position)
         //   el | ev                environment-list (ev can be typed with one hand ...)
         //   et [+|-]               environment-for-transform
@@ -79,12 +79,13 @@ namespace NDepCheck {
         public static readonly Option EnvironmentCloneOption = new ProgramOption(shortname: "ec", name: "environment-clone", usage: "[name] [name...]", description: "name: _ + number; default cloned is current one)");
         public static readonly Option EnvironmentNewOption = new ProgramOption(shortname: "en", name: "environment-new", usage: "[name]", description: "name: _ + number)");
         public static readonly Option EnvironmentDeleteOption = new ProgramOption(shortname: "ed", name: "environment-delete", usage: "[name]", description: "default: current; then the previous one on stack becomes current");
-        public static readonly Option EnvironmentAddOption = new ProgramOption(shortname: "ea", name: "environment-add", usage: "[name...]", description: "");
-        public static readonly Option EnvironmentUnionOption = new ProgramOption(shortname: "eu", name: "environment-union", usage: "[name...]", description: "");
+        public static readonly Option EnvironmentIncludeOption = new ProgramOption(shortname: "ei", name: "environment-include", usage: "[name...]", description: "default: include the one below the current environment");
+        public static readonly Option EnvironmentUnionOption = new ProgramOption(shortname: "eu", name: "environment-union", usage: "[name...]", description: "default: include the one below the current environment, and then remove it");
         public static readonly Option EnvironmentWorkOption = new ProgramOption(shortname: "ew", name: "environment-work", usage: "[name|#]", description: "move to top stack position");
         public static readonly Option EnvironmentListOption = new ProgramOption(shortname: "el", name: "environment-list", usage: "| ev", description: "", moreNames: new[] { "ev" });
         public static readonly Option EnvironmentForTransformOption = new ProgramOption(shortname: "et", name: "environment-for-transform", usage: "[+|-]", description: "");
         public static readonly Option EnvironmentForReadOption = new ProgramOption(shortname: "er", name: "environment-for-read", usage: "[+|-]", description: "");
+
         public static readonly Option ReadPluginOption = new ProgramOption(shortname: "rp", name: "read-plugin", usage: "assembly reader filepattern [ +|- filepattern ...]", description: "Use <assembly.reader> to read files matching filepattern, but not second filepattern");
         public static readonly Option ReadFileOption = new ProgramOption(shortname: "rf", name: "read-file", usage: "reader filepattern [ +|- filepattern ...]", description: "Use predefined reader to read files matching filepattern, but not second filepattern");
         public static readonly Option ReadOption = new ProgramOption(shortname: "rd", name: "read", usage: "[filepattern] [ +|- filepattern ...]", description: "Use reader derived from file extension to read files matching filepattern, but not second filepattern");
@@ -160,7 +161,7 @@ namespace NDepCheck {
             HelpAllOption, HelpDetailedHelpOption, DebugOption,
             ReadPluginOption, ReadOption, ReadFileOption, ReadPluginHelpOption, ReadHelpOption, ReadPluginDetailedHelpOption, ReadDetailedHelpOption,
             ConfigurePluginOption, ConfigureOption,
-            EnvironmentCloneOption, EnvironmentNewOption, EnvironmentDeleteOption, EnvironmentAddOption, EnvironmentWorkOption, EnvironmentListOption, EnvironmentForTransformOption, EnvironmentForReadOption,
+            EnvironmentCloneOption, EnvironmentNewOption, EnvironmentDeleteOption, EnvironmentIncludeOption, EnvironmentWorkOption, EnvironmentListOption, EnvironmentForTransformOption, EnvironmentForReadOption,
             TransformPluginOption, TransformOption, TransformTestDataOption, TransformPluginHelpOption, TransformHelpOption, TransformPluginDetailedHelpOption, TransformDetailedHelpOption,
             WritePluginOption, WriteFileOption, WriteDipOption, WriteTestDataOption, WritePluginHelpOption, WriteHelpOption, WritePluginDetailedHelpOption, WriteDetailedHelpOption,
             CalculatePluginOption, CalculateOption, CalculatePluginHelpOption, CalculateHelpOption, CalculatePluginDetailedHelpOption, CalculateDetailedHelpOption,
@@ -197,7 +198,7 @@ namespace NDepCheck {
                     Console.WriteLine();
                     Console.ForegroundColor = ConsoleColor.DarkGray;
                     Console.WriteLine(value: "Type /?<enter> for help; or q<enter> for stopping NDepCheck.");
-                    Console.Write(value: globalContext.Name + " NDepCheck> ");
+                    Console.Write(value: globalContext.CurrentEnvironment.Name + "> ");
                     Console.ResetColor();
                     string commands = Console.ReadLine();
                     string lowerInvariant = commands?.Trim().ToLowerInvariant();
@@ -297,10 +298,10 @@ namespace NDepCheck {
                         // -ed [name...]
                         IEnumerable<string> namesToBeDeleted = ExtractValueList(globalContext, args, ref i);
                         globalContext.DeleteEnvironments(namesToBeDeleted);
-                    } else if (EnvironmentAddOption.IsMatch(arg) || EnvironmentUnionOption.IsMatch(arg)) {
+                    } else if (EnvironmentIncludeOption.IsMatch(arg) || EnvironmentUnionOption.IsMatch(arg)) {
                         // -ea [name...]
                         IEnumerable<string> namesToBeAdded = ExtractValueList(globalContext, args, ref i);
-                        globalContext.AddEnvironments(namesToBeAdded, EnvironmentUnionOption.IsMatch(arg));
+                        globalContext.IncludeEnvironments(namesToBeAdded, EnvironmentUnionOption.IsMatch(arg));
                     } else if (EnvironmentWorkOption.IsMatch(arg)) {
                         // -ew [name|#]      
                         string id = ExtractOptionValue(globalContext, args, ref i);

@@ -60,21 +60,11 @@ namespace NDepCheck {
             get; set;
         }
 
-        public string Name {
-            get;
-        }
-
         public TimeSpan TimeLongerThan { get; set; } = TimeSpan.FromSeconds(10);
         public TimeSpan AbortTime { get; set; } = TimeSpan.FromSeconds(10);
 
         [CanBeNull]
         private CancellationTokenSource _cancellationTokenSource;
-
-        private static int _cxtId = 0;
-
-        public GlobalContext() {
-            Name = "[" + ++_cxtId + "]";
-        }
 
         public void SetDefine(string key, string value, string location) {
             _globalValues.SetDefine(key, value, location);
@@ -582,10 +572,20 @@ namespace NDepCheck {
             }
         }
 
-        #endregion Environment handling
-
         private static Environment CreateDefaultEnvironment() {
             return new Environment("#0", EnvironmentCreationType.Manual, new Dependency[0]);
+        }
+
+        private Environment FindEnvironment(string name) {
+            Environment result = _environments.FirstOrDefault(e => e.Name == name) ??
+                                 _environments.FirstOrDefault(e => e.Name.StartsWith(name));
+            if (result == null) {
+                int id;
+                if (int.TryParse(name, out id) && id > 0 && id <= _environments.Count) {
+                    result = _environments[_environments.Count - id];
+                }
+            }
+            return result;
         }
 
         public void CloneEnvironments(string newName, IEnumerable<string> clonedNames) {
@@ -599,21 +599,9 @@ namespace NDepCheck {
                     }
                 }
             } else {
-                var e = CurrentEnvironment;
+                Environment e = CurrentEnvironment;
                 CreateEnvironment(e.Name, EnvironmentCreationType.Manual, e.Dependencies.Select(d => d.Clone()));
             }
-        }
-
-        private Environment FindEnvironment(string name) {
-            Environment result = _environments.FirstOrDefault(e => e.Name == name) ??
-                                 _environments.FirstOrDefault(e => e.Name.StartsWith(name));
-            if (result == null) {
-                int id;
-                if (int.TryParse(name, out id) && id > 1 && id <= _environments.Count) {
-                    result = _environments[_environments.Count - id];
-                }
-            }
-            return result;
         }
 
         public void PushNewEnvironment(string newName) {
@@ -621,30 +609,44 @@ namespace NDepCheck {
         }
 
         public void DeleteEnvironments(IEnumerable<string> namesToBeDeleted) {
-            foreach (var n in namesToBeDeleted) {
-                Environment e = FindEnvironment(n);
-                if (e == null) {
-                    Log.WriteWarning($"No environment with name '{n}' found");
-                } else {
-                    _environments.Remove(e);
+            if (namesToBeDeleted.Any()) {
+                foreach (var n in namesToBeDeleted) {
+                    Environment e = FindEnvironment(n);
+                    if (e == null) {
+                        Log.WriteWarning($"No environment with name '{n}' found");
+                    } else {
+                        _environments.Remove(e);
+                    }
                 }
+            } else {
+                _environments.RemoveAt(_environments.Count - 1);
             }
             if (!_environments.Any()) {
                 _environments.Add(CreateDefaultEnvironment());
             }
         }
 
-        public void AddEnvironments(IEnumerable<string> namesToBeAdded, bool removeUnioned) {
-            if (namesToBeAdded.Contains(CurrentEnvironment.Name)) {
+        public void IncludeEnvironments(IEnumerable<string> namesToBeIncluded, bool removeIncluded) {
+            if (namesToBeIncluded.Contains(CurrentEnvironment.Name)) {
                 Log.WriteError($"Cannot add current environment to itself");
             }
-            foreach (var n in namesToBeAdded) {
-                Environment e = FindEnvironment(n);
-                if (e == null) {
-                    Log.WriteError($"No environment with name '{n}' found");
-                } else {
+            if (namesToBeIncluded.Any()) {
+                foreach (var n in namesToBeIncluded) {
+                    Environment e = FindEnvironment(n);
+                    if (e == null) {
+                        Log.WriteError($"No environment with name '{n}' found");
+                    } else {
+                        CurrentEnvironment.AddDependencies(e.Dependencies);
+                        if (removeIncluded) {
+                            _environments.Remove(e);
+                        }
+                    }
+                }
+            } else {
+                if (_environments.Count >= 2) {
+                    Environment e = _environments[_environments.Count - 2];
                     CurrentEnvironment.AddDependencies(e.Dependencies);
-                    if (removeUnioned) {
+                    if (removeIncluded) {
                         _environments.Remove(e);
                     }
                 }
@@ -662,9 +664,11 @@ namespace NDepCheck {
         }
 
         public void ListEnvironments() {
-            for (int i = _environments.Count - 1; i >= 0; i++) {
+            for (int i = _environments.Count - 1; i >= 0; i--) {
                 Log.WriteInfo(_environments.Count - i + ": " + _environments[i]);
             }
         }
+
+        #endregion Environment handling
     }
 }
