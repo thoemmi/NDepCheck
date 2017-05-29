@@ -244,26 +244,24 @@ namespace NDepCheck.Tests {
         private static List<Dependency> ProjectMarkCyclesAndBackProject(Dependency[] deps, GlobalContext globalContext) {
             var backProjectedDeps = new List<Dependency>();
 
-            using (var t = DisposingFile.CreateTempFileWithTail(".dip")) {
-                var dw = new DipWriter();
-                var wt = new WriteTarget(t.FileName, append: false, limitLinesForConsole: int.MaxValue);
-                dw.Render(globalContext, deps, argsAsString: "", target: wt, ignoreCase: false);
+            globalContext.RenameCurrentEnvironment("INPUT");
+            globalContext.CurrentEnvironment.AddDependencies(deps);
 
-                var pi = new ProjectItems();
-                pi.Configure(globalContext,
-                    $"{{ {ProjectItems.ProjectionsOption} $GENERIC_2---%SIMPLE !(**) }}".Replace(" ", System.Environment.NewLine),
-                    false);
-                var projectedDeps = new List<Dependency>();
-                pi.Transform(globalContext, deps, "", projectedDeps);
+            var pi = new ProjectItems();
+            pi.Configure(globalContext,
+                $"{{ {ProjectItems.ProjectionsOption} $GENERIC_2---%SIMPLE !(**) }}".Replace(" ", System.Environment.NewLine),
+                false);
+            var projectedDeps = new List<Dependency>();
+            pi.Transform(globalContext, deps, "", projectedDeps);
 
-                var mc = new MarkCycleDeps();
-                mc.Transform(globalContext, projectedDeps,
-                    $"{{ {MarkCycleDeps.IgnoreSelfCyclesOption} {MarkCycleDeps.AddIndexedMarkerOption} C }}".Replace(" ", System.Environment.NewLine), new List<Dependency>());
+            var mc = new MarkCycleDeps();
+            mc.Transform(globalContext, projectedDeps,
+                $"{{ {MarkCycleDeps.IgnoreSelfCyclesOption} {MarkCycleDeps.AddIndexedMarkerOption} C }}".Replace(" ", System.Environment.NewLine), new List<Dependency>());
 
-                pi.Transform(globalContext, projectedDeps,
-                    $"{{ {ProjectItems.BackProjectionDipFileOption} {t.FileName} }}".Replace(" ", System.Environment.NewLine),
-                    backProjectedDeps);
-            }
+            pi.Transform(globalContext, projectedDeps,
+                $"{{ {ProjectItems.BackProjectionEnvironmentOption} INPUT }}".Replace(" ", System.Environment.NewLine),
+                backProjectedDeps);
+
             return backProjectedDeps;
         }
 

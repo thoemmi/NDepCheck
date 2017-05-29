@@ -576,7 +576,8 @@ namespace NDepCheck {
             return new Environment("#0", EnvironmentCreationType.Manual, new Dependency[0]);
         }
 
-        private Environment FindEnvironment(string name) {
+        [CanBeNull]
+        private Environment FindEnvironment([NotNull] string name) {
             Environment result = _environments.FirstOrDefault(e => e.Name == name) ??
                                  _environments.FirstOrDefault(e => e.Name.StartsWith(name));
             if (result == null) {
@@ -586,6 +587,17 @@ namespace NDepCheck {
                 }
             }
             return result;
+        }
+
+        /// <summary>
+        /// Return dependencies in environment identified by name; if name is null, return the
+        /// environment below the current environment, if it exists.
+        /// </summary>
+        [CanBeNull]
+        public IEnumerable<Dependency> FindDependenciesInEnvironment([CanBeNull] string name) {
+            return name == null
+                ? (_environments.Count >= 2 ? _environments[_environments.Count - 2].Dependencies : null)
+                : FindEnvironment(name)?.Dependencies;
         }
 
         public void CloneEnvironments(string newName, IEnumerable<string> clonedNames) {
@@ -670,5 +682,9 @@ namespace NDepCheck {
         }
 
         #endregion Environment handling
+
+        public void RenameCurrentEnvironment(string newName) {
+            CurrentEnvironment.Name = newName;
+        }
     }
 }

@@ -112,7 +112,7 @@ namespace NDepCheck {
 
         [DebuggerStepThrough]
         public override bool Equals(object obj) {
-            TItem other = obj as TItem;
+            AbstractItem<TItem> other = obj as AbstractItem<TItem>;
             return other != null && EqualsSegment(other);
         }
 

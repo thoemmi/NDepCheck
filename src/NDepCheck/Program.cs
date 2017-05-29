@@ -38,9 +38,10 @@ namespace NDepCheck {
         //   ...  
         // d    do
         //   ...  
-        // e    environment     NOT YET IMPLEMENTED
+        // e    environment
         //   ec [name] [name...]    environment-clone (default name: _ + number; default cloned is current one)
-        //   en [name]              environment-new (default name: _ + number)
+        //   ee [name]              environment-empty (default name: _ + number)
+        //   en name                environment-name
         //   ed [name]              environment-delete (default: current; then the previous one on stack becomes current)
         //   ei [name...]           environment-include (default: previous one)
         //   ew [name|#]            environment-work (move to top stack position)
@@ -76,8 +77,9 @@ namespace NDepCheck {
         public static readonly Option HelpDetailedHelpOption = new ProgramOption(shortname: "!", name: "help-detail", usage: "[filter]", description: "write extensive help", moreNames: new[] { "man" });
         public static readonly Option DebugOption = new ProgramOption(shortname: "debug", name: "debug", usage: "", description: "start .Net debugger");
 
-        public static readonly Option EnvironmentCloneOption = new ProgramOption(shortname: "ec", name: "environment-clone", usage: "[name] [name...]", description: "name: _ + number; default cloned is current one)");
-        public static readonly Option EnvironmentNewOption = new ProgramOption(shortname: "en", name: "environment-new", usage: "[name]", description: "name: _ + number)");
+        public static readonly Option EnvironmentCloneOption = new ProgramOption(shortname: "ec", name: "environment-clone", usage: "[name] [name...]", description: "Default name: _ + number; default cloned is current one)");
+        public static readonly Option EnvironmentEmptyOption = new ProgramOption(shortname: "ee", name: "environment-empty", usage: "[name]", description: "Default name: name: _ + number)");
+        public static readonly Option EnvironmentNameOption = new ProgramOption(shortname: "en", name: "environment-name", usage: "name", description: "Rename current environment");
         public static readonly Option EnvironmentDeleteOption = new ProgramOption(shortname: "ed", name: "environment-delete", usage: "[name]", description: "default: current; then the previous one on stack becomes current");
         public static readonly Option EnvironmentIncludeOption = new ProgramOption(shortname: "ei", name: "environment-include", usage: "[name...]", description: "default: include the one below the current environment");
         public static readonly Option EnvironmentUnionOption = new ProgramOption(shortname: "eu", name: "environment-union", usage: "[name...]", description: "default: include the one below the current environment, and then remove it");
@@ -159,18 +161,36 @@ namespace NDepCheck {
 
         private static readonly Option[] _allOptions = {
             HelpAllOption, HelpDetailedHelpOption, DebugOption,
+
             ReadPluginOption, ReadOption, ReadFileOption, ReadPluginHelpOption, ReadHelpOption, ReadPluginDetailedHelpOption, ReadDetailedHelpOption,
+
             ConfigurePluginOption, ConfigureOption,
-            EnvironmentCloneOption, EnvironmentNewOption, EnvironmentDeleteOption, EnvironmentIncludeOption, EnvironmentWorkOption, EnvironmentListOption, EnvironmentForTransformOption, EnvironmentForReadOption,
-            TransformPluginOption, TransformOption, TransformTestDataOption, TransformPluginHelpOption, TransformHelpOption, TransformPluginDetailedHelpOption, TransformDetailedHelpOption,
-            WritePluginOption, WriteFileOption, WriteDipOption, WriteTestDataOption, WritePluginHelpOption, WriteHelpOption, WritePluginDetailedHelpOption, WriteDetailedHelpOption,
-            CalculatePluginOption, CalculateOption, CalculatePluginHelpOption, CalculateHelpOption, CalculatePluginDetailedHelpOption, CalculateDetailedHelpOption,
-            DoBreakOption, DoCommandOption, DoScriptOption, DoScriptLoggedOption, DoScriptHelpOption, DoDefineOption, DoResetOption, DoTimeOption,
+
+            EnvironmentCloneOption, EnvironmentEmptyOption, EnvironmentNameOption, EnvironmentDeleteOption, EnvironmentIncludeOption,
+            EnvironmentWorkOption, EnvironmentListOption, EnvironmentForTransformOption, EnvironmentForReadOption,
+
+            TransformPluginOption, TransformOption, TransformTestDataOption, TransformPluginHelpOption, TransformHelpOption,
+            TransformPluginDetailedHelpOption, TransformDetailedHelpOption,
+
+            WritePluginOption, WriteFileOption, WriteDipOption, WriteTestDataOption, WritePluginHelpOption, WriteHelpOption,
+            WritePluginDetailedHelpOption, WriteDetailedHelpOption,
+
+            CalculatePluginOption, CalculateOption, CalculatePluginHelpOption, CalculateHelpOption, CalculatePluginDetailedHelpOption,
+            CalculateDetailedHelpOption,
+
+            DoBreakOption, DoCommandOption, DoScriptOption, DoScriptLoggedOption, DoScriptHelpOption, DoDefineOption, DoResetOption,
+            DoTimeOption,
+
             WatchFilesOption, UnwatchFilesOption, UnwatchTriggersOption,
+
             HttpRunOption, HttpStopOption,
+
             IgnoreCaseOption,
+
             InteractiveOption, InteractiveStopOption, ListDependenciesOption, ListItemsOption, CountDependenciesOption, CountItemsOption,
-            CurrentDirectoryOption, ListFilesOption, GarbageCollectionOption, LogVerboseOption, LogChattyOption, LogReducedOption, LazyOption,
+
+            CurrentDirectoryOption, ListFilesOption, GarbageCollectionOption, LogVerboseOption, LogChattyOption, LogReducedOption,
+            LazyOption,
         };
 
         private readonly List<FileWatcher> _fileWatchers = new List<FileWatcher>();
@@ -290,10 +310,14 @@ namespace NDepCheck {
                         string newName = ExtractOptionValue(globalContext, args, ref i);
                         IEnumerable<string> clonedNames = ExtractValueList(globalContext, args, ref i);
                         globalContext.CloneEnvironments(newName, clonedNames);
-                    } else if (EnvironmentNewOption.IsMatch(arg)) {
-                        // -en [name]              
+                    } else if (EnvironmentEmptyOption.IsMatch(arg)) {
+                        // -ee [name]              
                         string newName = ExtractOptionValue(globalContext, args, ref i);
                         globalContext.PushNewEnvironment(newName);
+                    } else if (EnvironmentNameOption.IsMatch(arg)) {
+                        // -en name
+                        string newName = ExtractRequiredOptionValue(globalContext, args, ref i, "Missing name");
+                        globalContext.RenameCurrentEnvironment(newName);
                     } else if (EnvironmentDeleteOption.IsMatch(arg)) {
                         // -ed [name...]
                         IEnumerable<string> namesToBeDeleted = ExtractValueList(globalContext, args, ref i);

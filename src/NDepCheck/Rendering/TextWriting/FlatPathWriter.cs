@@ -97,19 +97,32 @@ namespace NDepCheck.Rendering.TextWriting {
                 var usedItems = new HashSet<Item>(groupedPath[0].Select(d => d.UsedItem));
                 var previousKey = groupedPath[0].Key;
                 foreach (var g in groupedPath.Skip(1)) {
-                    //usedItems.IntersectWith(g.Select(d => d.UsingItem));
-                    tw.WriteLine(string.Join(itemSeparator, new HashSet<string>(usedItems
-                        .Select(d => CreateString(showItemMarkers, d, previousKey, previousKey))
-                        .OrderBy(s => s))));
+                    // Also, after backprojection, a path might be "torn", e.g. a -> b1; b2 -> c.
+                    // We want to see both b1 and b2 in the written result, hence, we add the b2 after a ">".
+                    IEnumerable<string> orderedUsedItems = GetOrderedUniqueItems(showItemMarkers, usedItems, previousKey);
+                    IEnumerable<string> additionalUsingItems =
+                        GetOrderedUniqueItems(showItemMarkers, g.Select(d => d.UsingItem).Except(usedItems), previousKey);                    
+                    tw.WriteLine(string.Join(itemSeparator, orderedUsedItems) +
+                        (additionalUsingItems.Any()
+                        ? System.Environment.NewLine + "  > " + string.Join(itemSeparator, additionalUsingItems)
+                        : ""));
                     usedItems = new HashSet<Item>(g.Select(d => d.UsedItem));
                     previousKey = g.Key;
                 }
-                tw.WriteLine(string.Join(itemSeparator, new HashSet<string>(usedItems
-                    .Select(i => CreateString(showItemMarkers, i, previousKey, previousKey))
-                    .OrderBy(s => s))));
+                {
+                    IEnumerable<string> orderedUsedItems = GetOrderedUniqueItems(showItemMarkers, usedItems, previousKey);
+                    tw.WriteLine(string.Join(itemSeparator, orderedUsedItems));
+                }
                 tw.WriteLine();
             }
             return paths.Count;
+        }
+
+        private static IEnumerable<string> GetOrderedUniqueItems(bool showItemMarkers, IEnumerable<Item> items, int previousKey) {
+            IEnumerable<string> orderedUsedItems =
+                new HashSet<string>(items.Select(d => CreateString(showItemMarkers, d, previousKey, previousKey))).OrderBy(
+                    s => s);
+            return orderedUsedItems;
         }
 
         private static string CreateString(bool showItemMarkers, Item item, int markerValue, int markerValueForMatchCount) {

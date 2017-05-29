@@ -6,7 +6,7 @@ namespace NDepCheck {
     public enum EnvironmentCreationType { Manual, AutoRead, AutoTransform }
 
     public class Environment {
-        public readonly string Name;
+        public string Name;
         public readonly EnvironmentCreationType Type;
         private readonly List<Dependency> _dependencies;
 

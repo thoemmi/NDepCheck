@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
-using NDepCheck.Reading.DipReading;
 
 namespace NDepCheck.Transforming.Projecting {
     public partial class ProjectItems : AbstractTransformerWithFileConfiguration<ProjectionSet> {
@@ -18,9 +17,9 @@ namespace NDepCheck.Transforming.Projecting {
 
         private static readonly Option[] _configOptions = { ProjectionFileOption, ProjectionsOption, MatcherStrategyOption };
 
-        public static readonly Option BackProjectionDipFileOption = new Option("bp", "back-projection-input", "filename", "Do back projection of information in dipfile", @default: "no back projection");
+        public static readonly Option BackProjectionEnvironmentOption = new Option("bp", "back-projection-environment", "[environment]", "Do back projection to dependencies in environment", @default: "back project to previous environment");
 
-        private static readonly Option[] _transformOptions = { BackProjectionDipFileOption };
+        private static readonly Option[] _transformOptions = { BackProjectionEnvironmentOption };
 
         private IProjector _projector;
 
@@ -221,18 +220,22 @@ Examples:
         public override int Transform([NotNull] GlobalContext globalContext, 
                             [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
                             string transformOptions, [NotNull] List<Dependency> transformedDependencies) {
-            string fullDipName = null;
-            Option.Parse(globalContext, transformOptions, BackProjectionDipFileOption.Action((args, j) => {
-                fullDipName = Path.GetFullPath(Option.ExtractRequiredOptionValue(args, ref j, "missing back projection source filename"));
-                return j;
-            }));
+            IEnumerable<Dependency> backProjectionDependencies = null;
+            Option.Parse(globalContext, transformOptions,
+                BackProjectionEnvironmentOption.Action((args, j) => {
+                    string backProjectionEnvironment = Option.ExtractOptionValue(args, ref j);
+                    backProjectionDependencies = globalContext.FindDependenciesInEnvironment(backProjectionEnvironment);
+                    if (backProjectionDependencies == null) {
+                        throw new ArgumentException($"Could not find environment '{backProjectionEnvironment}'");
+                    }
+                    return j;
+                })
+            );
 
-            if (fullDipName != null) {
+
+            if (backProjectionDependencies != null) {
                 Dictionary<FromTo, Dependency> dependenciesForBackProjection = dependencies.ToDictionary(
                         d => new FromTo(d.UsingItem, d.UsedItem), d => d);
-
-                // Back projection - ProjectItems may use DipReader by design //TODO: replace with environment!!
-                IEnumerable<Dependency> targetsOfBackProjection = new DipReader(fullDipName).ReadDependencies(globalContext.CurrentEnvironment, 0, globalContext.IgnoreCase).ToArray();
 
                 var backProjected = new List<Dependency>();
 
@@ -240,7 +243,7 @@ Examples:
                 //int notBackProjected = 0;
                 var localCollector = new Dictionary<FromTo, Dependency>();
                 var mapItems = new Dictionary<Item, Item>();
-                foreach (var d in targetsOfBackProjection) {
+                foreach (var d in backProjectionDependencies) {
                     FromTo f = ProjectDependency(globalContext.CurrentEnvironment, d, localCollector, () => OnMissingPattern(ref missingPatternCount));
 
                     if (f != null) {

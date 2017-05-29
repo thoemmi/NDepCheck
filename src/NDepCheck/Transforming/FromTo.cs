@@ -14,7 +14,7 @@ namespace NDepCheck.Transforming {
 
         public override bool Equals(object obj) {
             var other = obj as FromTo;
-            return other != null && other.From == From && other.To == To;
+            return other != null && other.From.Equals(From) && other.To.Equals(To);
         }
 
         public override int GetHashCode() {
