@@ -52,7 +52,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 }));
 
             DependencyPattern idempotentPattern = markerToAdd == null ? null : new DependencyPattern("'" + markerToAdd, _ignoreCase);
-            Dictionary<FromTo, Dependency> fromTos = idempotent ? FromTo.AggregateAllDependencies(dependencies) : null;
+            Dictionary<FromTo, Dependency> fromTos = idempotent ? FromTo.AggregateAllDependencies(globalContext.CurrentEnvironment, dependencies) : null;
 
             int added = 0;
             int removed = 0;
@@ -65,7 +65,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 if (d.IsMatch(matches, excludes)) {
                     if (fromTos == null ||
                         !FromTo.ContainsMatchingDependency(fromTos, d.UsedItem, d.UsingItem, idempotentPattern)) {
-                        var newDependency = new Dependency(d.UsedItem, d.UsingItem, d.Source, d.MarkerSet, d.Ct,
+                        var newDependency = globalContext.CurrentEnvironment.CreateDependency(d.UsedItem, d.UsingItem, d.Source, d.MarkerSet, d.Ct,
                                                            d.QuestionableCt, d.BadCt, d.ExampleInfo);
                         if (markerToAdd != null) {
                             newDependency.IncrementMarker(markerToAdd);
@@ -80,13 +80,13 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         }
 
         public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
-            var a = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "A");
-            var b = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "B");
+            var a = transformingEnvironment.NewItem(ItemType.SIMPLE, "A");
+            var b = transformingEnvironment.NewItem(ItemType.SIMPLE, "B");
             return new[] {
-                new Dependency(a, a, source: null, markers: "inherit", ct:10, questionableCt:5, badCt:3),
-                new Dependency(a, b, source: null, markers: "inherit+define", ct:1, questionableCt:0,badCt: 0),
-                new Dependency(b, a, source: null, markers: "define", ct:5, questionableCt:0, badCt:2),
-                new Dependency(b, b, source: null, markers: "", ct: 5, questionableCt:0, badCt:2),
+                transformingEnvironment.CreateDependency(a, a, source: null, markers: "inherit", ct:10, questionableCt:5, badCt:3),
+                transformingEnvironment.CreateDependency(a, b, source: null, markers: "inherit+define", ct:1, questionableCt:0,badCt: 0),
+                transformingEnvironment.CreateDependency(b, a, source: null, markers: "define", ct:5, questionableCt:0, badCt:2),
+                transformingEnvironment.CreateDependency(b, b, source: null, markers: "", ct: 5, questionableCt:0, badCt:2),
             };
         }
     }

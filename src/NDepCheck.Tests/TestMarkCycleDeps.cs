@@ -24,9 +24,11 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestMarkSmallCycle() {
             var gc = new GlobalContext();
-            var a = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "a");
-            var b = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "b");
-            var deps = new[] { new Dependency(a, b, null, "", 1), new Dependency(b, a, null, "", 1), };
+            Environment env = gc.CurrentEnvironment;
+
+            var a = env.NewItem(ItemType.SIMPLE, "a");
+            var b = env.NewItem(ItemType.SIMPLE, "b");
+            var deps = new[] { env.CreateDependency(a, b, null, "", 1), env.CreateDependency(b, a, null, "", 1), };
             var result = new List<Dependency>();
 
             new MarkCycleDeps().Transform(gc, deps, "", result);
@@ -39,18 +41,19 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestMarkLaterCycleWithExplicitAsserts() {
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            var a = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "a");
-            var b = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "b");
-            var c = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "c");
-            var d = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "d");
-            var e = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "e");
+            var a = env.NewItem(ItemType.SIMPLE, "a");
+            var b = env.NewItem(ItemType.SIMPLE, "b");
+            var c = env.NewItem(ItemType.SIMPLE, "c");
+            var d = env.NewItem(ItemType.SIMPLE, "d");
+            var e = env.NewItem(ItemType.SIMPLE, "e");
             var deps = new[] {
-                new Dependency(a, b, null, "", 1),
-                new Dependency(b, c, null, "", 1),
-                new Dependency(c, d, null, "", 1),
-                new Dependency(d, e, null, "", 1),
-                new Dependency(e, c, null, "", 1),
+                env.CreateDependency(a, b, null, "", 1),
+                env.CreateDependency(b, c, null, "", 1),
+                env.CreateDependency(c, d, null, "", 1),
+                env.CreateDependency(d, e, null, "", 1),
+                env.CreateDependency(e, c, null, "", 1),
             };
             var result = new List<Dependency>();
 
@@ -70,12 +73,13 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestOverlappingCycles() {
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            var a = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "a");
-            var b = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "b");
-            var c = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "c");
-            var d = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "d");
-            var e = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "e");
+            var a = env.NewItem(ItemType.SIMPLE, "a");
+            var b = env.NewItem(ItemType.SIMPLE, "b");
+            var c = env.NewItem(ItemType.SIMPLE, "c");
+            var d = env.NewItem(ItemType.SIMPLE, "d");
+            var e = env.NewItem(ItemType.SIMPLE, "e");
 
             List<Dependency> result = CreateDependenciesAndFindCycles(gc, a, b, c, d, e, keepOnlyCyclesOption: true, markerPrefix: "Kreis");
 
@@ -93,21 +97,23 @@ namespace NDepCheck.Tests {
         }
 
         private static List<Dependency> CreateDependenciesAndFindCycles(GlobalContext gc, Item a, Item b, Item c, Item d, Item e, bool keepOnlyCyclesOption, string markerPrefix) {
+            Environment env = gc.CurrentEnvironment;
+
             var deps = new[] {
                 // "Confusing" edges to sink b
-                new Dependency(a, b, null, "", 1),
-                new Dependency(b, b, null, "", 1),
-                new Dependency(c, b, null, "", 1),
-                new Dependency(d, b, null, "", 1),
+                env.CreateDependency(a, b, null, "", 1),
+                env.CreateDependency(b, b, null, "", 1),
+                env.CreateDependency(c, b, null, "", 1),
+                env.CreateDependency(d, b, null, "", 1),
 
                 // a->c->d->e
-                new Dependency(a, c, null, "", 1),
-                new Dependency(c, d, null, "", 1),
-                new Dependency(d, e, null, "", 1),
+                env.CreateDependency(a, c, null, "", 1),
+                env.CreateDependency(c, d, null, "", 1),
+                env.CreateDependency(d, e, null, "", 1),
 
                 // Cycle edges c<-d and a<-e
-                new Dependency(d, c, null, "", 1),
-                new Dependency(e, a, null, "", 1),
+                env.CreateDependency(d, c, null, "", 1),
+                env.CreateDependency(e, a, null, "", 1),
             };
             var result = new List<Dependency>();
 
@@ -122,23 +128,24 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestMaxLengthOfCycles() {
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            var a = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "a");
-            var b = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "b");
-            var c = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "c");
-            var d = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "d");
-            var e = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "e");
+            var a = env.NewItem(ItemType.SIMPLE, "a");
+            var b = env.NewItem(ItemType.SIMPLE, "b");
+            var c = env.NewItem(ItemType.SIMPLE, "c");
+            var d = env.NewItem(ItemType.SIMPLE, "d");
+            var e = env.NewItem(ItemType.SIMPLE, "e");
             var deps = new[] {
-                new Dependency(a, b, null, "", 1),
-                new Dependency(b, c, null, "", 1),
-                new Dependency(c, d, null, "", 1),
-                new Dependency(d, e, null, "", 1),
+                env.CreateDependency(a, b, null, "", 1),
+                env.CreateDependency(b, c, null, "", 1),
+                env.CreateDependency(c, d, null, "", 1),
+                env.CreateDependency(d, e, null, "", 1),
 
                 // Long cycle
-                new Dependency(e, a, null, "", 1),
+                env.CreateDependency(e, a, null, "", 1),
 
                 // Short cycle
-                new Dependency(c, b, null, "", 1),
+                env.CreateDependency(c, b, null, "", 1),
             };
             var result = new List<Dependency>();
 
@@ -182,18 +189,19 @@ namespace NDepCheck.Tests {
 
         private static List<Dependency> FindLaterCycle(string cycleMarkerPrefix) {
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            var a = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "a");
-            var b = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "b");
-            var c = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "c");
-            var d = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "d");
-            var e = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "e");
+            var a = env.NewItem(ItemType.SIMPLE, "a");
+            var b = env.NewItem(ItemType.SIMPLE, "b");
+            var c = env.NewItem(ItemType.SIMPLE, "c");
+            var d = env.NewItem(ItemType.SIMPLE, "d");
+            var e = env.NewItem(ItemType.SIMPLE, "e");
             var deps = new[] {
-                new Dependency(a, b, null, "", 1),
-                new Dependency(b, c, null, "", 1),
-                new Dependency(c, d, null, "", 1),
-                new Dependency(d, e, null, "", 1),
-                new Dependency(e, c, null, "", 1),
+                env.CreateDependency(a, b, null, "", 1),
+                env.CreateDependency(b, c, null, "", 1),
+                env.CreateDependency(c, d, null, "", 1),
+                env.CreateDependency(d, e, null, "", 1),
+                env.CreateDependency(e, c, null, "", 1),
             };
             var result = new List<Dependency>();
 
@@ -250,12 +258,13 @@ SIMPLE:e
             const string cycleMarkerPrefix = "X";
 
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            var a = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "a");
-            var b = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "b");
-            var c = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "c");
-            var d = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "d");
-            var e = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "e");
+            var a = env.NewItem(ItemType.SIMPLE, "a");
+            var b = env.NewItem(ItemType.SIMPLE, "b");
+            var c = env.NewItem(ItemType.SIMPLE, "c");
+            var d = env.NewItem(ItemType.SIMPLE, "d");
+            var e = env.NewItem(ItemType.SIMPLE, "e");
 
             List<Dependency> dependencies = CreateDependenciesAndFindCycles(gc, a, b, c, d, e, keepOnlyCyclesOption: false, markerPrefix: cycleMarkerPrefix);
 

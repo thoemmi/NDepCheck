@@ -11,6 +11,7 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestDipWithProxies() {
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
             using (var f = DisposingFile.CreateTempFileWithTail(".dip")) {
                 using (TextWriter tw = new StreamWriter(f.FileName)) {
@@ -29,9 +30,9 @@ namespace NDepCheck.Tests {
                 Assert.IsNotNull(dependencies);
                 Item[] items = dependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }).Distinct().ToArray();
                 Assert.AreEqual(3, items.Length);
-                Assert.IsTrue(items.Contains(Item.New(gc.CurrentEnvironment.ItemCache, ItemType.Find("NKK"), "a", "keyA1", "KEYa1")));
-                Assert.IsTrue(items.Contains(Item.New(gc.CurrentEnvironment.ItemCache, ItemType.Find("NKK"), "a", "keyA2", "KEYa2")));
-                Assert.IsTrue(items.Contains(Item.New(gc.CurrentEnvironment.ItemCache, ItemType.Find("NKK"), "b", "", "KEYb")));
+                Assert.IsTrue(items.Contains(env.NewItem(ItemType.Find("NKK"), "a", "keyA1", "KEYa1")));
+                Assert.IsTrue(items.Contains(env.NewItem(ItemType.Find("NKK"), "a", "keyA2", "KEYa2")));
+                Assert.IsTrue(items.Contains(env.NewItem(ItemType.Find("NKK"), "b", "", "KEYb")));
             }
         }
 

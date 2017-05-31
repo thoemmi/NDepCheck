@@ -130,12 +130,12 @@ Examples:
         }
 
         public override IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
-            Item a = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "A");
-            Item b = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "B");
+            Item a = transformingEnvironment.NewItem(ItemType.SIMPLE, "A");
+            Item b = transformingEnvironment.NewItem(ItemType.SIMPLE, "B");
             return new[] {
-                new Dependency(a, a, source: null, markers: "", ct:10, questionableCt:5, badCt:3),
-                new Dependency(a, b, source: null, markers: "use+define", ct:1, questionableCt:0,badCt: 0),
-                new Dependency(b, a, source: null, markers: "define", ct:5, questionableCt:0, badCt:2),
+                transformingEnvironment.CreateDependency(a, a, source: null, markers: "", ct:10, questionableCt:5, badCt:3),
+                transformingEnvironment.CreateDependency(a, b, source: null, markers: "use+define", ct:1, questionableCt:0,badCt: 0),
+                transformingEnvironment.CreateDependency(b, a, source: null, markers: "define", ct:5, questionableCt:0, badCt:2),
             };
         }
     }

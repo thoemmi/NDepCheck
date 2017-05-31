@@ -4,7 +4,7 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Reading {
     public abstract class AbstractDependencyReader : IDependencyReader {
-        protected AbstractDependencyReader([NotNull]string fullFileName, string containerUri) {
+        protected AbstractDependencyReader([NotNull] string fullFileName, string containerUri) {
             if (string.IsNullOrWhiteSpace(fullFileName)) {
                 throw new ArgumentException("fileName must be non-empty", nameof(fullFileName));
             }

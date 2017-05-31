@@ -181,7 +181,8 @@ NDepCheck:Tests ---> **
 
         private Dependency NewDependency(Environment environment, string usingA, string usingN, string usingC, string usedA, string usedN,
             string usedC) {
-            return new Dependency(Item.New(environment.ItemCache, ITEMTYPE, usingA, usingN, usingC), Item.New(environment.ItemCache, ITEMTYPE, usedA, usedN, usedC),
+            return environment.CreateDependency(environment.NewItem(ITEMTYPE, usingA, usingN, usingC),
+                                  environment.NewItem(ITEMTYPE, usedA, usedN, usedC),
                 null, "Test", ct: 1);
         }
 

@@ -80,7 +80,7 @@ namespace NDepCheck.Transforming.Projecting {
                         targets = targets.Select(s => s.Replace("\\" + (matchResultIndex + 1), matchResultGroups.Groups[matchResultIndex]));
                     }
                     _matchCount++;
-                    return Item.New(cachingEnvironment.ItemCache, _targetItemType, targets.Select(t => GlobalContext.ExpandHexChars(t)).ToArray());
+                    return cachingEnvironment.NewItem(_targetItemType, targets.Select(t => GlobalContext.ExpandHexChars(t)).ToArray());
                 }
             }
         }

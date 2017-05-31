@@ -226,32 +226,38 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         public override IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
             ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
 
-            var bac = Item.New(renderingEnvironment.ItemCache, amo, "BAC:BAC:0100".Split(':'));
-            var kst = Item.New(renderingEnvironment.ItemCache, amo, "KST:KST:0200".Split(':'));
-            var kah = Item.New(renderingEnvironment.ItemCache, amo, "KAH:KAH:0300".Split(':'));
-            var kah_mi = Item.New(renderingEnvironment.ItemCache, amo, "Kah.MI:KAH:0301".Split(':'));
-            var vkf = Item.New(renderingEnvironment.ItemCache, amo, "VKF:VKF:0400".Split(':'));
-            var vkf1_mi = Item.New(renderingEnvironment.ItemCache, amo, "Vkf1.MI:VKF:0401".Split(':'));
-            var vkf2_mi = Item.New(renderingEnvironment.ItemCache, amo, "Vkf2.MI:VKF:0402".Split(':'));
-            //var vkf3_mi = Item.New(amo, "Vkf3.MI:VKF:0402".Split(':'));
-            //var vkf4_mi = Item.New(amo, "Vkf4.MI:VKF:0402".Split(':'));
-            var wlg = Item.New(renderingEnvironment.ItemCache, amo, "WLG:WLG:0500".Split(':'));
-            var wlg1_mi = Item.New(renderingEnvironment.ItemCache, amo, "Wlg1.MI:WLG:0501".Split(':'));
-            var wlg2_mi = Item.New(renderingEnvironment.ItemCache, amo, "Wlg2.MI:WLG:0502".Split(':'));
-            //var imp = Item.New(amo, "IMP:IMP:0600".Split(':'));
-            var imp_mi = Item.New(renderingEnvironment.ItemCache, amo, "Imp.MI:IMP:0601".Split(':'));
-            //var top = Item.New(amo, "Top:TOP:0700".Split(':'));
+            var bac = renderingEnvironment.NewItem(amo, "BAC:BAC:0100".Split(':'));
+            var kst = renderingEnvironment.NewItem(amo, "KST:KST:0200".Split(':'));
+            var kah = renderingEnvironment.NewItem(amo, "KAH:KAH:0300".Split(':'));
+            var kah_mi = renderingEnvironment.NewItem(amo, "Kah.MI:KAH:0301".Split(':'));
+            var vkf = renderingEnvironment.NewItem(amo, "VKF:VKF:0400".Split(':'));
+            var vkf1_mi = renderingEnvironment.NewItem(amo, "Vkf1.MI:VKF:0401".Split(':'));
+            var vkf2_mi = renderingEnvironment.NewItem(amo, "Vkf2.MI:VKF:0402".Split(':'));
+            //var vkf3_mi = renderingEnvironment.ItemAndDependencyFactory.New(amo, "Vkf3.MI:VKF:0402".Split(':'));
+            //var vkf4_mi = renderingEnvironment.ItemAndDependencyFactory.New(amo, "Vkf4.MI:VKF:0402".Split(':'));
+            var wlg = renderingEnvironment.NewItem(amo, "WLG:WLG:0500".Split(':'));
+            var wlg1_mi = renderingEnvironment.NewItem(amo, "Wlg1.MI:WLG:0501".Split(':'));
+            var wlg2_mi = renderingEnvironment.NewItem(amo, "Wlg2.MI:WLG:0502".Split(':'));
+            //var imp = renderingEnvironment.ItemAndDependencyFactory.New(amo, "IMP:IMP:0600".Split(':'));
+            var imp_mi = renderingEnvironment.NewItem(amo, "Imp.MI:IMP:0601".Split(':'));
+            //var top = renderingEnvironment.ItemAndDependencyFactory.New(amo, "Top:TOP:0700".Split(':'));
 
             return new[] {
-                    FromTo(kst, bac), FromTo(kst, kah_mi), FromTo(kst, vkf1_mi), FromTo(kst, vkf2_mi), FromTo(kst, wlg1_mi), FromTo(kst, wlg2_mi),
-                    FromTo(kah, bac), FromTo(kah, vkf1_mi), FromTo(kah, vkf2_mi), FromTo(kah, wlg, 4, 3) /* ===> */,
-                    FromTo(vkf, bac), FromTo(vkf, kst), FromTo(vkf, kah, 3), FromTo(vkf, kah_mi, 2, 2) /* <:: */, FromTo(vkf, imp_mi), FromTo(vkf1_mi, bac), FromTo(vkf2_mi, bac),
+                    FromTo(renderingEnvironment, kst, bac), FromTo(renderingEnvironment, kst, kah_mi),
+                FromTo(renderingEnvironment, kst, vkf1_mi), FromTo(renderingEnvironment, kst, vkf2_mi),
+                FromTo(renderingEnvironment, kst, wlg1_mi), FromTo(renderingEnvironment, kst, wlg2_mi),
+                    FromTo(renderingEnvironment, kah, bac), FromTo(renderingEnvironment, kah, vkf1_mi),
+                FromTo(renderingEnvironment, kah, vkf2_mi), FromTo(renderingEnvironment, kah, wlg, 4, 3) /* ===> */,
+                    FromTo(renderingEnvironment, vkf, bac), FromTo(renderingEnvironment, vkf, kst),
+                FromTo(renderingEnvironment, vkf, kah, 3), FromTo(renderingEnvironment, vkf, kah_mi, 2, 2) /* <:: */,
+                FromTo(renderingEnvironment, vkf, imp_mi), FromTo(renderingEnvironment, vkf1_mi, bac),
+                FromTo(renderingEnvironment, vkf2_mi, bac),
                     // ... more to come
                 };
         }
 
-        private Dependency FromTo(Item from, Item to, int ct = 1, int questionableCt = 0) {
-            return new Dependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
+        private Dependency FromTo(Environment env, Item from, Item to, int ct = 1, int questionableCt = 0) {
+            return env.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
         public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {

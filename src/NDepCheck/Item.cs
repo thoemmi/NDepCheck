@@ -158,14 +158,14 @@ namespace NDepCheck {
         }
 
         public static Dictionary<TItem, TDependency[]> CollectIncomingDependenciesMap<TDependency>(
-                [NotNull, ItemNotNull] IEnumerable<TDependency> dependencies, Func<TItem, bool> selectItem = null) 
+                [NotNull, ItemNotNull] IEnumerable<TDependency> dependencies, Func<TItem, bool> selectItem = null)
                 where TDependency : AbstractDependency<TItem> {
             return CollectMap(dependencies, d => selectItem == null || selectItem(d.UsedItem) ? d.UsedItem : null, d => d)
                     .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToArray());
         }
 
         public static Dictionary<TItem, TDependency[]> CollectOutgoingDependenciesMap<TDependency>(
-                [NotNull, ItemNotNull] IEnumerable<TDependency> dependencies, Func<TItem, bool> selectItem = null) 
+                [NotNull, ItemNotNull] IEnumerable<TDependency> dependencies, Func<TItem, bool> selectItem = null)
                 where TDependency : AbstractDependency<TItem> {
             return CollectMap(dependencies, d => selectItem == null || selectItem(d.UsingItem) ? d.UsingItem : null, d => d)
                     .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToArray());
@@ -199,7 +199,7 @@ namespace NDepCheck {
         }
     }
 
-    public class ReadOnlyItem : AbstractItem<ReadOnlyItem> { 
+    public class ReadOnlyItem : AbstractItem<ReadOnlyItem> {
         [NotNull]
         private readonly ReadOnlyMarkerSet _markerSet;
 
@@ -210,27 +210,40 @@ namespace NDepCheck {
         public override IMarkerSet MarkerSet => _markerSet;
     }
 
-    public class Item : AbstractItem<Item>, IWithMutableMarkerSet {
-        [NotNull]
-        private readonly MutableMarkerSet _markerSet;
+    public interface IItemAndDependencyFactory {
+        Item New(Intern<Item> ítemCache, [NotNull] ItemType type, [ItemNotNull] string[] values,
+            [CanBeNull] [ItemNotNull] string[] markers);
 
-        protected Item([NotNull] ItemType type, string[] values) : base(type, values) {
-            _markerSet = new MutableMarkerSet(type.IgnoreCase, markers: null);
-        }
+        Dependency CreateDependency([NotNull] Item usingItem, [NotNull] Item usedItem,
+            [CanBeNull] ISourceLocation source, [CanBeNull] IMarkerSet markers, int ct, int questionableCt = 0,
+            int badCt = 0, [CanBeNull] string exampleInfo = null);
+    }
 
-        public static Item New(Intern<Item> itemCache, [NotNull] ItemType type, [ItemNotNull] params string[] values) {
-            return itemCache.GetReference(new Item(type, values));
-        }
-
-        public static Item New(Intern<Item> ítemCache, [NotNull] ItemType type, [ItemNotNull] string[] values, [CanBeNull] [ItemNotNull] string[] markers) {
+    public class DefaultItemAndDependencyFactory : IItemAndDependencyFactory {
+        public Item New(Intern<Item> ítemCache, [NotNull] ItemType type, [ItemNotNull] string[] values, [CanBeNull] [ItemNotNull] string[] markers) {
             Item searchedItem = new Item(type, values);
-            searchedItem._markerSet.MergeWithMarkers(AbstractMarkerSet.CreateMarkerSetWithClonedDictionary(type.IgnoreCase, markers));
+            if (markers != null) {
+                searchedItem.MergeWithMarkers(new MutableMarkerSet(type.IgnoreCase,
+                    AbstractMarkerSet.CreateMarkerSetWithClonedDictionary(type.IgnoreCase, markers)));
+            }
             Item item = ítemCache.GetReference(searchedItem);
             return item;
         }
 
-        public static Item New(Intern<Item> itemCache, [NotNull] ItemType type, [NotNull] string reducedName) {
-            return New(itemCache, type, reducedName.Split(':'));
+        public Dependency CreateDependency([NotNull] Item usingItem, [NotNull] Item usedItem, [CanBeNull] ISourceLocation source,
+            [CanBeNull] IMarkerSet markers, int ct, int questionableCt = 0, int badCt = 0,
+            [CanBeNull] string exampleInfo = null) {
+            return new Dependency(usingItem, usedItem, source, markers: markers,
+                ct: ct, questionableCt: questionableCt, badCt: badCt, exampleInfo: exampleInfo);
+        }
+    }
+
+    public class Item : AbstractItem<Item>, IWithMutableMarkerSet {
+        [NotNull]
+        private readonly MutableMarkerSet _markerSet;
+
+        protected internal Item([NotNull] ItemType type, string[] values) : base(type, values) {
+            _markerSet = new MutableMarkerSet(type.IgnoreCase, markers: null);
         }
 
         public override IMarkerSet MarkerSet => _markerSet;

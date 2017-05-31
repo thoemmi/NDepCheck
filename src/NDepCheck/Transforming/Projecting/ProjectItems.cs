@@ -295,10 +295,10 @@ Examples:
             Item Project(Environment cachingEnvironment, Item item, bool left);
         }
 
-        private FromTo ProjectDependency(Environment cachingEnvironment, Dependency d, Dictionary<FromTo, Dependency> localCollector, 
+        private FromTo ProjectDependency(Environment currentEnvironment, Dependency d, Dictionary<FromTo, Dependency> localCollector, 
                                          Func<bool> onMissingPattern) {
-            Item usingItem = _projector.Project(cachingEnvironment: cachingEnvironment, item: d.UsingItem, left: true);
-            Item usedItem = _projector.Project(cachingEnvironment: cachingEnvironment, item: d.UsedItem, left: false);
+            Item usingItem = _projector.Project(cachingEnvironment: currentEnvironment, item: d.UsingItem, left: true);
+            Item usedItem = _projector.Project(cachingEnvironment: currentEnvironment, item: d.UsedItem, left: false);
 
             if (usingItem == null) {
                 if (onMissingPattern()) {
@@ -314,23 +314,25 @@ Examples:
                 // ignore this edge!
                 return null;
             } else {
-                return new FromTo(usingItem, usedItem).AggregateDependency(d, localCollector);
+                return new FromTo(usingItem, usedItem).AggregateDependency(currentEnvironment, d, localCollector);
             }
         }
 
         public override IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
             ItemType abc = ItemType.New("AB+(A:B)");
-            Item a1 = Item.New(transformingEnvironment.ItemCache, abc, "a", "1");
-            Item a2 = Item.New(transformingEnvironment.ItemCache, abc, "a", "2");
-            Item b = Item.New(transformingEnvironment.ItemCache, abc, "b", "");
+            Item a1 = transformingEnvironment.NewItem(abc, "a", "1");
+            Item a2 = transformingEnvironment.NewItem(abc, "a", "2");
+            Item b = transformingEnvironment.NewItem(abc, "b", "");
 
             return new[] {
-                FromTo(a1, a1), FromTo(a1, a2), FromTo(a2, a1), FromTo(a2, a2), FromTo(a1, b)
+                FromTo(transformingEnvironment, a1, a1), FromTo(transformingEnvironment, a1, a2),
+                FromTo(transformingEnvironment, a2, a1), FromTo(transformingEnvironment, a2, a2),
+                FromTo(transformingEnvironment, a1, b)
             };
         }
 
-        private Dependency FromTo(Item from, Item to) {
-            return new Dependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: 1);
+        private Dependency FromTo(Environment env, Item from, Item to) {
+            return env.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: 1);
         }
 
         private void AfterAllTransforms() {

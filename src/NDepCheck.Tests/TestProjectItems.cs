@@ -13,6 +13,7 @@ namespace NDepCheck.Tests {
         private static void SmallTestForPrefixOptimizedProjector(Func<Projection[], bool, ProjectItems.IProjector> createProjector) {
             var pi = new ProjectItems(createProjector);
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
             pi.Configure(gc, @"{ -pl
     $ IgnoreName(Ignore:Name) ---% SIMPLE
 
@@ -24,25 +25,25 @@ namespace NDepCheck.Tests {
 }", forceReload: false);
 
             ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
-            Item a = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:a");
-            Item ab = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:ab");
-            Item ac = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:ac");
-            Item ca = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:ca");
-            Item cb = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:cb");
-            Item s = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "m:s");
-            Item t = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "m:t");
+            Item a = env.NewItem(generic2, "x:a");
+            Item ab = env.NewItem(generic2, "x:ab");
+            Item ac = env.NewItem(generic2, "x:ac");
+            Item ca = env.NewItem(generic2, "x:ca");
+            Item cb = env.NewItem(generic2, "x:cb");
+            Item s = env.NewItem(generic2, "m:s");
+            Item t = env.NewItem(generic2, "m:t");
 
             var result = new List<Dependency>();
             pi.Transform(gc, new[] {
-                new Dependency(a, a, null, "a_a", 1), // the first surviving dependency
-                new Dependency(a, s, null, "a_s", 1), // vanishes, because s is not mapped
-                new Dependency(ab, s, null, "ab_s", 1), // same
-                new Dependency(ca, s, null, "ca_s", 1), // etc.
-                new Dependency(cb, cb, null, "cb_cb", 1), // the second surviving dependency
-                new Dependency(cb, t, null, "cb_t", 1), // vanishes, because t is not mapped
-                new Dependency(a, t, null, "a_t", 1),
-                new Dependency(ac, t, null, "ac_t", 1),
-                new Dependency(a, s, null, "a_s", 1),
+                env.CreateDependency(a, a, null, "a_a", 1), // the first surviving dependency
+                env.CreateDependency(a, s, null, "a_s", 1), // vanishes, because s is not mapped
+                env.CreateDependency(ab, s, null, "ab_s", 1), // same
+                env.CreateDependency(ca, s, null, "ca_s", 1), // etc.
+                env.CreateDependency(cb, cb, null, "cb_cb", 1), // the second surviving dependency
+                env.CreateDependency(cb, t, null, "cb_t", 1), // vanishes, because t is not mapped
+                env.CreateDependency(a, t, null, "a_t", 1),
+                env.CreateDependency(ac, t, null, "ac_t", 1),
+                env.CreateDependency(a, s, null, "a_s", 1),
 
                 // Counts: 
                 // !a  5
@@ -114,18 +115,19 @@ namespace NDepCheck.Tests {
 }", forceReload: false);
 
             ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
-            Item a = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:a");
-            Item ab = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:ab");
-            Item abc = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:abc");
-            Item abcd = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:abcd");
-            Item t = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "m:t");
+            Environment env = gc.CurrentEnvironment;
+            Item a = env.NewItem(generic2, "x:a");
+            Item ab = env.NewItem(generic2, "x:ab");
+            Item abc = env.NewItem(generic2, "x:abc");
+            Item abcd = env.NewItem(generic2, "x:abcd");
+            Item t = env.NewItem(generic2, "m:t");
 
             var result = new List<Dependency>();
             pi.Transform(gc, new[] {
-                new Dependency(a, t, null, "a_t", 1), // A_T
-                new Dependency(ab, t, null, "ab_t", 1), // A_ T
-                new Dependency(abc, t, null, "abc_t", 1), // ADetail _T
-                new Dependency(abcd, t, null, "abcd_t", 1), // A _ T
+                env.CreateDependency(a, t, null, "a_t", 1), // A_T
+                env.CreateDependency(ab, t, null, "ab_t", 1), // A_ T
+                env.CreateDependency(abc, t, null, "abc_t", 1), // ADetail _T
+                env.CreateDependency(abcd, t, null, "abcd_t", 1), // A _ T
             }, "", result);
 
             Assert.AreEqual(2, result.Count);
@@ -150,22 +152,23 @@ namespace NDepCheck.Tests {
 }}", forceReload: false);
 
             ItemType threeFields = ItemType.Find(THREE_FIELDS);
-            Item abc = Item.New(gc.CurrentEnvironment.ItemCache, threeFields, "a:b:c");
-            Item ab = Item.New(gc.CurrentEnvironment.ItemCache, threeFields, "a:b:-");
-            Item a = Item.New(gc.CurrentEnvironment.ItemCache, threeFields, "a:-:-");
+            Environment env = gc.CurrentEnvironment;
+            Item abc = env.NewItem(threeFields, "a:b:c");
+            Item ab = env.NewItem(threeFields, "a:b:-");
+            Item a = env.NewItem(threeFields, "a:-:-");
 
             var result = new List<Dependency>();
             pi.Transform(gc, new[] {
-                new Dependency(abc, abc, null, "abc", 1),
-                new Dependency(ab, ab, null, "ab", 1),
-                new Dependency(a, a, null, "a", 1),
+                env.CreateDependency(abc, abc, null, "abc", 1),
+                env.CreateDependency(ab, ab, null, "ab", 1),
+                env.CreateDependency(a, a, null, "a", 1),
             }, "", result);
 
             Assert.AreEqual(0, result.Count);
         }
 
-        private Dependency Dep(Item from, Item to, int ct = 1, int questionable = 0) {
-            return new Dependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
+        private Dependency Dep(Environment env, Item from, Item to, int ct = 1, int questionable = 0) {
+            return env.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
         }
 
         [TestMethod]
@@ -173,22 +176,23 @@ namespace NDepCheck.Tests {
             ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
 
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            Item a1 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "a:1");
-            Item b1 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "b:1");
-            Item c1 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "c:1");
-            Item d1 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "d:1");
-            Item e1 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "e:1");
-            Item a2 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "a:2");
-            Item b2 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "b:2");
-            Item c2 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "c:2");
-            Item d2 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "d:2");
-            Item e2 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "e:2");
-            Item x2 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "x:2");
+            Item a1 = env.NewItem(generic2, "a:1");
+            Item b1 = env.NewItem(generic2, "b:1");
+            Item c1 = env.NewItem(generic2, "c:1");
+            Item d1 = env.NewItem(generic2, "d:1");
+            Item e1 = env.NewItem(generic2, "e:1");
+            Item a2 = env.NewItem(generic2, "a:2");
+            Item b2 = env.NewItem(generic2, "b:2");
+            Item c2 = env.NewItem(generic2, "c:2");
+            Item d2 = env.NewItem(generic2, "d:2");
+            Item e2 = env.NewItem(generic2, "e:2");
+            Item x2 = env.NewItem(generic2, "x:2");
 
             var deps = new[] {
-                Dep(a1, b1), Dep(b1, c1), Dep(c1, d1), Dep(d1, e1), Dep(d1, b1),
-                Dep(a2, x2), Dep(b2, x2), Dep(c2, x2), Dep(d2, x2), Dep(e2, x2),
+                Dep(env, a1, b1), Dep(env, b1, c1), Dep(env, c1, d1), Dep(env, d1, e1), Dep(env, d1, b1),
+                Dep(env, a2, x2), Dep(env, b2, x2), Dep(env, c2, x2), Dep(env, d2, x2), Dep(env, e2, x2),
             };
 
             List<Dependency> backProjectedDeps = ProjectMarkCyclesAndBackProject(deps, gc);
@@ -210,14 +214,16 @@ namespace NDepCheck.Tests {
         public void TestBackProjectSmallCycle() {
             ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
             var gc = new GlobalContext();
-            Item a1 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "a:1");
-            Item b1 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "b:1");
-            Item a2 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "a:2");
-            Item b2 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "b:2");
-            Item b3 = Item.New(gc.CurrentEnvironment.ItemCache, generic2, "b:3");
+            Environment env = gc.CurrentEnvironment;
+
+            Item a1 = env.NewItem(generic2, "a:1");
+            Item b1 = env.NewItem(generic2, "b:1");
+            Item a2 = env.NewItem(generic2, "a:2");
+            Item b2 = env.NewItem(generic2, "b:2");
+            Item b3 = env.NewItem(generic2, "b:3");
 
             var deps = new[] {
-                Dep(a1, b1), Dep(b1, a2), Dep(b2, a2), Dep(a1, b3)
+                Dep(env, a1, b1), Dep(env, b1, a2), Dep(env, b2, a2), Dep(env, a1, b3)
             };
 
             List<Dependency> backProjectedDeps = ProjectMarkCyclesAndBackProject(deps, gc);

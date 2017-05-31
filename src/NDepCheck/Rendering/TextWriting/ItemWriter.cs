@@ -97,7 +97,7 @@ namespace NDepCheck.Rendering.TextWriting {
         public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream output, string option) {
             using (var sw = new TargetStreamWriter(output)) {
                 Write(dependencies, sw, itemMatches: null, itemExcludes: null, indegreeMatches: null, indegreeExcludes: null,
-                      outdegreeMatches: null, outdegreeExcludes: null, 
+                      outdegreeMatches: null, outdegreeExcludes: null,
                       writeOnlyIfIndegreeNotZero: false, writeOnlyIfOutdegreeNotZero: false, showMarkers: true, ignoreCase: false);
             }
         }
@@ -152,21 +152,27 @@ namespace NDepCheck.Rendering.TextWriting {
         public IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
             ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
 
-            var bac = Item.New(renderingEnvironment.ItemCache, amo, "BAC:BAC:0100".Split(':'), "area".Split(','));
-            var kst = Item.New(renderingEnvironment.ItemCache, amo, "KST:KST:0200".Split(':'), "area".Split(','));
-            var kah = Item.New(renderingEnvironment.ItemCache, amo, "KAH:KAH:0300".Split(':'), "area".Split(','));
-            var kah_mi = Item.New(renderingEnvironment.ItemCache, amo, "Kah.MI:KAH:0301".Split(':'), "area,mi".Split(','));
-            var vkf = Item.New(renderingEnvironment.ItemCache, amo, "VKF:VKF:0400".Split(':'), "area".Split(','));
+            var bac = renderingEnvironment.NewItem(amo, "BAC:BAC:0100".Split(':'), "area".Split(','));
+            var kst = renderingEnvironment.NewItem(amo, "KST:KST:0200".Split(':'), "area".Split(','));
+            var kah = renderingEnvironment.NewItem(amo, "KAH:KAH:0300".Split(':'), "area".Split(','));
+            var kah_mi = renderingEnvironment.NewItem(amo, "Kah.MI:KAH:0301".Split(':'), "area,mi".Split(','));
+            var vkf = renderingEnvironment.NewItem(amo, "VKF:VKF:0400".Split(':'), "area".Split(','));
 
 
             return new[] {
-                    Dep(kst, bac), Dep(kst, kah_mi), Dep(kah, bac), Dep(vkf, bac), Dep(vkf, kst), Dep(vkf, kah, 3), Dep(vkf, kah_mi, 2, 2)
-                    // ... more to come
-                };
+                Dep(renderingEnvironment, kst, bac),
+                Dep(renderingEnvironment, kst, kah_mi),
+                Dep(renderingEnvironment, kah, bac),
+                Dep(renderingEnvironment, vkf, bac),
+                Dep(renderingEnvironment, vkf, kst),
+                Dep(renderingEnvironment, vkf, kah, 3),
+                Dep(renderingEnvironment, vkf, kah_mi, 2, 2)
+                // ... more to come
+            };
         }
 
-        private Dependency Dep(Item from, Item to, int ct = 1, int questionable = 0) {
-            return new Dependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
+        private Dependency Dep(Environment env, Item from, Item to, int ct = 1, int questionable = 0) {
+            return env.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
         }
 
         public string GetHelp(bool detailedHelp, string filter) {

@@ -49,6 +49,13 @@ namespace NDepCheck {
         //   et [+|-]               environment-for-transform
         //   er [+|-]               environment-for-read
         //
+        // f    factories
+        //   fa assembly classname  factory-add
+        //   fe assembly classname  factory-environment-add
+        //   fr classname           factory-remove
+        //   fd classname           factory-environment-remove
+        //   fl                     factory-list
+        //
         // h    help
         //   ...
         // i    interactive
@@ -87,6 +94,12 @@ namespace NDepCheck {
         public static readonly Option EnvironmentListOption = new ProgramOption(shortname: "el", name: "environment-list", usage: "| ev", description: "", moreNames: new[] { "ev" });
         public static readonly Option EnvironmentForTransformOption = new ProgramOption(shortname: "et", name: "environment-for-transform", usage: "[+|-]", description: "");
         public static readonly Option EnvironmentForReadOption = new ProgramOption(shortname: "er", name: "environment-for-read", usage: "[+|-]", description: "");
+
+        public static readonly Option FactoryAddOption = new ProgramOption(shortname: "fa", name: "factory-add", usage: "assembly factory", description: "Add factory to front of global item and dependency factory list");
+        public static readonly Option FactoryEnvironmentAddOption = new ProgramOption(shortname: "fe", name: "factory-environment-add", usage: "assembly factory", description: "Add factory to front of item and dependency factory list of current environment");
+        public static readonly Option FactoryRemoveOption = new ProgramOption(shortname: "fr", name: "factory-remove", usage: "factory", description: "Remove factory from global factory list");
+        public static readonly Option FactoryEnvironmentRemoveOption = new ProgramOption(shortname: "fd", name: "factory-environment-remove", usage: "factory", description: "Remove factory from factory list of current environment");
+        public static readonly Option FactoryListOption = new ProgramOption(shortname: "fl", name: "factory-list", usage: "assembly reader filepattern [ +|- filepattern ...]", description: "List item and dependency factories");
 
         public static readonly Option ReadPluginOption = new ProgramOption(shortname: "rp", name: "read-plugin", usage: "assembly reader filepattern [ +|- filepattern ...]", description: "Use <assembly.reader> to read files matching filepattern, but not second filepattern");
         public static readonly Option ReadFileOption = new ProgramOption(shortname: "rf", name: "read-file", usage: "reader filepattern [ +|- filepattern ...]", description: "Use predefined reader to read files matching filepattern, but not second filepattern");

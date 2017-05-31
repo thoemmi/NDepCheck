@@ -174,20 +174,6 @@ namespace NDepCheck {
         [CanBeNull]
         private string _exampleInfo;
 
-        public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem, [CanBeNull] ISourceLocation source,
-            [NotNull] string markers, int ct, int questionableCt = 0, int badCt = 0,
-            [CanBeNull] string exampleInfo = null) : this(
-                usingItem, usedItem, source, markers: markers.Split('&', '+', ','),
-                ct: ct, questionableCt: questionableCt, badCt: badCt, exampleInfo: exampleInfo) {
-        }
-
-        public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem, [CanBeNull] ISourceLocation source,
-            [NotNull] IEnumerable<string> markers, int ct, int questionableCt = 0, int badCt = 0,
-            [CanBeNull] string exampleInfo = null) : this(
-                usingItem, usedItem, source, markers: new ReadOnlyMarkerSet(false, markers),
-                ct: ct, questionableCt: questionableCt, badCt: badCt, exampleInfo: exampleInfo) {
-        }
-
         public override IMarkerSet MarkerSet => _markerSet;
 
         public AbstractMarkerSet AbstractMarkerSet => _markerSet;
@@ -206,7 +192,7 @@ namespace NDepCheck {
         /// <param name="badCt"></param>
         /// <param name="exampleInfo"></param>
         /// <param name="ignoreCaseDefault"></param>
-        public Dependency([NotNull] Item usingItem, [NotNull] Item usedItem,
+        internal Dependency([NotNull] Item usingItem, [NotNull] Item usedItem,
             [CanBeNull] ISourceLocation source, [CanBeNull] IMarkerSet markers,            
             int ct, int questionableCt = 0, int badCt = 0, [CanBeNull] string exampleInfo = null,
             bool? ignoreCaseDefault = null) : base(usingItem, usedItem, source) {
@@ -223,6 +209,14 @@ namespace NDepCheck {
             bool ignoreCase = ignoreCaseDefault ?? usingItem.Type.IgnoreCase | usedItem.Type.IgnoreCase;
             _markerSet = new MutableMarkerSet(ignoreCase, markers);
         }
+
+        //public static Dependency CreateDependency([NotNull] Item usingItem, [NotNull] Item usedItem,
+        //    [CanBeNull] ISourceLocation source, [NotNull] string markers, int ct, int questionableCt = 0, int badCt = 0,
+        //    [CanBeNull] string exampleInfo = null) {
+
+        //    return CreateDependency(usingItem, usedItem, source, markers: markers.Split('&', '+', ','), ct: ct,
+        //        questionableCt: questionableCt, badCt: badCt, exampleInfo: exampleInfo);
+        //}
 
         public override int Ct => _ct;
 

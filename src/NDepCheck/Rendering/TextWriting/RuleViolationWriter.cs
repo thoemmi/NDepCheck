@@ -96,14 +96,14 @@ namespace NDepCheck.Rendering.TextWriting {
 
         public IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
             ItemType simple = ItemType.New("SIMPLE(Name)");
-            Item root = Item.New(renderingEnvironment.ItemCache, simple, "root");
-            Item ok = Item.New(renderingEnvironment.ItemCache, simple, "ok");
-            Item questionable = Item.New(renderingEnvironment.ItemCache, simple, "questionable");
-            Item bad = Item.New(renderingEnvironment.ItemCache, simple, "bad");
+            Item root = renderingEnvironment.NewItem(simple, "root");
+            Item ok = renderingEnvironment.NewItem(simple, "ok");
+            Item questionable = renderingEnvironment.NewItem(simple, "questionable");
+            Item bad = renderingEnvironment.NewItem(simple, "bad");
             return new[] {
-                new Dependency(root, ok, new TextFileSourceLocation("Test", 1), "Use", 4, 0, 0, "to root"),
-                new Dependency(root, questionable, new TextFileSourceLocation("Test", 1), "Use", 4, 1, 0, "to questionable"),
-                new Dependency(root, bad, new TextFileSourceLocation("Test", 1), "Use", 4, 2, 1, "to bad")
+                renderingEnvironment.CreateDependency(root, ok, new TextFileSourceLocation("Test", 1), "Use", 4, 0, 0, "to root"),
+                renderingEnvironment.CreateDependency(root, questionable, new TextFileSourceLocation("Test", 1), "Use", 4, 1, 0, "to questionable"),
+                renderingEnvironment.CreateDependency(root, bad, new TextFileSourceLocation("Test", 1), "Use", 4, 2, 1, "to bad")
             };
         }
 

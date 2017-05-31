@@ -15,7 +15,7 @@ namespace NDepCheck.Tests {
         private Item GetOrCreate(Environment environment, Dictionary<string, Item> nodes, string name) {
             Item result;
             if (!nodes.TryGetValue(name, out result)) {
-                nodes.Add(name, result = Item.New(environment.ItemCache, TEST, new[] { name }));
+                nodes.Add(name, result = environment.NewItem(TEST, new[] { name }));
             }
             return result;
         }

@@ -15,8 +15,8 @@ namespace NDepCheck.Tests {
             new GlobalContext().ResetAll();
         }
 
-        private Dependency CreateDependency(Item from, Item to, string pathMarker, bool isStart, bool isEnd, bool isMatchedByCountMatch, bool isLoopBack) {
-            Dependency d = FromTo(from, to);
+        private Dependency CreateDependency(Environment env, Item from, Item to, string pathMarker, bool isStart, bool isEnd, bool isMatchedByCountMatch, bool isLoopBack) {
+            Dependency d = FromTo(env, from, to);
             d.MarkPathElement(pathMarker, 0, isStart: isStart, isEnd: isEnd, isMatchedByCountMatch: isMatchedByCountMatch,
                 isLoopBack: isLoopBack);
             return d;
@@ -25,16 +25,17 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestSimpleFlatPathWriterForOnePath() {
             var gc = new GlobalContext { IgnoreCase = true };
+            Environment env = gc.CurrentEnvironment;
 
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
             var pathMarker = "P0";
 
-            Item a = Item.New(gc.CurrentEnvironment.ItemCache, t3, "a:aa:aaa".Split(':'));
+            Item a = env.NewItem(t3, "a:aa:aaa".Split(':'));
             a.MarkPathElement(pathMarker, 0, isStart: false, isEnd: false, isMatchedByCountMatch: false, isLoopBack: false);
-            Item b = Item.New(gc.CurrentEnvironment.ItemCache, t3, "b:bb:bbb".Split(':'));
+            Item b = env.NewItem(t3, "b:bb:bbb".Split(':'));
             b.SetMarker(pathMarker, 1);
 
-            var d = CreateDependency(a, b, pathMarker, true, true, false, false);
+            var d = CreateDependency(env, a, b, pathMarker, true, true, false, false);
             Dependency[] dependencies = { d };
 
             using (var s = new MemoryStream()) {
@@ -52,12 +53,13 @@ b:bb:bbb $", result.Trim());
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            var a = Item.New(gc.CurrentEnvironment.ItemCache, t3, "a:aa:aaa".Split(':'));
-            var b = Item.New(gc.CurrentEnvironment.ItemCache, t3, "b:bb:bbb".Split(':'));
+            var a = env.NewItem(t3, "a:aa:aaa".Split(':'));
+            var b = env.NewItem(t3, "b:bb:bbb".Split(':'));
 
             var dependencies = new[] {
-                FromTo(a, b),
+                FromTo(env, a, b),
             };
 
             string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A"));
@@ -94,11 +96,12 @@ T3:b:bb:bbb'A $", result.Trim());
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            var a = Item.New(gc.CurrentEnvironment.ItemCache, t3, "a:aa:aaa".Split(':'));
-            var c = Item.New(gc.CurrentEnvironment.ItemCache, t3, "c:cc:ccc".Split(':'));
+            var a = env.NewItem(t3, "a:aa:aaa".Split(':'));
+            var c = env.NewItem(t3, "c:cc:ccc".Split(':'));
 
-            var dependencies = new[] { FromTo(a, c) };
+            var dependencies = new[] { FromTo(env, a, c) };
 
             string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A"));
 
@@ -178,16 +181,17 @@ T3:g:gg:ggg'A $", result.Trim());
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            var a = Item.New(gc.CurrentEnvironment.ItemCache, t3, "a:aa:aaa".Split(':'));
-            var b = Item.New(gc.CurrentEnvironment.ItemCache, t3, "b:bb:bbb".Split(':'));
-            var c = Item.New(gc.CurrentEnvironment.ItemCache, t3, "c:cc:ccc".Split(':'));
-            var d = Item.New(gc.CurrentEnvironment.ItemCache, t3, "d:dd:ddd".Split(':'));
+            var a = env.NewItem(t3, "a:aa:aaa".Split(':'));
+            var b = env.NewItem(t3, "b:bb:bbb".Split(':'));
+            var c = env.NewItem(t3, "c:cc:ccc".Split(':'));
+            var d = env.NewItem(t3, "d:dd:ddd".Split(':'));
 
             var dependencies = new[] {
-                        FromTo(a, b),
-                        FromTo(b, c),
-                        FromTo(b ,d),
+                        FromTo(env, a, b),
+                        FromTo(env, b, c),
+                        FromTo(env, b ,d),
                     };
 
             string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A"));
@@ -202,17 +206,25 @@ T3:d:dd:ddd'A $", result.Trim());
         public void TestOldCountPaths() {
             ItemType xy = ItemType.New("NL(Name:Layer)");
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            Item a = Item.New(gc.CurrentEnvironment.ItemCache, xy, "a", "1");
-            Item b = Item.New(gc.CurrentEnvironment.ItemCache, xy, "b", "2");
-            Item c = Item.New(gc.CurrentEnvironment.ItemCache, xy, "c", "2");
-            Item d = Item.New(gc.CurrentEnvironment.ItemCache, xy, "d", "3");
-            Item e = Item.New(gc.CurrentEnvironment.ItemCache, xy, "e", "4");
-            Item f = Item.New(gc.CurrentEnvironment.ItemCache, xy, "f", "4");
-            Item g = Item.New(gc.CurrentEnvironment.ItemCache, xy, "g", "5");
+            Item a = env.NewItem(xy, "a", "1");
+            Item b = env.NewItem(xy, "b", "2");
+            Item c = env.NewItem(xy, "c", "2");
+            Item d = env.NewItem(xy, "d", "3");
+            Item e = env.NewItem(xy, "e", "4");
+            Item f = env.NewItem(xy, "f", "4");
+            Item g = env.NewItem(xy, "g", "5");
             Dependency[] dependencies = {
-                        FromTo(a, b), FromTo(a, c), FromTo(b, d), FromTo(c, d), FromTo(d, e), FromTo(d, f), FromTo(e, g), FromTo(f, g)
-                    };
+                FromTo(env, a, b),
+                FromTo(env, a, c),
+                FromTo(env, b, d),
+                FromTo(env, c, d),
+                FromTo(env, d, e),
+                FromTo(env, d, f),
+                FromTo(env, e, g),
+                FromTo(env, f, g)
+            };
 
             string o = FindPathsAndWriteFlat(gc, dependencies, "A", "{ -im A -pi a -ci 2 -pi g }".Replace(" ", System.Environment.NewLine));
 

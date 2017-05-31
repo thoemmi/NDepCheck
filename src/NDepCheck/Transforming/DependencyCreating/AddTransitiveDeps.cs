@@ -73,8 +73,10 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             _transformRunCt++;
             MutableMarkerSet.AddComputedMarkerIfNoMarkers(markersToAdd, fromItemMatches, toItemMatches, "" + _transformRunCt);
 
+            Environment currentEnvironment = globalContext.CurrentEnvironment;
+
             DependencyPattern idempotentPattern = new DependencyPattern("'" + string.Join("+", markersToAdd), _ignoreCase);
-            Dictionary<FromTo, Dependency> checkPresence = idempotent ? FromTo.AggregateAllDependencies(dependencies) : new Dictionary<FromTo, Dependency>();
+            Dictionary<FromTo, Dependency> checkPresence = idempotent ? FromTo.AggregateAllDependencies(currentEnvironment, dependencies) : new Dictionary<FromTo, Dependency>();
             Dictionary<Item, Dependency[]> outgoing = Item.CollectOutgoingDependenciesMap(dependencies);
             IEnumerable<Item> matchingFroms = outgoing.Keys.Where(i => IsMatch(fromItemMatches, i));
 
@@ -83,7 +85,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             var result = new List<Dependency>();
             foreach (var from in matchingFroms) {
                 RecursivelyFlood(from, from, new HashSet<Item> { from }, checkPresence, idempotentPattern, outgoing,
-                                 toItemMatches, matches, excludes, markersToAddAsDictionary, result, null, globalContext.CheckAbort);
+                                 toItemMatches, matches, excludes, markersToAddAsDictionary, result, null, globalContext.CheckAbort,
+                                 currentEnvironment);
             }
 
             transformedDependencies.AddRange(dependencies);
@@ -97,9 +100,10 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             return !itemMatches.Any() || itemMatches.Any(m => m.Matches(i).Success);
         }
 
-        private void RecursivelyFlood(Item root, Item @from, HashSet<Item> visited, Dictionary<FromTo, Dependency> checkPresence, DependencyPattern idempotentPattern, 
-            Dictionary<Item, Dependency[]> outgoing, IEnumerable<ItemMatch> toItemMatches, List<DependencyMatch> matches, List<DependencyMatch> excludes,
-            Dictionary<string, int> markersToAddOrNull, List<Dependency> result, Dependency collectedEdge, [NotNull] Action checkAbort) {
+        private void RecursivelyFlood(Item root, Item @from, HashSet<Item> visited, Dictionary<FromTo, Dependency> checkPresence,
+            DependencyPattern idempotentPattern, Dictionary<Item, Dependency[]> outgoing, IEnumerable<ItemMatch> toItemMatches, 
+            List<DependencyMatch> matches, List<DependencyMatch> excludes, Dictionary<string, int> markersToAddOrNull, 
+            List<Dependency> result, Dependency collectedEdge, [NotNull] Action checkAbort, Environment environment) {
             if (outgoing.ContainsKey(from)) {
                 checkAbort();
                 foreach (var d in outgoing[from].Where(d => d.IsMatch(matches, excludes))) {
@@ -107,7 +111,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     if (visited.Add(target)) {
                         Dependency rootToTarget = collectedEdge == null
                             ? d
-                            : new Dependency(root, target, d.Source,
+                            : environment.CreateDependency(root, target, d.Source,
                                 new MutableMarkerSet(_ignoreCase, markersToAddOrNull ?? MutableMarkerSet.ConcatOrUnionWithMarkers(collectedEdge.AbstractMarkerSet, d.AbstractMarkerSet, _ignoreCase)),
                                 collectedEdge.Ct + d.Ct, collectedEdge.QuestionableCt + d.QuestionableCt,
                                 collectedEdge.BadCt + d.BadCt, d.ExampleInfo);
@@ -125,40 +129,41 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
                         // Continue search
                         RecursivelyFlood(root, target, visited, checkPresence, idempotentPattern, outgoing,
-                                         toItemMatches, matches, excludes, markersToAddOrNull, result, rootToTarget, checkAbort);
+                                         toItemMatches, matches, excludes, markersToAddOrNull, result, rootToTarget, 
+                                         checkAbort, environment);
                     }
                 }
             }
         }
 
         public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
-            var s1 = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "S1");
-            var s2 = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "S2");
-            var a = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "A");
-            var t1 = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "T1");
-            var t2 = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "T2");
-            var b = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "B");
-            var c = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "C");
-            var d = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "D");
-            var t3 = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "T3");
-            var t4 = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "T4");
+            var s1 = transformingEnvironment.NewItem(ItemType.SIMPLE, "S1");
+            var s2 = transformingEnvironment.NewItem(ItemType.SIMPLE, "S2");
+            var a = transformingEnvironment.NewItem(ItemType.SIMPLE, "A");
+            var t1 = transformingEnvironment.NewItem(ItemType.SIMPLE, "T1");
+            var t2 = transformingEnvironment.NewItem(ItemType.SIMPLE, "T2");
+            var b = transformingEnvironment.NewItem(ItemType.SIMPLE, "B");
+            var c = transformingEnvironment.NewItem(ItemType.SIMPLE, "C");
+            var d = transformingEnvironment.NewItem(ItemType.SIMPLE, "D");
+            var t3 = transformingEnvironment.NewItem(ItemType.SIMPLE, "T3");
+            var t4 = transformingEnvironment.NewItem(ItemType.SIMPLE, "T4");
             return new[] {
-                new Dependency(s1, a, source: null, markers: "1", ct:10, questionableCt:5, badCt:3),
-                new Dependency(s1, d, source: null, markers: "D", ct:10, questionableCt:5, badCt:3),
-                new Dependency(s1, t4, source: null, markers: "D", ct:10, questionableCt:5, badCt:3),
-                new Dependency(s2, a, source: null, markers: "2", ct:10, questionableCt:5, badCt:3),
+                transformingEnvironment.CreateDependency(s1, a, source: null, markers: "1", ct:10, questionableCt:5, badCt:3),
+                transformingEnvironment.CreateDependency(s1, d, source: null, markers: "D", ct:10, questionableCt:5, badCt:3),
+                transformingEnvironment.CreateDependency(s1, t4, source: null, markers: "D", ct:10, questionableCt:5, badCt:3),
+                transformingEnvironment.CreateDependency(s2, a, source: null, markers: "2", ct:10, questionableCt:5, badCt:3),
 
-                new Dependency(a, t1, source: null, markers: "1", ct:1, questionableCt:0, badCt: 0),
-                new Dependency(a, t2, source: null, markers: "2", ct:2, questionableCt:0, badCt: 0),
-                new Dependency(a, t2, source: null, markers: "2", ct:3, questionableCt:0, badCt: 0),
+                transformingEnvironment.CreateDependency(a, t1, source: null, markers: "1", ct:1, questionableCt:0, badCt: 0),
+                transformingEnvironment.CreateDependency(a, t2, source: null, markers: "2", ct:2, questionableCt:0, badCt: 0),
+                transformingEnvironment.CreateDependency(a, t2, source: null, markers: "2", ct:3, questionableCt:0, badCt: 0),
 
-                new Dependency(a, b, source: null, markers: "", ct:1, questionableCt:0, badCt: 0),
-                new Dependency(b, c, source: null, markers: "", ct:1, questionableCt:0, badCt: 0),
-                new Dependency(c, b, source: null, markers: "", ct:1, questionableCt:0, badCt: 0),
+                transformingEnvironment.CreateDependency(a, b, source: null, markers: "", ct:1, questionableCt:0, badCt: 0),
+                transformingEnvironment.CreateDependency(b, c, source: null, markers: "", ct:1, questionableCt:0, badCt: 0),
+                transformingEnvironment.CreateDependency(c, b, source: null, markers: "", ct:1, questionableCt:0, badCt: 0),
 
-                new Dependency(c, t3, source: null, markers: "3", ct:5, questionableCt:0, badCt:2),
+                transformingEnvironment.CreateDependency(c, t3, source: null, markers: "3", ct:5, questionableCt:0, badCt:2),
 
-                new Dependency(d, t4, source: null, markers: "4", ct:5, questionableCt:0, badCt:2),
+                transformingEnvironment.CreateDependency(d, t4, source: null, markers: "4", ct:5, questionableCt:0, badCt:2),
             };
         }
     }

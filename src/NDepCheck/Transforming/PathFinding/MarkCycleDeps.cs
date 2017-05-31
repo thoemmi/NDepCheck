@@ -218,34 +218,34 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         }
 
         public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
-            Item a = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "A");
-            Item b = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "B");
-            Item c = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "C");
-            Item d = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "D");
-            Item e = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "E");
-            Item f = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "F");
-            Item g = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "G");
-            Item h = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "H");
-            Item i = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "I");
-            Item j = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "J");
+            Item a = transformingEnvironment.NewItem(ItemType.SIMPLE, "A");
+            Item b = transformingEnvironment.NewItem(ItemType.SIMPLE, "B");
+            Item c = transformingEnvironment.NewItem(ItemType.SIMPLE, "C");
+            Item d = transformingEnvironment.NewItem(ItemType.SIMPLE, "D");
+            Item e = transformingEnvironment.NewItem(ItemType.SIMPLE, "E");
+            Item f = transformingEnvironment.NewItem(ItemType.SIMPLE, "F");
+            Item g = transformingEnvironment.NewItem(ItemType.SIMPLE, "G");
+            Item h = transformingEnvironment.NewItem(ItemType.SIMPLE, "H");
+            Item i = transformingEnvironment.NewItem(ItemType.SIMPLE, "I");
+            Item j = transformingEnvironment.NewItem(ItemType.SIMPLE, "J");
 
             //   a<=>b->c->d->e<=>f->g
             //          ^  ^         |
             // h<=>i->j-+  +---------+
             return new[] {
-                new Dependency(a,b,source: null, markers: "", ct:1), // on cycle
-                new Dependency(b,a,source: null, markers: "", ct:1), // on cycle
-                new Dependency(b,c,source: null, markers: "", ct:1),
-                new Dependency(c,d,source: null, markers: "", ct:1),
-                new Dependency(d,e,source: null, markers: "", ct:1), // on cycle
-                new Dependency(e,f,source: null, markers: "", ct:1), // on cycle
-                new Dependency(f,e,source: null, markers: "", ct:1), // on cycle
-                new Dependency(f,g,source: null, markers: "", ct:1), // on cycle
-                new Dependency(g,d,source: null, markers: "", ct:1), // on cycle
-                new Dependency(h,i,source: null, markers: "", ct:1), // on cycle
-                new Dependency(i,h,source: null, markers: "", ct:1), // on cycle
-                new Dependency(i,j,source: null, markers: "", ct:1),
-                new Dependency(j,c,source: null, markers: "", ct:1),
+                transformingEnvironment.CreateDependency(a,b,source: null, markers: "", ct:1), // on cycle
+                transformingEnvironment.CreateDependency(b,a,source: null, markers: "", ct:1), // on cycle
+                transformingEnvironment.CreateDependency(b,c,source: null, markers: "", ct:1),
+                transformingEnvironment.CreateDependency(c,d,source: null, markers: "", ct:1),
+                transformingEnvironment.CreateDependency(d,e,source: null, markers: "", ct:1), // on cycle
+                transformingEnvironment.CreateDependency(e,f,source: null, markers: "", ct:1), // on cycle
+                transformingEnvironment.CreateDependency(f,e,source: null, markers: "", ct:1), // on cycle
+                transformingEnvironment.CreateDependency(f,g,source: null, markers: "", ct:1), // on cycle
+                transformingEnvironment.CreateDependency(g,d,source: null, markers: "", ct:1), // on cycle
+                transformingEnvironment.CreateDependency(h,i,source: null, markers: "", ct:1), // on cycle
+                transformingEnvironment.CreateDependency(i,h,source: null, markers: "", ct:1), // on cycle
+                transformingEnvironment.CreateDependency(i,j,source: null, markers: "", ct:1),
+                transformingEnvironment.CreateDependency(j,c,source: null, markers: "", ct:1),
             };
         }
     }

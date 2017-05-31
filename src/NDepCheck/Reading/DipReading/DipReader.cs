@@ -100,7 +100,7 @@ namespace NDepCheck.Reading.DipReading {
 
                             string exampleInfo = Get(properties, 5);
 
-                            var dependency = new Dependency(foundUsingItem, foundUsedItem, location,
+                            var dependency = readingEnvironment.CreateDependency(foundUsingItem, foundUsedItem, location,
                                 dependencyMarkers, ct, questionableCt, badCt, exampleInfo);
 
                             result.Add(dependency);
@@ -121,16 +121,16 @@ namespace NDepCheck.Reading.DipReading {
                         }
                     }
 
-                    return result.Select(d => ResolveItemProxies(d, itemsDictionary)).ToArray();
+                    return result.Select(d => ResolveItemProxies(readingEnvironment, d, itemsDictionary)).ToArray();
                 } else {
                     return result;
                 }
             }
         }
 
-        private Dependency ResolveItemProxies(Dependency d, Dictionary<Item, Item> itemsDictionary) {
+        private Dependency ResolveItemProxies(Environment readingEnvironment, Dependency d, Dictionary<Item, Item> itemsDictionary) {
             return d.UsingItem is ItemProxy || d.UsedItem is ItemProxy
-                ? new Dependency(itemsDictionary[d.UsingItem], itemsDictionary[d.UsedItem],
+                ? readingEnvironment.CreateDependency(itemsDictionary[d.UsingItem], itemsDictionary[d.UsedItem],
                     d.Source, d.MarkerSet, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo)
                 : d;
         }
@@ -165,7 +165,7 @@ namespace NDepCheck.Reading.DipReading {
             } else {
                 string[] values = prefixAndValues.Length > 1 ? prefixAndValues[1].Split(':', ';') : new string[0];
 
-                return values.Contains("?") ? new ItemProxy(foundType, values, markers) : Item.New(readingEnvironment.ItemCache, foundType, values, markers);
+                return values.Contains("?") ? new ItemProxy(foundType, values, markers) : readingEnvironment.NewItem(foundType, values, markers);
             }
         }
 

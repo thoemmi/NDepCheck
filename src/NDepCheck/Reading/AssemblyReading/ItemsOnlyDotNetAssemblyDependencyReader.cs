@@ -6,15 +6,15 @@ using Mono.Cecil;
 
 namespace NDepCheck.Reading.AssemblyReading {
     public class ItemsOnlyDotNetAssemblyDependencyReader : AbstractDotNetAssemblyDependencyReader {
-        public ItemsOnlyDotNetAssemblyDependencyReader(DotNetAssemblyDependencyReaderFactory factory, string fileName)
-            : base(factory, fileName) {
+        public ItemsOnlyDotNetAssemblyDependencyReader(DotNetAssemblyDependencyReaderFactory readerFactory, string fileName)
+            : base(readerFactory, fileName) {
         }
 
         public override IEnumerable<Dependency> ReadDependencies(Environment readingEnvironment, int depth, bool ignoreCase) {
             throw new NotImplementedException(); // TODO: gehört da eigentlich raus!
         }
 
-        protected override IEnumerable<RawUsingItem> ReadUsingItems(int depth, Intern<ItemTail> itemTailCache) {
+        protected override IEnumerable<RawUsingItem> ReadUsingItems(int depth, Environment readingEnvironment) {
             Log.WriteInfo("Reading " + FullFileName);
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(FullFileName);
 
@@ -25,65 +25,65 @@ namespace NDepCheck.Reading.AssemblyReading {
                         $"Loading symbols for assembly {FullFileName} failed - maybe .PDB file is missing. ({ex.Message})", FullFileName, 0);
             }
 
-            ItemTail customSections = GetCustomSections(itemTailCache, assembly.CustomAttributes, null);
+            ItemTail customSections = GetCustomSections(readingEnvironment, assembly.CustomAttributes, null);
 
             foreach (TypeDefinition type in assembly.MainModule.Types) {
                 if (type.Name == "<Module>") {
                     continue;
                 }
 
-                foreach (var usingItem in AnalyzeType(type, customSections, itemTailCache)) {
+                foreach (var usingItem in AnalyzeType(type, customSections, readingEnvironment)) {
                     yield return usingItem;
                 }
             }
 
             AssemblyNameDefinition currentAssembly = assembly.Name;
-            yield return RawUsingItem.New(_rawUsingItemsCache, "", "", currentAssembly.Name, currentAssembly.Version.ToString(), currentAssembly.Culture, memberName: "", markers: null, tail: null);
+            yield return RawUsingItem.New(_rawUsingItemsCache, "", "", currentAssembly.Name, currentAssembly.Version.ToString(), currentAssembly.Culture, memberName: "", markers: null, tail: null, readingEnvironment: readingEnvironment);
         }
 
-        private IEnumerable<RawUsingItem> AnalyzeType(TypeDefinition type, ItemTail parentCustomSections, Intern<ItemTail> itemTailCache) {
-            ItemTail typeCustomSections = GetCustomSections(itemTailCache, type.CustomAttributes, parentCustomSections);
+        private IEnumerable<RawUsingItem> AnalyzeType(TypeDefinition type, ItemTail parentCustomSections, Environment readingEnvironment) {
+            ItemTail typeCustomSections = GetCustomSections(readingEnvironment, type.CustomAttributes, parentCustomSections);
 
-            yield return GetClassItem(type, typeCustomSections);
+            yield return GetClassItem(type, typeCustomSections, readingEnvironment);
 
             foreach (PropertyDefinition property in type.Properties) {
-                foreach (var usingItem in AnalyzeProperty(property, typeCustomSections, itemTailCache)) {
+                foreach (var usingItem in AnalyzeProperty(property, typeCustomSections, readingEnvironment)) {
                     yield return usingItem;
                 }
             }
 
             foreach (MethodDefinition method in type.Methods) {
-                ItemTail methodCustomSections = GetCustomSections(itemTailCache, method.CustomAttributes, typeCustomSections);
-                yield return GetFullNameItem(type, method.Name, markers: null, customSections: methodCustomSections);
+                ItemTail methodCustomSections = GetCustomSections(readingEnvironment, method.CustomAttributes, typeCustomSections);
+                yield return GetFullNameItem(type, method.Name, markers: null, customSections: methodCustomSections, readingEnvironment: readingEnvironment);
             }
 
             foreach (TypeDefinition nestedType in type.NestedTypes) {
-                foreach (var usingItem in AnalyzeType(nestedType, typeCustomSections, itemTailCache)) {
+                foreach (var usingItem in AnalyzeType(nestedType, typeCustomSections, readingEnvironment)) {
                     yield return usingItem;
                 }
             }
         }
 
-        private IEnumerable<RawUsingItem> AnalyzeProperty(PropertyDefinition property, ItemTail typeCustomSections, Intern<ItemTail> itemTailCache) {
-            ItemTail propertyCustomSections = GetCustomSections(itemTailCache, property.CustomAttributes, typeCustomSections);
+        private IEnumerable<RawUsingItem> AnalyzeProperty(PropertyDefinition property, ItemTail typeCustomSections, Environment readingEnvironment) {
+            ItemTail propertyCustomSections = GetCustomSections(readingEnvironment, property.CustomAttributes, typeCustomSections);
 
-            yield return GetFullNameItem(property.DeclaringType, property.Name, GET_MARKER, propertyCustomSections);
-            yield return GetFullNameItem(property.DeclaringType, property.Name, SET_MARKER, propertyCustomSections);
+            yield return GetFullNameItem(property.DeclaringType, property.Name, GET_MARKER, propertyCustomSections, readingEnvironment);
+            yield return GetFullNameItem(property.DeclaringType, property.Name, SET_MARKER, propertyCustomSections, readingEnvironment);
         }
 
         [NotNull]
-        private RawUsingItem GetClassItem(TypeReference typeReference, ItemTail customSections) {
+        private RawUsingItem GetClassItem(TypeReference typeReference, ItemTail customSections, Environment readingEnvironment) {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
 
-            return RawUsingItem.New(_rawUsingItemsCache, namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName: "", markers: null, tail: customSections);
+            return RawUsingItem.New(_rawUsingItemsCache, namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName: "", markers: null, tail: customSections, readingEnvironment: readingEnvironment);
         }
 
         [NotNull]
-        private RawUsingItem GetFullNameItem(TypeReference typeReference, string memberName, string[] markers, ItemTail customSections) {
+        private RawUsingItem GetFullNameItem(TypeReference typeReference, string memberName, string[] markers, ItemTail customSections, Environment readingEnvironment) {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
-            return RawUsingItem.New(_rawUsingItemsCache, namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, customSections);
+            return RawUsingItem.New(_rawUsingItemsCache, namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, customSections, readingEnvironment: readingEnvironment);
         }
 
         public override void SetReadersInSameReadFilesBeforeReadDependencies(IDependencyReader[] readerGang) {

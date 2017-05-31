@@ -7,8 +7,8 @@ using NDepCheck.Rendering.TextWriting;
 
 namespace NDepCheck.Tests {
     public class AbstractWriterTest {
-        protected Dependency FromTo(Item from, Item to, int ct = 1, int questionable = 0) {
-            return new Dependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
+        protected Dependency FromTo(Environment env, Item from, Item to, int ct = 1, int questionable = 0) {
+            return env.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
         }
     }
 

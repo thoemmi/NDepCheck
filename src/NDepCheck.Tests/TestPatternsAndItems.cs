@@ -31,8 +31,9 @@ namespace NDepCheck.Tests {
             var rnc2 = CreateDependencyRule(itemType, "n**:c**", ":");
 
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            Dependency dep = new Dependency(Item.New(gc.CurrentEnvironment.ItemCache, itemType, "n1", "c1"), Item.New(gc.CurrentEnvironment.ItemCache, itemType, "n2", "c2"), null, "Test", ct: 1);
+            Dependency dep = env.CreateDependency(env.NewItem(itemType, "n1", "c1"), env.NewItem(itemType, "n2", "c2"), null, "Test", ct: 1);
             Assert.IsTrue(r1.IsMatch(dep));
 
             Assert.IsTrue(rn1.IsMatch(dep));
@@ -69,8 +70,9 @@ namespace NDepCheck.Tests {
             var rn5 = CreateDependencyRule(itemtype, "s(**):t(**)", @"s\1:t\2");
 
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            Dependency dep = new Dependency(Item.New(gc.CurrentEnvironment.ItemCache, itemtype, "s1", "t1"), Item.New(gc.CurrentEnvironment.ItemCache, itemtype, "s2", "t2"), null, "Test", ct: 1);
+            Dependency dep = env.CreateDependency(env.NewItem(itemtype, "s1", "t1"), env.NewItem(itemtype, "s2", "t2"), null, "Test", ct: 1);
             Assert.IsTrue(rn1.IsMatch(dep));
             Assert.IsTrue(rn2.IsMatch(dep));
             Assert.IsTrue(rn3.IsMatch(dep));
@@ -85,8 +87,9 @@ namespace NDepCheck.Tests {
             var rn5 = CreateDependencyRule(itemtype, "(**s**):(**t**)", @"\1:\2");
 
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            Dependency dep = new Dependency(Item.New(gc.CurrentEnvironment.ItemCache, itemtype, "sx", "tx"), Item.New(gc.CurrentEnvironment.ItemCache, itemtype, "sx", "tx"), null, "Test", ct: 1);
+            Dependency dep = env.CreateDependency(env.NewItem(itemtype, "sx", "tx"), env.NewItem(itemtype, "sx", "tx"), null, "Test", ct: 1);
             Assert.IsTrue(rn3.IsMatch(dep));
             Assert.IsTrue(rn5.IsMatch(dep));
         }
@@ -103,8 +106,9 @@ namespace NDepCheck.Tests {
             var rn6 = CreateDependencyRule(itemType, "s*:(t*)", @"s\1:t*");
 
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            Dependency dep = new Dependency(Item.New(gc.CurrentEnvironment.ItemCache, itemType, "s1", "t1"), Item.New(gc.CurrentEnvironment.ItemCache, itemType, "s1", "t2"), null, "Test", ct: 1);
+            Dependency dep = env.CreateDependency(env.NewItem(itemType, "s1", "t1"), env.NewItem(itemType, "s1", "t2"), null, "Test", ct: 1);
             Assert.IsTrue(rn1.IsMatch(dep));
             Assert.IsTrue(rn2.IsMatch(dep));
             Assert.IsTrue(rn3.IsMatch(dep));
@@ -151,8 +155,9 @@ namespace NDepCheck.Tests {
             var gnc2 = new Projection(testType, simpleType, "n(**):(c)**", new[] { "\\1+\\2" }, IGNORECASE, true, true);
 
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            Item i = Item.New(gc.CurrentEnvironment.ItemCache, testType, "n1", "c1");
+            Item i = env.NewItem(testType, "n1", "c1");
 
             Assert.AreEqual("", g1.Match(gc.CurrentEnvironment, i, true).Name);
 
@@ -244,8 +249,9 @@ namespace NDepCheck.Tests {
             //var gnc2 = new GraphAbstraction_("n(**):(c)**", false);
 
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            Item i = Item.New(gc.CurrentEnvironment.ItemCache, testType, "n1", "c1");
+            Item i = env.NewItem(testType, "n1", "c1");
 
             Assert.AreEqual("", g1.Match(gc.CurrentEnvironment, i, true).Name);
 
@@ -304,10 +310,11 @@ namespace NDepCheck.Tests {
             var g1 = new Projection(testType, simpleType, "(**)", null, IGNORECASE, true, true);
 
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            Assert.AreEqual("n1", g1.Match(gc.CurrentEnvironment, Item.New(gc.CurrentEnvironment.ItemCache, testType, "n1"), true).Name);
-            Assert.AreEqual("n1.n2", g1.Match(gc.CurrentEnvironment, Item.New(gc.CurrentEnvironment.ItemCache, testType, "n1.n2"), true).Name);
-            Assert.AreEqual("n1.n2.n3", g1.Match(gc.CurrentEnvironment, Item.New(gc.CurrentEnvironment.ItemCache, testType, "n1.n2.n3"), true).Name);
+            Assert.AreEqual("n1", g1.Match(gc.CurrentEnvironment, env.NewItem(testType, "n1"), true).Name);
+            Assert.AreEqual("n1.n2", g1.Match(gc.CurrentEnvironment, env.NewItem(testType, "n1.n2"), true).Name);
+            Assert.AreEqual("n1.n2.n3", g1.Match(gc.CurrentEnvironment, env.NewItem(testType, "n1.n2.n3"), true).Name);
         }
         //
 
@@ -319,9 +326,10 @@ namespace NDepCheck.Tests {
             var g2 = new Projection(testType, simpleType, "**Tests**()", null, IGNORECASE, true, true);
 
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            Assert.AreEqual("\\1", g1.Match(gc.CurrentEnvironment, Item.New(gc.CurrentEnvironment.ItemCache, testType, "Framework.Core.NunitTests.IBOL"), true).Name);
-            Assert.AreEqual("", g2.Match(gc.CurrentEnvironment, Item.New(gc.CurrentEnvironment.ItemCache, testType, "Framework.Core.NunitTests.IBOL"), true).Name);
+            Assert.AreEqual("\\1", g1.Match(gc.CurrentEnvironment, env.NewItem(testType, "Framework.Core.NunitTests.IBOL"), true).Name);
+            Assert.AreEqual("", g2.Match(gc.CurrentEnvironment, env.NewItem(testType, "Framework.Core.NunitTests.IBOL"), true).Name);
         }
 
         [TestMethod]
@@ -329,10 +337,11 @@ namespace NDepCheck.Tests {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
 
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            var @using = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
-            var used = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "System", "Object", "mscorlib", "", "", "");
-            var d = new Dependency(@using, used, null, "Test", ct: 1);
+            var @using = env.NewItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
+            var used = env.NewItem(itemType, "System", "Object", "mscorlib", "", "", "");
+            var d = env.CreateDependency(@using, used, null, "Test", ct: 1);
 
             var r = CreateDependencyRule(itemType, "**", "System.**");
             Assert.IsTrue(r.IsMatch(d));
@@ -343,10 +352,11 @@ namespace NDepCheck.Tests {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
 
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            Item @using = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "NDepCheck.TestAssembly.dir1.dir2", "SomeClass", "NDepCheck.TestAssembly", "1.0.0.0", "", "AnotherMethod");
-            Item used = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "I");
-            var d = new Dependency(@using, used, null, "Test", ct: 1);
+            Item @using = env.NewItem(itemType, "NDepCheck.TestAssembly.dir1.dir2", "SomeClass", "NDepCheck.TestAssembly", "1.0.0.0", "", "AnotherMethod");
+            Item used = env.NewItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "I");
+            var d = env.CreateDependency(@using, used, null, "Test", ct: 1);
 
             var r = CreateDependencyRule(itemType, "NDepCheck.TestAssembly.dir1.dir2:SomeClass:**", "-:NamespacelessTestClassForNDepCheck::I");
             Assert.IsTrue(r.IsMatch(d));
@@ -361,8 +371,9 @@ namespace NDepCheck.Tests {
                                     ignoreCase: false, forLeftSide: true, forRightSide: true);
 
             var gc = new GlobalContext();
+            Environment env = gc.CurrentEnvironment;
 
-            Item used = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "System", "Byte&", "mscorlib", "4.0.0.0", "", "");
+            Item used = env.NewItem(itemType, "System", "Byte&", "mscorlib", "4.0.0.0", "", "");
 
             string result = ga.Match(gc.CurrentEnvironment, used, true).Name;
 
@@ -373,9 +384,10 @@ namespace NDepCheck.Tests {
         public void TestSimpleNamedCall() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
             var gc = new GlobalContext();
-            Item @using = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
-            Item used = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "System", "Object", "mscorlib", "", "", "");
-            var d = new Dependency(@using, used, null, "Test", ct: 1);
+            Environment env = gc.CurrentEnvironment;
+            Item @using = env.NewItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
+            Item used = env.NewItem(itemType, "System", "Object", "mscorlib", "", "", "");
+            var d = env.CreateDependency(@using, used, null, "Test", ct: 1);
 
             DependencyRule r = CreateDependencyRule(itemType, "**", "ASSEMBLY.NAME=mscorlib");
             Assert.IsTrue(r.IsMatch(d));
@@ -385,9 +397,11 @@ namespace NDepCheck.Tests {
         public void TestReverseFieldsInNamedCall() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
             var gc = new GlobalContext();
-            Item @using = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
-            Item used = Item.New(gc.CurrentEnvironment.ItemCache, itemType, "System", "Object", "mscorlib", "", "", "");
-            var d = new Dependency(@using, used, null, "Test", ct: 1);
+            Environment env = gc.CurrentEnvironment;
+
+            Item @using = env.NewItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
+            Item used = env.NewItem(itemType, "System", "Object", "mscorlib", "", "", "");
+            var d = env.CreateDependency(@using, used, null, "Test", ct: 1);
 
             DependencyRule r = CreateDependencyRule(itemType, "**", "ASSEMBLY.NAME=mscorlib:CLASS=Object");
             Assert.IsTrue(r.IsMatch(d));

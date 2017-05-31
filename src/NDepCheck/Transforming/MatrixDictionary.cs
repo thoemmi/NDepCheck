@@ -7,10 +7,10 @@ namespace NDepCheck.Transforming {
     public class MatrixDictionary {
         [NotNull]
         public static MatrixDictionary<Item, int> CreateCounts([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
-            [NotNull] Func<Dependency, int> getCount) {
+            [NotNull] Func<Dependency, int> getCount, Environment env) {
             var aggregated = new Dictionary<FromTo, Dependency>();
             foreach (var d in dependencies) {
-                new FromTo(d.UsingItem, d.UsedItem).AggregateDependency(d, aggregated);
+                new FromTo(d.UsingItem, d.UsedItem).AggregateDependency(env, d, aggregated);
             }
 
             var aggregatedCounts = new MatrixDictionary<Item, int>((s, i) => s + i, (s, i) => s - i);

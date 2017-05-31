@@ -418,30 +418,30 @@ namespace NDepCheck.Rendering.PathFinding {
         public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
-            var a = Item.New(transformingEnvironment.ItemCache, t3, "a:aa:aaa".Split(':'));
-            var b = Item.New(transformingEnvironment.ItemCache, t3, "b:bb:bbb".Split(':'));
-            var c = Item.New(transformingEnvironment.ItemCache, t3, "c:cc:ccc".Split(':'));
-            var d = Item.New(transformingEnvironment.ItemCache, t3, "d:dd:ddd".Split(':'));
-            var e = Item.New(transformingEnvironment.ItemCache, t3, "e:ee:eee".Split(':'));
-            var f = Item.New(transformingEnvironment.ItemCache, t3, "f:ff:fff".Split(':'));
-            var g = Item.New(transformingEnvironment.ItemCache, t3, "g:gg:ggg".Split(':'));
-            var h = Item.New(transformingEnvironment.ItemCache, t3, "h:hh:hhh".Split(':'));
+            var a = transformingEnvironment.NewItem(t3, "a:aa:aaa".Split(':'));
+            var b = transformingEnvironment.NewItem(t3, "b:bb:bbb".Split(':'));
+            var c = transformingEnvironment.NewItem(t3, "c:cc:ccc".Split(':'));
+            var d = transformingEnvironment.NewItem(t3, "d:dd:ddd".Split(':'));
+            var e = transformingEnvironment.NewItem(t3, "e:ee:eee".Split(':'));
+            var f = transformingEnvironment.NewItem(t3, "f:ff:fff".Split(':'));
+            var g = transformingEnvironment.NewItem(t3, "g:gg:ggg".Split(':'));
+            var h = transformingEnvironment.NewItem(t3, "h:hh:hhh".Split(':'));
 
             return new[] {
-                FromTo(a, b),
-                FromTo(a, h),
-                FromTo(b, c),
-                FromTo(c, d),
-                FromTo(d, e),
-                FromTo(d, b),
-                FromTo(e, f),
-                FromTo(b, g),
-                FromTo(h, g),
+                FromTo(transformingEnvironment, a, b),
+                FromTo(transformingEnvironment, a, h),
+                FromTo(transformingEnvironment, b, c),
+                FromTo(transformingEnvironment, c, d),
+                FromTo(transformingEnvironment, d, e),
+                FromTo(transformingEnvironment, d, b),
+                FromTo(transformingEnvironment, e, f),
+                FromTo(transformingEnvironment, b, g),
+                FromTo(transformingEnvironment, h, g),
             };
         }
 
-        private Dependency FromTo(Item from, Item to, int ct = 1, int questionable = 0) {
-            return new Dependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
+        private Dependency FromTo(Environment transformingEnvironment, Item from, Item to, int ct = 1, int questionable = 0) {
+            return transformingEnvironment.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
         }
     }
 }

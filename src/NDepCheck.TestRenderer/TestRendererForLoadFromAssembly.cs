@@ -40,9 +40,9 @@ namespace NDepCheck.TestRenderer {
 
         public override IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
             ItemType simple = ItemType.New("SIMPLE(Name)");
-            Item[] localItems = Enumerable.Range(0, 5).Select(i => Item.New(renderingEnvironment.ItemCache, simple, "Item " + i)).ToArray();
+            Item[] localItems = Enumerable.Range(0, 5).Select(i => renderingEnvironment.NewItem(simple, "Item " + i)).ToArray();
             return localItems.SelectMany(
-                    (from, i) => localItems.Skip(i).Select(to => new Dependency(from, to, new TextFileSourceLocation("Test", i), "Test", ct: 10 * i))).ToArray();
+                    (from, i) => localItems.Skip(i).Select(to => renderingEnvironment.CreateDependency(from, to, new TextFileSourceLocation("Test", i), "Test", ct: 10 * i))).ToArray();
         }
 
         public override string GetHelp(bool detailedHelp, string filter) {

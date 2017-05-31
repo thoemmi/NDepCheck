@@ -63,20 +63,23 @@ namespace NDepCheck.Rendering.TextWriting {
         public IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
             ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
 
-            var bac = Item.New(renderingEnvironment.ItemCache, amo, "BAC:BAC:0100".Split(':'));
-            var kst = Item.New(renderingEnvironment.ItemCache, amo, "KST:KST:0200".Split(':'));
-            var kah = Item.New(renderingEnvironment.ItemCache, amo, "KAH:KAH:0300".Split(':'));
-            var kah_mi = Item.New(renderingEnvironment.ItemCache, amo, "Kah.MI:KAH:0301".Split(':'));
-            var vkf = Item.New(renderingEnvironment.ItemCache, amo, "VKF:VKF:0400".Split(':'));
+            var bac = renderingEnvironment.NewItem(amo, "BAC:BAC:0100".Split(':'));
+            var kst = renderingEnvironment.NewItem(amo, "KST:KST:0200".Split(':'));
+            var kah = renderingEnvironment.NewItem(amo, "KAH:KAH:0300".Split(':'));
+            var kah_mi = renderingEnvironment.NewItem(amo, "Kah.MI:KAH:0301".Split(':'));
+            var vkf = renderingEnvironment.NewItem(amo, "VKF:VKF:0400".Split(':'));
 
             return new[] {
-                    FromTo(kst, bac), FromTo(kst, kah_mi), FromTo(kah, bac), FromTo(vkf, bac), FromTo(vkf, kst), FromTo(vkf, kah, 3), FromTo(vkf, kah_mi, 2, 2)
+                    FromTo(renderingEnvironment, kst, bac), FromTo(renderingEnvironment, kst, kah_mi),
+                FromTo(renderingEnvironment, kah, bac), FromTo(renderingEnvironment, vkf, bac),
+                FromTo(renderingEnvironment, vkf, kst), FromTo(renderingEnvironment, vkf, kah, 3),
+                FromTo(renderingEnvironment, vkf, kah_mi, 2, 2)
                     // ... more to come
                 };
         }
 
-        private Dependency FromTo(Item from, Item to, int ct = 1, int questionable = 0) {
-            return new Dependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
+        private Dependency FromTo(Environment env, Item from, Item to, int ct = 1, int questionable = 0) {
+            return env.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
         }
 
         public string GetHelp(bool detailedHelp, string filter) {

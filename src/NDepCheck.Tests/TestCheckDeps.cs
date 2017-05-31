@@ -10,9 +10,10 @@ namespace NDepCheck.Tests {
         public void TestRuleWithParenthesesAndBarsWorksAgain() {
             GlobalContext gc = new GlobalContext();
 
-            var a = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "a");
-            var b = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "b");
-            var deps = new[] {new Dependency(a, b, null, "", 1)};
+            var env = gc.CurrentEnvironment;
+            var a = env.NewItem(ItemType.SIMPLE, "a");
+            var b = env.NewItem(ItemType.SIMPLE, "b");
+            var deps = new[] { env.CreateDependency(a, b, null, "", 1) };
             var ignore = new List<Dependency>();
 
             var cd = new CheckDeps();
@@ -26,9 +27,10 @@ namespace NDepCheck.Tests {
         public void TestIndirectRulesOverTwoLevels() {
             GlobalContext gc = new GlobalContext();
 
-            var a = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "a");
-            var b = Item.New(gc.CurrentEnvironment.ItemCache, ItemType.SIMPLE, "b");
-            var deps = new[] {new Dependency(a, b, null, "", 1)};
+            var env = gc.CurrentEnvironment;
+            var a = env.NewItem(ItemType.SIMPLE, "a");
+            var b = env.NewItem(ItemType.SIMPLE, "b");
+            var deps = new[] { env.CreateDependency(a, b, null, "", 1) };
 
             var cd = new CheckDeps();
             cd.Configure(gc, @"{

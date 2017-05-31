@@ -117,34 +117,34 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         }
 
         public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
-            Item a = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Ax");
-            Item b = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Bx");
-            Item c = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Cloop");
-            Item d = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Dloop");
-            Item e = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Eselfloop");
-            Item f = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Fy");
-            Item g = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Gy");
-            Item h = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Hy");
-            Item i = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Iy");
-            Item j = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "Jy");
+            Item a = transformingEnvironment.NewItem(ItemType.SIMPLE, "Ax");
+            Item b = transformingEnvironment.NewItem(ItemType.SIMPLE, "Bx");
+            Item c = transformingEnvironment.NewItem(ItemType.SIMPLE, "Cloop");
+            Item d = transformingEnvironment.NewItem(ItemType.SIMPLE, "Dloop");
+            Item e = transformingEnvironment.NewItem(ItemType.SIMPLE, "Eselfloop");
+            Item f = transformingEnvironment.NewItem(ItemType.SIMPLE, "Fy");
+            Item g = transformingEnvironment.NewItem(ItemType.SIMPLE, "Gy");
+            Item h = transformingEnvironment.NewItem(ItemType.SIMPLE, "Hy");
+            Item i = transformingEnvironment.NewItem(ItemType.SIMPLE, "Iy");
+            Item j = transformingEnvironment.NewItem(ItemType.SIMPLE, "Jy");
             return new[] {
                 // Pure sources
-                new Dependency(a, b, source: null, markers: "", ct: 10, questionableCt: 5, badCt: 3),
-                new Dependency(b, c, source: null, markers: "", ct: 1, questionableCt: 0, badCt: 0),
+                transformingEnvironment.CreateDependency(a, b, source: null, markers: "", ct: 10, questionableCt: 5, badCt: 3),
+                transformingEnvironment.CreateDependency(b, c, source: null, markers: "", ct: 1, questionableCt: 0, badCt: 0),
 
                 // Long cycle
-                new Dependency(c, d, source: null, markers: "", ct: 5, questionableCt: 0, badCt: 2),
-                new Dependency(d, c, source: null, markers: "", ct: 5, questionableCt: 0, badCt: 2),
+                transformingEnvironment.CreateDependency(c, d, source: null, markers: "", ct: 5, questionableCt: 0, badCt: 2),
+                transformingEnvironment.CreateDependency(d, c, source: null, markers: "", ct: 5, questionableCt: 0, badCt: 2),
 
-                new Dependency(d, e, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                transformingEnvironment.CreateDependency(d, e, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
                 // Self cycle
-                new Dependency(e, e, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                transformingEnvironment.CreateDependency(e, e, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
                 // Pure sinks
-                new Dependency(e, f, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                new Dependency(f, g, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                new Dependency(g, h, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                new Dependency(h, i, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                new Dependency(h, j, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2)
+                transformingEnvironment.CreateDependency(e, f, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                transformingEnvironment.CreateDependency(f, g, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                transformingEnvironment.CreateDependency(g, h, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                transformingEnvironment.CreateDependency(h, i, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                transformingEnvironment.CreateDependency(h, j, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2)
             };
         }
     }

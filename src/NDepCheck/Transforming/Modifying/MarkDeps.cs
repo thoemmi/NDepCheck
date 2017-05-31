@@ -179,14 +179,14 @@ Examples:
         }
 
         public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
-            Item am = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, new[] { "A" }, new[] { "M" });
-            Item bm = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, new[] { "B" }, new[] { "M" });
-            Item cn = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, new[] { "C" }, new[] { "N" });
+            Item am = transformingEnvironment.NewItem(ItemType.SIMPLE, new[] { "A" }, new[] { "M" });
+            Item bm = transformingEnvironment.NewItem(ItemType.SIMPLE, new[] { "B" }, new[] { "M" });
+            Item cn = transformingEnvironment.NewItem(ItemType.SIMPLE, new[] { "C" }, new[] { "N" });
             return new[] {
-                new Dependency(am, am, source: null, markers: "", ct:10, questionableCt:5, badCt:3),
-                new Dependency(am, bm, source: null, markers: "use+define", ct:1, questionableCt:0,badCt: 0),
-                new Dependency(am, cn, source: null, markers: "define", ct:5, questionableCt:0, badCt:2),
-                new Dependency(bm, am, source: null, markers: "define", ct:5, questionableCt:0, badCt:2),
+                transformingEnvironment.CreateDependency(am, am, source: null, markers: "", ct:10, questionableCt:5, badCt:3),
+                transformingEnvironment.CreateDependency(am, bm, source: null, markers: "use+define", ct:1, questionableCt:0,badCt: 0),
+                transformingEnvironment.CreateDependency(am, cn, source: null, markers: "define", ct:5, questionableCt:0, badCt:2),
+                transformingEnvironment.CreateDependency(bm, am, source: null, markers: "define", ct:5, questionableCt:0, badCt:2),
             };
         }
     }

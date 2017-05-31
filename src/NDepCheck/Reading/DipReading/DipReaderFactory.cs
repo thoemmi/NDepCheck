@@ -6,7 +6,7 @@ namespace NDepCheck.Reading.DipReading {
             return new DipReader(fileName);
         }
 
-        private static readonly string[] _supportedFileExtensions = {".dip"};
+        private static readonly string[] _supportedFileExtensions = { ".dip" };
 
         public override IEnumerable<string> SupportedFileExtensions => _supportedFileExtensions;
 

@@ -138,25 +138,26 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         public override IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
             ItemType ar = ItemType.New("AR(Assembly:Ref)");
 
-            var wlg = Item.New(renderingEnvironment.ItemCache, ar, "WLG:1".Split(':'));
-            var kst = Item.New(renderingEnvironment.ItemCache, ar, "KST:2".Split(':'));
-            var vkf = Item.New(renderingEnvironment.ItemCache, ar, "VKF:3".Split(':'));
-            var impA = Item.New(renderingEnvironment.ItemCache, ar, "IMP.A:4".Split(':'));
-            var impB = Item.New(renderingEnvironment.ItemCache, ar, "IMP.B:5".Split(':'));
-            var impC = Item.New(renderingEnvironment.ItemCache, ar, "IMP.C:6".Split(':'));
-            var impD = Item.New(renderingEnvironment.ItemCache, ar, "IMP.D:".Split(':'));
+            var wlg = renderingEnvironment.NewItem(ar, "WLG:1".Split(':'));
+            var kst = renderingEnvironment.NewItem(ar, "KST:2".Split(':'));
+            var vkf = renderingEnvironment.NewItem(ar, "VKF:3".Split(':'));
+            var impA = renderingEnvironment.NewItem(ar, "IMP.A:4".Split(':'));
+            var impB = renderingEnvironment.NewItem(ar, "IMP.B:5".Split(':'));
+            var impC = renderingEnvironment.NewItem(ar, "IMP.C:6".Split(':'));
+            var impD = renderingEnvironment.NewItem(ar, "IMP.D:".Split(':'));
 
             return new[] {
-                    FromTo(vkf, impA), FromTo(vkf, impD),
-                    FromTo(wlg, impB), FromTo(wlg, impD),
-                    FromTo(kst, impA), FromTo(kst, impB), FromTo(kst, impC)
+                    FromTo(renderingEnvironment, vkf, impA), FromTo(renderingEnvironment, vkf, impD),
+                    FromTo(renderingEnvironment, wlg, impB), FromTo(renderingEnvironment, wlg, impD),
+                    FromTo(renderingEnvironment, kst, impA), FromTo(renderingEnvironment, kst, impB),
+                    FromTo(renderingEnvironment, kst, impC)
                 };
 
             // Put vkf on x axis, rest on y
         }
 
-        private Dependency FromTo(Item from, Item to, int ct = 1, int questionableCt = 0) {
-            return new Dependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
+        private Dependency FromTo(Environment renderingEnvironment, Item from, Item to, int ct = 1, int questionableCt = 0) {
+            return renderingEnvironment.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
         public static readonly Option BottomRegexOption = new Option("pb", "place-on-bottom", "&", "Regex to select elements to place on bottom", @default: "all items on both axes");

@@ -15,9 +15,9 @@
 //            Item d = Item.New(ItemType.SIMPLE, "d");
 
 //            Dependency[] dependencies = {
-//                new Dependency(a, b, null, "", 1),
-//                new Dependency(b, c, null, "", 1),
-//                new Dependency(a, d, null, "", 1),
+//                env.CreateDependency(a, b, null, "", 1),
+//                env.CreateDependency(b, c, null, "", 1),
+//                env.CreateDependency(a, d, null, "", 1),
 //            };
 
 //            using (var s = new MemoryStream()) {
@@ -37,9 +37,9 @@
 //            Item c = Item.New(ItemType.SIMPLE, "c");
 
 //            Dependency[] dependencies = {
-//                new Dependency(a, b, null, "", 1),
-//                new Dependency(b, c, null, "", 1),
-//                new Dependency(c, b, null, "", 1),
+//                env.CreateDependency(a, b, null, "", 1),
+//                env.CreateDependency(b, c, null, "", 1),
+//                env.CreateDependency(c, b, null, "", 1),
 //            };
 
 //            using (var s = new MemoryStream()) {
@@ -60,8 +60,8 @@
 //            Item c = Item.New(ItemType.SIMPLE, "c");
 
 //            Dependency[] dependencies = {
-//                new Dependency(a, b, null, "", 1),
-//                new Dependency(b, c, null, "", 1),
+//                env.CreateDependency(a, b, null, "", 1),
+//                env.CreateDependency(b, c, null, "", 1),
 //            };
 
 //            using (var s = new MemoryStream()) {
@@ -81,9 +81,9 @@
 //            Item d = Item.New(ItemType.SIMPLE, "d");
 
 //            Dependency[] dependencies = {
-//                new Dependency(a, b, null, "", 1),
-//                new Dependency(b, c, null, "", 1),
-//                new Dependency(a, d, null, "", 1),
+//                env.CreateDependency(a, b, null, "", 1),
+//                env.CreateDependency(b, c, null, "", 1),
+//                env.CreateDependency(a, d, null, "", 1),
 //            };
 
 //            using (var s = new MemoryStream()) {

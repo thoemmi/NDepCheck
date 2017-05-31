@@ -63,7 +63,7 @@ Transform options: {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
             // UNTIL list of items is empty
 
             MatrixDictionary<Item, int> aggregatedCounts =
-                MatrixDictionary.CreateCounts(dependencies.Where(d => !Equals(d.UsingItem, d.UsedItem)), orderBy);
+                MatrixDictionary.CreateCounts(dependencies.Where(d => !Equals(d.UsingItem, d.UsedItem)), orderBy, globalContext.CurrentEnvironment);
 
             for (int i = 0; aggregatedCounts.ColumnKeys.Any(); i++) {
                 var itemsToSortValues =
@@ -83,10 +83,10 @@ Transform options: {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
         public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
-            var a = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "A");
-            var b = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "B");
-            var c = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "C");
-            var d = Item.New(transformingEnvironment.ItemCache, ItemType.SIMPLE, "D");
+            var a = transformingEnvironment.NewItem(ItemType.SIMPLE, "A");
+            var b = transformingEnvironment.NewItem(ItemType.SIMPLE, "B");
+            var c = transformingEnvironment.NewItem(ItemType.SIMPLE, "C");
+            var d = transformingEnvironment.NewItem(ItemType.SIMPLE, "D");
             //    |   A   B   C   D #
             // ---------------------#----
             //  A |  15 100   0   . # 115
@@ -96,27 +96,27 @@ Transform options: {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
             //  =========================
             //    |  25 127 431   0 #
             return new[] {
-                new Dependency(a, a, source: null, markers: "", ct:10),
-                new Dependency(a, a, source: null, markers: "", ct:5),
+                transformingEnvironment.CreateDependency(a, a, source: null, markers: "", ct:10),
+                transformingEnvironment.CreateDependency(a, a, source: null, markers: "", ct:5),
 
-                new Dependency(a, b, source: null, markers: "", ct:100),
+                transformingEnvironment.CreateDependency(a, b, source: null, markers: "", ct:100),
 
-                new Dependency(b, a, source: null, markers: "", ct:1),
-                new Dependency(b, a, source: null, markers: "", ct:1),
-                new Dependency(b, a, source: null, markers: "", ct:1),
+                transformingEnvironment.CreateDependency(b, a, source: null, markers: "", ct:1),
+                transformingEnvironment.CreateDependency(b, a, source: null, markers: "", ct:1),
+                transformingEnvironment.CreateDependency(b, a, source: null, markers: "", ct:1),
 
-                new Dependency(b, b, source: null, markers: "", ct:20),
+                transformingEnvironment.CreateDependency(b, b, source: null, markers: "", ct:20),
 
-                new Dependency(b, c, source: null, markers: "", ct:100),
-                new Dependency(b, c, source: null, markers: "", ct:1),
+                transformingEnvironment.CreateDependency(b, c, source: null, markers: "", ct:100),
+                transformingEnvironment.CreateDependency(b, c, source: null, markers: "", ct:1),
 
-                new Dependency(c, a, source: null, markers: "", ct:7),
-                new Dependency(c, b, source: null, markers: "", ct:5),
-                new Dependency(c, c, source: null, markers: "", ct:30),
+                transformingEnvironment.CreateDependency(c, a, source: null, markers: "", ct:7),
+                transformingEnvironment.CreateDependency(c, b, source: null, markers: "", ct:5),
+                transformingEnvironment.CreateDependency(c, c, source: null, markers: "", ct:30),
 
-                new Dependency(d, b, source: null, markers: "", ct:1),
-                new Dependency(d, b, source: null, markers: "", ct:1),
-                new Dependency(d, c, source: null, markers: "", ct:300),
+                transformingEnvironment.CreateDependency(d, b, source: null, markers: "", ct:1),
+                transformingEnvironment.CreateDependency(d, b, source: null, markers: "", ct:1),
+                transformingEnvironment.CreateDependency(d, c, source: null, markers: "", ct:300),
             };
         }
     }

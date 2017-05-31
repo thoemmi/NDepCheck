@@ -6,7 +6,7 @@ namespace NDepCheck {
         [NotNull, ItemNotNull]
         IEnumerable<string> SupportedFileExtensions { get; }
         [NotNull]
-        IDependencyReader CreateReader(string fileName, bool needsOnlyItemTails);
+        IDependencyReader CreateReader([NotNull] string fileName, bool needsOnlyItemTails);
     }
 
     public interface IDependencyReader {
