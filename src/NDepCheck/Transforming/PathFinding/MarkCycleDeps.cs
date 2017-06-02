@@ -170,7 +170,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                         return j;
                     }),
                     CycleAnchorsOption.Action((args, j) => {
-                        cycleAnchorsMatch = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "missing anchor name"), _ignoreCase);
+                        cycleAnchorsMatch = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "missing anchor name"), _ignoreCase, anyWhereMatcherOk: true);
                         return j;
                     }),
                     MaxCycleLengthOption.Action((args, j) => {

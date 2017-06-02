@@ -44,11 +44,11 @@ namespace NDepCheck.Rendering.TextWriting {
 
             Option.Parse(globalContext, argsAsString,
                 MatchOption.Action((args, j) => {
-                    itemMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item match"), globalContext.IgnoreCase));
+                    itemMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item match"), globalContext.IgnoreCase, anyWhereMatcherOk: true));
                     return j;
                 }),
                 NoMatchOption.Action((args, j) => {
-                    itemExcludes.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item match"), globalContext.IgnoreCase));
+                    itemExcludes.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item match"), globalContext.IgnoreCase, anyWhereMatcherOk: true));
                     return j;
                 }),
                 IndegreeMatchOption.Action((args, j) => {

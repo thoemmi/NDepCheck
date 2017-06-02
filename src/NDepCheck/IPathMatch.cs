@@ -59,8 +59,10 @@ namespace NDepCheck {
 
         private readonly ItemMatch _itemMatch;
 
-        public ItemPathMatch(string pattern, bool ignoreCase, bool multipleOccurrencesAllowed, bool mayContinue, IEnumerable<AbstractPathMatch<TDependency, TItem>> dontMatches) : base(multipleOccurrencesAllowed, mayContinue, dontMatches) {
-            _itemMatch = new ItemMatch(pattern, ignoreCase);
+        public ItemPathMatch(string pattern, bool ignoreCase, bool multipleOccurrencesAllowed, bool mayContinue, 
+                             IEnumerable<AbstractPathMatch<TDependency, TItem>> dontMatches, bool anyWhereMatcherOk)
+                : base(multipleOccurrencesAllowed, mayContinue, dontMatches) {
+            _itemMatch = new ItemMatch(pattern, ignoreCase, anyWhereMatcherOk);
         }
 
         public override bool IsMatch(TDependency nextDep, TItem newTail) {

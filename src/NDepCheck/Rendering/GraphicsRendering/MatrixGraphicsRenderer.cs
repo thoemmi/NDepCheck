@@ -172,7 +172,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             DoRender(globalContext, dependencies, argsAsString, target,
                 BottomRegexOption.Action((args, j) => {
                     string pattern = Option.ExtractRequiredOptionValue(args, ref j, "Pattern for selection of bottom items missing");
-                    _bottomItemMatch = new ItemMatch(null, pattern, 0, ignoreCase);
+                    _bottomItemMatch = new ItemMatch(null, pattern, 0, ignoreCase, anyWhereMatcherOk: true);
                     return j;
                 }),
                 OrderFieldOption.Action((args, j) => {

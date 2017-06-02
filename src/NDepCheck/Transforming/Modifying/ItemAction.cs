@@ -26,7 +26,7 @@ namespace NDepCheck.Transforming.Modifying {
                     _atLeastOneIncomingDependencyPattern = new DependencyPattern(groups[1].Value, ignoreCase);
                 }
                 if (groups[2].Value != "") {
-                    _itemMatch = new ItemMatch(groups[2].Value, ignoreCase);
+                    _itemMatch = new ItemMatch(groups[2].Value, ignoreCase, anyWhereMatcherOk: false);
                 }
                 if (groups[3].Value != "") {
                     _atLeastOneOutgoingDependencyPattern = new DependencyPattern(groups[3].Value, ignoreCase);

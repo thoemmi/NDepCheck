@@ -312,7 +312,7 @@ namespace NDepCheck.Rendering.PathFinding {
                 }),
                 PathItemAnchorOption.Action((args, j) => {
                     if (pathAnchor == null) {
-                        pathAnchor = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item pattern"), _ignoreCase);
+                        pathAnchor = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item pattern"), _ignoreCase, anyWhereMatcherOk: true);
                     } else {
                         expectedPathMatches.Add(CreateItemPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: true, dontMatches: dontMatches));
                     }
@@ -325,7 +325,7 @@ namespace NDepCheck.Rendering.PathFinding {
                 }),
                 CountItemAnchorOption.Action((args, j) => {
                     if (pathAnchor == null) {
-                        pathAnchor = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item pattern"), _ignoreCase);
+                        pathAnchor = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item pattern"), _ignoreCase, anyWhereMatcherOk: true);
                         pathAnchorIsCountMatch = true;
                     } else {
                         expectedPathMatches.Add(countMatch = CreateItemPathMatch(globalContext, args, ref j, multipleOccurrencesAllowed: false, mayContinue: true, dontMatches: dontMatches));
@@ -403,7 +403,7 @@ namespace NDepCheck.Rendering.PathFinding {
         }
 
         private static ItemPathMatch<Dependency, Item> CreateItemPathMatch([NotNull] GlobalContext globalContext, string[] args, ref int j, bool multipleOccurrencesAllowed, bool mayContinue, IEnumerable<AbstractPathMatch<Dependency, Item>> dontMatches) {
-            return new ItemPathMatch<Dependency, Item>(Option.ExtractRequiredOptionValue(args, ref j, "missing anchor name"), globalContext.IgnoreCase, multipleOccurrencesAllowed: multipleOccurrencesAllowed, mayContinue: mayContinue, dontMatches: dontMatches);
+            return new ItemPathMatch<Dependency, Item>(Option.ExtractRequiredOptionValue(args, ref j, "missing anchor name"), globalContext.IgnoreCase, multipleOccurrencesAllowed: multipleOccurrencesAllowed, mayContinue: mayContinue, dontMatches: dontMatches, anyWhereMatcherOk: true);
         }
 
         public string GetHelp(bool detailedHelp, string filter) {

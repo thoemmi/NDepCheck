@@ -50,11 +50,11 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
             DependencyMatchOptions.Parse(globalContext, transformOptions, _ignoreCase, matches, excludes,
                 FromItemsOption.Action((args, j) => {
-                    fromItemMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing 'from' match"), _ignoreCase));
+                    fromItemMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing 'from' match"), _ignoreCase, anyWhereMatcherOk: true));
                     return j;
                 }),
                 ToItemsOption.Action((args, j) => {
-                    toItemMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing 'to' match"), _ignoreCase));
+                    toItemMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing 'to' match"), _ignoreCase, anyWhereMatcherOk: true));
                     return j;
                 }),
                 IdempotentOption.Action((args, j) => {

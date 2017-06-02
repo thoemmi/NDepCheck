@@ -514,7 +514,7 @@ namespace NDepCheck {
         }
 
         private IEnumerable<Item> LogOnlyItemCount(string pattern) {
-            ItemMatch m = pattern == null ? null : new ItemMatch(pattern, IgnoreCase);
+            ItemMatch m = pattern == null ? null : new ItemMatch(pattern, IgnoreCase, anyWhereMatcherOk: true);
             IEnumerable<Item> allItems =
                 new HashSet<Item>(CurrentEnvironment.Dependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
             IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.IsMatch(m, i));

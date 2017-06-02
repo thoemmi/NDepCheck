@@ -46,7 +46,7 @@ namespace NDepCheck.Rendering.TextWriting {
                     return j;
                 }),
                 AbstractMatrixRenderer.InnerMatchOption.Action((args, j) => {
-                    innerMatch = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Pattern for selecting inner items missing"), ignoreCase);
+                    innerMatch = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Pattern for selecting inner items missing"), ignoreCase, anyWhereMatcherOk: true);
                     return j;
                 }));
             using (var sw = GetDotFileName(target).CreateWriter()) {

@@ -85,7 +85,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
                 rawTrimmedUsingPattern = GetUsingPattern(match.Groups[1].Value, previousRawUsingPattern);
                 string rawTrimmedUsedPattern = match.Groups[2].Value.Trim();
                 {
-                    ItemMatch @using = new ItemMatch(usingItemTypeHint, rawTrimmedUsingPattern, 0, ignoreCase);
+                    ItemMatch @using = new ItemMatch(usingItemTypeHint, rawTrimmedUsingPattern, 0, ignoreCase, anyWhereMatcherOk: false);
 
                     CopyRulesWithNewUsing(rawTrimmedUsingPattern, rawTrimmedUsedPattern,
                         _allowed, @using, ruleSourceName, lineNo, line);

@@ -74,7 +74,8 @@ namespace NDepCheck.Matching {
 
         public IMatcher[] Matchers => _matchers.Matchers;
 
-        public ItemPattern([CanBeNull] ItemType itemTypeHintOrNull, [NotNull] string itemPattern, int upperBoundOfGroupCount, bool ignoreCase) {
+        public ItemPattern([CanBeNull] ItemType itemTypeHintOrNull, [NotNull] string itemPattern, int upperBoundOfGroupCount,
+                           bool ignoreCase, bool anyWhereMatcherOk) {
             const string UNCOLLECTED_GROUP = "(?:";
             const string UNCOLLECTED_GROUP_MASK = "(?#@#";
             IEnumerable<string> parts = itemPattern.Replace(UNCOLLECTED_GROUP, UNCOLLECTED_GROUP_MASK)
@@ -126,7 +127,7 @@ namespace NDepCheck.Matching {
                     matchers[i] = CreateMatcher(nameAndPattern[1].Trim(), 0, ignoreCase);
                 }
                 _matchers = new MatcherVector(matchers);
-            } else if (parts.Count() == 1 && !parts.Any(p => Regex.IsMatch(p, @"[;(\\*^$]"))) {
+            } else if (anyWhereMatcherOk &&  parts.Count() == 1 && !parts.Any(p => Regex.IsMatch(p, @"[;(\\*^$]"))) {
                 // If there is only a single pattern without any special chars in it
                 _matchers = new AnyWhereMatcher(CreateMatcher(parts.First(), 0, ignoreCase));
             } else {

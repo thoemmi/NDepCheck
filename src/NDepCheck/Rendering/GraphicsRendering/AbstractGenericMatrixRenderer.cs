@@ -39,7 +39,7 @@ $@"  Write a textual matrix representation of dependencies.
                     return j;
                 }),
                 InnerMatchOption.Action((args, j) => {
-                    im = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing pattern for inner match"), ignoreCase);
+                    im = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing pattern for inner match"), ignoreCase, anyWhereMatcherOk: true);
                     return j;
                 }));
             labelWidthOrNull = lw;

@@ -27,9 +27,9 @@ namespace NDepCheck.Matching {
         }
 
         public DependencyMatch(ItemType usingTypeHint, string usingPattern, string dependencyPattern, ItemType usedTypeHint, string usedPattern, bool ignoreCase) : this(
-            usingPattern != "" ? new ItemMatch(usingTypeHint, usingPattern, 0, ignoreCase) : null,
+            usingPattern != "" ? new ItemMatch(usingTypeHint, usingPattern, 0, ignoreCase, anyWhereMatcherOk: false) : null,
             dependencyPattern != "" ? new DependencyPattern(dependencyPattern, ignoreCase) : null,
-            usedPattern != "" ? new ItemMatch(usedTypeHint, usedPattern, usingPattern.Count(c => c == '('), ignoreCase) : null) {
+            usedPattern != "" ? new ItemMatch(usedTypeHint, usedPattern, usingPattern.Count(c => c == '('), ignoreCase, anyWhereMatcherOk: false) : null) {
         }
 
         public static DependencyMatch Create(string pattern, bool ignoreCase, string arrowTail = "->", ItemType usingTypeHint = null, ItemType usedTypeHint = null) {

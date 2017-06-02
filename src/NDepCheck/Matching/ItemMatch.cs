@@ -26,7 +26,7 @@ namespace NDepCheck.Matching {
 
         private readonly bool _inverse;
 
-        public ItemMatch([CanBeNull] ItemType itemTypeOrNull, [NotNull] string pattern, int upperBoundOfGroupCount, bool ignoreCase) {
+        public ItemMatch([CanBeNull] ItemType itemTypeOrNull, [NotNull] string pattern, int upperBoundOfGroupCount, bool ignoreCase, bool anyWhereMatcherOk) {
             if (pattern.StartsWith("~")) {
                 _inverse = true;
                 pattern = pattern.Substring(1);
@@ -34,11 +34,11 @@ namespace NDepCheck.Matching {
                 _inverse = false;
             }
             string[] patternParts = pattern.Split('\'');
-            _itemPattern = new ItemPattern(itemTypeOrNull, patternParts[0], upperBoundOfGroupCount, ignoreCase);
+            _itemPattern = new ItemPattern(itemTypeOrNull, patternParts[0], upperBoundOfGroupCount, ignoreCase, anyWhereMatcherOk);
             _markerPattern = new MarkerMatch(patternParts.Length > 1 ? patternParts[1] : "", ignoreCase);
         }
 
-        public ItemMatch([NotNull] string pattern, bool ignoreCase) : this(null, pattern, 0, ignoreCase) {
+        public ItemMatch([NotNull] string pattern, bool ignoreCase, bool anyWhereMatcherOk) : this(null, pattern, 0, ignoreCase, anyWhereMatcherOk) {
         }
 
         public ItemPattern ItemPattern => _itemPattern;
