@@ -9,8 +9,10 @@ namespace NDepCheck {
     public class ItemType : IEquatable<ItemType> {
         private static readonly Dictionary<string, ItemType> _allTypes = new Dictionary<string, ItemType>();
 
+        private readonly Dictionary<ItemType, Func<ItemSegment, string>[]> _mapOtherType = new Dictionary<ItemType, Func<ItemSegment, string>[]>();
+
         [NotNull]
-        public static readonly ItemType SIMPLE = New("SIMPLE", new[] { "Name" }, new[] { "" }, 
+        public static readonly ItemType SIMPLE = New("SIMPLE", new[] { "Name" }, new[] { "" },
                                                      ignoreCase: false, matchesOnFieldNr: true, predefined: true);
 
         public static void ForceLoadingPredefinedSimpleTypes() {
@@ -72,25 +74,14 @@ namespace NDepCheck {
             IgnoreCase = ignoreCase;
         }
 
-        public ItemType CommonType(ItemType other) {
-            if (_matchesOnFieldNr) {
-                return Keys.Length <= other.Keys.Length ? other : null;
-            } else if (other._matchesOnFieldNr) {
-                return Keys.Length >= other.Keys.Length ? this : null;
-            } else if (Equals(this, other)) {
-                return this;
-            } else {
-                return null;
-            }
-        }
-
         public static ItemType Find([NotNull] string name) {
             ItemType result;
             _allTypes.TryGetValue(name, out result);
             return result;
         }
 
-        public static ItemType New([NotNull] string name, [NotNull] [ItemNotNull] string[] keys, [NotNull] [ItemNotNull] string[] subKeys, bool ignoreCase, bool matchesOnFieldNr = false, bool predefined = false) {
+        public static ItemType New([NotNull] string name, [NotNull] [ItemNotNull] string[] keys, [NotNull] [ItemNotNull] string[] subKeys,
+                                   bool ignoreCase, bool matchesOnFieldNr = false, bool predefined = false) {
             ItemType result;
             if (!_allTypes.TryGetValue(name, out result)) {
                 _allTypes.Add(name, result = new ItemType(name, keys, subKeys, matchesOnFieldNr, ignoreCase, predefined));
@@ -101,6 +92,9 @@ namespace NDepCheck {
         public int Length => Keys.Length;
 
         public bool Equals(ItemType other) {
+            if (ReferenceEquals(other, this)) {
+                return true;
+            }
             // ReSharper disable once UseNullPropagation - clearer for me
             if (other == null) {
                 return false;
@@ -145,10 +139,12 @@ namespace NDepCheck {
             return result.ToString();
         }
 
-        public static ItemType New(string format) {
-            string[] parts = format.Split(':', ';', ' ', '(', ')');
-            string name = parts[0];
-            return New(name.TrimEnd('+'), parts.Skip(1).Where(p => p != "").ToArray(), name.EndsWith("+"));
+        public static ItemType New([NotNull] string format, bool forceIgnoreCase = false) {
+            string[] parts = format.Trim().TrimEnd(')').Split(':', ';', '(');
+            string namePart = parts[0].Trim();
+            string[] fieldParts = parts.Skip(1).Select((p, i) => string.IsNullOrWhiteSpace(p) ? "_" + (i + 1) : p).ToArray();
+            string name = parts[0] == "" || parts[0] == "+" ? "_" + string.Join("_", fieldParts) : namePart.TrimEnd('+');
+            return New(name, fieldParts, namePart.EndsWith("+") || forceIgnoreCase);
         }
 
         public static ItemType New(string name, IEnumerable<string> keysAndSubKeys, bool ignoreCase) {
@@ -178,9 +174,42 @@ namespace NDepCheck {
             return result.ToString();
         }
 
-        public int IndexOf(string keyAndSubkey) {
+        /// <summary>
+        /// Retrieve-value functions from an item as seen by this type; missing fields are mapped to the empty string.
+        /// Examples: With types <c> X(A:B:C)</c> and <c>Y(C:B:D:E)</c>, we have
+        /// <c>X.GetValueRetrievers(Y) = { it => "", it => it.Values[1], it => it.Values[0] }</c>
+        /// <c>X.GetValueRetrievers(X) = { it => it.Values[0], it => it.Values[1], it => it.Values[2] }</c>
+        /// <c>Y.GetValueRetrievers(X) = { it => it => it.Values[2], it => it.Values[1], it => "", it => "" }</c>
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        private Func<ItemSegment, string>[] GetValueRetrievers([NotNull] ItemType other) {
+            Func<ItemSegment, string>[] result;
+            if (!_mapOtherType.TryGetValue(other, out result)) {
+                var fcts = new List<Func<ItemSegment, string>>();
+                for (int i = 0; i < Keys.Length; i++) {
+                    int j = other.IndexOf(Keys[i], SubKeys[i]);
+                    if (j < 0) {
+                        fcts.Add(item => "");
+                    } else {
+                        fcts.Add(item => item.Values[j]);
+                    }
+                }
+                _mapOtherType.Add(other, result = fcts.ToArray());
+            }
+            return result;
+        }
+
+        public string GetValue(ItemSegment item, int i) {
+            // Slightly optimized for equal types of item and Match
+            return item.Type.Equals(this) || _matchesOnFieldNr || item.Type._matchesOnFieldNr
+                ? item.Values[i]
+                : GetValueRetrievers(item.Type)[i](item);
+        }
+
+        public int IndexOf(string key, string subkey) {
             for (int i = 0; i < Keys.Length; i++) {
-                if (keyAndSubkey == Keys[i] + SubKeys[i]) {
+                if (key == Keys[i] && subkey == SubKeys[i]) {
                     return i;
                 }
             }

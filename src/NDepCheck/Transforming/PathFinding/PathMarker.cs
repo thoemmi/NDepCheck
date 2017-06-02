@@ -88,9 +88,9 @@ namespace NDepCheck.Rendering.PathFinding {
                 Counts.Clear();
                 _onPath.Clear();
 
-                IEnumerable<TItem> uniqueStartItems = pathAnchor == null
+                TItem[] uniqueStartItems = (pathAnchor == null
                     ? incidentDependencies.Keys
-                    : incidentDependencies.Keys.Where(i => pathAnchor.Matches(i).Success);
+                    : incidentDependencies.Keys.Where(i => pathAnchor.Matches(i).Success)).ToArray();
                 AbstractPathMatch<TDependency, TItem> endMatch;
                 AbstractPathMatch<TDependency, TItem>[] innerMatches;
                 int n = expectedPathMatches.Length;

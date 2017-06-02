@@ -452,13 +452,6 @@ namespace NDepCheck {
             }
         }
 
-        public ItemType GetItemType(string definition) {
-            IEnumerable<string> parts = definition.Split('(', ':', ')').Select(s => s.Trim()).Where(s => s != "");
-            string name = parts.First();
-
-            return ItemType.New(name, parts.Skip(1).ToArray(), IgnoreCase);
-        }
-
         public void LogAboutNDependencies(int maxCount, [CanBeNull] string pattern, [NotNull] WriteTarget target) {
             IEnumerable<Dependency> matchingDependencies = LogOnlyDependencyCount(pattern);
             int n = target.IsConsoleOut ? maxCount : int.MaxValue / 2;

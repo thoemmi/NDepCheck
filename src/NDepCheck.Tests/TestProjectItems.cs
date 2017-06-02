@@ -15,7 +15,7 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             Environment env = gc.CurrentEnvironment;
             pi.Configure(gc, @"{ -pl
-    $ IgnoreName(Ignore:Name) ---% SIMPLE
+    $ (Ignore:Name) ---% SIMPLE
 
     ! :a* ---% A
     > :ab ---% AB
@@ -106,7 +106,7 @@ namespace NDepCheck.Tests {
             var pi = new ProjectItems((p, i) => new ProjectItems.SelfOptimizingPrefixTrieProjector(p, i, 2, "prefixTrie"));
             var gc = new GlobalContext();
             pi.Configure(gc, @"{ -pl
-    $ IgnoreName(Ignore:Name) ---% SIMPLE
+    $ (:Name) ---% SIMPLE
 
     ! :abc ---% ADetail
     ! :a*  ---% A

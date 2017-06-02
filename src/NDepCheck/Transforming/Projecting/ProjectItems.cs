@@ -159,8 +159,8 @@ Examples:
                         if (i < 0) {
                             return $"{line}: $-line must contain " + MAP;
                         }
-                        sourceItemType = globalContext.GetItemType(typeLine.Substring(0, i).Trim());
-                        targetItemType = globalContext.GetItemType(typeLine.Substring(i + MAP.Length).Trim());
+                        sourceItemType = ItemType.New(typeLine.Substring(0, i).Trim(), globalContext.IgnoreCase);
+                        targetItemType = ItemType.New(typeLine.Substring(i + MAP.Length).Trim(), globalContext.IgnoreCase);
                         return null;
                     } else {
                         bool left = line.StartsWith(ABSTRACT_IT_LEFT);

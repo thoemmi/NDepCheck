@@ -8,20 +8,21 @@ namespace NDepCheck.Matching {
     public sealed class ItemPattern : Pattern {
         private interface IMatcherGroup {
             IMatcher[] Matchers { get; }
-            MatchResult Matches(bool invert, string[] itemValues, string[] references);
+            MatchResult Matches(bool invert, ItemType itemType, ItemSegment item, string[] references);
         }
+
         private class MatcherVector : IMatcherGroup {
             public MatcherVector(IMatcher[] matchers) {
                 Matchers = matchers;
             }
 
             public IMatcher[] Matchers { get; }
-            public MatchResult Matches(bool invert, string[] itemValues, string[] references) {
+            public MatchResult Matches(bool invert, ItemType itemType, ItemSegment item, string[] references) {
                 string[] groupsInItem = NO_GROUPS;
 
                 for (int i = 0; i < Matchers.Length; i++) {
                     IMatcher matcher = Matchers[i];
-                    string value = i < itemValues.Length ? itemValues[i] : "";
+                    string value = itemType.GetValue(item, i);
                     IEnumerable<string> groups = matcher.Matches(value, references);
                     if (groups == null) {
                         return new MatchResult(invert, null);
@@ -40,6 +41,7 @@ namespace NDepCheck.Matching {
                 return new MatchResult(!invert, groupsInItem);
             }
         }
+
         private class AnyWhereMatcher : IMatcherGroup {
             public AnyWhereMatcher(IMatcher matcher) {
                 Matchers = new[] { matcher};
@@ -49,8 +51,9 @@ namespace NDepCheck.Matching {
                 get;
             }
 
-            public MatchResult Matches(bool invert, string[] itemValues, string[] references) {
-                foreach (var value in itemValues) {
+            public MatchResult Matches(bool invert, ItemType itemType, ItemSegment item, string[] references) {
+                // In an AnyWhereMatcher, we ignore the pattern's type and just look into each field of the item.
+                foreach (var value in item.Values) {
                     IEnumerable<string> groups = Matchers[0].Matches(value, references);
                     if (groups != null) {
                         return new MatchResult(!invert, groups.ToArray());
@@ -115,10 +118,10 @@ namespace NDepCheck.Matching {
                 IMatcher[] matchers = Enumerable.Repeat(_alwaysMatcher, _itemType.Keys.Length).ToArray();
                 foreach (var p in parts) {
                     string[] nameAndPattern = p.Split(new[] { '=' }, 2);
-                    string keyAndSubkey = nameAndPattern[0].Trim();
-                    int i = _itemType.IndexOf(keyAndSubkey);
+                    string[] keyAndSubkey = nameAndPattern[0].Split('.');
+                    int i = _itemType.IndexOf(keyAndSubkey[0].Trim(), keyAndSubkey.Length > 1 ? "." + keyAndSubkey[1].Trim() : null);
                     if (i < 0) {
-                        throw new ApplicationException($"Key '{keyAndSubkey}' not defined in item type {_itemType.Name}; keys are {_itemType.KeysAndSubkeys()}");
+                        throw new ApplicationException($"Key '{nameAndPattern[0]}' not defined in item type {_itemType.Name}; keys are {_itemType.KeysAndSubkeys()}");
                     }
                     matchers[i] = CreateMatcher(nameAndPattern[1].Trim(), 0, ignoreCase);
                 }
@@ -147,11 +150,7 @@ namespace NDepCheck.Matching {
         }
 
         public MatchResult Matches<TItem>([NotNull] AbstractItem<TItem> item, bool invert, string[] references = null) where TItem : AbstractItem<TItem> {
-            if (item.Type.CommonType(_itemType) == null) {
-                return new MatchResult(invert, null);
-            }
-
-            return _matchers.Matches(invert, item.Values, references);
+            return _matchers.Matches(invert, _itemType, item, references);
         }
     }
 }

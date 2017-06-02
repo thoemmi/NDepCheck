@@ -107,8 +107,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                                 Log.WriteError($"$-line '{line}' must contain " + MAY_USE, ruleSourceName, lineNo);
                                 throw new ApplicationException($"$-line '{line}' must contain " + MAY_USE_TAIL);
                             }
-                            usingItemType = globalContext.GetItemType(typeLine.Substring(0, i).Trim());
-                            usedItemType = globalContext.GetItemType(typeLine.Substring(i + MAY_USE.Length).Trim());
+                            usingItemType = ItemType.New(typeLine.Substring(0, i).Trim(), globalContext.IgnoreCase);
+                            usedItemType = ItemType.New(typeLine.Substring(i + MAY_USE.Length).Trim(), globalContext.IgnoreCase);
                             return null;
                         }
                     } else if (line.EndsWith("{")) {
