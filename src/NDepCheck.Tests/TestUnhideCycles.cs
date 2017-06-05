@@ -6,7 +6,7 @@
 //namespace NDepCheck.Tests {
 //    [TestClass]
 //    public class TestUnhideCycles {
-//        private static readonly ItemType TEST = ItemType.New("TEST", new[] { "NAME" }, new[] { "" });
+//        private static readonly ItemType TEST = ItemType.New("TEST", new[] { "Name" }, new[] { "" });
 
 //        [TestMethod]
 //        public void TestSimpleUnhideCycles() {

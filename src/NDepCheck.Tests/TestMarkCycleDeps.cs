@@ -24,11 +24,11 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestMarkSmallCycle() {
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            var a = env.NewItem(ItemType.SIMPLE, "a");
-            var b = env.NewItem(ItemType.SIMPLE, "b");
-            var deps = new[] { env.CreateDependency(a, b, null, "", 1), env.CreateDependency(b, a, null, "", 1), };
+            var a = graph.NewItem(ItemType.SIMPLE, "a");
+            var b = graph.NewItem(ItemType.SIMPLE, "b");
+            var deps = new[] { graph.CreateDependency(a, b, null, "", 1), graph.CreateDependency(b, a, null, "", 1), };
             var result = new List<Dependency>();
 
             new MarkCycleDeps().Transform(gc, deps, "", result);
@@ -41,19 +41,19 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestMarkLaterCycleWithExplicitAsserts() {
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            var a = env.NewItem(ItemType.SIMPLE, "a");
-            var b = env.NewItem(ItemType.SIMPLE, "b");
-            var c = env.NewItem(ItemType.SIMPLE, "c");
-            var d = env.NewItem(ItemType.SIMPLE, "d");
-            var e = env.NewItem(ItemType.SIMPLE, "e");
+            var a = graph.NewItem(ItemType.SIMPLE, "a");
+            var b = graph.NewItem(ItemType.SIMPLE, "b");
+            var c = graph.NewItem(ItemType.SIMPLE, "c");
+            var d = graph.NewItem(ItemType.SIMPLE, "d");
+            var e = graph.NewItem(ItemType.SIMPLE, "e");
             var deps = new[] {
-                env.CreateDependency(a, b, null, "", 1),
-                env.CreateDependency(b, c, null, "", 1),
-                env.CreateDependency(c, d, null, "", 1),
-                env.CreateDependency(d, e, null, "", 1),
-                env.CreateDependency(e, c, null, "", 1),
+                graph.CreateDependency(a, b, null, "", 1),
+                graph.CreateDependency(b, c, null, "", 1),
+                graph.CreateDependency(c, d, null, "", 1),
+                graph.CreateDependency(d, e, null, "", 1),
+                graph.CreateDependency(e, c, null, "", 1),
             };
             var result = new List<Dependency>();
 
@@ -73,13 +73,13 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestOverlappingCycles() {
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            var a = env.NewItem(ItemType.SIMPLE, "a");
-            var b = env.NewItem(ItemType.SIMPLE, "b");
-            var c = env.NewItem(ItemType.SIMPLE, "c");
-            var d = env.NewItem(ItemType.SIMPLE, "d");
-            var e = env.NewItem(ItemType.SIMPLE, "e");
+            var a = graph.NewItem(ItemType.SIMPLE, "a");
+            var b = graph.NewItem(ItemType.SIMPLE, "b");
+            var c = graph.NewItem(ItemType.SIMPLE, "c");
+            var d = graph.NewItem(ItemType.SIMPLE, "d");
+            var e = graph.NewItem(ItemType.SIMPLE, "e");
 
             List<Dependency> result = CreateDependenciesAndFindCycles(gc, a, b, c, d, e, keepOnlyCyclesOption: true, markerPrefix: "Kreis");
 
@@ -97,28 +97,29 @@ namespace NDepCheck.Tests {
         }
 
         private static List<Dependency> CreateDependenciesAndFindCycles(GlobalContext gc, Item a, Item b, Item c, Item d, Item e, bool keepOnlyCyclesOption, string markerPrefix) {
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
             var deps = new[] {
                 // "Confusing" edges to sink b
-                env.CreateDependency(a, b, null, "", 1),
-                env.CreateDependency(b, b, null, "", 1),
-                env.CreateDependency(c, b, null, "", 1),
-                env.CreateDependency(d, b, null, "", 1),
+                graph.CreateDependency(a, b, null, "", 1),
+                graph.CreateDependency(b, b, null, "", 1),
+                graph.CreateDependency(c, b, null, "", 1),
+                graph.CreateDependency(d, b, null, "", 1),
 
                 // a->c->d->e
-                env.CreateDependency(a, c, null, "", 1),
-                env.CreateDependency(c, d, null, "", 1),
-                env.CreateDependency(d, e, null, "", 1),
+                graph.CreateDependency(a, c, null, "", 1),
+                graph.CreateDependency(c, d, null, "", 1),
+                graph.CreateDependency(d, e, null, "", 1),
 
                 // Cycle edges c<-d and a<-e
-                env.CreateDependency(d, c, null, "", 1),
-                env.CreateDependency(e, a, null, "", 1),
+                graph.CreateDependency(d, c, null, "", 1),
+                graph.CreateDependency(e, a, null, "", 1),
             };
             var result = new List<Dependency>();
 
             new MarkCycleDeps().Transform(gc, deps,
-                $"{{ {MarkCycleDeps.AddIndexedMarkerOption} {markerPrefix} {(keepOnlyCyclesOption ? MarkCycleDeps.KeepOnlyCyclesOption.Opt : "")} {MarkCycleDeps.IgnoreSelfCyclesOption}  }}"
+                ($"{{ {MarkCycleDeps.AddIndexedMarkerOption} {markerPrefix} " +
+                $"{(keepOnlyCyclesOption ? MarkCycleDeps.KeepOnlyCyclesOption.Opt : "")} }}")
                     .Replace(" ", "\r\n"), result);
 
             result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
@@ -128,24 +129,24 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestMaxLengthOfCycles() {
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            var a = env.NewItem(ItemType.SIMPLE, "a");
-            var b = env.NewItem(ItemType.SIMPLE, "b");
-            var c = env.NewItem(ItemType.SIMPLE, "c");
-            var d = env.NewItem(ItemType.SIMPLE, "d");
-            var e = env.NewItem(ItemType.SIMPLE, "e");
+            var a = graph.NewItem(ItemType.SIMPLE, "a");
+            var b = graph.NewItem(ItemType.SIMPLE, "b");
+            var c = graph.NewItem(ItemType.SIMPLE, "c");
+            var d = graph.NewItem(ItemType.SIMPLE, "d");
+            var e = graph.NewItem(ItemType.SIMPLE, "e");
             var deps = new[] {
-                env.CreateDependency(a, b, null, "", 1),
-                env.CreateDependency(b, c, null, "", 1),
-                env.CreateDependency(c, d, null, "", 1),
-                env.CreateDependency(d, e, null, "", 1),
+                graph.CreateDependency(a, b, null, "", 1),
+                graph.CreateDependency(b, c, null, "", 1),
+                graph.CreateDependency(c, d, null, "", 1),
+                graph.CreateDependency(d, e, null, "", 1),
 
                 // Long cycle
-                env.CreateDependency(e, a, null, "", 1),
+                graph.CreateDependency(e, a, null, "", 1),
 
                 // Short cycle
-                env.CreateDependency(c, b, null, "", 1),
+                graph.CreateDependency(c, b, null, "", 1),
             };
             var result = new List<Dependency>();
 
@@ -189,24 +190,24 @@ namespace NDepCheck.Tests {
 
         private static List<Dependency> FindLaterCycle(string cycleMarkerPrefix) {
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            var a = env.NewItem(ItemType.SIMPLE, "a");
-            var b = env.NewItem(ItemType.SIMPLE, "b");
-            var c = env.NewItem(ItemType.SIMPLE, "c");
-            var d = env.NewItem(ItemType.SIMPLE, "d");
-            var e = env.NewItem(ItemType.SIMPLE, "e");
+            var a = graph.NewItem(ItemType.SIMPLE, "a");
+            var b = graph.NewItem(ItemType.SIMPLE, "b");
+            var c = graph.NewItem(ItemType.SIMPLE, "c");
+            var d = graph.NewItem(ItemType.SIMPLE, "d");
+            var e = graph.NewItem(ItemType.SIMPLE, "e");
             var deps = new[] {
-                env.CreateDependency(a, b, null, "", 1),
-                env.CreateDependency(b, c, null, "", 1),
-                env.CreateDependency(c, d, null, "", 1),
-                env.CreateDependency(d, e, null, "", 1),
-                env.CreateDependency(e, c, null, "", 1),
+                graph.CreateDependency(a, b, null, "", 1),
+                graph.CreateDependency(b, c, null, "", 1),
+                graph.CreateDependency(c, d, null, "", 1),
+                graph.CreateDependency(d, e, null, "", 1),
+                graph.CreateDependency(e, c, null, "", 1),
             };
             var result = new List<Dependency>();
 
             new MarkCycleDeps().Transform(gc, deps,
-                $"{{ {MarkCycleDeps.AddIndexedMarkerOption} {cycleMarkerPrefix} }}".Replace(" ", System.Environment.NewLine),
+                $"{{ {MarkCycleDeps.AddIndexedMarkerOption} {cycleMarkerPrefix} }}".Replace(" ", Environment.NewLine),
                 result);
 
             result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
@@ -258,13 +259,13 @@ SIMPLE:e
             const string cycleMarkerPrefix = "X";
 
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            var a = env.NewItem(ItemType.SIMPLE, "a");
-            var b = env.NewItem(ItemType.SIMPLE, "b");
-            var c = env.NewItem(ItemType.SIMPLE, "c");
-            var d = env.NewItem(ItemType.SIMPLE, "d");
-            var e = env.NewItem(ItemType.SIMPLE, "e");
+            var a = graph.NewItem(ItemType.SIMPLE, "a");
+            var b = graph.NewItem(ItemType.SIMPLE, "b");
+            var c = graph.NewItem(ItemType.SIMPLE, "c");
+            var d = graph.NewItem(ItemType.SIMPLE, "d");
+            var e = graph.NewItem(ItemType.SIMPLE, "e");
 
             List<Dependency> dependencies = CreateDependenciesAndFindCycles(gc, a, b, c, d, e, keepOnlyCyclesOption: false, markerPrefix: cycleMarkerPrefix);
 

@@ -26,12 +26,12 @@ namespace NDepCheck.Tests {
                 _placeObjects(this);
             }
 
-            public override IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
+            public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
                 ItemType simple = ItemType.New("SIMPLE(Name)");
-                Item i1 = renderingEnvironment.NewItem(simple, "I1");
-                Item i2 = renderingEnvironment.NewItem(simple, "I2");
-                return new[] { renderingEnvironment.CreateDependency(i1, i1, new TextFileSourceLocation("Test", 1), "Test", ct: 1),
-                               renderingEnvironment.CreateDependency(i1, i2, new TextFileSourceLocation("Test", 2), "Test", ct: 1) };
+                Item i1 = renderingGraph.NewItem(simple, "I1");
+                Item i2 = renderingGraph.NewItem(simple, "I2");
+                return new[] { renderingGraph.CreateDependency(i1, i1, new TextFileSourceLocation("Test", 1), "Test", ct: 1),
+                               renderingGraph.CreateDependency(i1, i2, new TextFileSourceLocation("Test", 2), "Test", ct: 1) };
             }
 
             public override string GetHelp(bool extensiveHelp, string filter) {
@@ -257,15 +257,15 @@ namespace NDepCheck.Tests {
                 }
             }
 
-            public static IEnumerable<Dependency> CreateSomeTestItems(int n, string prefix, Environment renderingEnvironment) {
+            public static IEnumerable<Dependency> CreateSomeTestItems(int n, string prefix, WorkingGraph renderingGraph) {
                 ItemType simple = ItemType.New("SIMPLE(Name)");
-                var localItems = Enumerable.Range(0, n).Select(i => renderingEnvironment.NewItem(simple, prefix + i)).ToArray();
+                var localItems = Enumerable.Range(0, n).Select(i => renderingGraph.NewItem(simple, prefix + i)).ToArray();
                 return localItems.SelectMany(
-                        (from, i) => localItems.Skip(i).Select(to => renderingEnvironment.CreateDependency(from, to, new TextFileSourceLocation(prefix, i), "Use", 10 * i))).ToArray();
+                        (from, i) => localItems.Skip(i).Select(to => renderingGraph.CreateDependency(from, to, new TextFileSourceLocation(prefix, i), "Use", 10 * i))).ToArray();
             }
 
-            public override IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
-                return CreateSomeTestItems(5, "spiral", renderingEnvironment);
+            public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
+                return CreateSomeTestItems(5, "spiral", renderingGraph);
             }
 
             public override string GetHelp(bool extensiveHelp, string filter) {
@@ -275,12 +275,12 @@ namespace NDepCheck.Tests {
 
         private void CreateAndRender(int n, string prefix, int boxHeight = 15) {
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
             ItemType simple = ItemType.New("SIMPLE(Name)");
-            Item[] items = Enumerable.Range(0, n).Select(i => env.NewItem(simple, prefix + i)).ToArray();
+            Item[] items = Enumerable.Range(0, n).Select(i => graph.NewItem(simple, prefix + i)).ToArray();
             Dependency[] dependencies =
                 items.SelectMany(
-                    (from, i) => items.Skip(i).Select(to => env.CreateDependency(from, to, new TextFileSourceLocation(prefix, i), "Use", 10 * i))).ToArray();
+                    (from, i) => items.Skip(i).Select(to => graph.CreateDependency(from, to, new TextFileSourceLocation(prefix, i), "Use", 10 * i))).ToArray();
 
             new SomewhatComplexTestRenderer(boxHeight).Render(gc, dependencies,
                 argsAsString: "", target: new WriteTarget(Path.GetTempFileName(), append: false, limitLinesForConsole: 100),ignoreCase: false);
@@ -329,10 +329,10 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TwoItemBoxes() {
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
             ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
-            Item i = env.NewItem(amo, "VKF", "VKF", "01");
+            Item i = graph.NewItem(amo, "VKF", "VKF", "01");
 
             CreateAndRender(r => {
                 VariableVector pos = r.F(0, 0);

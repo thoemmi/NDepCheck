@@ -43,7 +43,7 @@ namespace NDepCheck.Reading.DipReading {
         public DipReader([NotNull] string fileName) : base(Path.GetFullPath(fileName), fileName) {
         }
 
-        public override IEnumerable<Dependency> ReadDependencies(Environment readingEnvironment, int depth, bool ignoreCase) {
+        public override IEnumerable<Dependency> ReadDependencies(WorkingGraph readingGraph, int depth, bool ignoreCase) {
             Log.WriteInfo("Reading " + FullFileName);
             Regex dipArrow = new Regex($@"\s*{Dependency.DIP_ARROW}\s*");
 
@@ -75,8 +75,8 @@ namespace NDepCheck.Reading.DipReading {
                         }
 
                         try {
-                            Item foundUsingItem = GetOrCreateItem(parts[0].Trim(), itemsDictionary, readingEnvironment);
-                            Item foundUsedItem = GetOrCreateItem(parts[2].Trim(), itemsDictionary, readingEnvironment);
+                            Item foundUsingItem = GetOrCreateItem(parts[0].Trim(), itemsDictionary, readingGraph);
+                            Item foundUsedItem = GetOrCreateItem(parts[2].Trim(), itemsDictionary, readingGraph);
 
                             bool pointsToProxy = foundUsingItem is ItemProxy || foundUsedItem is ItemProxy;
                             thereAreProxies |= pointsToProxy;
@@ -100,8 +100,9 @@ namespace NDepCheck.Reading.DipReading {
 
                             string exampleInfo = Get(properties, 5);
 
-                            var dependency = readingEnvironment.CreateDependency(foundUsingItem, foundUsedItem, location,
-                                dependencyMarkers, ct, questionableCt, badCt, exampleInfo);
+                            Dependency dependency = readingGraph.CreateDependency(foundUsingItem, foundUsedItem, location,
+                                dependencyMarkers, ct, questionableCt, badCt, 
+                                notOkReason: questionableCt > 0 || badCt > 0 ? FullFileName + "/" + lineNo : null, exampleInfo: exampleInfo);
 
                             result.Add(dependency);
                         } catch (DipReaderException ex) {
@@ -121,17 +122,17 @@ namespace NDepCheck.Reading.DipReading {
                         }
                     }
 
-                    return result.Select(d => ResolveItemProxies(readingEnvironment, d, itemsDictionary)).ToArray();
+                    return result.Select(d => ResolveItemProxies(readingGraph, d, itemsDictionary)).ToArray();
                 } else {
                     return result;
                 }
             }
         }
 
-        private Dependency ResolveItemProxies(Environment readingEnvironment, Dependency d, Dictionary<Item, Item> itemsDictionary) {
+        private Dependency ResolveItemProxies(WorkingGraph readingGraph, Dependency d, Dictionary<Item, Item> itemsDictionary) {
             return d.UsingItem is ItemProxy || d.UsedItem is ItemProxy
-                ? readingEnvironment.CreateDependency(itemsDictionary[d.UsingItem], itemsDictionary[d.UsedItem],
-                    d.Source, d.MarkerSet, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo)
+                ? readingGraph.CreateDependency(itemsDictionary[d.UsingItem], itemsDictionary[d.UsedItem],
+                    d.Source, d.MarkerSet, d.Ct, d.QuestionableCt, d.BadCt, d.NotOkReason, d.ExampleInfo)
                 : d;
         }
 
@@ -141,8 +142,8 @@ namespace NDepCheck.Reading.DipReading {
         }
 
         [NotNull]
-        private Item GetOrCreateItem([NotNull] string s, [NotNull] Dictionary<Item, Item> items, Environment readingEnvironment) {
-            Item item = CreateItem(s, readingEnvironment);
+        private Item GetOrCreateItem([NotNull] string s, [NotNull] Dictionary<Item, Item> items, WorkingGraph readingGraph) {
+            Item item = CreateItem(s, readingGraph);
             Item foundItem;
             if (!items.TryGetValue(item, out foundItem)) {
                 items.Add(item, foundItem = item);
@@ -151,7 +152,7 @@ namespace NDepCheck.Reading.DipReading {
         }
 
         [NotNull]
-        private Item CreateItem(string s, Environment readingEnvironment) {
+        private Item CreateItem(string s, WorkingGraph readingGraph) {
             string[] valuesAndMarkers = s.Split(new[] { '\'' }, 2);
             string[] prefixAndValues = valuesAndMarkers[0].Split(new[] { ':' }, 2);
             string[] prefix = prefixAndValues[0].Split(';');
@@ -165,7 +166,7 @@ namespace NDepCheck.Reading.DipReading {
             } else {
                 string[] values = prefixAndValues.Length > 1 ? prefixAndValues[1].Split(':', ';') : new string[0];
 
-                return values.Contains("?") ? new ItemProxy(foundType, values, markers) : readingEnvironment.NewItem(foundType, values, markers);
+                return values.Contains("?") ? new ItemProxy(foundType, values, markers) : readingGraph.NewItem(foundType, values, markers);
             }
         }
 

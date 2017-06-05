@@ -52,7 +52,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 }));
 
             DependencyPattern idempotentPattern = markerToAdd == null ? null : new DependencyPattern("'" + markerToAdd, _ignoreCase);
-            Dictionary<FromTo, Dependency> fromTos = idempotent ? FromTo.AggregateAllDependencies(globalContext.CurrentEnvironment, dependencies) : null;
+            Dictionary<FromTo, Dependency> fromTos = idempotent ? FromTo.AggregateAllDependencies(globalContext.CurrentGraph, dependencies) : null;
 
             int added = 0;
             int removed = 0;
@@ -62,11 +62,11 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 } else {
                     removed++;
                 }
-                if (d.IsMatch(matches, excludes)) {
+                if (d.IsMarkerMatch(matches, excludes)) {
                     if (fromTos == null ||
                         !FromTo.ContainsMatchingDependency(fromTos, d.UsedItem, d.UsingItem, idempotentPattern)) {
-                        var newDependency = globalContext.CurrentEnvironment.CreateDependency(d.UsedItem, d.UsingItem, d.Source, d.MarkerSet, d.Ct,
-                                                           d.QuestionableCt, d.BadCt, d.ExampleInfo);
+                        var newDependency = globalContext.CurrentGraph.CreateDependency(d.UsedItem, d.UsingItem, d.Source, d.MarkerSet, d.Ct,
+                                                           d.QuestionableCt, d.BadCt, d.NotOkReason, d.ExampleInfo);
                         if (markerToAdd != null) {
                             newDependency.IncrementMarker(markerToAdd);
                         }
@@ -79,14 +79,14 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             return Program.OK_RESULT;
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
-            var a = transformingEnvironment.NewItem(ItemType.SIMPLE, "A");
-            var b = transformingEnvironment.NewItem(ItemType.SIMPLE, "B");
+        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
+            var a = transformingGraph.NewItem(ItemType.SIMPLE, "A");
+            var b = transformingGraph.NewItem(ItemType.SIMPLE, "B");
             return new[] {
-                transformingEnvironment.CreateDependency(a, a, source: null, markers: "inherit", ct:10, questionableCt:5, badCt:3),
-                transformingEnvironment.CreateDependency(a, b, source: null, markers: "inherit+define", ct:1, questionableCt:0,badCt: 0),
-                transformingEnvironment.CreateDependency(b, a, source: null, markers: "define", ct:5, questionableCt:0, badCt:2),
-                transformingEnvironment.CreateDependency(b, b, source: null, markers: "", ct: 5, questionableCt:0, badCt:2),
+                transformingGraph.CreateDependency(a, a, source: null, markers: "inherit", ct:10, questionableCt:5, badCt:3, notOkReason: "test"),
+                transformingGraph.CreateDependency(a, b, source: null, markers: "inherit+define", ct:1, questionableCt:0,badCt: 0),
+                transformingGraph.CreateDependency(b, a, source: null, markers: "define", ct:5, questionableCt:0, badCt:2, notOkReason: "test"),
+                transformingGraph.CreateDependency(b, b, source: null, markers: "", ct: 5, questionableCt:0, badCt:2, notOkReason: "test"),
             };
         }
     }

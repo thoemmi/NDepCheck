@@ -166,20 +166,20 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestOneTopologicalSortStep() {
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            Item a = env.NewItem(ItemType.SIMPLE, "a");
-            Item b = env.NewItem(ItemType.SIMPLE, "b");
-            Item c = env.NewItem(ItemType.SIMPLE, "c");
+            Item a = graph.NewItem(ItemType.SIMPLE, "a");
+            Item b = graph.NewItem(ItemType.SIMPLE, "b");
+            Item c = graph.NewItem(ItemType.SIMPLE, "c");
             var dependencies = new[] {
-                env.CreateDependency(a, b, source: null, markers: "", ct:1),
-                env.CreateDependency(c, a, source: null, markers: "", ct:100),
-                env.CreateDependency(c, b, source: null, markers: "", ct:100)
+                graph.CreateDependency(a, b, source: null, markers: "", ct:1),
+                graph.CreateDependency(c, a, source: null, markers: "", ct:100),
+                graph.CreateDependency(c, b, source: null, markers: "", ct:100)
             };
 
             var aggregated = new Dictionary<FromTo, Dependency>();
             foreach (var d in dependencies.Where(d => !Equals(d.UsingItem, d.UsedItem))) {
-                new FromTo(d.UsingItem, d.UsedItem).AggregateDependency(env, d, aggregated);
+                new FromTo(d.UsingItem, d.UsedItem).AggregateDependency(graph, d, aggregated);
             }
 
             var aggregatedCounts = new MatrixDictionary<Item, int>((s, i) => s + i, (s, i) => s - i);

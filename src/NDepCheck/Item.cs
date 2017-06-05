@@ -210,35 +210,42 @@ namespace NDepCheck {
         public override IMarkerSet MarkerSet => _markerSet;
     }
 
-    public interface IItemAndDependencyFactory {
-        Item New(Intern<Item> ítemCache, [NotNull] ItemType type, [ItemNotNull] string[] values,
-            [CanBeNull] [ItemNotNull] string[] markers);
+    public interface IItemAndDependencyFactory : IPlugin {
+        Item CreateItem([NotNull] ItemType type, [ItemNotNull] string[] values);
 
-        Dependency CreateDependency([NotNull] Item usingItem, [NotNull] Item usedItem,
-            [CanBeNull] ISourceLocation source, [CanBeNull] IMarkerSet markers, int ct, int questionableCt = 0,
-            int badCt = 0, [CanBeNull] string exampleInfo = null);
+        Dependency CreateDependency([NotNull] Item usingItem, [NotNull] Item usedItem, [CanBeNull] ISourceLocation source,
+            [CanBeNull] IMarkerSet markers, int ct, int questionableCt = 0, int badCt = 0, string notOkReason = null, 
+            [CanBeNull] string exampleInfo = null);
     }
 
     public class DefaultItemAndDependencyFactory : IItemAndDependencyFactory {
-        public Item New(Intern<Item> ítemCache, [NotNull] ItemType type, [ItemNotNull] string[] values, [CanBeNull] [ItemNotNull] string[] markers) {
-            Item searchedItem = new Item(type, values);
-            if (markers != null) {
-                searchedItem.MergeWithMarkers(new MutableMarkerSet(type.IgnoreCase,
-                    AbstractMarkerSet.CreateMarkerSetWithClonedDictionary(type.IgnoreCase, markers)));
-            }
-            Item item = ítemCache.GetReference(searchedItem);
-            return item;
+        public Item CreateItem([NotNull] ItemType type, [ItemNotNull] string[] values) {
+            return new Item(type, values);
         }
 
         public Dependency CreateDependency([NotNull] Item usingItem, [NotNull] Item usedItem, [CanBeNull] ISourceLocation source,
-            [CanBeNull] IMarkerSet markers, int ct, int questionableCt = 0, int badCt = 0,
+            [CanBeNull] IMarkerSet markers, int ct, int questionableCt = 0, int badCt = 0, string notOkReason = null,
             [CanBeNull] string exampleInfo = null) {
             return new Dependency(usingItem, usedItem, source, markers: markers,
-                ct: ct, questionableCt: questionableCt, badCt: badCt, exampleInfo: exampleInfo);
+                ct: ct, questionableCt: questionableCt, badCt: badCt, notOkReason: notOkReason, exampleInfo: exampleInfo);
+        }
+
+        public string GetHelp(bool detailedHelp, string filter) {
+            return "Default factory for generic items and dependencies";
         }
     }
 
     public class Item : AbstractItem<Item>, IWithMutableMarkerSet {
+        private WorkingGraph _workingGraph;
+        internal Item SetWorkingGraph(WorkingGraph workingGraph) {
+            _workingGraph = workingGraph;
+            return this;
+        }
+
+        public IEnumerable<Dependency> Outgoing => _workingGraph.VisibleOutgoingVisible[this];
+
+        public IEnumerable<Dependency> Incoming => _workingGraph.VisibleIncomingVisible[this];
+
         [NotNull]
         private readonly MutableMarkerSet _markerSet;
 

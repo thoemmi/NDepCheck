@@ -21,10 +21,10 @@ namespace NDepCheck.Transforming {
             return From.GetHashCode() ^ To.GetHashCode();
         }
 
-        public FromTo AggregateDependency(Environment env, Dependency d, Dictionary<FromTo, Dependency> edgeCollector) {
+        public FromTo AggregateDependency(WorkingGraph graph, Dependency d, Dictionary<FromTo, Dependency> edgeCollector) {
             Dependency result;
             if (!edgeCollector.TryGetValue(this, out result)) {
-                result = env.CreateDependency(From, To, d.Source, d.MarkerSet, d.Ct, d.QuestionableCt, d.BadCt, d.ExampleInfo);
+                result = graph.CreateDependency(From, To, d.Source, d.MarkerSet, d.Ct, d.QuestionableCt, d.BadCt, d.NotOkReason, d.ExampleInfo);
                 edgeCollector.Add(this, result);
             } else {
                 result.AggregateMarkersAndCounts(d);
@@ -34,10 +34,10 @@ namespace NDepCheck.Transforming {
             return this;
         }
 
-        public static Dictionary<FromTo, Dependency> AggregateAllDependencies(Environment env, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies) {
+        public static Dictionary<FromTo, Dependency> AggregateAllDependencies(WorkingGraph graph, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies) {
             var result = new Dictionary<FromTo, Dependency>();
             foreach (var d in dependencies) {
-                new FromTo(d.UsingItem, d.UsedItem).AggregateDependency(env, d, result);
+                new FromTo(d.UsingItem, d.UsedItem).AggregateDependency(graph, d, result);
             }
             return result;
         }

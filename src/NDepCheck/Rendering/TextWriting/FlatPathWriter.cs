@@ -90,7 +90,7 @@ namespace NDepCheck.Rendering.TextWriting {
                     .OrderBy(g1 => g1.Key)
                     .ToArray();
 
-                string itemSeparator = System.Environment.NewLine + "  & ";
+                string itemSeparator = Environment.NewLine + "  & ";
                 tw.WriteLine(string.Join(itemSeparator, new HashSet<string>(groupedPath[0]
                     .Select(d => CreateString(showItemMarkers, d.UsingItem, 0, d.UsingItem.MarkerSet.GetValue(marker, ignoreCase)))
                     .OrderBy(s => s))));
@@ -104,7 +104,7 @@ namespace NDepCheck.Rendering.TextWriting {
                         GetOrderedUniqueItems(showItemMarkers, g.Select(d => d.UsingItem).Except(usedItems), previousKey);                    
                     tw.WriteLine(string.Join(itemSeparator, orderedUsedItems) +
                         (additionalUsingItems.Any()
-                        ? System.Environment.NewLine + "  > " + string.Join(itemSeparator, additionalUsingItems)
+                        ? Environment.NewLine + "  > " + string.Join(itemSeparator, additionalUsingItems)
                         : ""));
                     usedItems = new HashSet<Item>(g.Select(d => d.UsedItem));
                     previousKey = g.Key;
@@ -139,8 +139,8 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
-            return RendererSupport.CreateSomeTestItems(renderingEnvironment);
+        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
+            return RendererSupport.CreateSomeTestItems(renderingGraph);
         }
     }
 }

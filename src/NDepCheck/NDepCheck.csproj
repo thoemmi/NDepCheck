@@ -96,7 +96,8 @@
     <Compile Include="Annotations.cs" />
     <Compile Include="Calculating\GetHash.cs" />
     <Compile Include="AbstractSourceLocation.cs" />
-    <Compile Include="Environment.cs" />
+    <Compile Include="ItemAndDependencyFactoryList.cs" />
+    <Compile Include="WorkingGraph.cs" />
     <Compile Include="ICalculator.cs" />
     <Compile Include="ConstraintSolving\Range.cs" />
     <Compile Include="ConstraintSolving\SimpleConstraintSolver.cs" />

@@ -75,7 +75,7 @@ Examples:
                 }),
                 ModificationsOption.Action((args, j) => {
                     _orderedActions = GetOrReadChildConfiguration(globalContext,
-                        () => new StringReader(string.Join(System.Environment.NewLine, args.Skip(j + 1))),
+                        () => new StringReader(string.Join(Environment.NewLine, args.Skip(j + 1))),
                         ModificationsOption.ShortName, globalContext.IgnoreCase, "????", forceReload: true);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;
@@ -134,13 +134,13 @@ Examples:
             return Program.OK_RESULT;
         }
 
-        public override IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
-            var a = transformingEnvironment.NewItem(ItemType.SIMPLE, "A");
-            var b = transformingEnvironment.NewItem(ItemType.SIMPLE, "B");
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
+            var a = transformingGraph.NewItem(ItemType.SIMPLE, "A");
+            var b = transformingGraph.NewItem(ItemType.SIMPLE, "B");
             return new[] {
-                transformingEnvironment.CreateDependency(a, a, source: null, markers: "", ct:10, questionableCt:5, badCt:3),
-                transformingEnvironment.CreateDependency(a, b, source: null, markers: "use+define", ct:1, questionableCt:0,badCt: 0),
-                transformingEnvironment.CreateDependency(b, a, source: null, markers: "define", ct:5, questionableCt:0, badCt:2),
+                transformingGraph.CreateDependency(a, a, source: null, markers: "", ct:10, questionableCt:5, badCt:3, notOkReason: "test"),
+                transformingGraph.CreateDependency(a, b, source: null, markers: "use+define", ct:1, questionableCt:0,badCt: 0),
+                transformingGraph.CreateDependency(b, a, source: null, markers: "define", ct:5, questionableCt:0, badCt:2, notOkReason: "test"),
             };
         }
     }

@@ -882,60 +882,74 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         }
 
         protected string DoRender([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, WriteTarget baseFileName, params OptionAction[] additionalOptions) {
-            int width = -1;
-            int height = -1;
-            int minTextHeight = 15;
-            string htmlFormat = DEFAULT_HTML_FORMAT;
-            if (baseFileName == null || baseFileName.IsConsoleOut) {
-                Option.ThrowArgumentException("Cannot write graphics file to Console.Out", argsAsString);
-            }
+            if (dependencies.Any()) {
+                int width = -1;
+                int height = -1;
+                int minTextHeight = 15;
+                string htmlFormat = DEFAULT_HTML_FORMAT;
+                if (baseFileName == null || baseFileName.IsConsoleOut) {
+                    Option.ThrowArgumentException("Cannot write graphics file to Console.Out", argsAsString);
+                }
 
-            Option.Parse(globalContext, argsAsString,
-                new[] {
+                Option.Parse(globalContext, argsAsString, new[] {
                     WidthOption.Action((args, j) => {
                         width = Option.ExtractIntOptionValue(args, ref j, "No valid width");
                         return j;
-                    }), HeightOption.Action((args, j) => {
+                    }),
+                    HeightOption.Action((args, j) => {
                         height = Option.ExtractIntOptionValue(args, ref j, "No valid height");
                         return j;
-                    }), MinTextHeightOption.Action((args, j) => {
+                    }),
+                    MinTextHeightOption.Action((args, j) => {
                         minTextHeight = Option.ExtractIntOptionValue(args, ref j, "No valid text height");
                         return j;
-                    }), TitleOption.Action((args, j) => {
+                    }),
+                    TitleOption.Action((args, j) => {
                         _title = Option.ExtractRequiredOptionValue(args, ref j, "Missing title");
                         return j;
-                    }), FormatOption.Action((args, j) => {
+                    }),
+                    FormatOption.Action((args, j) => {
                         htmlFormat = Option.ExtractRequiredOptionValue(args, ref j, "Missing HTML format");
                         return j;
-                    }), FormatFileOption.Action((args, j) => {
-                        htmlFormat = File.ReadAllText(Option.ExtractRequiredOptionValue(args, ref j, "Missing format file name"));
+                    }),
+                    FormatFileOption.Action((args, j) => {
+                        htmlFormat =
+                            File.ReadAllText(Option.ExtractRequiredOptionValue(args, ref j, "Missing format file name"));
                         return j;
-                    })}.Concat(additionalOptions).ToArray());
+                    })
+                }.Concat(additionalOptions).ToArray());
 
 
-            StringBuilder htmlForClicks = new StringBuilder();
-            Bitmap bitMap = Render(dependencies, minTextHeight, ref width, ref height, htmlForClicks, globalContext.CheckAbort);
+                StringBuilder htmlForClicks = new StringBuilder();
+                Bitmap bitMap = Render(dependencies, minTextHeight, ref width, ref height, htmlForClicks,
+                    globalContext.CheckAbort);
 
-            string gifFileName = GetGifFileName(baseFileName);
-            try {
-                Log.WriteInfo("Writing " + gifFileName);
-                bitMap.Save(gifFileName, ImageFormat.Gif);
-            } catch (Exception ex) {
-                Log.WriteError("Cannot save GIF image to file " + gifFileName + ". Make sure the file can be written (e.g., that directory is created). Internal message: " + ex.Message);
-                throw;
-            }
+                string gifFileName = GetGifFileName(baseFileName);
+                try {
+                    Log.WriteInfo("Writing " + gifFileName);
+                    bitMap.Save(gifFileName, ImageFormat.Gif);
+                } catch (Exception ex) {
+                    Log.WriteError("Cannot save GIF image to file " + gifFileName +
+                                   ". Make sure the file can be written (e.g., that directory is created). Internal message: " +
+                                   ex.Message);
+                    throw;
+                }
 
-            WriteTarget htmlFile = GetHtmlFileName(baseFileName);
-            using (var tw = htmlFile.CreateWriter()) {
-                Log.WriteInfo("Writing " + htmlFile);
-                string html = string.Format(htmlFormat,
-                    $@"<img src=""{ Path.GetFileName(gifFileName)}"" width=""{width}"" height=""{height}"" usemap=""#map""/>
+                WriteTarget htmlFile = GetHtmlFileName(baseFileName);
+                using (var tw = htmlFile.CreateWriter()) {
+                    Log.WriteInfo("Writing " + htmlFile);
+                    string html = string.Format(htmlFormat,
+                        $@"<img src=""{Path.GetFileName(gifFileName)}"" width=""{width}"" height=""{height}"" usemap=""#map""/>
 <map name=""map"">
 {htmlForClicks}
 </map>");
-                tw.WriteLine(html);
+                    tw.WriteLine(html);
+                }
+                return htmlFile.FullFileName;
+            } else {
+                Log.WriteWarning("No dependencies to render");
+                return null;
             }
-            return htmlFile.FullFileName;
         }
 
         private static WriteTarget GetHtmlFileName(WriteTarget target) {
@@ -960,7 +974,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
 
         protected abstract void PlaceObjects([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies);
 
-        public abstract IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment);
+        public abstract IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph);
 
         public abstract string GetHelp(bool detailedHelp, string filter);
 

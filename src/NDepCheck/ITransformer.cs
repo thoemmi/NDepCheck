@@ -9,6 +9,6 @@ namespace NDepCheck {
                       [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies);
 
         [NotNull]
-        IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment);
+        IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph);
     }
 }

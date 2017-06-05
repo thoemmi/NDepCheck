@@ -11,12 +11,12 @@ namespace NDepCheck.Transforming.SpecialItemMarking {
         public static readonly Option RecursiveMarkOption = new Option("mr", "mark-recursively", "", "Repeat marking", @default: false);
         public static readonly Option MarkSinksOption = new Option("md", "mark-drains", "", "Marks sinks (or drains)", @default: false);
         public static readonly Option MarkSourcesOption = new Option("ms", "mark-sources", "", "Mark sources", @default: false);
-        public static readonly Option IgnoreSingleCyclesOption = new Option("ii", "ignore-single-loops", "", "Ignore single cycles for source and sink detection", @default: false);
+        public static readonly Option ConsiderSelfCyclesOption = new Option("cl", "consider-single-loops", "", "Consider single cycles for source and sink detection", @default: false);
         public static readonly Option MarkSingleCyclesOption = new Option("mi", "mark-single-loops", "", "Mark single cycles", @default: false);
 
         private static readonly Option[] _transformOptions = {
             MatchOption, AddMarkerOption, RecursiveMarkOption,
-            MarkSinksOption, MarkSourcesOption, IgnoreSingleCyclesOption, MarkSingleCyclesOption
+            MarkSinksOption, MarkSourcesOption, ConsiderSelfCyclesOption, MarkSingleCyclesOption
         };
 
         private bool _ignoreCase;
@@ -39,7 +39,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             var matches = new List<ItemMatch>();
             bool markSources = false;
             bool markSinks = false;
-            bool ignoreSelfCyclesInSourcesAndSinks = false;
+            bool ignoreSelfCyclesInSourcesAndSinks = true;
             bool markSingleCycleNodes = false;
             bool recursive = false;
             string markerToAdd = null;
@@ -51,8 +51,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 }), MarkSingleCyclesOption.Action((args, j) => {
                     markSingleCycleNodes = true;
                     return j;
-                }), IgnoreSingleCyclesOption.Action((args, j) => {
-                    ignoreSelfCyclesInSourcesAndSinks = true;
+                }), ConsiderSelfCyclesOption.Action((args, j) => {
+                    ignoreSelfCyclesInSourcesAndSinks = false;
                     return j;
                 }), RecursiveMarkOption.Action((args, j) => {
                     recursive = true;
@@ -73,7 +73,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                         || matches.Any(m => ItemMatch.IsMatch(m, d.UsingItem)) && matches.Any(m => ItemMatch.IsMatch(m, d.UsedItem)))
                 .ToArray();
 
-            MatrixDictionary<Item, int> aggregatedCounts = MatrixDictionary.CreateCounts(matchingDependencies, d => d.Ct, globalContext.CurrentEnvironment);
+            MatrixDictionary<Item, int> aggregatedCounts = MatrixDictionary.CreateCounts(matchingDependencies, d => d.Ct, globalContext.CurrentGraph);
 
             // Force each item to exist on both matrix axes
             foreach (var from in aggregatedCounts.RowKeys) {
@@ -130,35 +130,35 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             } while (recursive && itemRemoved);
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
-            Item a = transformingEnvironment.NewItem(ItemType.SIMPLE, "Ax");
-            Item b = transformingEnvironment.NewItem(ItemType.SIMPLE, "Bx");
-            Item c = transformingEnvironment.NewItem(ItemType.SIMPLE, "Cloop");
-            Item d = transformingEnvironment.NewItem(ItemType.SIMPLE, "Dloop");
-            Item e = transformingEnvironment.NewItem(ItemType.SIMPLE, "Eselfloop");
-            Item f = transformingEnvironment.NewItem(ItemType.SIMPLE, "Fy");
-            Item g = transformingEnvironment.NewItem(ItemType.SIMPLE, "Gy");
-            Item h = transformingEnvironment.NewItem(ItemType.SIMPLE, "Hy");
-            Item i = transformingEnvironment.NewItem(ItemType.SIMPLE, "Iy");
-            Item j = transformingEnvironment.NewItem(ItemType.SIMPLE, "Jy");
+        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
+            Item a = transformingGraph.NewItem(ItemType.SIMPLE, "Ax");
+            Item b = transformingGraph.NewItem(ItemType.SIMPLE, "Bx");
+            Item c = transformingGraph.NewItem(ItemType.SIMPLE, "Cloop");
+            Item d = transformingGraph.NewItem(ItemType.SIMPLE, "Dloop");
+            Item e = transformingGraph.NewItem(ItemType.SIMPLE, "Eselfloop");
+            Item f = transformingGraph.NewItem(ItemType.SIMPLE, "Fy");
+            Item g = transformingGraph.NewItem(ItemType.SIMPLE, "Gy");
+            Item h = transformingGraph.NewItem(ItemType.SIMPLE, "Hy");
+            Item i = transformingGraph.NewItem(ItemType.SIMPLE, "Iy");
+            Item j = transformingGraph.NewItem(ItemType.SIMPLE, "Jy");
             return new[] {
                 // Pure sources
-                transformingEnvironment.CreateDependency(a, b, source: null, markers: "", ct: 10, questionableCt: 5, badCt: 3),
-                transformingEnvironment.CreateDependency(b, c, source: null, markers: "", ct: 1, questionableCt: 0, badCt: 0),
+                transformingGraph.CreateDependency(a, b, source: null, markers: "", ct: 10, questionableCt: 5, badCt: 3, notOkReason: "test data"),
+                transformingGraph.CreateDependency(b, c, source: null, markers: "", ct: 1, questionableCt: 0, badCt: 0),
 
                 // Long cycle
-                transformingEnvironment.CreateDependency(c, d, source: null, markers: "", ct: 5, questionableCt: 0, badCt: 2),
-                transformingEnvironment.CreateDependency(d, c, source: null, markers: "", ct: 5, questionableCt: 0, badCt: 2),
+                transformingGraph.CreateDependency(c, d, source: null, markers: "", ct: 5, questionableCt: 0, badCt: 2, notOkReason: "test data"),
+                transformingGraph.CreateDependency(d, c, source: null, markers: "", ct: 5, questionableCt: 0, badCt: 2, notOkReason: "test data"),
 
-                transformingEnvironment.CreateDependency(d, e, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                transformingGraph.CreateDependency(d, e, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2, notOkReason: "test data"),
                 // Self cycle
-                transformingEnvironment.CreateDependency(e, e, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                transformingGraph.CreateDependency(e, e, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2, notOkReason: "test data"),
                 // Pure sinks
-                transformingEnvironment.CreateDependency(e, f, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                transformingEnvironment.CreateDependency(f, g, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                transformingEnvironment.CreateDependency(g, h, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                transformingEnvironment.CreateDependency(h, i, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                transformingEnvironment.CreateDependency(h, j, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2)
+                transformingGraph.CreateDependency(e, f, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2, notOkReason: "test data"),
+                transformingGraph.CreateDependency(f, g, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2, notOkReason: "test data"),
+                transformingGraph.CreateDependency(g, h, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2, notOkReason: "test data"),
+                transformingGraph.CreateDependency(h, i, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2, notOkReason: "test data"),
+                transformingGraph.CreateDependency(h, j, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2, notOkReason: "test data"),
             };
         }
     }

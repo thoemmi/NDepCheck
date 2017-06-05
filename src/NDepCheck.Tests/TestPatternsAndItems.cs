@@ -11,7 +11,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestSimpleDependencyRuleMatches() {
-            ItemType itemType = ItemType.New("NC", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" }, ignoreCase: false);
+            ItemType itemType = ItemType.New("NC", new[] { "Namespace", "Class" }, new[] { "", "" }, ignoreCase: false);
 
             var r1 = CreateDependencyRule(itemType, ":", ":");
 
@@ -31,9 +31,9 @@ namespace NDepCheck.Tests {
             var rnc2 = CreateDependencyRule(itemType, "n**:c**", ":");
 
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            Dependency dep = env.CreateDependency(env.NewItem(itemType, "n1", "c1"), env.NewItem(itemType, "n2", "c2"), null, "Test", ct: 1);
+            Dependency dep = graph.CreateDependency(graph.NewItem(itemType, "n1", "c1"), graph.NewItem(itemType, "n2", "c2"), null, "Test", ct: 1);
             Assert.IsTrue(r1.IsMatch(dep));
 
             Assert.IsTrue(rn1.IsMatch(dep));
@@ -62,7 +62,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestBackReferenceDependencyRuleMatches() {
-            ItemType itemtype = ItemType.New("SO", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" }, ignoreCase: false);
+            ItemType itemtype = ItemType.New("SO", new[] { "Schema", "Object" }, new[] { "", "" }, ignoreCase: false);
             var rn1 = CreateDependencyRule(itemtype, "(s)*", @"\1*");
             var rn2 = CreateDependencyRule(itemtype, "(s)*:(t)*", @"\1*:\2*");
             var rn3 = CreateDependencyRule(itemtype, "(s)**:(t)**", @"\1*:\2*");
@@ -70,9 +70,9 @@ namespace NDepCheck.Tests {
             var rn5 = CreateDependencyRule(itemtype, "s(**):t(**)", @"s\1:t\2");
 
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            Dependency dep = env.CreateDependency(env.NewItem(itemtype, "s1", "t1"), env.NewItem(itemtype, "s2", "t2"), null, "Test", ct: 1);
+            Dependency dep = graph.CreateDependency(graph.NewItem(itemtype, "s1", "t1"), graph.NewItem(itemtype, "s2", "t2"), null, "Test", ct: 1);
             Assert.IsTrue(rn1.IsMatch(dep));
             Assert.IsTrue(rn2.IsMatch(dep));
             Assert.IsTrue(rn3.IsMatch(dep));
@@ -82,21 +82,21 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestBackReferenceDependencyRuleMatchesWithOuterParentheses() {
-            ItemType itemtype = ItemType.New("SO", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" }, ignoreCase: false);
+            ItemType itemtype = ItemType.New("SO", new[] { "Schema", "Object" }, new[] { "", "" }, ignoreCase: false);
             var rn3 = CreateDependencyRule(itemtype, "(s**):(t**)", @"\1*:\2*");
             var rn5 = CreateDependencyRule(itemtype, "(**s**):(**t**)", @"\1:\2");
 
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            Dependency dep = env.CreateDependency(env.NewItem(itemtype, "sx", "tx"), env.NewItem(itemtype, "sx", "tx"), null, "Test", ct: 1);
+            Dependency dep = graph.CreateDependency(graph.NewItem(itemtype, "sx", "tx"), graph.NewItem(itemtype, "sx", "tx"), null, "Test", ct: 1);
             Assert.IsTrue(rn3.IsMatch(dep));
             Assert.IsTrue(rn5.IsMatch(dep));
         }
 
         [TestMethod]
         public void TestMoreBackReferenceDependencyRuleMatches() {
-            ItemType itemType = ItemType.New("SO", new[] { "SCHEMA", "OBJECT" }, new[] { "", "" }, ignoreCase: false);
+            ItemType itemType = ItemType.New("SO", new[] { "Schema", "Object" }, new[] { "", "" }, ignoreCase: false);
             var rn1 = CreateDependencyRule(itemType, "(s)*", @"\1*");
             var rn2 = CreateDependencyRule(itemType, "(s*)", @"\1");
             var rn3 = CreateDependencyRule(itemType, "s(*)", @"s\1");
@@ -106,9 +106,9 @@ namespace NDepCheck.Tests {
             var rn6 = CreateDependencyRule(itemType, "s*:(t*)", @"s\1:t*");
 
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            Dependency dep = env.CreateDependency(env.NewItem(itemType, "s1", "t1"), env.NewItem(itemType, "s1", "t2"), null, "Test", ct: 1);
+            Dependency dep = graph.CreateDependency(graph.NewItem(itemType, "s1", "t1"), graph.NewItem(itemType, "s1", "t2"), null, "Test", ct: 1);
             Assert.IsTrue(rn1.IsMatch(dep));
             Assert.IsTrue(rn2.IsMatch(dep));
             Assert.IsTrue(rn3.IsMatch(dep));
@@ -119,8 +119,8 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestSimpleGraphAbstractionMatches() {
-            ItemType testType = ItemType.New("NC", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" }, ignoreCase: false);
-            ItemType simpleType = ItemType.New("N", new[] { "NAME", }, new[] { "" }, ignoreCase: false);
+            ItemType testType = ItemType.New("NC", new[] { "Namespace", "Class" }, new[] { "", "" }, ignoreCase: false);
+            ItemType simpleType = ItemType.New("N", new[] { "Name", }, new[] { "" }, ignoreCase: false);
             var g1 = new Projection(testType, simpleType, "**():", null, IGNORECASE, true, true);
 
             var gn1 = new Projection(testType, simpleType, "(n)*", null, IGNORECASE, true, true);
@@ -155,48 +155,48 @@ namespace NDepCheck.Tests {
             var gnc2 = new Projection(testType, simpleType, "n(**):(c)**", new[] { "\\1+\\2" }, IGNORECASE, true, true);
 
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            Item i = env.NewItem(testType, "n1", "c1");
+            Item i = graph.NewItem(testType, "n1", "c1");
 
-            Assert.AreEqual("", g1.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("", g1.Match(gc.CurrentGraph, i, true).Name);
 
-            Assert.AreEqual("n", gn1.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn2.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn3.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn4.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn5.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn6.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn7.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn8.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn1.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn2.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn3.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn4.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn5.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn6.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn7.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn8.Match(gc.CurrentGraph, i, true).Name);
 
-            Assert.AreEqual("1", hn1.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn2.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn3.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn4.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn5.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn6.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn7.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn8.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn1.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn2.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn3.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn4.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn5.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn6.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn7.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn8.Match(gc.CurrentGraph, i, true).Name);
 
-            Assert.AreEqual("c", gc1.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("c", gc2.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("c", gc3.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("c", gc4.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("c", gc1.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("c", gc2.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("c", gc3.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("c", gc4.Match(gc.CurrentGraph, i, true).Name);
 
-            Assert.AreEqual("1", hc1.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hc2.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hc3.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hc4.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hc1.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hc2.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hc3.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hc4.Match(gc.CurrentGraph, i, true).Name);
 
-            Assert.AreEqual("1+c", gnc1.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1+c", gnc2.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1+c", gnc1.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1+c", gnc2.Match(gc.CurrentGraph, i, true).Name);
         }
 
         [TestMethod]
         public void TestRegexGraphAbstractionMatches() {
-            ItemType testType = ItemType.New("NC", new[] { "NAMESPACE", "CLASS" }, new[] { "", "" }, ignoreCase: false);
-            ItemType simpleType = ItemType.New("N", new[] { "NAME" }, new[] { "" }, ignoreCase: false);
+            ItemType testType = ItemType.New("NC", new[] { "Namespace", "Class" }, new[] { "", "" }, ignoreCase: false);
+            ItemType simpleType = ItemType.New("N", new[] { "Name" }, new[] { "" }, ignoreCase: false);
             var g1 = new Projection(testType, simpleType, "^.*()$:", null, IGNORECASE, true, true);
 
             // ReSharper disable InconsistentNaming
@@ -249,50 +249,50 @@ namespace NDepCheck.Tests {
             //var gnc2 = new GraphAbstraction_("n(**):(c)**", false);
 
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            Item i = env.NewItem(testType, "n1", "c1");
+            Item i = graph.NewItem(testType, "n1", "c1");
 
-            Assert.AreEqual("", g1.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("", g1.Match(gc.CurrentGraph, i, true).Name);
 
-            Assert.AreEqual("n", gn1a.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn1b.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn1c.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn2a.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn2b.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn2c.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn5a.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn5b.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn5c.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn6a.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn6b.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn6c.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn7a.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn7b.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("n", gn7c.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("n", gn1a.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn1b.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn1c.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn2a.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn2b.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn2c.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn5a.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn5b.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn5c.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn6a.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn6b.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn6c.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn7a.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn7b.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("n", gn7c.Match(gc.CurrentGraph, i, true).Name);
 
-            Assert.AreEqual("1", hn1a.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn1b.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn1c.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn2a.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn2b.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn2c.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn5a.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn5b.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn5c.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn6a.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn6b.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn6c.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn7a.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn7b.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("1", hn7c.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("1", hn1a.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn1b.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn1c.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn2a.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn2b.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn2c.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn5a.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn5b.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn5c.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn6a.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn6b.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn6c.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn7a.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn7b.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("1", hn7c.Match(gc.CurrentGraph, i, true).Name);
 
-            Assert.AreEqual("c", gc1a.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("c", gc1b.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("c", gc1c.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("c", gc3a.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("c", gc3b.Match(gc.CurrentEnvironment, i, true).Name);
-            Assert.AreEqual("c", gc3c.Match(gc.CurrentEnvironment, i, true).Name);
+            Assert.AreEqual("c", gc1a.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("c", gc1b.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("c", gc1c.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("c", gc3a.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("c", gc3b.Match(gc.CurrentGraph, i, true).Name);
+            Assert.AreEqual("c", gc3c.Match(gc.CurrentGraph, i, true).Name);
 
             //Assert.AreEqual("1", hc1.Match(i, true).Name);
             //Assert.AreEqual("1", hc2.Match(i, true).Name);
@@ -305,31 +305,31 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestAsterisks() {
-            ItemType testType = ItemType.New("T", new[] { "NAME", }, new[] { "" }, ignoreCase: false);
-            ItemType simpleType = ItemType.New("N", new[] { "NAME", }, new[] { "" }, ignoreCase: false);
+            ItemType testType = ItemType.New("T", new[] { "Name", }, new[] { "" }, ignoreCase: false);
+            ItemType simpleType = ItemType.New("N", new[] { "Name", }, new[] { "" }, ignoreCase: false);
             var g1 = new Projection(testType, simpleType, "(**)", null, IGNORECASE, true, true);
 
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            Assert.AreEqual("n1", g1.Match(gc.CurrentEnvironment, env.NewItem(testType, "n1"), true).Name);
-            Assert.AreEqual("n1.n2", g1.Match(gc.CurrentEnvironment, env.NewItem(testType, "n1.n2"), true).Name);
-            Assert.AreEqual("n1.n2.n3", g1.Match(gc.CurrentEnvironment, env.NewItem(testType, "n1.n2.n3"), true).Name);
+            Assert.AreEqual("n1", g1.Match(gc.CurrentGraph, graph.NewItem(testType, "n1"), true).Name);
+            Assert.AreEqual("n1.n2", g1.Match(gc.CurrentGraph, graph.NewItem(testType, "n1.n2"), true).Name);
+            Assert.AreEqual("n1.n2.n3", g1.Match(gc.CurrentGraph, graph.NewItem(testType, "n1.n2.n3"), true).Name);
         }
         //
 
         [TestMethod]
         public void TestProblemWithTests() {
-            ItemType testType = ItemType.New("A", new[] { "ASSEMBLY", }, new[] { "NAME" }, ignoreCase: false);
-            ItemType simpleType = ItemType.New("N", new[] { "NAME", }, new[] { "" }, ignoreCase: false);
+            ItemType testType = ItemType.New("A", new[] { "Assembly", }, new[] { "Name" }, ignoreCase: false);
+            ItemType simpleType = ItemType.New("N", new[] { "Name", }, new[] { "" }, ignoreCase: false);
             var g1 = new Projection(testType, simpleType, "**Tests**", null, IGNORECASE, true, true);
             var g2 = new Projection(testType, simpleType, "**Tests**()", null, IGNORECASE, true, true);
 
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            Assert.AreEqual("\\1", g1.Match(gc.CurrentEnvironment, env.NewItem(testType, "Framework.Core.NunitTests.IBOL"), true).Name);
-            Assert.AreEqual("", g2.Match(gc.CurrentEnvironment, env.NewItem(testType, "Framework.Core.NunitTests.IBOL"), true).Name);
+            Assert.AreEqual("\\1", g1.Match(gc.CurrentGraph, graph.NewItem(testType, "Framework.Core.NunitTests.IBOL"), true).Name);
+            Assert.AreEqual("", g2.Match(gc.CurrentGraph, graph.NewItem(testType, "Framework.Core.NunitTests.IBOL"), true).Name);
         }
 
         [TestMethod]
@@ -337,11 +337,11 @@ namespace NDepCheck.Tests {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
 
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            var @using = env.NewItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
-            var used = env.NewItem(itemType, "System", "Object", "mscorlib", "", "", "");
-            var d = env.CreateDependency(@using, used, null, "Test", ct: 1);
+            var @using = graph.NewItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
+            var used = graph.NewItem(itemType, "System", "Object", "mscorlib", "", "", "");
+            var d = graph.CreateDependency(@using, used, null, "Test", ct: 1);
 
             var r = CreateDependencyRule(itemType, "**", "System.**");
             Assert.IsTrue(r.IsMatch(d));
@@ -352,11 +352,11 @@ namespace NDepCheck.Tests {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
 
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            Item @using = env.NewItem(itemType, "NDepCheck.TestAssembly.dir1.dir2", "SomeClass", "NDepCheck.TestAssembly", "1.0.0.0", "", "AnotherMethod");
-            Item used = env.NewItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "I");
-            var d = env.CreateDependency(@using, used, null, "Test", ct: 1);
+            Item @using = graph.NewItem(itemType, "NDepCheck.TestAssembly.dir1.dir2", "SomeClass", "NDepCheck.TestAssembly", "1.0.0.0", "", "AnotherMethod");
+            Item used = graph.NewItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "I");
+            var d = graph.CreateDependency(@using, used, null, "Test", ct: 1);
 
             var r = CreateDependencyRule(itemType, "NDepCheck.TestAssembly.dir1.dir2:SomeClass:**", "-:NamespacelessTestClassForNDepCheck::I");
             Assert.IsTrue(r.IsMatch(d));
@@ -371,11 +371,11 @@ namespace NDepCheck.Tests {
                                     ignoreCase: false, forLeftSide: true, forRightSide: true);
 
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            Item used = env.NewItem(itemType, "System", "Byte&", "mscorlib", "4.0.0.0", "", "");
+            Item used = graph.NewItem(itemType, "System", "Byte&", "mscorlib", "4.0.0.0", "", "");
 
-            string result = ga.Match(gc.CurrentEnvironment, used, true).Name;
+            string result = ga.Match(gc.CurrentGraph, used, true).Name;
 
             Assert.AreEqual("System:Byte&:mscorlib;;:", result);
         }
@@ -384,12 +384,12 @@ namespace NDepCheck.Tests {
         public void TestSimpleNamedCall() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
-            Item @using = env.NewItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
-            Item used = env.NewItem(itemType, "System", "Object", "mscorlib", "", "", "");
-            var d = env.CreateDependency(@using, used, null, "Test", ct: 1);
+            WorkingGraph graph = gc.CurrentGraph;
+            Item @using = graph.NewItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
+            Item used = graph.NewItem(itemType, "System", "Object", "mscorlib", "", "", "");
+            var d = graph.CreateDependency(@using, used, null, "Test", ct: 1);
 
-            DependencyRule r = CreateDependencyRule(itemType, "**", "ASSEMBLY.NAME=mscorlib");
+            DependencyRule r = CreateDependencyRule(itemType, "**", "Assembly.Name=mscorlib");
             Assert.IsTrue(r.IsMatch(d));
         }
 
@@ -397,13 +397,13 @@ namespace NDepCheck.Tests {
         public void TestReverseFieldsInNamedCall() {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            Item @using = env.NewItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
-            Item used = env.NewItem(itemType, "System", "Object", "mscorlib", "", "", "");
-            var d = env.CreateDependency(@using, used, null, "Test", ct: 1);
+            Item @using = graph.NewItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
+            Item used = graph.NewItem(itemType, "System", "Object", "mscorlib", "", "", "");
+            var d = graph.CreateDependency(@using, used, null, "Test", ct: 1);
 
-            DependencyRule r = CreateDependencyRule(itemType, "**", "ASSEMBLY.NAME=mscorlib:CLASS=Object");
+            DependencyRule r = CreateDependencyRule(itemType, "**", "Assembly.Name=mscorlib:Class=Object");
             Assert.IsTrue(r.IsMatch(d));
         }
 

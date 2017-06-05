@@ -30,18 +30,18 @@ Transformer options: {Option.CreateHelp(DependencyMatchOptions.WithOptions(), de
 
             DependencyMatchOptions.Parse(globalContext, transformOptions, _ignoreCase, matches, excludes);
 
-            transformedDependencies.AddRange(dependencies.Where(d => d.IsMatch(matches, excludes)));
+            transformedDependencies.AddRange(dependencies.Where(d => d.IsMarkerMatch(matches, excludes)));
 
             return Program.OK_RESULT;
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
-            Item a = transformingEnvironment.NewItem(ItemType.SIMPLE, "A");
-            Item b = transformingEnvironment.NewItem(ItemType.SIMPLE, "B");
+        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
+            Item a = transformingGraph.NewItem(ItemType.SIMPLE, "A");
+            Item b = transformingGraph.NewItem(ItemType.SIMPLE, "B");
             return new[] {
-                transformingEnvironment.CreateDependency(a, a, source: null, markers: "", ct:10, questionableCt:5, badCt:3),
-                transformingEnvironment.CreateDependency(a, b, source: null, markers: "use+define", ct:1, questionableCt:0,badCt: 0),
-                transformingEnvironment.CreateDependency(b, a, source: null, markers: "define", ct:5, questionableCt:0, badCt:2),
+                transformingGraph.CreateDependency(a, a, source: null, markers: "", ct:10, questionableCt:5, badCt:3, notOkReason: "test"),
+                transformingGraph.CreateDependency(a, b, source: null, markers: "use+define", ct:1, questionableCt:0,badCt: 0),
+                transformingGraph.CreateDependency(b, a, source: null, markers: "define", ct:5, questionableCt:0, badCt:2, notOkReason: "test"),
             };
         }
     }

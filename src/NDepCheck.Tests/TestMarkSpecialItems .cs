@@ -11,7 +11,7 @@ namespace NDepCheck.Tests {
             try {
                 var msi = new MarkSpecialItems();
                 var result = new List<Dependency>();
-                msi.Transform(gc, msi.CreateSomeTestDependencies(gc.CurrentEnvironment), options.Replace(" ", "\r\n"), result);
+                msi.Transform(gc, msi.CreateSomeTestDependencies(gc.CurrentGraph), options.Replace(" ", "\r\n"), result);
                 return
                     result.SelectMany(d => new[] { d.UsingItem, d.UsedItem })
                         .Distinct()
@@ -52,20 +52,20 @@ namespace NDepCheck.Tests {
         }
 
         [TestMethod]
-        public void TestMarkSinksRecursively() {
+        public void TestMarkSinksRecursivelyIncludingSelfCycles() {
             const string mark = "MARK";
             IEnumerable<Item> result = Run($"{{ {MarkSpecialItems.MarkSinksOption} " +
                                            $"{MarkSpecialItems.RecursiveMarkOption} " +
+                                           $"{MarkSpecialItems.ConsiderSelfCyclesOption} " +
                                            $"{MarkSpecialItems.AddMarkerOption} {mark} }}", mark);
             AssertResult(result, 'F', 'G', 'H', 'I', 'J');
         }
 
         [TestMethod]
-        public void TestMarkSinksRecursivelyIgnoringSelfCycles() {
+        public void TestMarkSinksRecursively() {
             const string mark = "MARK";
             IEnumerable<Item> result = Run($"{{ {MarkSpecialItems.MarkSinksOption} " +
                                            $"{MarkSpecialItems.RecursiveMarkOption} " +
-                                           $"{MarkSpecialItems.IgnoreSingleCyclesOption} " +
                                            $"{MarkSpecialItems.AddMarkerOption} {mark} }}", mark);
             AssertResult(result, 'E', 'F', 'G', 'H', 'I', 'J');
         }

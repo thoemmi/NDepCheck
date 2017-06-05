@@ -27,7 +27,7 @@ namespace NDepCheck {
         public abstract int Ct { get; }
         public abstract int QuestionableCt { get; }
         public abstract int BadCt { get; }
-        protected abstract string NotOkReason { get; }
+        public abstract string NotOkReason { get; }
 
         [CanBeNull]
         public ISourceLocation Source { get; }
@@ -38,8 +38,12 @@ namespace NDepCheck {
         [CanBeNull]
         public abstract string ExampleInfo { get; }
 
-        public bool IsMatch(IEnumerable<CountPattern<IMatcher>.Eval> evals) {
+        public bool IsMarkerMatch(IEnumerable<CountPattern<IMatcher>.Eval> evals) {
             return MarkerSet.IsMatch(evals);
+        }
+
+        public bool IsMarkerMatch(params string[] patterns) {
+            return MarkerSet.IsMatch(patterns.Select(p => MarkerMatch.CreateEval(p, false)));
         }
 
         /// <summary>
@@ -65,7 +69,7 @@ namespace NDepCheck {
 
         public int OkCt => Ct - QuestionableCt - BadCt;
 
-        public bool IsMatch([CanBeNull] IEnumerable<DependencyMatch> matches, [CanBeNull] IEnumerable<DependencyMatch> excludes) {
+        public bool IsMarkerMatch([CanBeNull] IEnumerable<DependencyMatch> matches, [CanBeNull] IEnumerable<DependencyMatch> excludes) {
             return (matches == null || !matches.Any() || matches.Any(m => m.IsMatch(this))) &&
                    (excludes == null || !excludes.Any() || !excludes.Any(m => m.IsMatch(this)));
         }
@@ -79,19 +83,25 @@ namespace NDepCheck {
         /// A message presented to the user if this Dependency has a <see cref="BadCt"/>or <see cref="QuestionableCt"/>.
         /// </summary>
         /// <returns></returns>
-        public string NotOkMessage(bool newLine = false, int maxLength = 600) {
-            string nounTail = Ct > 1 ? "ependencies" : "ependency";
-            string prefix = BadCt > 0
-                ? QuestionableCt > 0 ? "Bad and questionable d" : "Bad d"
-                : QuestionableCt > 0 ? "Questionable d" : "D";
-            string reason = string.IsNullOrWhiteSpace(NotOkReason) ? "" : " detected by " + NotOkReason;
-            string ct = BadCt > 0
-                ? QuestionableCt > 0 ? $";{QuestionableCt};{BadCt}" : $";;{BadCt}"
-                : QuestionableCt > 0 ? $";{QuestionableCt};" : ";;";
-            string markers = MarkerSet.AsFullString(maxLength / 3);
-            string brk = newLine ? System.Environment.NewLine + "    " : "";
-            return $"{prefix}{nounTail}{reason}: {brk}{UsingItem.AsFullString(maxLength / 3)} --{brk}{ct}{markers}{brk}-> {UsedItem.AsFullString(maxLength / 3)}"
-                    + (Source != null ? (Ct > 1 ? " (e.g. at " : " (at ") + Source + ")" : "") + (newLine ? System.Environment.NewLine : "");
+        public string NotOkMessage(bool simpleRuleOutput, bool newLine, int maxLength = 600) {
+            if (simpleRuleOutput) {
+                return $"{UsingItem.AsString()} ---? {UsedItem.AsString()}";
+            } else {
+                string prefix = BadCt > 0
+                    ? QuestionableCt > 0 ? "Bad and questionable d" : "Bad d"
+                    : QuestionableCt > 0 ? "Questionable d" : "D";
+                string nounTail = Ct > 1 ? "ependencies" : "ependency";
+                string reason = string.IsNullOrWhiteSpace(NotOkReason) ? "" : " detected by '" + NotOkReason + "'";
+                string brk = newLine ? Environment.NewLine + "    " : "";
+                string ct = BadCt > 0
+                    ? QuestionableCt > 0 ? $";{QuestionableCt};{BadCt}" : $";;{BadCt}"
+                    : QuestionableCt > 0 ? $";{QuestionableCt};" : ";;";
+                string markers = MarkerSet.AsFullString(maxLength / 3);
+                return
+                    $"{prefix}{nounTail}{reason}: {brk}{UsingItem.AsFullString(maxLength / 3)} --{brk}{ct}{markers}{brk}-> {UsedItem.AsFullString(maxLength / 3)}" +
+                    (Source != null ? (Ct > 1 ? " (e.g. at " : " (at ") + Source + ")" : "") +
+                    (newLine ? Environment.NewLine : "");
+            }
         }
 
         public string GetDotRepresentation(int? stringLengthForIllegalEdges) {
@@ -130,7 +140,7 @@ namespace NDepCheck {
         }
 
         public string AsLimitableStringWithTypes(bool withExampleInfo, bool threeLines, int maxLength = 600) {
-            string nl = threeLines ? System.Environment.NewLine + "    " : "";
+            string nl = threeLines ? Environment.NewLine + "    " : "";
             string exampleInfo = withExampleInfo ? ExampleInfo : null;
             string markers = MarkerSet.AsFullString(maxLength / 3);
             return $"{UsingItem.AsFullString(maxLength / 3)} "
@@ -141,7 +151,7 @@ namespace NDepCheck {
 
     public class ReadOnlyDependency : AbstractDependency<ReadOnlyItem> {
         public ReadOnlyDependency(ReadOnlyItem usingItem, ReadOnlyItem usedItem, ISourceLocation source, IMarkerSet markerSet,
-                                   int ct, int questionableCt, int badCt, string notOkReason, string exampleInfo) 
+                                   int ct, int questionableCt, int badCt, string notOkReason, string exampleInfo)
                 : base(usingItem, usedItem, source) {
             MarkerSet = markerSet;
             Ct = ct;
@@ -155,7 +165,7 @@ namespace NDepCheck {
         public override int Ct { get; }
         public override int QuestionableCt { get; }
         public override int BadCt { get; }
-        protected override string NotOkReason { get; }
+        public override string NotOkReason { get; }
         public override string ExampleInfo { get; }
     }
 
@@ -178,7 +188,7 @@ namespace NDepCheck {
 
         public AbstractMarkerSet AbstractMarkerSet => _markerSet;
 
-        protected override string NotOkReason => _notOkReason;
+        public override string NotOkReason => _notOkReason;
 
         /// <summary>
         /// Create a dependency.
@@ -190,12 +200,13 @@ namespace NDepCheck {
         /// <param name="ct"></param>
         /// <param name="questionableCt"></param>
         /// <param name="badCt"></param>
+        /// <param name="notOkReason"></param>
         /// <param name="exampleInfo"></param>
         /// <param name="ignoreCaseDefault"></param>
         internal Dependency([NotNull] Item usingItem, [NotNull] Item usedItem,
-            [CanBeNull] ISourceLocation source, [CanBeNull] IMarkerSet markers,            
-            int ct, int questionableCt = 0, int badCt = 0, [CanBeNull] string exampleInfo = null,
-            bool? ignoreCaseDefault = null) : base(usingItem, usedItem, source) {
+            [CanBeNull] ISourceLocation source, [CanBeNull] IMarkerSet markers,
+            int ct, int questionableCt = 0, int badCt = 0, string notOkReason = null,
+            [CanBeNull] string exampleInfo = null, bool? ignoreCaseDefault = null) : base(usingItem, usedItem, source) {
             if (usingItem == null) {
                 throw new ArgumentNullException(nameof(usingItem));
             }
@@ -208,6 +219,10 @@ namespace NDepCheck {
             _exampleInfo = exampleInfo;
             bool ignoreCase = ignoreCaseDefault ?? usingItem.Type.IgnoreCase | usedItem.Type.IgnoreCase;
             _markerSet = new MutableMarkerSet(ignoreCase, markers);
+
+            // Make sure that "no reason" is null so that ?? works.
+            _notOkReason = string.IsNullOrWhiteSpace(notOkReason) ? null : notOkReason;
+            CheckNotOkReason();
         }
 
         //public static Dependency CreateDependency([NotNull] Item usingItem, [NotNull] Item usedItem,
@@ -236,7 +251,10 @@ namespace NDepCheck {
 
         public void ResetBad() {
             _badCt = 0;
-            _notOkReason = null;
+            if (_questionableCt == 0) {
+                _notOkReason = null;
+            }
+            CheckNotOkReason();
         }
 
         private void SetBadCount(int value, string reason) {
@@ -248,6 +266,7 @@ namespace NDepCheck {
                 _notOkReason = reason;
             }
             _badCt = value;
+            CheckNotOkReason();
         }
 
         public void MarkAsQuestionable(string reason) {
@@ -263,6 +282,7 @@ namespace NDepCheck {
             if (_badCt == 0) {
                 _notOkReason = null;
             }
+            CheckNotOkReason();
         }
 
         private void SetQuestionableCount(int value, string reason) {
@@ -273,14 +293,24 @@ namespace NDepCheck {
                 _notOkReason = reason;
             }
             _questionableCt = value;
+            CheckNotOkReason();
+        }
+
+        private void CheckNotOkReason() {
+            if (NotOkCt > 0 && string.IsNullOrWhiteSpace(_notOkReason)) {
+                throw new ArgumentException($"Each bad or questionable count requires a reason - missing in dependency {this}");
+            }
         }
 
         public void AggregateMarkersAndCounts(Dependency d) {
             _markerSet.MergeWithMarkers(d.MarkerSet);
-            _ct += d.Ct;
-            _questionableCt += d.QuestionableCt;
-            _badCt += d.BadCt;
-            _exampleInfo = _exampleInfo ?? d.ExampleInfo;
+            _ct += d._ct;
+            _questionableCt += d._questionableCt;
+            _badCt += d._badCt;
+            _exampleInfo = _exampleInfo ?? d._exampleInfo;
+            _notOkReason = _notOkReason ?? d._notOkReason;
+
+            CheckNotOkReason();
         }
 
         private static Item GetOrCreateItem<T>(Dictionary<Item, Item> canonicalItems, Dictionary<Item, List<T>> itemsAndDependencies, Item item) where T : Dependency {

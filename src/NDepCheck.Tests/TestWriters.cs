@@ -7,8 +7,8 @@ using NDepCheck.Rendering.TextWriting;
 
 namespace NDepCheck.Tests {
     public class AbstractWriterTest {
-        protected Dependency FromTo(Environment env, Item from, Item to, int ct = 1, int questionable = 0) {
-            return env.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
+        protected Dependency FromTo(WorkingGraph graph, Item from, Item to, int ct = 1, int questionable = 0) {
+            return graph.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable, notOkReason: "test data");
         }
     }
 
@@ -19,7 +19,7 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             using (var s = new MemoryStream()) {
                 var w = new ItemWriter();
-                IEnumerable<Dependency> dependencies = w.CreateSomeTestDependencies(gc.CurrentEnvironment);
+                IEnumerable<Dependency> dependencies = w.CreateSomeTestDependencies(gc.CurrentGraph);
                 w.RenderToStreamForUnitTests(gc, dependencies, s, "");
 
                 string result = Encoding.ASCII.GetString(s.ToArray());

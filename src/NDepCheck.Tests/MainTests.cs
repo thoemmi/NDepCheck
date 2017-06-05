@@ -179,10 +179,10 @@ NDepCheck:Tests ---> **
         private static readonly ItemType ITEMTYPE = ItemType.New("TEST", new[] { "AS", "NS", "CL" },
             new string[] { null, null, null }, ignoreCase: false);
 
-        private Dependency NewDependency(Environment environment, string usingA, string usingN, string usingC, string usedA, string usedN,
+        private Dependency NewDependency(WorkingGraph workingGraph, string usingA, string usingN, string usingC, string usedA, string usedN,
             string usedC) {
-            return environment.CreateDependency(environment.NewItem(ITEMTYPE, usingA, usingN, usingC),
-                                  environment.NewItem(ITEMTYPE, usedA, usedN, usedC),
+            return workingGraph.CreateDependency(workingGraph.NewItem(ITEMTYPE, usingA, usingN, usingC),
+                                  workingGraph.NewItem(ITEMTYPE, usedA, usedN, usedC),
                 null, "Test", ct: 1);
         }
 

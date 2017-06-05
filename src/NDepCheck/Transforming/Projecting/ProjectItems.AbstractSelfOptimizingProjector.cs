@@ -48,13 +48,13 @@ namespace NDepCheck.Transforming.Projecting {
                 }
             }
 
-            public override Item Project(Environment cachingEnvironment, Item item, bool left) {
+            public override Item Project(WorkingGraph cachingGraph, Item item, bool left) {
                 if (_stepsToNextReorganize-- < 0) {
                     Reorganize();
                     _reorganizeInterval += _reorganizeIntervalIncrement;
                     _stepsToNextReorganize = _reorganizeInterval;
                 }
-                return ((IProjector) SelectProjector(_projectors, item, left, _stepsToNextReorganize) ?? _fallBackProjector).Project(cachingEnvironment, item, left);
+                return ((IProjector) SelectProjector(_projectors, item, left, _stepsToNextReorganize) ?? _fallBackProjector).Project(cachingGraph, item, left);
             }
 
             [CanBeNull]

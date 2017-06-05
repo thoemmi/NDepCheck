@@ -215,5 +215,24 @@ namespace NDepCheck {
             }
             return -1;
         }
+
+        public string Get(string[] values, string key, string subkey = "") {
+            int i;
+            if (key.Contains(".")) {
+                string[] k = key.Split('.');
+                if (k.Length == 2) {
+                    if (subkey == "") {
+                        i = IndexOf(key, subkey);
+                    } else {
+                        throw new ArgumentException($"key '{key}' contains ., but also subkey '{subkey}' is defined", nameof(key));
+                    }
+                } else {
+                    throw new ArgumentException($"key '{key}' contains more than 2 elements", nameof(key));
+                }
+            } else {
+                i = IndexOf(key, subkey);
+            }
+            return i < 0 || i >= values.Length ? null : values[i];
+        }
     }
 }

@@ -6,6 +6,6 @@
         void WriteWarning(string msg, string nestedFilenames, int lineNo);
         void WriteInfo(string msg);
         void WriteDebug(string msg);
-        void WriteViolation(Dependency dependency);
+        void WriteViolation(Dependency dependency, bool simpleRuleOutput);
     }
 }

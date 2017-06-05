@@ -7,13 +7,13 @@ namespace NDepCheck.Reading.AssemblyReading {
     public class DotNetAssemblyDependencyReaderFactory : AbstractReaderFactory {
         public static readonly ItemType DOTNETREF = ItemType.New(
             "DOTNETREF",
-            new[] { "ASSEMBLY", "ASSEMBLY", "ASSEMBLY" },
-            new[] { ".NAME", ".VERSION", ".CULTURE" }, ignoreCase: false, predefined: true);
+            new[] { "Assembly", "Assembly", "Assembly" },
+            new[] { ".Name", ".Version", ".Culture" }, ignoreCase: false, predefined: true);
 
         public static readonly ItemType DOTNETITEM = ItemType.New(
             "DOTNETITEM",
-            new[] { "NAMESPACE", "CLASS", "ASSEMBLY", "ASSEMBLY", "ASSEMBLY", "MEMBER" },
-            new[] { null, null, ".NAME", ".VERSION", ".CULTURE", ".NAME" }, ignoreCase: false, predefined: true);
+            new[] { "Namespace", "Class", "Assembly", "Assembly", "Assembly", "Member" },
+            new[] { null, null, ".Name", ".Version", ".Culture", ".Name" }, ignoreCase: false, predefined: true);
 
         [UsedImplicitly]
         public DotNetAssemblyDependencyReaderFactory() {
@@ -59,8 +59,8 @@ namespace NDepCheck.Reading.AssemblyReading {
             string result = @"Read data from .Net assembly file (.dll or .exe)
 
 This reader returns items of two types:
-    DOTNETITEM(NAMESPACE:CLASS:ASSEMBLY.NAME;ASSEMBLY.VERSION;ASSEMBLY.CULTURE:MEMBER.NAME)
-    DOTNETREF(ASSEMBLY.NAME;ASSEMBLY.VERSION;ASSEMBLY.CULTURE)
+    DOTNETITEM(NAMESPACE:CLASS:Assembly.Name;Assembly.VERSION;Assembly.CULTURE:MEMBER.Name)
+    DOTNETREF(Assembly.Name;Assembly.VERSION;Assembly.CULTURE)
 ";
             if (detailedHelp) {
                 result += @"

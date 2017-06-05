@@ -19,7 +19,7 @@ namespace NDepCheck.Tests {
             try {
                 var mmc = new MarkMinimalCutDeps();
                 var result = new List<Dependency>();
-                mmc.Transform(gc, dependencies ?? mmc.CreateSomeTestDependencies(gc.CurrentEnvironment), options.Replace(" ", "\r\n"), result);
+                mmc.Transform(gc, dependencies ?? mmc.CreateSomeTestDependencies(gc.CurrentGraph), options.Replace(" ", "\r\n"), result);
                 return result;
             } finally {
                 // Also static caches must be reset, as "Mark" modifies Items
@@ -30,16 +30,16 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestMarkTrivialCut() {
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
-            Item a = env.NewItem(ItemType.SIMPLE, "a");
-            Item b = env.NewItem(ItemType.SIMPLE, "b");
-            Item c = env.NewItem(ItemType.SIMPLE, "c");
-            Item d = env.NewItem(ItemType.SIMPLE, "d");
+            WorkingGraph graph = gc.CurrentGraph;
+            Item a = graph.NewItem(ItemType.SIMPLE, "a");
+            Item b = graph.NewItem(ItemType.SIMPLE, "b");
+            Item c = graph.NewItem(ItemType.SIMPLE, "c");
+            Item d = graph.NewItem(ItemType.SIMPLE, "d");
             var dependencies = new[] {
-                env.CreateDependency(a, b, null, "D10", 10, 0, 4),
-                env.CreateDependency(b, c, null, "D20", 20, 0, 2), // critical edge
-                env.CreateDependency(c, d, null, "D30", 30, 0, 1),
-                env.CreateDependency(c, d, null, "D40", 40, 0, 3),
+                graph.CreateDependency(a, b, null, "D10", 10, 0, 4, notOkReason: "test data"),
+                graph.CreateDependency(b, c, null, "D20", 20, 0, 2, notOkReason: "test data"), // critical edge
+                graph.CreateDependency(c, d, null, "D30", 30, 0, 1, notOkReason: "test data"),
+                graph.CreateDependency(c, d, null, "D40", 40, 0, 3, notOkReason: "test data"),
             };
 
             const string mark = "CUT";
@@ -53,25 +53,25 @@ namespace NDepCheck.Tests {
         public void TestMarkCutWithBackflow() {
             // Backflow problem from http://www.cs.princeton.edu/courses/archive/spring06/cos226/lectures/maxflow.pdf
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
-            Item s = env.NewItem(ItemType.SIMPLE, "s");
-            Item n2 = env.NewItem(ItemType.SIMPLE, "2");
-            Item n3 = env.NewItem(ItemType.SIMPLE, "3");
-            Item n4 = env.NewItem(ItemType.SIMPLE, "4");
-            Item n5 = env.NewItem(ItemType.SIMPLE, "5");
-            Item t = env.NewItem(ItemType.SIMPLE, "t");
+            WorkingGraph graph = gc.CurrentGraph;
+            Item s = graph.NewItem(ItemType.SIMPLE, "s");
+            Item n2 = graph.NewItem(ItemType.SIMPLE, "2");
+            Item n3 = graph.NewItem(ItemType.SIMPLE, "3");
+            Item n4 = graph.NewItem(ItemType.SIMPLE, "4");
+            Item n5 = graph.NewItem(ItemType.SIMPLE, "5");
+            Item t = graph.NewItem(ItemType.SIMPLE, "t");
             var dependencies = new[] {
-                env.CreateDependency(s, n2, null, "s_2", 10, 0, 10),
-                env.CreateDependency(s, n4, null, "s_4", 20, 0, 4),
+                graph.CreateDependency(s, n2, null, "s_2", 10, 0, 10, notOkReason: "test data"),
+                graph.CreateDependency(s, n4, null, "s_4", 20, 0, 4, notOkReason: "test data"),
 
-                env.CreateDependency(n2, n3, null, "2_3", 30, 0, 13),
-                env.CreateDependency(n2, n5, null, "2_5", 40, 0, 4),
+                graph.CreateDependency(n2, n3, null, "2_3", 30, 0, 13, notOkReason: "test data"),
+                graph.CreateDependency(n2, n5, null, "2_5", 40, 0, 4, notOkReason: "test data"),
 
-                env.CreateDependency(n3, t, null, "3_t", 50, 0, 10),
+                graph.CreateDependency(n3, t, null, "3_t", 50, 0, 10, notOkReason: "test data"),
 
-                env.CreateDependency(n4, n3, null, "4_3", 60, 0, 4),
+                graph.CreateDependency(n4, n3, null, "4_3", 60, 0, 4, notOkReason: "test data"),
 
-                env.CreateDependency(n5, t, null, "5_t", 70, 0, 4),
+                graph.CreateDependency(n5, t, null, "5_t", 70, 0, 4, notOkReason: "test data"),
             };
 
             const string mark = "CUT";
@@ -85,24 +85,31 @@ namespace NDepCheck.Tests {
         private static Dependency[] CreateExampleGraph(GlobalContext gc) {
             // First graph (not the Soviet railways ...) from 
             // http://www.cs.princeton.edu/courses/archive/spring06/cos226/lectures/maxflow.pdf
-            var env = gc.CurrentEnvironment;
-            Item s = env.NewItem(ItemType.SIMPLE, "s");
-            Item n2 = env.NewItem(ItemType.SIMPLE, "2");
-            Item n3 = env.NewItem(ItemType.SIMPLE, "3");
-            Item n4 = env.NewItem(ItemType.SIMPLE, "4");
-            Item n5 = env.NewItem(ItemType.SIMPLE, "5");
-            Item n6 = env.NewItem(ItemType.SIMPLE, "6");
-            Item n7 = env.NewItem(ItemType.SIMPLE, "7");
-            Item t = env.NewItem(ItemType.SIMPLE, "t");
+            var graph = gc.CurrentGraph;
+            Item s = graph.NewItem(ItemType.SIMPLE, "s");
+            Item n2 = graph.NewItem(ItemType.SIMPLE, "2");
+            Item n3 = graph.NewItem(ItemType.SIMPLE, "3");
+            Item n4 = graph.NewItem(ItemType.SIMPLE, "4");
+            Item n5 = graph.NewItem(ItemType.SIMPLE, "5");
+            Item n6 = graph.NewItem(ItemType.SIMPLE, "6");
+            Item n7 = graph.NewItem(ItemType.SIMPLE, "7");
+            Item t = graph.NewItem(ItemType.SIMPLE, "t");
             var dependencies = new[] {
-                env.CreateDependency(s, n2, null, "s_2", 12, 0, 10), env.CreateDependency(s, n3, null, "s_3", 13, 0, 5),
-                env.CreateDependency(s, n4, null, "s_4", 14, 0, 15), env.CreateDependency(n2, n3, null, "2_3", 23, 0, 4),
-                env.CreateDependency(n2, n5, null, "2_5", 25, 0, 15), env.CreateDependency(n2, n6, null, "2_6", 26, 0, 9),
-                env.CreateDependency(n3, n4, null, "3_4", 34, 0, 4), env.CreateDependency(n3, n6, null, "3_6", 36, 0, 8),
-                env.CreateDependency(n4, n7, null, "4_7", 47, 0, 30), env.CreateDependency(n5, n6, null, "5_6", 56, 0, 15),
-                env.CreateDependency(n5, t, null, "5_t", 58, 0, 10), env.CreateDependency(n6, n7, null, "6_7", 67, 0, 15),
-                env.CreateDependency(n6, t, null, "6_t", 68, 0, 10), env.CreateDependency(n7, n3, null, "7_3", 73, 0, 6),
-                env.CreateDependency(n7, t, null, "7_t", 78, 0, 10),
+                graph.CreateDependency(s, n2, null, "s_2", 12, 0, 10, notOkReason: "test data"),
+                graph.CreateDependency(s, n3, null, "s_3", 13, 0, 5, notOkReason: "test data"),
+                graph.CreateDependency(s, n4, null, "s_4", 14, 0, 15, notOkReason: "test data"),
+                graph.CreateDependency(n2, n3, null, "2_3", 23, 0, 4, notOkReason: "test data"),
+                graph.CreateDependency(n2, n5, null, "2_5", 25, 0, 15, notOkReason: "test data"),
+                graph.CreateDependency(n2, n6, null, "2_6", 26, 0, 9, notOkReason: "test data"),
+                graph.CreateDependency(n3, n4, null, "3_4", 34, 0, 4, notOkReason: "test data"),
+                graph.CreateDependency(n3, n6, null, "3_6", 36, 0, 8, notOkReason: "test data"),
+                graph.CreateDependency(n4, n7, null, "4_7", 47, 0, 30, notOkReason: "test data"),
+                graph.CreateDependency(n5, n6, null, "5_6", 56, 0, 15, notOkReason: "test data"),
+                graph.CreateDependency(n5, t, null, "5_t", 58, 0, 10, notOkReason: "test data"),
+                graph.CreateDependency(n6, n7, null, "6_7", 67, 0, 15, notOkReason: "test data"),
+                graph.CreateDependency(n6, t, null, "6_t", 68, 0, 10, notOkReason: "test data"),
+                graph.CreateDependency(n7, n3, null, "7_3", 73, 0, 6, notOkReason: "test data"),
+                graph.CreateDependency(n7, t, null, "7_t", 78, 0, 10, notOkReason: "test data"),
             };
             return dependencies;
         }
@@ -125,14 +132,14 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             Dependency[] exampleDependencies = CreateExampleGraph(gc);
             Item s = exampleDependencies[0].UsingItem;
-            Environment env = gc.CurrentEnvironment;
-            Item r0 = env.NewItem(ItemType.SIMPLE, "r0");
-            Item r1 = env.NewItem(ItemType.SIMPLE, "r1");
-            Item r2 = env.NewItem(ItemType.SIMPLE, "r2");
+            WorkingGraph graph = gc.CurrentGraph;
+            Item r0 = graph.NewItem(ItemType.SIMPLE, "r0");
+            Item r1 = graph.NewItem(ItemType.SIMPLE, "r1");
+            Item r2 = graph.NewItem(ItemType.SIMPLE, "r2");
             Dependency[] dependencies = exampleDependencies.Concat(new[] {
-                env.CreateDependency(r0, s, null, "r0_s", 1000, 0, 1000),
-                env.CreateDependency(r1, s, null, "r1_s", 1000, 0, 1000),
-                env.CreateDependency(r2, s, null, "r2_s", 1000, 0, 1000),
+                graph.CreateDependency(r0, s, null, "r0_s", 1000, 0, 1000, notOkReason: "test data"),
+                graph.CreateDependency(r1, s, null, "r1_s", 1000, 0, 1000, notOkReason: "test data"),
+                graph.CreateDependency(r2, s, null, "r2_s", 1000, 0, 1000, notOkReason: "test data"),
             }).ToArray();
 
             const string mark = "CUT";
@@ -147,19 +154,19 @@ namespace NDepCheck.Tests {
         public void TestMarkAnotherCut() {
             // Graph from http://www.cs.princeton.edu/courses/archive/spring06/cos226/lectures/maxflow.pdf p.30 (and Wikipedia)
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
-            Item s = env.NewItem(ItemType.SIMPLE, "s");
-            Item n2 = env.NewItem(ItemType.SIMPLE, "2");
-            Item n4 = env.NewItem(ItemType.SIMPLE, "4");
-            Item t = env.NewItem(ItemType.SIMPLE, "t");
+            WorkingGraph graph = gc.CurrentGraph;
+            Item s = graph.NewItem(ItemType.SIMPLE, "s");
+            Item n2 = graph.NewItem(ItemType.SIMPLE, "2");
+            Item n4 = graph.NewItem(ItemType.SIMPLE, "4");
+            Item t = graph.NewItem(ItemType.SIMPLE, "t");
             var dependencies = new[] {
-                env.CreateDependency(s, n2, null, "s_2", 102, 0, 100),
-                env.CreateDependency(s, n4, null, "s_4", 104, 0, 100),
+                graph.CreateDependency(s, n2, null, "s_2", 102, 0, 100, notOkReason: "test data"),
+                graph.CreateDependency(s, n4, null, "s_4", 104, 0, 100, notOkReason: "test data"),
 
-                env.CreateDependency(n2, t, null, "2_t", 203, 0, 100),
+                graph.CreateDependency(n2, t, null, "2_t", 203, 0, 100, notOkReason: "test data"),
 
-                env.CreateDependency(n4, n2, null, "4_7", 402, 0, 1),
-                env.CreateDependency(n4, t, null, "4_7", 403, 0, 100),
+                graph.CreateDependency(n4, n2, null, "4_7", 402, 0, 1, notOkReason: "test data"),
+                graph.CreateDependency(n4, t, null, "4_7", 403, 0, 100, notOkReason: "test data"),
             };
 
             const string mark = "CUT";
@@ -192,15 +199,15 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestMarkZeroCut() {
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
-            Item a = env.NewItem(ItemType.SIMPLE, "a");
-            Item b = env.NewItem(ItemType.SIMPLE, "b");
-            Item c = env.NewItem(ItemType.SIMPLE, "c");
-            Item d = env.NewItem(ItemType.SIMPLE, "d");
+            WorkingGraph graph = gc.CurrentGraph;
+            Item a = graph.NewItem(ItemType.SIMPLE, "a");
+            Item b = graph.NewItem(ItemType.SIMPLE, "b");
+            Item c = graph.NewItem(ItemType.SIMPLE, "c");
+            Item d = graph.NewItem(ItemType.SIMPLE, "d");
             var dependencies = new[] {
-                env.CreateDependency(a, b, null, "D10", 10, 0, 4),
-                env.CreateDependency(c, d, null, "D30", 30, 0, 1),
-                env.CreateDependency(c, d, null, "D40", 40, 0, 3),
+                graph.CreateDependency(a, b, null, "D10", 10, 0, 4, notOkReason: "test data"),
+                graph.CreateDependency(c, d, null, "D30", 30, 0, 1, notOkReason: "test data"),
+                graph.CreateDependency(c, d, null, "D40", 40, 0, 3, notOkReason: "test data"),
             };
 
             const string mark = "CUT";

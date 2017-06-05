@@ -10,7 +10,7 @@ namespace NDepCheck.Tests {
         public void TestRuleWithParenthesesAndBarsWorksAgain() {
             GlobalContext gc = new GlobalContext();
 
-            var env = gc.CurrentEnvironment;
+            var env = gc.CurrentGraph;
             var a = env.NewItem(ItemType.SIMPLE, "a");
             var b = env.NewItem(ItemType.SIMPLE, "b");
             var deps = new[] { env.CreateDependency(a, b, null, "", 1) };
@@ -27,7 +27,7 @@ namespace NDepCheck.Tests {
         public void TestIndirectRulesOverTwoLevels() {
             GlobalContext gc = new GlobalContext();
 
-            var env = gc.CurrentEnvironment;
+            var env = gc.CurrentGraph;
             var a = env.NewItem(ItemType.SIMPLE, "a");
             var b = env.NewItem(ItemType.SIMPLE, "b");
             var deps = new[] { env.CreateDependency(a, b, null, "", 1) };

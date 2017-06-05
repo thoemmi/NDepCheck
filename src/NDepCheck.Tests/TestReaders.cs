@@ -11,7 +11,7 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestDipWithProxies() {
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
             using (var f = DisposingFile.CreateTempFileWithTail(".dip")) {
                 using (TextWriter tw = new StreamWriter(f.FileName)) {
@@ -26,13 +26,13 @@ namespace NDepCheck.Tests {
                 }
 
                 IEnumerable<Dependency> dependencies =
-                    new DipReaderFactory().CreateReader(f.FileName, false).ReadDependencies(gc.CurrentEnvironment, 0, ignoreCase: false);
+                    new DipReaderFactory().CreateReader(f.FileName, false).ReadDependencies(gc.CurrentGraph, 0, ignoreCase: false);
                 Assert.IsNotNull(dependencies);
                 Item[] items = dependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }).Distinct().ToArray();
                 Assert.AreEqual(3, items.Length);
-                Assert.IsTrue(items.Contains(env.NewItem(ItemType.Find("NKK"), "a", "keyA1", "KEYa1")));
-                Assert.IsTrue(items.Contains(env.NewItem(ItemType.Find("NKK"), "a", "keyA2", "KEYa2")));
-                Assert.IsTrue(items.Contains(env.NewItem(ItemType.Find("NKK"), "b", "", "KEYb")));
+                Assert.IsTrue(items.Contains(graph.NewItem(ItemType.Find("NKK"), "a", "keyA1", "KEYa1")));
+                Assert.IsTrue(items.Contains(graph.NewItem(ItemType.Find("NKK"), "a", "keyA2", "KEYa2")));
+                Assert.IsTrue(items.Contains(graph.NewItem(ItemType.Find("NKK"), "b", "", "KEYb")));
             }
         }
 

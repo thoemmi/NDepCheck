@@ -4,6 +4,8 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Matching {
     public class DependencyMatch {
+        public string Representation { get; }
+
         [CanBeNull]
         public ItemMatch UsingMatch {
             get;
@@ -20,16 +22,18 @@ namespace NDepCheck.Matching {
         private static readonly string[] NO_STRINGS = new string[0];
 
         public DependencyMatch([CanBeNull] ItemMatch usingMatch,
-            [CanBeNull] DependencyPattern dependencyPattern, [CanBeNull] ItemMatch usedMatch) {
+            [CanBeNull] DependencyPattern dependencyPattern, [CanBeNull] ItemMatch usedMatch, string representation) {
             UsingMatch = usingMatch;
             DependencyPattern = dependencyPattern;
             UsedMatch = usedMatch;
+            Representation = representation;
         }
 
         public DependencyMatch(ItemType usingTypeHint, string usingPattern, string dependencyPattern, ItemType usedTypeHint, string usedPattern, bool ignoreCase) : this(
             usingPattern != "" ? new ItemMatch(usingTypeHint, usingPattern, 0, ignoreCase, anyWhereMatcherOk: false) : null,
             dependencyPattern != "" ? new DependencyPattern(dependencyPattern, ignoreCase) : null,
-            usedPattern != "" ? new ItemMatch(usedTypeHint, usedPattern, usingPattern.Count(c => c == '('), ignoreCase, anyWhereMatcherOk: false) : null) {
+            usedPattern != "" ? new ItemMatch(usedTypeHint, usedPattern, usingPattern.Count(c => c == '('), ignoreCase, anyWhereMatcherOk: false) : null,
+            usingPattern + "--" + dependencyPattern + "->" + usedPattern) {
         }
 
         public static DependencyMatch Create(string pattern, bool ignoreCase, string arrowTail = "->", ItemType usingTypeHint = null, ItemType usedTypeHint = null) {
@@ -40,6 +44,10 @@ namespace NDepCheck.Matching {
 
             int ldep = l < 0 ? 0 : l + 2;
             int rdep = r < 0 || r < l ? pattern.Length : r;
+
+            if (ldep > rdep) {
+                throw new ArgumentException($"Wrong format of dependecy pattern '{pattern}' (maybe --> instead of --->?)");
+            }
 
             string dep = pattern.Substring(ldep, rdep - ldep);
             return new DependencyMatch(usingTypeHint, left.Trim(), dep.Trim(), usedTypeHint, right.Trim(), ignoreCase);

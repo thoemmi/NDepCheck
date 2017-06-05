@@ -19,7 +19,7 @@ namespace NDepCheck.Transforming.Projecting {
 
             public string Name { get; }
 
-            public abstract Item Project(Environment cachingEnvironment, Item item, bool left);
+            public abstract Item Project(WorkingGraph cachingGraph, Item item, bool left);
         }
 
         public abstract class AbstractProjectorWithProjectionList : AbstractProjector {
@@ -36,11 +36,11 @@ namespace NDepCheck.Transforming.Projecting {
 
             public int MatchCount => _matchCount;
 
-            protected Item ProjectBySequentialSearch(Environment cachingEnvironment, Item item, bool left) {
+            protected Item ProjectBySequentialSearch(WorkingGraph cachingGraph, Item item, bool left) {
                 _projectCount++;
                 foreach (var p in _orderedProjections) {
                     _matchCount++;
-                    Item result = p.Match(cachingEnvironment, item, left);
+                    Item result = p.Match(cachingGraph, item, left);
                     if (result != null) {
                         return result;
                     }
@@ -58,8 +58,8 @@ namespace NDepCheck.Transforming.Projecting {
             public SimpleProjector(Projection[] orderedProjections, string name) : base(orderedProjections, name) {
             }
 
-            public override Item Project(Environment cachingEnvironment, Item item, bool left) {
-                return ProjectBySequentialSearch(cachingEnvironment, item, left);
+            public override Item Project(WorkingGraph cachingGraph, Item item, bool left) {
+                return ProjectBySequentialSearch(cachingGraph, item, left);
             }
         }
     }

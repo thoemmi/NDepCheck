@@ -156,7 +156,7 @@ namespace NDepCheck.Tests {
                 @"$ DOTNETITEM ---> DOTNETITEM
 
                 NDepCheck.TestAssemblyÄÖÜß.** ---> **
-                ASSEMBLY.NAME=** ---> ASSEMBLY.NAME=**");
+                Assembly.Name=** ---> Assembly.Name=**");
         }
 
         private void WriteDefaultSetTo(string directory) {

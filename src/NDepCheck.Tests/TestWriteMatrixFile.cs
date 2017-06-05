@@ -7,8 +7,8 @@ using NDepCheck.Rendering.GraphicsRendering;
 namespace NDepCheck.Tests {
     [TestClass]
     public class TestWriteMatrixFile {
-        private static Dependency CreateDependency(Environment env, Item @using, Item used, int ct = 1, int badCt = 0) {
-            return env.CreateDependency(@using, used, null, "", ct, badCt: badCt);
+        private static Dependency CreateDependency(WorkingGraph graph, Item @using, Item used, int ct = 1, int badCt = 0) {
+            return graph.CreateDependency(@using, used, null, "", ct, badCt: badCt, notOkReason: "test data");
         }
 
         [TestMethod]
@@ -49,38 +49,38 @@ namespace NDepCheck.Tests {
         }
 
         private static void SetupDAG(GlobalContext gc, out Item[] items, out Dependency[] dependencies) {
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
             items = new[] {
-                env.NewItem(ItemType.SIMPLE, new[] {"n1"}),
-                env.NewItem(ItemType.SIMPLE, new[] {"n2"}),
-                env.NewItem(ItemType.SIMPLE, new[] {"n3"})
+                graph.NewItem(ItemType.SIMPLE, new[] {"n1"}),
+                graph.NewItem(ItemType.SIMPLE, new[] {"n2"}),
+                graph.NewItem(ItemType.SIMPLE, new[] {"n3"})
             };
             dependencies = new[] {
-                CreateDependency(env, items[2], items[1]),
-                CreateDependency(env, items[2], items[0]),
-                CreateDependency(env, items[1], items[0]),
+                CreateDependency(graph, items[2], items[1]),
+                CreateDependency(graph, items[2], items[0]),
+                CreateDependency(graph, items[1], items[0]),
                 // a loop on the lowest
-                CreateDependency(env, items[2], items[2])
+                CreateDependency(graph, items[2], items[2])
             };
         }
 
         [TestMethod]
         public void TestSimpleCycle() {
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
             var nodes = new[] {
-                env.NewItem(ItemType.SIMPLE, new[] {"n1"}),
-                env.NewItem(ItemType.SIMPLE, new[] {"n2"}),
-                env.NewItem(ItemType.SIMPLE, new[] {"n3"})
+                graph.NewItem(ItemType.SIMPLE, new[] {"n1"}),
+                graph.NewItem(ItemType.SIMPLE, new[] {"n2"}),
+                graph.NewItem(ItemType.SIMPLE, new[] {"n3"})
             };
             var edges = new[] {
-                CreateDependency(env, nodes[2], nodes[1], 55),
-                CreateDependency(env, nodes[2], nodes[0], 111),
-                CreateDependency(env, nodes[1], nodes[0], 77),
-                CreateDependency(env, nodes[0], nodes[2], 7),
-                CreateDependency(env, nodes[0], nodes[0], 999),
+                CreateDependency(graph, nodes[2], nodes[1], 55),
+                CreateDependency(graph, nodes[2], nodes[0], 111),
+                CreateDependency(graph, nodes[1], nodes[0], 77),
+                CreateDependency(graph, nodes[0], nodes[2], 7),
+                CreateDependency(graph, nodes[0], nodes[0], 999),
             };
 
             using (var s = new MemoryStream()) {
@@ -98,15 +98,15 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestCompleteGraph() {
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
             var nodes = new[] {
-                env.NewItem(ItemType.SIMPLE, new[] {"n1"}),
-                env.NewItem(ItemType.SIMPLE, new[] {"n2"}),
-                env.NewItem(ItemType.SIMPLE, new[] {"n3"})
+                graph.NewItem(ItemType.SIMPLE, new[] {"n1"}),
+                graph.NewItem(ItemType.SIMPLE, new[] {"n2"}),
+                graph.NewItem(ItemType.SIMPLE, new[] {"n3"})
             };
             int ct = 100;
-            Dependency[] edges = nodes.SelectMany(from => nodes.Select(to => CreateDependency(env, from, to, ++ct, ct / 2))).ToArray();
+            Dependency[] edges = nodes.SelectMany(from => nodes.Select(to => CreateDependency(graph, from, to, ++ct, ct / 2))).ToArray();
 
             using (var s = new MemoryStream()) {
                 new MatrixRenderer1().RenderToStreamForUnitTests(gc, edges, s, "");

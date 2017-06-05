@@ -476,14 +476,14 @@
 //        public IEnumerable<Dependency> CreateSomeTestDependencies() {
 //            ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
-//            var a = renderingEnvironment.ItemAndDependencyFactory.New(t3, "a:aa:aaa".Split(':'));
-//            var b = renderingEnvironment.ItemAndDependencyFactory.New(t3, "b:bb:bbb".Split(':'));
-//            var c = renderingEnvironment.ItemAndDependencyFactory.New(t3, "c:cc:ccc".Split(':'));
-//            var d = renderingEnvironment.ItemAndDependencyFactory.New(t3, "d:dd:ddd".Split(':'));
-//            var e = renderingEnvironment.ItemAndDependencyFactory.New(t3, "e:ee:eee".Split(':'));
-//            var f = renderingEnvironment.ItemAndDependencyFactory.New(t3, "f:ff:fff".Split(':'));
-//            var g = renderingEnvironment.ItemAndDependencyFactory.New(t3, "g:gg:ggg".Split(':'));
-//            var h = renderingEnvironment.ItemAndDependencyFactory.New(t3, "h:hh:hhh".Split(':'));
+//            var a = renderingGraph.ItemAndDependencyFactory.New(t3, "a:aa:aaa".Split(':'));
+//            var b = renderingGraph.ItemAndDependencyFactory.New(t3, "b:bb:bbb".Split(':'));
+//            var c = renderingGraph.ItemAndDependencyFactory.New(t3, "c:cc:ccc".Split(':'));
+//            var d = renderingGraph.ItemAndDependencyFactory.New(t3, "d:dd:ddd".Split(':'));
+//            var e = renderingGraph.ItemAndDependencyFactory.New(t3, "e:ee:eee".Split(':'));
+//            var f = renderingGraph.ItemAndDependencyFactory.New(t3, "f:ff:fff".Split(':'));
+//            var g = renderingGraph.ItemAndDependencyFactory.New(t3, "g:gg:ggg".Split(':'));
+//            var h = renderingGraph.ItemAndDependencyFactory.New(t3, "h:hh:hhh".Split(':'));
 
 //            return new[] {
 //                FromTo(a, b),

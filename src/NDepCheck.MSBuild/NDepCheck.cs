@@ -42,7 +42,7 @@ namespace NDepCheck.MSBuild {
                 args.Add("/q");
             }
 
-            args.Add("/n " + (MaxCpuCount == 0 || MaxCpuCount < -1 ? System.Environment.ProcessorCount : MaxCpuCount));
+            args.Add("/n " + (MaxCpuCount == 0 || MaxCpuCount < -1 ? Environment.ProcessorCount : MaxCpuCount));
 
             if (DefaultRuleSet != null) {
                 args.Add("/x " + DefaultRuleSet.ItemSpec);

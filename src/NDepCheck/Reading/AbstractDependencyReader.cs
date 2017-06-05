@@ -19,7 +19,7 @@ namespace NDepCheck.Reading {
         protected string ContainerUri { get; }
 
         [NotNull]
-        public abstract IEnumerable<Dependency> ReadDependencies(Environment readingEnvironment, int depth, bool ignoreCase);
+        public abstract IEnumerable<Dependency> ReadDependencies(WorkingGraph readingGraph, int depth, bool ignoreCase);
 
         public abstract void SetReadersInSameReadFilesBeforeReadDependencies([NotNull] IDependencyReader[] readerGang);
     }

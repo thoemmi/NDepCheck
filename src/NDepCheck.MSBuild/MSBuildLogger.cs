@@ -17,21 +17,21 @@ namespace NDepCheck.MSBuild {
             _log.LogError(null, null, null, nestedFilenames, startLine, 0, 0, 0, msg);
         }
 
-        public void WriteViolation(Dependency dependency) {
+        public void WriteViolation(Dependency dependency, bool simpleRuleOutput) {
             if (dependency.BadCt > 0) {
                 _log.LogError(
                     "Bad dependency",
                     null,
                     null,
                     dependency.Source,
-                    dependency.NotOkMessage());
+                    dependency.NotOkMessage(simpleRuleOutput: simpleRuleOutput, newLine: false));
             } else if (dependency.QuestionableCt > 0) {
                 _log.LogWarning(
                     "Questionable dependency",
                     null,
                     null,
                     dependency.Source,
-                    dependency.NotOkMessage());
+                    dependency.NotOkMessage(simpleRuleOutput: simpleRuleOutput, newLine: false));
             }
         }
 

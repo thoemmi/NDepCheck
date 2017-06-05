@@ -15,8 +15,8 @@ namespace NDepCheck.Tests {
             new GlobalContext().ResetAll();
         }
 
-        private Dependency CreateDependency(Environment env, Item from, Item to, string pathMarker, bool isStart, bool isEnd, bool isMatchedByCountMatch, bool isLoopBack) {
-            Dependency d = FromTo(env, from, to);
+        private Dependency CreateDependency(WorkingGraph graph, Item from, Item to, string pathMarker, bool isStart, bool isEnd, bool isMatchedByCountMatch, bool isLoopBack) {
+            Dependency d = FromTo(graph, from, to);
             d.MarkPathElement(pathMarker, 0, isStart: isStart, isEnd: isEnd, isMatchedByCountMatch: isMatchedByCountMatch,
                 isLoopBack: isLoopBack);
             return d;
@@ -25,17 +25,17 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestSimpleFlatPathWriterForOnePath() {
             var gc = new GlobalContext { IgnoreCase = true };
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
             var pathMarker = "P0";
 
-            Item a = env.NewItem(t3, "a:aa:aaa".Split(':'));
+            Item a = graph.NewItem(t3, "a:aa:aaa".Split(':'));
             a.MarkPathElement(pathMarker, 0, isStart: false, isEnd: false, isMatchedByCountMatch: false, isLoopBack: false);
-            Item b = env.NewItem(t3, "b:bb:bbb".Split(':'));
+            Item b = graph.NewItem(t3, "b:bb:bbb".Split(':'));
             b.SetMarker(pathMarker, 1);
 
-            var d = CreateDependency(env, a, b, pathMarker, true, true, false, false);
+            var d = CreateDependency(graph, a, b, pathMarker, true, true, false, false);
             Dependency[] dependencies = { d };
 
             using (var s = new MemoryStream()) {
@@ -53,13 +53,13 @@ b:bb:bbb $", result.Trim());
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            var a = env.NewItem(t3, "a:aa:aaa".Split(':'));
-            var b = env.NewItem(t3, "b:bb:bbb".Split(':'));
+            var a = graph.NewItem(t3, "a:aa:aaa".Split(':'));
+            var b = graph.NewItem(t3, "b:bb:bbb".Split(':'));
 
             var dependencies = new[] {
-                FromTo(env, a, b),
+                FromTo(graph, a, b),
             };
 
             string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A"));
@@ -88,7 +88,7 @@ T3:b:bb:bbb'A $", result.Trim());
             return ($"{{ {PathMarker.AddIndexedMarkerOption} {markerPrefix} " +
                     $"{PathMarker.MaxPathLengthOption} {maxPathLength} " +
                     $"{PathMarker.CountItemAnchorOption} a: " +
-                    $"{PathMarker.MultipleItemAnchorOption} ~c: }}").Replace(" ", System.Environment.NewLine);
+                    $"{PathMarker.MultipleItemAnchorOption} ~c: }}").Replace(" ", Environment.NewLine);
         }
 
         [TestMethod]
@@ -96,12 +96,12 @@ T3:b:bb:bbb'A $", result.Trim());
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            var a = env.NewItem(t3, "a:aa:aaa".Split(':'));
-            var c = env.NewItem(t3, "c:cc:ccc".Split(':'));
+            var a = graph.NewItem(t3, "a:aa:aaa".Split(':'));
+            var c = graph.NewItem(t3, "c:cc:ccc".Split(':'));
 
-            var dependencies = new[] { FromTo(env, a, c) };
+            var dependencies = new[] { FromTo(graph, a, c) };
 
             string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A"));
 
@@ -112,7 +112,7 @@ T3:b:bb:bbb'A $", result.Trim());
         public void TestSimpleFlatPathWriter() {
             var gc = new GlobalContext();
 
-            IEnumerable<Dependency> dependencies = new PathMarker().CreateSomeTestDependencies(gc.CurrentEnvironment);
+            IEnumerable<Dependency> dependencies = new PathMarker().CreateSomeTestDependencies(gc.CurrentGraph);
 
             string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A"));
 
@@ -147,7 +147,7 @@ T3:g:gg:ggg'A $", result.Trim());
         public void TestLimitedFlatPathWriter() {
             var gc = new GlobalContext();
 
-            IEnumerable<Dependency> dependencies = new PathMarker().CreateSomeTestDependencies(gc.CurrentEnvironment);
+            IEnumerable<Dependency> dependencies = new PathMarker().CreateSomeTestDependencies(gc.CurrentGraph);
 
             string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A", 4));
 
@@ -181,17 +181,17 @@ T3:g:gg:ggg'A $", result.Trim());
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            var a = env.NewItem(t3, "a:aa:aaa".Split(':'));
-            var b = env.NewItem(t3, "b:bb:bbb".Split(':'));
-            var c = env.NewItem(t3, "c:cc:ccc".Split(':'));
-            var d = env.NewItem(t3, "d:dd:ddd".Split(':'));
+            var a = graph.NewItem(t3, "a:aa:aaa".Split(':'));
+            var b = graph.NewItem(t3, "b:bb:bbb".Split(':'));
+            var c = graph.NewItem(t3, "c:cc:ccc".Split(':'));
+            var d = graph.NewItem(t3, "d:dd:ddd".Split(':'));
 
             var dependencies = new[] {
-                        FromTo(env, a, b),
-                        FromTo(env, b, c),
-                        FromTo(env, b ,d),
+                        FromTo(graph, a, b),
+                        FromTo(graph, b, c),
+                        FromTo(graph, b ,d),
                     };
 
             string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A"));
@@ -206,27 +206,27 @@ T3:d:dd:ddd'A $", result.Trim());
         public void TestOldCountPaths() {
             ItemType xy = ItemType.New("NL(Name:Layer)");
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            Item a = env.NewItem(xy, "a", "1");
-            Item b = env.NewItem(xy, "b", "2");
-            Item c = env.NewItem(xy, "c", "2");
-            Item d = env.NewItem(xy, "d", "3");
-            Item e = env.NewItem(xy, "e", "4");
-            Item f = env.NewItem(xy, "f", "4");
-            Item g = env.NewItem(xy, "g", "5");
+            Item a = graph.NewItem(xy, "a", "1");
+            Item b = graph.NewItem(xy, "b", "2");
+            Item c = graph.NewItem(xy, "c", "2");
+            Item d = graph.NewItem(xy, "d", "3");
+            Item e = graph.NewItem(xy, "e", "4");
+            Item f = graph.NewItem(xy, "f", "4");
+            Item g = graph.NewItem(xy, "g", "5");
             Dependency[] dependencies = {
-                FromTo(env, a, b),
-                FromTo(env, a, c),
-                FromTo(env, b, d),
-                FromTo(env, c, d),
-                FromTo(env, d, e),
-                FromTo(env, d, f),
-                FromTo(env, e, g),
-                FromTo(env, f, g)
+                FromTo(graph, a, b),
+                FromTo(graph, a, c),
+                FromTo(graph, b, d),
+                FromTo(graph, c, d),
+                FromTo(graph, d, e),
+                FromTo(graph, d, f),
+                FromTo(graph, e, g),
+                FromTo(graph, f, g)
             };
 
-            string o = FindPathsAndWriteFlat(gc, dependencies, "A", "{ -im A -pi a -ci 2 -pi g }".Replace(" ", System.Environment.NewLine));
+            string o = FindPathsAndWriteFlat(gc, dependencies, "A", "{ -im A -pi a -ci 2 -pi g }".Replace(" ", Environment.NewLine));
 
             Console.WriteLine(o);
             Assert.IsTrue(o.Contains("b:2 (*)"));

@@ -47,7 +47,7 @@ namespace NDepCheck {
         }
 
         internal static void WriteViolation(Dependency dependency) {
-            Logger.WriteViolation(dependency);
+            Logger.WriteViolation(dependency, simpleRuleOutput: false);
         }
     }
 }

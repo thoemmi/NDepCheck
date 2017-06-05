@@ -21,6 +21,8 @@ namespace NDepCheck.Matching {
         [NotNull]
         private readonly MarkerMatch _markerPattern;
 
+        public string Representation { get; }
+
         private static readonly MatchResult FAIL = new MatchResult();
         private static readonly MatchResult SUCCESS = new MatchResult(true, null);
 
@@ -36,6 +38,7 @@ namespace NDepCheck.Matching {
             string[] patternParts = pattern.Split('\'');
             _itemPattern = new ItemPattern(itemTypeOrNull, patternParts[0], upperBoundOfGroupCount, ignoreCase, anyWhereMatcherOk);
             _markerPattern = new MarkerMatch(patternParts.Length > 1 ? patternParts[1] : "", ignoreCase);
+            Representation = pattern;
         }
 
         public ItemMatch([NotNull] string pattern, bool ignoreCase, bool anyWhereMatcherOk) : this(null, pattern, 0, ignoreCase, anyWhereMatcherOk) {

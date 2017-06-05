@@ -1,76 +1,103 @@
 // Checkable architectural information for NDepCheck
 
 -cf CheckDeps { -rd
-	$DOTNETITEM ---> DOTNETITEM
-	
-	// Assembly dependencies
-	::** ---> ::** {
-		: ---> ::mscorlib
-		  ---> ::System.**
-		  ---> ::Microsoft.**    
-		  ---> ::Mono.Cecil
-		  ---> ::Mono.Cecil.Pdb
-		  ---> ::NDepCheck
-	}
-	
-	// Namespace dependencies - CURRENTLY ONLY FOR TOPLEVEL NDepCheck
-	* ---> ** {
-		// using own namespace is always ok
-		(**): ---> \1
-	
-		// Compiler-generated types like <>f__AnonymousType1 in top-level namespace
-		: ---> -:
-	
-		  ---> System.**
-		  ---> Microsoft.**
-		  ---> Mono.Cecil.**
-			
-		// Copied Gibraltar interning - may be used by anyone (mhm?)
-		  ---> Gibraltar
-	
-		// Copied JetBrains.Annotations - may be used by anyone
-		  ---> JetBrains.Annotations
-		
-		// NDepCheck namespace architecture - CURRENTLY ONLY FOR TOPLEVEL 
-		// Matching and Markers are "subdrawer" subnamespaces that can be used by everyone
-		NDepCheck:        ---> NDepCheck.Matching
-		                  ---> NDepCheck.Markers
-	
-		// By design (for -wd option), Program can use WebServer
-		NDepCheck:Program ---> NDepCheck.WebServing:WebServer
-	
-		// By design (if no other options are specified), Program can use transformer and writer for dependency checking
-		                  ---> NDepCheck.Transforming.ViolationChecking:CheckDeps
-		                  ---> NDepCheck.Rendering.TextWriting:RuleViolationWriter
-		
-		// By design (for -wd option), Program can use DipWriter
-		                  ---> NDepCheck.Rendering.TextWriting:DipWriter
-	}
-	
-	// Safeguards against some possible bugs
-	:** ---> :** {
-	    // Option extractions for program option must be done via Program, which does ExpandDefinesAndHexChars
-		:CLASS=GlobalContext         ---! :CLASS=Option:MEMBER.NAME=Extract*
-	}
-	
-	// Ensure immutable ("ReadOnly...") classes are really immutable
-	NDepCheck:ReadOnly* ---> : {
-		: -- '_declaresfield  -> '_readonly&_primitive
-		  -- '_declaresfield  -> System:String'_readonly
-		  -- '_declaresfield  -> :IMarkerSet'_readonly
-		  -- '_declaresfield  -> :ReadOnly*'_readonly
-		
-		// By design, we have a HashSet in the ReadOnlyMarkerSet; but no method ever changes it after init in the .ctor
-		:ReadOnlyMarkerSet -- '_declaresfield -> :HashSet
-		
-		// Non-declarations are free to do what they want (maybe properties should also be constrained somehow ... "immutable" is a non-trivial concept)
-		:                  -- '~_declaresfield -> :
-	}
+    $ (::Assembly.Name) ---> (::Assembly.Name) 
+    
+    // Assembly dependencies
+    ::** ---> ::** {
+        : ---> ::mscorlib
+          ---> ::System.**
+          ---> ::Microsoft.**    
+          ---> ::Mono.Cecil
+          ---> ::Mono.Cecil.Pdb
+          ---> ::NDepCheck
+    }
+    
+    $ (Namespace:Class:Member.Name) ---> (Namespace:Class:Member.Name) 
 
-	// Specific rules for immutability project
-	NDepCheck: ---> : {
-	    Program ---! Dependency
-	}
+    // Namespace dependencies - CURRENTLY ONLY FOR TOPLEVEL NDepCheck
+    * ---> ** {
+        // using own namespace is always ok
+        (**): ---> \1
+    
+        // Compiler-generated types like <>f__AnonymousType1 in top-level namespace
+        : ---> -:
+    
+          ---> System.**
+          ---> Microsoft.**
+          ---> Mono.Cecil.**
+            
+        // Copied Gibraltar interning - may be used by anyone (mhm?)
+          ---> Gibraltar
+    
+        // Copied JetBrains.Annotations - may be used by anyone
+          ---> JetBrains.Annotations
+        
+        // NDepCheck namespace architecture - CURRENTLY ONLY FOR TOPLEVEL 
+        // Matching and Markers are "subdrawer" subnamespaces that can be used by everyone
+        NDepCheck:        ---> NDepCheck.Matching
+                          ---> NDepCheck.Markers
+    
+        // By design (for -wd option), Program can use WebServer
+        NDepCheck:Program ---> NDepCheck.WebServing:WebServer
+    
+        // By design (if no other options are specified), Program can use transformer and writer for dependency checking
+                          ---> NDepCheck.Transforming.ViolationChecking:CheckDeps
+                          ---> NDepCheck.Rendering.TextWriting:RuleViolationWriter
+        
+        // By design (for -wd option), Program can use DipWriter
+                          ---> NDepCheck.Rendering.TextWriting:DipWriter
+    }
+    
+    // Safeguards against some possible bugs
+    :** ---> :** {
+        // Option extractions for program option must be done via Program, which does ExpandDefinesAndHexChars
+        :GlobalContext     ---! :Option:Extract*
+    }
+    
+    // -----------------------------------------------------------------------------
+    // Important rules that ensure that items are only created by a WorkingGraph and, 
+    // hence, get a pointer to it so that they can evaluate Outgoing and Incoming.
+    // (an "eat your own dogfood" case ...)
+    // We have
+    // - WorkingGraph.CreateNew(...)
+    // - IItemAndDependencyFactory.CreateNew(...)
+    // - Item.ctor(...)
+
+    // The last one must only be called by implementations of the second one or constructors of classes derived from Item
+    ** ---> :Item:.ctor {
+         :DefaultItemAndDependencyFactory:CreateNew ---> :Item:.ctor 
+         // TBD constructors of classes derived from Item
+         // TBD DefaultItemAndDependencyFactory-derived:CreateNew ---> :Item:.ctor 
+    }
+
+    // IItemAndDependencyFactory.CreateNew and implementations thereof must only be called by other
+    // IItemAndDependencyFactory.CreateNew methods; or, as top level, by WorkingGraph.CreateNew.
+    ** ---> :*Factory:CreateNew {
+        :ItemAndDependencyFactoryList:CreateNew ---> :IItemAndDependencyFactory:CreateNew // TBD on the left missing: "... and implementors"; on the right missing: "... and implementations".
+        :WorkingGraph:CreateNew                 ---> :IItemAndDependencyFactory:CreateNew // TBD on the right also missing: "... and implementations".
+    }
+
+    // -----------------------------------------------------------------------------
+    // An experimental, incomplete project defining immutable items and dependencies
+    // Ensure immutable ("ReadOnly...") classes are really immutable
+    NDepCheck:ReadOnly* ---> : {
+        : -- '_declaresfield  -> '_readonly&_primitive
+          -- '_declaresfield  -> System:String'_readonly
+          -- '_declaresfield  -> :IMarkerSet'_readonly
+          -- '_declaresfield  -> :ReadOnly*'_readonly
+        
+        // By design, we have a HashSet in the ReadOnlyMarkerSet; but no method ever changes it after init in the .ctor
+        :ReadOnlyMarkerSet -- '_declaresfield -> :HashSet
+        
+        // Non-declarations are free to do what they want (maybe properties should also be constrained somehow ... "immutable" is a non-trivial concept)
+        :                  -- '~_declaresfield -> :
+    }
+
+    // Specific rules for immutability project
+    NDepCheck: ---> : {
+        :Program ---! :Dependency
+    }
 }
 -tf CheckDeps { -ag }
 

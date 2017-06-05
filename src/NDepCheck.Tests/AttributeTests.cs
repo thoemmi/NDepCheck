@@ -20,7 +20,7 @@ namespace NDepCheck.Tests {
                     NDepCheck.TestAssembly.For.Attributes.** ---> NDepCheck.TestAssembly.For.Attributes.**
                     NDepCheck.TestAssembly.For.Attributes ---> System.**
 
-                    $ MY_ITEM_TYPE(NAMESPACE:CLASS:ASSEMBLY.NAME:ASSEMBLY.VERSION:ASSEMBLY.CULTURE:MEMBER.NAME:MEMBER.SORT:CUSTOM.SectionA:CUSTOM.SectionB:CUSTOM.SectionC) ---> DOTNETITEM
+                    $ MY_ITEM_TYPE(NAMESPACE:CLASS:Assembly.Name:Assembly.VERSION:Assembly.CULTURE:MEMBER.Name:MEMBER.SORT:CUSTOM.SectionA:CUSTOM.SectionB:CUSTOM.SectionC) ---> DOTNETITEM
                     // VORERST ------------------------------                    
                     : ---> :
 

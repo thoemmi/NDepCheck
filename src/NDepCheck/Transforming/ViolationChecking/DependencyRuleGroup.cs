@@ -19,7 +19,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
         [CanBeNull]
         private readonly string _groupMarker;
-
+        [NotNull]
         private readonly string _groupPattern;
 
         [CanBeNull]
@@ -28,7 +28,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
         private DependencyRuleGroup([CanBeNull] string defaultName, string groupPattern, DependencyMatch groupMatchOrNullForMainGroup,
         [NotNull] IEnumerable<DependencyRule> allowed, [NotNull] IEnumerable<DependencyRule> questionable,
                 [NotNull] IEnumerable<DependencyRule> forbidden) {
-            _groupPattern = groupPattern;
+            _groupPattern = string.IsNullOrWhiteSpace(groupPattern) ? "global" : groupPattern.Trim();
             _groupMatchOrNullForMainGroup = groupMatchOrNullForMainGroup;
             _groupMarker = groupMatchOrNullForMainGroup == null
                 ? null
@@ -113,7 +113,8 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
             rules.AddRange(indirectRulesWithMatchingUsingPattern.Select(
                     tail => new DependencyRule(
-                                new DependencyMatch(@using, tail.DependencyPattern, tail.Used),                     
+                                new DependencyMatch(@using, tail.DependencyPattern, tail.Used,
+                                representation: @using.Representation + "--" + tail.DependencyPattern + "->" + tail.Used),                     
                                 new DependencyRuleSource(ruleSourceName, lineNo, line + "|" + tail.Source.ToString(), 
                                                          tail.Source.IsQuestionableRule, trimmedUsingPattern))
                     ));

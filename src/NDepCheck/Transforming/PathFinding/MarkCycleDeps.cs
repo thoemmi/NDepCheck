@@ -121,20 +121,20 @@ namespace NDepCheck.Transforming.PathFinding {
             }
         }
 
-        public static readonly Option IgnoreSelfCyclesOption = new Option("il", "ignore-loops", "",
-            "ignore cycles of length 1, i.e. looping from an item to itself", @default: false);
+        public static readonly Option ConsiderSelfCyclesOption = new Option("cl", "consider-loops", "",
+            "Also consider cycles of length 1, i.e. looping from an item to itself", @default: false);
 
         public static readonly Option KeepOnlyCyclesOption = new Option("kc", "keep-only-cycles", "",
-            "remove all non-cycle dependencies", @default: false);
+            "Remove all non-cycle dependencies", @default: false);
 
-        public static readonly Option CycleAnchorsOption = new Option("ca", "cycle-anchors", "itempattern", "items checked for cycles through them", @default: "all items are checked");
-        public static readonly Option MaxCycleLengthOption = new Option("ml", "max-length", "#", "maximum length of cycles found", @default: "arbitrary length");
-        public static readonly Option AddIndexedMarkerOption = new Option("im", "indexed-marker", "&", "add separate cycle markers starting with &", @default: "");
+        public static readonly Option CycleAnchorsOption = new Option("ca", "cycle-anchors", "itempattern", "Items checked for cycles through them", @default: "all items are checked");
+        public static readonly Option MaxCycleLengthOption = new Option("ml", "max-length", "#", "Maximum length of cycles found", @default: "arbitrary length");
+        public static readonly Option AddIndexedMarkerOption = new Option("im", "indexed-marker", "&", "Add separate cycle markers starting with &", @default: "");
         public static readonly DependencyEffectOptions EffectOptions = new DependencyEffectOptions();
 
         private static readonly IEnumerable<Option> _transformOptions =
             EffectOptions.AllOptions.Concat(new[]
-                { IgnoreSelfCyclesOption, KeepOnlyCyclesOption, CycleAnchorsOption, MaxCycleLengthOption });
+                { ConsiderSelfCyclesOption, KeepOnlyCyclesOption, CycleAnchorsOption, MaxCycleLengthOption });
 
         private bool _ignoreCase;
 
@@ -152,7 +152,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
         public int Transform([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
             [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies) {
-            bool ignoreSelfCycles = false;
+            bool ignoreSelfCycles = true;
             bool keepOnlyCycleEdges = false;
             int maxCycleLength = int.MaxValue;
             ItemMatch cycleAnchorsMatch = null;
@@ -161,8 +161,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             IEnumerable<Action<Dependency>> effects = EffectOptions.Parse(globalContext: globalContext,
                 argsAsString: transformOptions, defaultReasonForSetBad: typeof(MarkCycleDeps).Name,
                     ignoreCase: _ignoreCase, moreOptionActions: new[] {
-                    IgnoreSelfCyclesOption.Action((args, j) => {
-                        ignoreSelfCycles = true;
+                    ConsiderSelfCyclesOption.Action((args, j) => {
+                        ignoreSelfCycles = false;
                         return j;
                     }),
                     KeepOnlyCyclesOption.Action((args, j) => {
@@ -217,35 +217,35 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             return Program.OK_RESULT;
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
-            Item a = transformingEnvironment.NewItem(ItemType.SIMPLE, "A");
-            Item b = transformingEnvironment.NewItem(ItemType.SIMPLE, "B");
-            Item c = transformingEnvironment.NewItem(ItemType.SIMPLE, "C");
-            Item d = transformingEnvironment.NewItem(ItemType.SIMPLE, "D");
-            Item e = transformingEnvironment.NewItem(ItemType.SIMPLE, "E");
-            Item f = transformingEnvironment.NewItem(ItemType.SIMPLE, "F");
-            Item g = transformingEnvironment.NewItem(ItemType.SIMPLE, "G");
-            Item h = transformingEnvironment.NewItem(ItemType.SIMPLE, "H");
-            Item i = transformingEnvironment.NewItem(ItemType.SIMPLE, "I");
-            Item j = transformingEnvironment.NewItem(ItemType.SIMPLE, "J");
+        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
+            Item a = transformingGraph.NewItem(ItemType.SIMPLE, "A");
+            Item b = transformingGraph.NewItem(ItemType.SIMPLE, "B");
+            Item c = transformingGraph.NewItem(ItemType.SIMPLE, "C");
+            Item d = transformingGraph.NewItem(ItemType.SIMPLE, "D");
+            Item e = transformingGraph.NewItem(ItemType.SIMPLE, "E");
+            Item f = transformingGraph.NewItem(ItemType.SIMPLE, "F");
+            Item g = transformingGraph.NewItem(ItemType.SIMPLE, "G");
+            Item h = transformingGraph.NewItem(ItemType.SIMPLE, "H");
+            Item i = transformingGraph.NewItem(ItemType.SIMPLE, "I");
+            Item j = transformingGraph.NewItem(ItemType.SIMPLE, "J");
 
             //   a<=>b->c->d->e<=>f->g
             //          ^  ^         |
             // h<=>i->j-+  +---------+
             return new[] {
-                transformingEnvironment.CreateDependency(a,b,source: null, markers: "", ct:1), // on cycle
-                transformingEnvironment.CreateDependency(b,a,source: null, markers: "", ct:1), // on cycle
-                transformingEnvironment.CreateDependency(b,c,source: null, markers: "", ct:1),
-                transformingEnvironment.CreateDependency(c,d,source: null, markers: "", ct:1),
-                transformingEnvironment.CreateDependency(d,e,source: null, markers: "", ct:1), // on cycle
-                transformingEnvironment.CreateDependency(e,f,source: null, markers: "", ct:1), // on cycle
-                transformingEnvironment.CreateDependency(f,e,source: null, markers: "", ct:1), // on cycle
-                transformingEnvironment.CreateDependency(f,g,source: null, markers: "", ct:1), // on cycle
-                transformingEnvironment.CreateDependency(g,d,source: null, markers: "", ct:1), // on cycle
-                transformingEnvironment.CreateDependency(h,i,source: null, markers: "", ct:1), // on cycle
-                transformingEnvironment.CreateDependency(i,h,source: null, markers: "", ct:1), // on cycle
-                transformingEnvironment.CreateDependency(i,j,source: null, markers: "", ct:1),
-                transformingEnvironment.CreateDependency(j,c,source: null, markers: "", ct:1),
+                transformingGraph.CreateDependency(a,b,source: null, markers: "", ct:1), // on cycle
+                transformingGraph.CreateDependency(b,a,source: null, markers: "", ct:1), // on cycle
+                transformingGraph.CreateDependency(b,c,source: null, markers: "", ct:1),
+                transformingGraph.CreateDependency(c,d,source: null, markers: "", ct:1),
+                transformingGraph.CreateDependency(d,e,source: null, markers: "", ct:1), // on cycle
+                transformingGraph.CreateDependency(e,f,source: null, markers: "", ct:1), // on cycle
+                transformingGraph.CreateDependency(f,e,source: null, markers: "", ct:1), // on cycle
+                transformingGraph.CreateDependency(f,g,source: null, markers: "", ct:1), // on cycle
+                transformingGraph.CreateDependency(g,d,source: null, markers: "", ct:1), // on cycle
+                transformingGraph.CreateDependency(h,i,source: null, markers: "", ct:1), // on cycle
+                transformingGraph.CreateDependency(i,h,source: null, markers: "", ct:1), // on cycle
+                transformingGraph.CreateDependency(i,j,source: null, markers: "", ct:1),
+                transformingGraph.CreateDependency(j,c,source: null, markers: "", ct:1),
             };
         }
     }

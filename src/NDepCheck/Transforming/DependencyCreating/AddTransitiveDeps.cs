@@ -73,10 +73,10 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             _transformRunCt++;
             MutableMarkerSet.AddComputedMarkerIfNoMarkers(markersToAdd, fromItemMatches, toItemMatches, "" + _transformRunCt);
 
-            Environment currentEnvironment = globalContext.CurrentEnvironment;
+            WorkingGraph currentWorkingGraph = globalContext.CurrentGraph;
 
             DependencyPattern idempotentPattern = new DependencyPattern("'" + string.Join("+", markersToAdd), _ignoreCase);
-            Dictionary<FromTo, Dependency> checkPresence = idempotent ? FromTo.AggregateAllDependencies(currentEnvironment, dependencies) : new Dictionary<FromTo, Dependency>();
+            Dictionary<FromTo, Dependency> checkPresence = idempotent ? FromTo.AggregateAllDependencies(currentWorkingGraph, dependencies) : new Dictionary<FromTo, Dependency>();
             Dictionary<Item, Dependency[]> outgoing = Item.CollectOutgoingDependenciesMap(dependencies);
             IEnumerable<Item> matchingFroms = outgoing.Keys.Where(i => IsMatch(fromItemMatches, i));
 
@@ -86,7 +86,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             foreach (var from in matchingFroms) {
                 RecursivelyFlood(from, from, new HashSet<Item> { from }, checkPresence, idempotentPattern, outgoing,
                                  toItemMatches, matches, excludes, markersToAddAsDictionary, result, null, globalContext.CheckAbort,
-                                 currentEnvironment);
+                                 currentWorkingGraph);
             }
 
             transformedDependencies.AddRange(dependencies);
@@ -103,18 +103,18 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         private void RecursivelyFlood(Item root, Item @from, HashSet<Item> visited, Dictionary<FromTo, Dependency> checkPresence,
             DependencyPattern idempotentPattern, Dictionary<Item, Dependency[]> outgoing, IEnumerable<ItemMatch> toItemMatches, 
             List<DependencyMatch> matches, List<DependencyMatch> excludes, Dictionary<string, int> markersToAddOrNull, 
-            List<Dependency> result, Dependency collectedEdge, [NotNull] Action checkAbort, Environment environment) {
+            List<Dependency> result, Dependency collectedEdge, [NotNull] Action checkAbort, WorkingGraph workingGraph) {
             if (outgoing.ContainsKey(from)) {
                 checkAbort();
-                foreach (var d in outgoing[from].Where(d => d.IsMatch(matches, excludes))) {
+                foreach (var d in outgoing[from].Where(d => d.IsMarkerMatch(matches, excludes))) {
                     Item target = d.UsedItem;
                     if (visited.Add(target)) {
                         Dependency rootToTarget = collectedEdge == null
                             ? d
-                            : environment.CreateDependency(root, target, d.Source,
+                            : workingGraph.CreateDependency(root, target, d.Source,
                                 new MutableMarkerSet(_ignoreCase, markersToAddOrNull ?? MutableMarkerSet.ConcatOrUnionWithMarkers(collectedEdge.AbstractMarkerSet, d.AbstractMarkerSet, _ignoreCase)),
                                 collectedEdge.Ct + d.Ct, collectedEdge.QuestionableCt + d.QuestionableCt,
-                                collectedEdge.BadCt + d.BadCt, d.ExampleInfo);
+                                collectedEdge.BadCt + d.BadCt, collectedEdge.NotOkReason ?? d.NotOkReason, d.ExampleInfo);
 
                         if (IsMatch(toItemMatches, target)) {
                             Dependency alreadyThere;
@@ -130,40 +130,40 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                         // Continue search
                         RecursivelyFlood(root, target, visited, checkPresence, idempotentPattern, outgoing,
                                          toItemMatches, matches, excludes, markersToAddOrNull, result, rootToTarget, 
-                                         checkAbort, environment);
+                                         checkAbort, workingGraph);
                     }
                 }
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
-            var s1 = transformingEnvironment.NewItem(ItemType.SIMPLE, "S1");
-            var s2 = transformingEnvironment.NewItem(ItemType.SIMPLE, "S2");
-            var a = transformingEnvironment.NewItem(ItemType.SIMPLE, "A");
-            var t1 = transformingEnvironment.NewItem(ItemType.SIMPLE, "T1");
-            var t2 = transformingEnvironment.NewItem(ItemType.SIMPLE, "T2");
-            var b = transformingEnvironment.NewItem(ItemType.SIMPLE, "B");
-            var c = transformingEnvironment.NewItem(ItemType.SIMPLE, "C");
-            var d = transformingEnvironment.NewItem(ItemType.SIMPLE, "D");
-            var t3 = transformingEnvironment.NewItem(ItemType.SIMPLE, "T3");
-            var t4 = transformingEnvironment.NewItem(ItemType.SIMPLE, "T4");
+        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
+            var s1 = transformingGraph.NewItem(ItemType.SIMPLE, "S1");
+            var s2 = transformingGraph.NewItem(ItemType.SIMPLE, "S2");
+            var a = transformingGraph.NewItem(ItemType.SIMPLE, "A");
+            var t1 = transformingGraph.NewItem(ItemType.SIMPLE, "T1");
+            var t2 = transformingGraph.NewItem(ItemType.SIMPLE, "T2");
+            var b = transformingGraph.NewItem(ItemType.SIMPLE, "B");
+            var c = transformingGraph.NewItem(ItemType.SIMPLE, "C");
+            var d = transformingGraph.NewItem(ItemType.SIMPLE, "D");
+            var t3 = transformingGraph.NewItem(ItemType.SIMPLE, "T3");
+            var t4 = transformingGraph.NewItem(ItemType.SIMPLE, "T4");
             return new[] {
-                transformingEnvironment.CreateDependency(s1, a, source: null, markers: "1", ct:10, questionableCt:5, badCt:3),
-                transformingEnvironment.CreateDependency(s1, d, source: null, markers: "D", ct:10, questionableCt:5, badCt:3),
-                transformingEnvironment.CreateDependency(s1, t4, source: null, markers: "D", ct:10, questionableCt:5, badCt:3),
-                transformingEnvironment.CreateDependency(s2, a, source: null, markers: "2", ct:10, questionableCt:5, badCt:3),
+                transformingGraph.CreateDependency(s1, a, source: null, markers: "1", ct:10, questionableCt:5, badCt:3, notOkReason: "test"),
+                transformingGraph.CreateDependency(s1, d, source: null, markers: "D", ct:10, questionableCt:5, badCt:3, notOkReason: "test"),
+                transformingGraph.CreateDependency(s1, t4, source: null, markers: "D", ct:10, questionableCt:5, badCt:3, notOkReason: "test"),
+                transformingGraph.CreateDependency(s2, a, source: null, markers: "2", ct:10, questionableCt:5, badCt:3, notOkReason: "test"),
 
-                transformingEnvironment.CreateDependency(a, t1, source: null, markers: "1", ct:1, questionableCt:0, badCt: 0),
-                transformingEnvironment.CreateDependency(a, t2, source: null, markers: "2", ct:2, questionableCt:0, badCt: 0),
-                transformingEnvironment.CreateDependency(a, t2, source: null, markers: "2", ct:3, questionableCt:0, badCt: 0),
+                transformingGraph.CreateDependency(a, t1, source: null, markers: "1", ct:1, questionableCt:0, badCt: 0),
+                transformingGraph.CreateDependency(a, t2, source: null, markers: "2", ct:2, questionableCt:0, badCt: 0),
+                transformingGraph.CreateDependency(a, t2, source: null, markers: "2", ct:3, questionableCt:0, badCt: 0),
 
-                transformingEnvironment.CreateDependency(a, b, source: null, markers: "", ct:1, questionableCt:0, badCt: 0),
-                transformingEnvironment.CreateDependency(b, c, source: null, markers: "", ct:1, questionableCt:0, badCt: 0),
-                transformingEnvironment.CreateDependency(c, b, source: null, markers: "", ct:1, questionableCt:0, badCt: 0),
+                transformingGraph.CreateDependency(a, b, source: null, markers: "", ct:1, questionableCt:0, badCt: 0),
+                transformingGraph.CreateDependency(b, c, source: null, markers: "", ct:1, questionableCt:0, badCt: 0),
+                transformingGraph.CreateDependency(c, b, source: null, markers: "", ct:1, questionableCt:0, badCt: 0),
 
-                transformingEnvironment.CreateDependency(c, t3, source: null, markers: "3", ct:5, questionableCt:0, badCt:2),
+                transformingGraph.CreateDependency(c, t3, source: null, markers: "3", ct:5, questionableCt:0, badCt:2, notOkReason: "test"),
 
-                transformingEnvironment.CreateDependency(d, t4, source: null, markers: "4", ct:5, questionableCt:0, badCt:2),
+                transformingGraph.CreateDependency(d, t4, source: null, markers: "4", ct:5, questionableCt:0, badCt:2, notOkReason: "test"),
             };
         }
     }

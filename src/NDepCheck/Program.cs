@@ -13,7 +13,7 @@ using NDepCheck.WebServing;
 
 namespace NDepCheck {
     public class Program {
-        public const string VERSION = "V.3.88";
+        public const string VERSION = "V.3.89";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 180;
@@ -38,23 +38,26 @@ namespace NDepCheck {
         //   ...  
         // d    do
         //   ...  
-        // e    environment
-        //   ec [name] [name...]    environment-clone (default name: _ + number; default cloned is current one)
-        //   ee [name]              environment-empty (default name: _ + number)
-        //   en name                environment-name
-        //   ed [name]              environment-delete (default: current; then the previous one on stack becomes current)
-        //   ei [name...]           environment-include (default: previous one)
-        //   ew [name|#]            environment-work (move to top stack position)
-        //   el | ev                environment-list (ev can be typed with one hand ...)
-        //   et [+|-]               environment-for-transform
-        //   er [+|-]               environment-for-read
-        //
         // f    factories
         //   fa assembly classname  factory-add
-        //   fe assembly classname  factory-environment-add
+        //   fe assembly classname  factory-add-to-graph
         //   fr classname           factory-remove
-        //   fd classname           factory-environment-remove
+        //   fd classname           factory-delete-from-graph
         //   fl                     factory-list
+        //
+        // g    graph
+        //   gc [name] [name...]    graph-clone (default name: _ + number; default cloned is current one)
+        //   ge [name]              graph-empty (default name: _ + number)
+        //   gn name                graph-name
+        //   gd [name]              graph-delete (default: current; then the previous one on stack becomes current)
+        //   gi [name...]           graph-include (default: previous one)
+        //   gw [name|#]            graph-work (move to top stack position)
+        //   gl | gv                graph-list (gv can be typed with one hand ...)
+        //   gt [+|-]               graph-for-transform
+        //   gr [+|-]               graph-for-read
+        //   gh filter              graph-hide
+        //   gu [string]            graph-unhide
+        //   gf                     graph-filters
         //
         // h    help
         //   ...
@@ -77,28 +80,31 @@ namespace NDepCheck {
         // 
         // ic           ignore-case
         // cd [name]    change-directory
-        // gc           garbage-collect
+        // cg           collect-garbage
         // ia [file]    interactive
 
         public static readonly Option HelpAllOption = new ProgramOption(shortname: "?", name: "help-all", usage: "[filter]", description: "write help", moreNames: new[] { "h", "help" });
         public static readonly Option HelpDetailedHelpOption = new ProgramOption(shortname: "!", name: "help-detail", usage: "[filter]", description: "write extensive help", moreNames: new[] { "man" });
         public static readonly Option DebugOption = new ProgramOption(shortname: "debug", name: "debug", usage: "", description: "start .Net debugger");
 
-        public static readonly Option EnvironmentCloneOption = new ProgramOption(shortname: "ec", name: "environment-clone", usage: "[name] [name...]", description: "Default name: _ + number; default cloned is current one)");
-        public static readonly Option EnvironmentEmptyOption = new ProgramOption(shortname: "ee", name: "environment-empty", usage: "[name]", description: "Default name: name: _ + number)");
-        public static readonly Option EnvironmentNameOption = new ProgramOption(shortname: "en", name: "environment-name", usage: "name", description: "Rename current environment");
-        public static readonly Option EnvironmentDeleteOption = new ProgramOption(shortname: "ed", name: "environment-delete", usage: "[name]", description: "default: current; then the previous one on stack becomes current");
-        public static readonly Option EnvironmentIncludeOption = new ProgramOption(shortname: "ei", name: "environment-include", usage: "[name...]", description: "default: include the one below the current environment");
-        public static readonly Option EnvironmentUnionOption = new ProgramOption(shortname: "eu", name: "environment-union", usage: "[name...]", description: "default: include the one below the current environment, and then remove it");
-        public static readonly Option EnvironmentWorkOption = new ProgramOption(shortname: "ew", name: "environment-work", usage: "[name|#]", description: "move to top stack position");
-        public static readonly Option EnvironmentListOption = new ProgramOption(shortname: "el", name: "environment-list", usage: "| ev", description: "", moreNames: new[] { "ev" });
-        public static readonly Option EnvironmentForTransformOption = new ProgramOption(shortname: "et", name: "environment-for-transform", usage: "[+|-]", description: "");
-        public static readonly Option EnvironmentForReadOption = new ProgramOption(shortname: "er", name: "environment-for-read", usage: "[+|-]", description: "");
+        public static readonly Option CloneGraphOption = new ProgramOption(shortname: "gc", name: "graph-clone", usage: "[name] [name...]", description: "Default name: _ + number; default cloned is current one)");
+        public static readonly Option CreateEmptyGraphOption = new ProgramOption(shortname: "ge", name: "graph-empty", usage: "[name]", description: "Default name: name: _ + number)");
+        public static readonly Option RenameGraphOption = new ProgramOption(shortname: "gn", name: "graph-name", usage: "name", description: "Rename current graph");
+        public static readonly Option DeleteGraphOption = new ProgramOption(shortname: "gd", name: "graph-delete", usage: "[name]", description: "default: current; then the previous one on stack becomes current");
+        public static readonly Option IncludeGraphOption = new ProgramOption(shortname: "gi", name: "graph-include", usage: "[name...]", description: "default: include the one below the current graph");
+        public static readonly Option GraphUnionOption = new ProgramOption(shortname: "gu", name: "graph-union", usage: "[name...]", description: "default: include the one below the current graph, and then remove it");
+        public static readonly Option WorkingGraphOption = new ProgramOption(shortname: "gw", name: "graph-work", usage: "[name|#]", description: "move to top stack position");
+        public static readonly Option GraphListOption = new ProgramOption(shortname: "gl", name: "graph-list", usage: "| gv", description: "", moreNames: new[] { "gv" });
+        public static readonly Option AutoGraphForTransformOption = new ProgramOption(shortname: "gt", name: "graph-for-transform", usage: "[+|-]", description: "Create a new graph for each transform; default: 10");
+        public static readonly Option AutoGraphForReadOption = new ProgramOption(shortname: "gr", name: "graph-for-read", usage: "[+|-]", description: "Create a new graph for each read");
+        public static readonly Option GraphHideOption = new ProgramOption(shortname: "gh", name: "graph-hide", usage: "pattern", description: "");
+        public static readonly Option GraphUnhideOption = new ProgramOption(shortname: "gu", name: "graph-unhide", usage: "[string]", description: "");
+        public static readonly Option GraphFiltersOption = new ProgramOption(shortname: "gf", name: "graph-filters", usage: "", description: "");
 
         public static readonly Option FactoryAddOption = new ProgramOption(shortname: "fa", name: "factory-add", usage: "assembly factory", description: "Add factory to front of global item and dependency factory list");
-        public static readonly Option FactoryEnvironmentAddOption = new ProgramOption(shortname: "fe", name: "factory-environment-add", usage: "assembly factory", description: "Add factory to front of item and dependency factory list of current environment");
+        public static readonly Option FactoryForGraphAddOption = new ProgramOption(shortname: "fg", name: "factory-add-to-graph", usage: "assembly factory", description: "Add factory to front of item and dependency factory list of current graph");
         public static readonly Option FactoryRemoveOption = new ProgramOption(shortname: "fr", name: "factory-remove", usage: "factory", description: "Remove factory from global factory list");
-        public static readonly Option FactoryEnvironmentRemoveOption = new ProgramOption(shortname: "fd", name: "factory-environment-remove", usage: "factory", description: "Remove factory from factory list of current environment");
+        public static readonly Option FactoryForGraphRemoveOption = new ProgramOption(shortname: "fd", name: "factory-delete-from-graph", usage: "factory", description: "Remove factory from factory list of current graph");
         public static readonly Option FactoryListOption = new ProgramOption(shortname: "fl", name: "factory-list", usage: "assembly reader filepattern [ +|- filepattern ...]", description: "List item and dependency factories");
 
         public static readonly Option ReadPluginOption = new ProgramOption(shortname: "rp", name: "read-plugin", usage: "assembly reader filepattern [ +|- filepattern ...]", description: "Use <assembly.reader> to read files matching filepattern, but not second filepattern");
@@ -179,8 +185,9 @@ namespace NDepCheck {
 
             ConfigurePluginOption, ConfigureOption,
 
-            EnvironmentCloneOption, EnvironmentEmptyOption, EnvironmentNameOption, EnvironmentDeleteOption, EnvironmentIncludeOption,
-            EnvironmentWorkOption, EnvironmentListOption, EnvironmentForTransformOption, EnvironmentForReadOption,
+            CloneGraphOption, CreateEmptyGraphOption, RenameGraphOption, DeleteGraphOption, IncludeGraphOption,
+            WorkingGraphOption, GraphListOption, AutoGraphForTransformOption, AutoGraphForReadOption,
+            GraphHideOption, GraphUnhideOption, GraphFiltersOption,
 
             TransformPluginOption, TransformOption, TransformTestDataOption, TransformPluginHelpOption, TransformHelpOption,
             TransformPluginDetailedHelpOption, TransformDetailedHelpOption,
@@ -231,7 +238,7 @@ namespace NDepCheck {
                     Console.WriteLine();
                     Console.ForegroundColor = ConsoleColor.DarkGray;
                     Console.WriteLine(value: "Type /?<enter> for help; or q<enter> for stopping NDepCheck.");
-                    Console.Write(value: globalContext.CurrentEnvironment.Name + "> ");
+                    Console.Write(value: globalContext.CurrentGraph.Name + "> ");
                     Console.ResetColor();
                     string commands = Console.ReadLine();
                     string lowerInvariant = commands?.Trim().ToLowerInvariant();
@@ -318,42 +325,62 @@ namespace NDepCheck {
                         globalContext.StopAbortWatchDog();
                         globalContext.AbortTime = TimeSpan.FromMilliseconds(int.MaxValue); // max. value allowed for CancellationTokenSource.CancelAfter()
                         Debugger.Launch();
-                    } else if (EnvironmentCloneOption.IsMatch(arg)) {
-                        // -ec [name] [name...]    
+                    } else if (CloneGraphOption.IsMatch(arg)) {
+                        // -gc [name] [name...]    
                         string newName = ExtractOptionValue(globalContext, args, ref i);
                         IEnumerable<string> clonedNames = ExtractValueList(globalContext, args, ref i);
-                        globalContext.CloneEnvironments(newName, clonedNames);
-                    } else if (EnvironmentEmptyOption.IsMatch(arg)) {
-                        // -ee [name]              
+                        globalContext.CloneGraphs(newName, clonedNames);
+                    } else if (CreateEmptyGraphOption.IsMatch(arg)) {
+                        // -ge [name]              
                         string newName = ExtractOptionValue(globalContext, args, ref i);
-                        globalContext.PushNewEnvironment(newName);
-                    } else if (EnvironmentNameOption.IsMatch(arg)) {
-                        // -en name
+                        globalContext.PushNewGraph(newName);
+                    } else if (RenameGraphOption.IsMatch(arg)) {
+                        // -gn name
                         string newName = ExtractRequiredOptionValue(globalContext, args, ref i, "Missing name");
-                        globalContext.RenameCurrentEnvironment(newName);
-                    } else if (EnvironmentDeleteOption.IsMatch(arg)) {
-                        // -ed [name...]
+                        globalContext.RenameCurrentGraph(newName);
+                    } else if (DeleteGraphOption.IsMatch(arg)) {
+                        // -gd [name...]
                         IEnumerable<string> namesToBeDeleted = ExtractValueList(globalContext, args, ref i);
-                        globalContext.DeleteEnvironments(namesToBeDeleted);
-                    } else if (EnvironmentIncludeOption.IsMatch(arg) || EnvironmentUnionOption.IsMatch(arg)) {
-                        // -ea [name...]
+                        globalContext.DeleteGraphs(namesToBeDeleted);
+                    } else if (IncludeGraphOption.IsMatch(arg) || GraphUnionOption.IsMatch(arg)) {
+                        // -ga [name...]
                         IEnumerable<string> namesToBeAdded = ExtractValueList(globalContext, args, ref i);
-                        globalContext.IncludeEnvironments(namesToBeAdded, EnvironmentUnionOption.IsMatch(arg));
-                    } else if (EnvironmentWorkOption.IsMatch(arg)) {
-                        // -ew [name|#]      
+                        globalContext.IncludeGraphs(namesToBeAdded, GraphUnionOption.IsMatch(arg));
+                    } else if (WorkingGraphOption.IsMatch(arg)) {
+                        // -gw [name|#]      
                         string id = ExtractOptionValue(globalContext, args, ref i);
                         globalContext.MakeTop(id);
-                    } else if (EnvironmentListOption.IsMatch(arg)) {
-                        // -el | ev                
-                        globalContext.ListEnvironments();
-                    } else if (EnvironmentForTransformOption.IsMatch(arg)) {
-                        // -et [+|-]               
-                        string flag = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true);
-                        globalContext.AutoForTransform(flag);
-                    } else if (EnvironmentForReadOption.IsMatch(arg)) {
-                        // -er [+|-]               
-                        string flag = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true);
-                        globalContext.AutoForRead(flag);
+                    } else if (GraphListOption.IsMatch(arg)) {
+                        // -gl | gv                
+                        globalContext.ListGraphs();
+                    } else if (AutoGraphForTransformOption.IsMatch(arg)) {
+                        // -gt [#|-]
+                        string autoGraphCount = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true);
+                        globalContext.AutoForTransform(autoGraphCount);
+                    } else if (AutoGraphForReadOption.IsMatch(arg)) {
+                        // -gr [#|-]               
+                        string autoGraphCount = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true);
+                        globalContext.AutoForRead(autoGraphCount);
+                    } else if (GraphHideOption.IsMatch(arg)) {
+                        string filter = ExtractRequiredOptionValue(globalContext, args, ref i, "Filter pattern missing");
+                        globalContext.CurrentGraph.AddGraphFilter(filter, globalContext.IgnoreCase);
+                    } else if (GraphUnhideOption.IsMatch(arg)) {
+                        string substring = ExtractOptionValue(globalContext, args, ref i);
+                        globalContext.CurrentGraph.RemoveGraphFilters(substring, globalContext.IgnoreCase);
+                    } else if (GraphFiltersOption.IsMatch(arg)) {
+                        globalContext.CurrentGraph.ShowFilters();
+                    } else if (FactoryAddOption.IsMatch(arg)) {
+                        globalContext.AddItemAndDependencyFactory(ExtractRequiredOptionValue(globalContext, args, ref i, "Assembly missing"),
+                            ExtractRequiredOptionValue(globalContext, args, ref i, "Class missing"));
+                    } else if (FactoryForGraphAddOption.IsMatch(arg)) {
+                        globalContext.AddLocalItemAndDependencyFactory(ExtractRequiredOptionValue(globalContext, args, ref i, "Assembly missing"),
+                            ExtractRequiredOptionValue(globalContext, args, ref i, "Class missing"));
+                    } else if (FactoryRemoveOption.IsMatch(arg)) {
+                        globalContext.RemoveItemAndDependencyFactories(ExtractRequiredOptionValue(globalContext, args, ref i, "Factory namepart missing"));
+                    } else if (FactoryForGraphRemoveOption.IsMatch(arg)) {
+                        globalContext.RemoveLocalItemAndDependencyFactories(ExtractRequiredOptionValue(globalContext, args, ref i, "Factory namepart missing"));
+                    } else if (FactoryListOption.IsMatch(arg)) {
+                        globalContext.ListItemAndDependencyFactories();
                     } else if (ReadPluginOption.IsMatch(arg)) {
                         // -rp    assembly reader filepattern [ +|- filepattern ...]
 
@@ -539,14 +566,14 @@ namespace NDepCheck {
                         // -dc    command
                         string cmd = ExtractRequiredOptionValue(globalContext, args, ref i, "Missing command after -dc");
                         int maxRunTime = ExtractRequiredIntOptionValue(globalContext, args, ref i, "Missing maximum runtime in seconds after -dc");
-                        string cmdArgs = ExtractNextValue(globalContext, args, ref i).TrimStart('{', ' ', '\r', '\n').TrimEnd('}', ' ', '\r', '\n').Replace(System.Environment.NewLine, " ");
+                        string cmdArgs = ExtractNextValue(globalContext, args, ref i).TrimStart('{', ' ', '\r', '\n').TrimEnd('}', ' ', '\r', '\n').Replace(Environment.NewLine, " ");
                         try {
                             var process = new Process {
                                 StartInfo =
                                     new ProcessStartInfo(cmd) {
                                         UseShellExecute = false,
                                         Arguments = cmdArgs,
-                                        WorkingDirectory = System.Environment.CurrentDirectory,
+                                        WorkingDirectory = Environment.CurrentDirectory,
                                         RedirectStandardError = true,
                                         RedirectStandardOutput = true
                                     }
@@ -680,13 +707,13 @@ namespace NDepCheck {
                         // -cd    [directory]
                         string directory = ExtractOptionValue(globalContext, args, ref i);
                         if (directory == null) {
-                            Log.WriteInfo(System.Environment.CurrentDirectory);
+                            Log.WriteInfo(Environment.CurrentDirectory);
                         } else {
                             if (!Directory.Exists(directory)) {
                                 Log.WriteError($"'{directory}' does not exist");
                             } else {
-                                System.Environment.CurrentDirectory = directory;
-                                Log.WriteInfo(Path.GetFullPath(System.Environment.CurrentDirectory));
+                                Environment.CurrentDirectory = directory;
+                                Log.WriteInfo(Path.GetFullPath(Environment.CurrentDirectory));
                             }
                         }
                     } else if (ListFilesOption.IsMatch(arg)) {
@@ -703,7 +730,7 @@ namespace NDepCheck {
                         ListFilesAndDirectories(recursive, filename);
                     } else if (GarbageCollectionOption.IsMatch(arg)) {
                         GC.Collect(2);
-                        Log.WriteInfo($"Process has {System.Environment.WorkingSet / 1024 / 1024} MB allocated, " +
+                        Log.WriteInfo($"Process has {Environment.WorkingSet / 1024 / 1024} MB allocated, " +
                                       $"{GC.GetTotalMemory(true) / 1024 / 1024} MB managed memory.");
                     } else if (LogVerboseOption.IsMatch(arg)) {
                         // -lv
@@ -899,7 +926,7 @@ namespace NDepCheck {
             const int MAX = 100;
             SearchOption searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
             string directoryName = Path.GetDirectoryName(filename);
-            string directory = string.IsNullOrWhiteSpace(directoryName) ? System.Environment.CurrentDirectory : directoryName;
+            string directory = string.IsNullOrWhiteSpace(directoryName) ? Environment.CurrentDirectory : directoryName;
             string pattern = Path.GetFileName(filename) ?? "*";
             IEnumerable<string> names = Directory.GetFiles(directory, pattern, searchOption)
                 .Select(s => "  " + s)
@@ -1002,15 +1029,15 @@ namespace NDepCheck {
                     args = args.Skip(i).ToArray();
 
                     var locallyWrittenFiles = new List<string>();
-                    string previousCurrentDirectory = System.Environment.CurrentDirectory;
+                    string previousCurrentDirectory = Environment.CurrentDirectory;
                     ValuesFrame previousLocals = globalContext.SetLocals(locals);
                     try {
-                        System.Environment.CurrentDirectory = Path.GetDirectoryName(path: Path.GetFullPath(fileName)) ?? "";
+                        Environment.CurrentDirectory = Path.GetDirectoryName(path: Path.GetFullPath(fileName)) ?? "";
                         return Run(args: args, passedValues: passedValues, globalContext: globalContext,
                                    writtenMasterFiles: locallyWrittenFiles, logCommands: logCommands);
                     } finally {
                         writtenMasterFiles?.AddRange(collection: locallyWrittenFiles.Select(Path.GetFullPath));
-                        System.Environment.CurrentDirectory = previousCurrentDirectory;
+                        Environment.CurrentDirectory = previousCurrentDirectory;
                         globalContext.SetLocals(previousLocals);
                     }
                 }
@@ -1174,8 +1201,8 @@ Option overview:
                 //                                     is interpreted relative to the current
                 //                                     rule file.
 
-                //           NAME := pattern       ... define abbreviation which is replaced
-                //                                     in patterns before processing. NAME
+                //           Name := pattern       ... define abbreviation which is replaced
+                //                                     in patterns before processing. Name
                 //                                     must be uppercase only (but it can
                 //                                     contain digits, underscores etc.).
                 //                                     Longer names are preferred to shorter
@@ -1215,13 +1242,13 @@ Option overview:
                 //                                     all dependencies in the checked
                 //                                     assemblies).
 
-                //           NAME :=
+                //           Name :=
                 //               <arbitrary lines except =:>
                 //           =:                    ... definition of a rule macro. The
                 //                                     arbitrary lines can contain the strings
                 //                                     \L and \R, which are replaced with the
                 //                                     corresponding patterns from the macro 
-                //                                     use. NAME need not consist of letters
+                //                                     use. Name need not consist of letters
                 //                                     only; also names like ===>, :::>, +++>
                 //                                     etc. are allowed and quite useful.
                 //                                     However, names must not be ""too
@@ -1234,7 +1261,7 @@ Option overview:
                 //                                     encountered twice, it must define 
                 //                                     exactly the same value.
 
-                //           pattern NAME pattern  ... Use of a defined macro.
+                //           pattern Name pattern  ... Use of a defined macro.
 
                 //           % pattern (with at least one group) 
                 //                                 ... Define output in DAG graph (substring

@@ -58,7 +58,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     return j;
                 }));
 
-            Dependency[] matchingDependencies = dependencies.Where(d => d.IsMatch(matches, excludes)).ToArray();
+            Dependency[] matchingDependencies = dependencies.Where(d => d.IsMarkerMatch(matches, excludes)).ToArray();
 
             if (markSingleCycleNodes) {
                 foreach (var d in matchingDependencies) {
@@ -116,35 +116,35 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
-            Item a = transformingEnvironment.NewItem(ItemType.SIMPLE, "Ax");
-            Item b = transformingEnvironment.NewItem(ItemType.SIMPLE, "Bx");
-            Item c = transformingEnvironment.NewItem(ItemType.SIMPLE, "Cloop");
-            Item d = transformingEnvironment.NewItem(ItemType.SIMPLE, "Dloop");
-            Item e = transformingEnvironment.NewItem(ItemType.SIMPLE, "Eselfloop");
-            Item f = transformingEnvironment.NewItem(ItemType.SIMPLE, "Fy");
-            Item g = transformingEnvironment.NewItem(ItemType.SIMPLE, "Gy");
-            Item h = transformingEnvironment.NewItem(ItemType.SIMPLE, "Hy");
-            Item i = transformingEnvironment.NewItem(ItemType.SIMPLE, "Iy");
-            Item j = transformingEnvironment.NewItem(ItemType.SIMPLE, "Jy");
+        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
+            Item a = transformingGraph.NewItem(ItemType.SIMPLE, "Ax");
+            Item b = transformingGraph.NewItem(ItemType.SIMPLE, "Bx");
+            Item c = transformingGraph.NewItem(ItemType.SIMPLE, "Cloop");
+            Item d = transformingGraph.NewItem(ItemType.SIMPLE, "Dloop");
+            Item e = transformingGraph.NewItem(ItemType.SIMPLE, "Eselfloop");
+            Item f = transformingGraph.NewItem(ItemType.SIMPLE, "Fy");
+            Item g = transformingGraph.NewItem(ItemType.SIMPLE, "Gy");
+            Item h = transformingGraph.NewItem(ItemType.SIMPLE, "Hy");
+            Item i = transformingGraph.NewItem(ItemType.SIMPLE, "Iy");
+            Item j = transformingGraph.NewItem(ItemType.SIMPLE, "Jy");
             return new[] {
                 // Pure sources
-                transformingEnvironment.CreateDependency(a, b, source: null, markers: "", ct: 10, questionableCt: 5, badCt: 3),
-                transformingEnvironment.CreateDependency(b, c, source: null, markers: "", ct: 1, questionableCt: 0, badCt: 0),
+                transformingGraph.CreateDependency(a, b, source: null, markers: "", ct: 10, questionableCt: 5, badCt: 3),
+                transformingGraph.CreateDependency(b, c, source: null, markers: "", ct: 1, questionableCt: 0, badCt: 0),
 
                 // Long cycle
-                transformingEnvironment.CreateDependency(c, d, source: null, markers: "", ct: 5, questionableCt: 0, badCt: 2),
-                transformingEnvironment.CreateDependency(d, c, source: null, markers: "", ct: 5, questionableCt: 0, badCt: 2),
+                transformingGraph.CreateDependency(c, d, source: null, markers: "", ct: 5, questionableCt: 0, badCt: 2),
+                transformingGraph.CreateDependency(d, c, source: null, markers: "", ct: 5, questionableCt: 0, badCt: 2),
 
-                transformingEnvironment.CreateDependency(d, e, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                transformingGraph.CreateDependency(d, e, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
                 // Self cycle
-                transformingEnvironment.CreateDependency(e, e, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                transformingGraph.CreateDependency(e, e, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
                 // Pure sinks
-                transformingEnvironment.CreateDependency(e, f, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                transformingEnvironment.CreateDependency(f, g, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                transformingEnvironment.CreateDependency(g, h, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                transformingEnvironment.CreateDependency(h, i, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
-                transformingEnvironment.CreateDependency(h, j, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2)
+                transformingGraph.CreateDependency(e, f, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                transformingGraph.CreateDependency(f, g, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                transformingGraph.CreateDependency(g, h, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                transformingGraph.CreateDependency(h, i, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2),
+                transformingGraph.CreateDependency(h, j, source: null, markers: "", ct: 5, questionableCt: 3, badCt: 2)
             };
         }
     }

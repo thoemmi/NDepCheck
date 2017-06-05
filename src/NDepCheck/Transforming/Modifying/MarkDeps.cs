@@ -139,7 +139,7 @@ Examples:
             var rightMatches = new HashSet<Item>();
 
             int n = 0;
-            foreach (var d in dependencies.Where(d => d.IsMatch(matches, excludes))) {
+            foreach (var d in dependencies.Where(d => d.IsMarkerMatch(matches, excludes))) {
                 leftMatches.Add(d.UsingItem);
                 rightMatches.Add(d.UsedItem);
                 if (clearDependency) {
@@ -178,15 +178,15 @@ Examples:
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
-            Item am = transformingEnvironment.NewItem(ItemType.SIMPLE, new[] { "A" }, new[] { "M" });
-            Item bm = transformingEnvironment.NewItem(ItemType.SIMPLE, new[] { "B" }, new[] { "M" });
-            Item cn = transformingEnvironment.NewItem(ItemType.SIMPLE, new[] { "C" }, new[] { "N" });
+        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
+            Item am = transformingGraph.NewItem(ItemType.SIMPLE, new[] { "A" }, new[] { "M" });
+            Item bm = transformingGraph.NewItem(ItemType.SIMPLE, new[] { "B" }, new[] { "M" });
+            Item cn = transformingGraph.NewItem(ItemType.SIMPLE, new[] { "C" }, new[] { "N" });
             return new[] {
-                transformingEnvironment.CreateDependency(am, am, source: null, markers: "", ct:10, questionableCt:5, badCt:3),
-                transformingEnvironment.CreateDependency(am, bm, source: null, markers: "use+define", ct:1, questionableCt:0,badCt: 0),
-                transformingEnvironment.CreateDependency(am, cn, source: null, markers: "define", ct:5, questionableCt:0, badCt:2),
-                transformingEnvironment.CreateDependency(bm, am, source: null, markers: "define", ct:5, questionableCt:0, badCt:2),
+                transformingGraph.CreateDependency(am, am, source: null, markers: "", ct:10, questionableCt:5, badCt:3, notOkReason: "test"),
+                transformingGraph.CreateDependency(am, bm, source: null, markers: "use+define", ct:1, questionableCt:0,badCt: 0),
+                transformingGraph.CreateDependency(am, cn, source: null, markers: "define", ct:5, questionableCt:0, badCt:2, notOkReason: "test"),
+                transformingGraph.CreateDependency(bm, am, source: null, markers: "define", ct:5, questionableCt:0, badCt:2, notOkReason: "test"),
             };
         }
     }

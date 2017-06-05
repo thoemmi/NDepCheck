@@ -10,14 +10,58 @@ using Mono.Cecil.Pdb;
 using Mono.Collections.Generic;
 
 namespace NDepCheck.Reading.AssemblyReading {
+    public enum DotNetUsage {
+        _declaresfield,
+        _declaresevent,
+        _declaresparameter,
+        _declaresreturntype,
+        _declaresvariable,
+        _usesmember,
+        //_usesmemberoftype, // requires declarations of "uses that type" rules, which opens up possibility to use ALL of that type.
+        // This is not good. Rather, let the user manually add transitive dependencies via the member if this is needed!
+        _usestype,
+        _directlyinherits,
+        _directlyimplements,
+        _usesasgenericargument,
+    }
+
+    public static class DotNetConstants {
+        public const string _get = "get";
+        public const string _set = "set";
+
+        public const string _const = "_const";
+        public const string _definition = "_definition";
+        public const string _in = "_in";
+        public const string _notserialized = "_notserialized";
+        public const string _optional = "_optional";
+        public const string _out = "_out";
+        public const string _pinned = "_pinned";
+        public const string _private = "_private";
+        public const string _public = "_public";
+        public const string _readonly = "_readonly";
+        public const string _return = "_return";
+        public const string _static = "_static";
+
+        public static readonly string _declaresfield = "" + DotNetUsage._declaresfield;
+        public static readonly string _declaresevent = "" + DotNetUsage._declaresevent;
+        public static readonly string _declaresparameter = "" + DotNetUsage._declaresparameter;
+        public static readonly string _declaresreturntype = "" + DotNetUsage._declaresreturntype;
+        public static readonly string _declaresvariable = "" + DotNetUsage._declaresvariable;
+        public static readonly string _usesmember = "" + DotNetUsage._usesmember;
+        public static readonly string _usestype = "" + DotNetUsage._usestype;
+        public static readonly string _directlyinherits = "" + DotNetUsage._directlyinherits;
+        public static readonly string _directlyimplements = "" + DotNetUsage._directlyimplements;
+        public static readonly string _usesasgenericargument = "" + DotNetUsage._usesasgenericargument;
+    }
+
     public abstract class AbstractDotNetAssemblyDependencyReader : AbstractDependencyReader {
         protected readonly DotNetAssemblyDependencyReaderFactory ReaderFactory;
         public readonly string Assemblyname;
 
         protected readonly Intern<RawUsingItem> _rawUsingItemsCache = new Intern<RawUsingItem>();
 
-        protected readonly string[] GET_MARKER = { "get" };
-        protected readonly string[] SET_MARKER = { "set" };
+        protected readonly string[] GET_MARKER = { DotNetConstants._get };
+        protected readonly string[] SET_MARKER = { DotNetConstants._set };
 
         private Dictionary<RawUsedItem, Item> _rawItems2Items;
 
@@ -49,11 +93,11 @@ namespace NDepCheck.Reading.AssemblyReading {
             [CanBeNull, ItemNotNull]
             private readonly string[] _markers;
             [NotNull]
-            private readonly Environment _readingEnvironment;
+            private readonly WorkingGraph _readingGraph;
 
             protected RawAbstractItem(string namespaceName, string className, string assemblyName, string assemblyVersion,
                                       string assemblyCulture, string memberName, [CanBeNull, ItemNotNull] string[] markers,
-                                      [NotNull] Environment readingEnvironment) {
+                                      [NotNull] WorkingGraph readingGraph) {
                 if (namespaceName == null) {
                     throw new ArgumentNullException(nameof(namespaceName));
                 }
@@ -70,7 +114,7 @@ namespace NDepCheck.Reading.AssemblyReading {
                 _assemblyCulture = string.Intern(assemblyCulture ?? "");
                 MemberName = string.Intern(memberName ?? "");
                 _markers = markers;
-                _readingEnvironment = readingEnvironment;
+                _readingGraph = readingGraph;
             }
 
             public override string ToString() {
@@ -80,12 +124,12 @@ namespace NDepCheck.Reading.AssemblyReading {
 
             [NotNull]
             public virtual Item ToItem(ItemType type) {
-                return _readingEnvironment.NewItem(type, new[] { NamespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, MemberName }, _markers);
+                return _readingGraph.NewItem(type, new[] { NamespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, MemberName }, _markers);
             }
 
             [NotNull]
             protected RawUsedItem ToRawUsedItem() {
-                return RawUsedItem.New(NamespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, MemberName, _markers, _readingEnvironment);
+                return RawUsedItem.New(NamespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, MemberName, _markers, _readingGraph);
             }
 
             protected bool EqualsRawAbstractItem(RawAbstractItem other) {
@@ -111,16 +155,16 @@ namespace NDepCheck.Reading.AssemblyReading {
 
             private RawUsingItem(string namespaceName, string className, string assemblyName, string assemblyVersion,
                 string assemblyCulture, string memberName, string[] markers, ItemTail tail,
-                [NotNull] Environment readingEnvironment)
-                : base(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, readingEnvironment) {
+                [NotNull] WorkingGraph readingGraph)
+                : base(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, readingGraph) {
                 _tail = tail;
             }
 
             public static RawUsingItem New(Intern<RawUsingItem> cache, string namespaceName, string className, string assemblyName,
                 string assemblyVersion, string assemblyCulture, string memberName, string[] markers, ItemTail tail,
-                [NotNull] Environment readingEnvironment) {
+                [NotNull] WorkingGraph readingGraph) {
                 return cache.GetReference(new RawUsingItem(namespaceName, className, assemblyName,
-                                                           assemblyVersion, assemblyCulture, memberName, markers, tail, readingEnvironment));
+                                                           assemblyVersion, assemblyCulture, memberName, markers, tail, readingGraph));
             }
 
             public override string ToString() {
@@ -155,17 +199,17 @@ namespace NDepCheck.Reading.AssemblyReading {
         protected sealed class RawUsedItem : RawAbstractItem {
             private RawUsedItem(string namespaceName, string className, string assemblyName, string assemblyVersion,
                                 string assemblyCulture, string memberName, string[] markers,
-                                [NotNull] Environment readingEnvironment)
-                : base(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, readingEnvironment) {
+                                [NotNull] WorkingGraph readingGraph)
+                : base(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, readingGraph) {
             }
 
             public static RawUsedItem New(string namespaceName, string className, string assemblyName,
                 string assemblyVersion, string assemblyCulture, string memberName, [CanBeNull, ItemNotNull] string[] markers,
-                [NotNull] Environment readingEnvironment) {
+                [NotNull] WorkingGraph readingGraph) {
                 //return Intern<RawUsedItem>.GetReference(new RawUsedItem(namespaceName, className, assemblyName,
                 //        assemblyVersion, assemblyCulture, memberName, markers));
                 // Dont make unique - costs lot of time; and Raw...Items are anyway removed at end of DLL reading.
-                return new RawUsedItem(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, readingEnvironment);
+                return new RawUsedItem(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, readingGraph);
             }
 
             public override string ToString() {
@@ -173,8 +217,8 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
 
             [CanBeNull] // null (I think) if assemblies do not match (different compiles) and hence a used item is not found in target reader.
-            public Item ToItemWithTail(Environment readingEnvironment, ItemType type, AbstractDotNetAssemblyDependencyReader reader, int depth) {
-                return reader.GetFullItemFor(readingEnvironment, this, depth);
+            public Item ToItemWithTail(WorkingGraph readingGraph, ItemType type, AbstractDotNetAssemblyDependencyReader reader, int depth) {
+                return reader.GetFullItemFor(readingGraph, this, depth);
             }
 
             public override bool Equals(object obj) {
@@ -187,13 +231,13 @@ namespace NDepCheck.Reading.AssemblyReading {
         }
 
         [NotNull]
-        protected abstract IEnumerable<RawUsingItem> ReadUsingItems(int depth, Environment readingEnvironment);
+        protected abstract IEnumerable<RawUsingItem> ReadUsingItems(int depth, WorkingGraph readingGraph);
 
         [CanBeNull] // null (I think) if assemblies do not match (different compiles) and hence a used item is not found in target reader.
-        protected Item GetFullItemFor(Environment readingEnvironment, RawUsedItem rawUsedItem, int depth) {
+        protected Item GetFullItemFor(WorkingGraph readingGraph, RawUsedItem rawUsedItem, int depth) {
             if (_rawItems2Items == null) {
                 _rawItems2Items = new Dictionary<RawUsedItem, Item>();
-                foreach (var u in ReadUsingItems(depth + 1, readingEnvironment)) {
+                foreach (var u in ReadUsingItems(depth + 1, readingGraph)) {
                     RawUsedItem usedItem = u.ToRawUsedItem();
                     _rawItems2Items[usedItem] = u.ToItem(DotNetAssemblyDependencyReaderFactory.DOTNETITEM);
                 }
@@ -203,21 +247,6 @@ namespace NDepCheck.Reading.AssemblyReading {
             return result;
         }
 
-        protected enum Usage {
-            _declaresfield,
-            _declaresevent,
-            _declaresparameter,
-            _declaresreturntype,
-            _declaresvariable,
-            _usesmember,
-            //_usesmemberoftype, // requires declarations of "uses that type" rules, which opens up possibility to use ALL of that type.
-            // This is not good. Rather, let the user manually add transitive dependencies via the member if this is needed!
-            _usestype,
-            _inherits,
-            _implements,
-            _usesasgenericargument,
-        }
-
         protected sealed class RawDependency {
             private readonly ItemType _type;
             private readonly SequencePoint _sequencePoint;
@@ -225,10 +254,10 @@ namespace NDepCheck.Reading.AssemblyReading {
 
             public readonly RawUsingItem UsingItem;
             public readonly RawUsedItem UsedItem;
-            public readonly Usage Usage;
+            public readonly DotNetUsage Usage;
 
             public RawDependency([NotNull] ItemType type, [NotNull] RawUsingItem usingItem, [NotNull] RawUsedItem usedItem,
-                Usage usage, [CanBeNull] SequencePoint sequencePoint, AbstractDotNetAssemblyDependencyReader readerForUsedItem) {
+                DotNetUsage usage, [CanBeNull] SequencePoint sequencePoint, AbstractDotNetAssemblyDependencyReader readerForUsedItem) {
                 if (usingItem == null) {
                     throw new ArgumentNullException(nameof(usingItem));
                 }
@@ -262,7 +291,7 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
 
             [NotNull]
-            private Dependency ToDependency(Environment readingEnviroment, Item usedItem, string containerUri) {
+            private Dependency ToDependency(WorkingGraph readingEnviroment, Item usedItem, string containerUri) {
                 return readingEnviroment.CreateDependency(UsingItem.ToItem(_type), usedItem, _sequencePoint == null
                             ? (ISourceLocation)new LocalSourceLocation(containerUri, UsingItem.NamespaceName + "." + UsingItem.ClassName + (string.IsNullOrWhiteSpace(UsingItem.MemberName) ? "" : "." + UsingItem.MemberName))
                             : new ProgramFileSourceLocation(containerUri, _sequencePoint.Document.Url, _sequencePoint.StartLine, _sequencePoint.StartColumn, _sequencePoint.EndLine, _sequencePoint.EndColumn),
@@ -270,18 +299,18 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
 
             [NotNull]
-            public Dependency ToDependencyWithTail(Environment readingEnvironment, int depth, string containerUri) {
+            public Dependency ToDependencyWithTail(WorkingGraph readingGraph, int depth, string containerUri) {
                 // ?? fires if reader == null (i.e., target assembly is not read in), or if assemblies do not match (different compiles) and hence a used item is not found in target reader.
-                Item usedItem = (_readerForUsedItem == null ? null : UsedItem.ToItemWithTail(readingEnvironment, _type, _readerForUsedItem, depth)) ?? UsedItem.ToItem(_type);
-                return ToDependency(readingEnvironment, usedItem, containerUri);
+                Item usedItem = (_readerForUsedItem == null ? null : UsedItem.ToItemWithTail(readingGraph, _type, _readerForUsedItem, depth)) ?? UsedItem.ToItem(_type);
+                return ToDependency(readingGraph, usedItem, containerUri);
             }
         }
 
         [CanBeNull]
-        protected ItemTail GetCustomSections(Environment readingEnvironment, Collection<CustomAttribute> customAttributes, [CanBeNull] ItemTail customSections) {
+        protected ItemTail GetCustomSections(WorkingGraph readingGraph, Collection<CustomAttribute> customAttributes, [CanBeNull] ItemTail customSections) {
             ItemTail result = customSections;
             foreach (var customAttribute in customAttributes) {
-                result = ExtractCustomSections(readingEnvironment, customAttribute, null) ?? result;
+                result = ExtractCustomSections(readingGraph, customAttribute, null) ?? result;
             }
             return result;
         }
@@ -290,7 +319,7 @@ namespace NDepCheck.Reading.AssemblyReading {
 
         private static readonly HashSet<string> _unresolvableTypeReferences = new HashSet<string>();
 
-        private ItemTail ExtractCustomSections(Environment readingEnvironment, CustomAttribute customAttribute, ItemTail parent) {
+        private ItemTail ExtractCustomSections(WorkingGraph readingGraph, CustomAttribute customAttribute, ItemTail parent) {
             TypeReference customAttributeTypeReference = customAttribute.AttributeType;
             TypeDefinition attributeType = Resolve(customAttributeTypeReference);
             bool isSectionAttribute = attributeType != null && attributeType.Interfaces.Any(i => i.FullName == "NDepCheck.ISectionAttribute");
@@ -311,7 +340,7 @@ namespace NDepCheck.Reading.AssemblyReading {
                     string[] values = args.Select(a => a.Property.Name == null
                         ? parent?.Values[a.Index]
                         : "" + a.Property.Argument.Value).ToArray();
-                    return ItemTail.New(readingEnvironment.ItemTailCache, itemType, values);
+                    return ItemTail.New(readingGraph.ItemTailCache, itemType, values);
                 }
             } else {
                 return parent;
@@ -368,10 +397,5 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
             return className;
         }
-
-        ////public static void Reset() {
-        ////    Intern<RawUsingItem>.Reset();
-        ////    Intern<RawUsedItem>.Reset();
-        ////}
     }
 }

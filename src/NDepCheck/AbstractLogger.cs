@@ -38,8 +38,10 @@ namespace NDepCheck {
 
         public abstract void WriteDebug(string msg);
 
-        public virtual void WriteViolation(Dependency dependency) {
-            string message = dependency.Source != null ? $"{dependency.NotOkMessage()} (probably at {dependency.Source})" : dependency.NotOkMessage();
+        public virtual void WriteViolation(Dependency dependency, bool simpleRuleOutput) {
+            string message = dependency.Source != null 
+                ? $"{dependency.NotOkMessage(simpleRuleOutput: simpleRuleOutput, newLine: false)} (probably at {dependency.Source})" 
+                : dependency.NotOkMessage(simpleRuleOutput: simpleRuleOutput, newLine: false);
             if (dependency.BadCt > 0) {
                 WriteError(message);
             } else if (dependency.QuestionableCt > 0) {

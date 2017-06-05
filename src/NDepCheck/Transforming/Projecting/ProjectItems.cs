@@ -17,9 +17,9 @@ namespace NDepCheck.Transforming.Projecting {
 
         private static readonly Option[] _configOptions = { ProjectionFileOption, ProjectionsOption, MatcherStrategyOption };
 
-        public static readonly Option BackProjectionEnvironmentOption = new Option("bp", "back-projection-environment", "[environment]", "Do back projection to dependencies in environment", @default: "back project to previous environment");
+        public static readonly Option BackProjectionGraphOption = new Option("bp", "back-projection-graph", "[graphname]", "Do back projection to dependencies in indicated graph", @default: "back project to previous graph");
 
-        private static readonly Option[] _transformOptions = { BackProjectionEnvironmentOption };
+        private static readonly Option[] _transformOptions = { BackProjectionGraphOption };
 
         private IProjector _projector;
 
@@ -122,7 +122,7 @@ Examples:
                     return j;
                 }), ProjectionsOption.Action((args, j) => {
                     orderedProjections = GetOrReadChildConfiguration(globalContext,
-                            () => new StringReader(string.Join(System.Environment.NewLine, args.Skip(j + 1))),
+                            () => new StringReader(string.Join(Environment.NewLine, args.Skip(j + 1))),
                             ProjectionsOption.ShortName, globalContext.IgnoreCase, "????", forceReload: true);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;
@@ -222,11 +222,11 @@ Examples:
                             string transformOptions, [NotNull] List<Dependency> transformedDependencies) {
             IEnumerable<Dependency> backProjectionDependencies = null;
             Option.Parse(globalContext, transformOptions,
-                BackProjectionEnvironmentOption.Action((args, j) => {
-                    string backProjectionEnvironment = Option.ExtractOptionValue(args, ref j);
-                    backProjectionDependencies = globalContext.FindDependenciesInEnvironment(backProjectionEnvironment);
+                BackProjectionGraphOption.Action((args, j) => {
+                    string backProjectionGraph = Option.ExtractOptionValue(args, ref j);
+                    backProjectionDependencies = globalContext.FindDependenciesInGraph(backProjectionGraph);
                     if (backProjectionDependencies == null) {
-                        throw new ArgumentException($"Could not find environment '{backProjectionEnvironment}'");
+                        throw new ArgumentException($"Could not find graph '{backProjectionGraph}'");
                     }
                     return j;
                 })
@@ -244,7 +244,7 @@ Examples:
                 var localCollector = new Dictionary<FromTo, Dependency>();
                 var mapItems = new Dictionary<Item, Item>();
                 foreach (var d in backProjectionDependencies) {
-                    FromTo f = ProjectDependency(globalContext.CurrentEnvironment, d, localCollector, () => OnMissingPattern(ref missingPatternCount));
+                    FromTo f = ProjectDependency(globalContext.CurrentGraph, d, localCollector, () => OnMissingPattern(ref missingPatternCount));
 
                     if (f != null) {
                         Dependency projected;
@@ -273,7 +273,7 @@ Examples:
                 var localCollector = new Dictionary<FromTo, Dependency>();
                 int missingPatternCount = 0;
                 foreach (var d in dependencies) {
-                    ProjectDependency(globalContext.CurrentEnvironment, d, localCollector, () => OnMissingPattern(ref missingPatternCount));
+                    ProjectDependency(globalContext.CurrentGraph, d, localCollector, () => OnMissingPattern(ref missingPatternCount));
                 }
                 transformedDependencies.AddRange(localCollector.Values);
             }
@@ -292,13 +292,13 @@ Examples:
         }
 
         public interface IProjector {
-            Item Project(Environment cachingEnvironment, Item item, bool left);
+            Item Project(WorkingGraph cachingGraph, Item item, bool left);
         }
 
-        private FromTo ProjectDependency(Environment currentEnvironment, Dependency d, Dictionary<FromTo, Dependency> localCollector, 
+        private FromTo ProjectDependency(WorkingGraph currentWorkingGraph, Dependency d, Dictionary<FromTo, Dependency> localCollector, 
                                          Func<bool> onMissingPattern) {
-            Item usingItem = _projector.Project(cachingEnvironment: currentEnvironment, item: d.UsingItem, left: true);
-            Item usedItem = _projector.Project(cachingEnvironment: currentEnvironment, item: d.UsedItem, left: false);
+            Item usingItem = _projector.Project(cachingGraph: currentWorkingGraph, item: d.UsingItem, left: true);
+            Item usedItem = _projector.Project(cachingGraph: currentWorkingGraph, item: d.UsedItem, left: false);
 
             if (usingItem == null) {
                 if (onMissingPattern()) {
@@ -314,25 +314,25 @@ Examples:
                 // ignore this edge!
                 return null;
             } else {
-                return new FromTo(usingItem, usedItem).AggregateDependency(currentEnvironment, d, localCollector);
+                return new FromTo(usingItem, usedItem).AggregateDependency(currentWorkingGraph, d, localCollector);
             }
         }
 
-        public override IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
             ItemType abc = ItemType.New("AB+(A:B)");
-            Item a1 = transformingEnvironment.NewItem(abc, "a", "1");
-            Item a2 = transformingEnvironment.NewItem(abc, "a", "2");
-            Item b = transformingEnvironment.NewItem(abc, "b", "");
+            Item a1 = transformingGraph.NewItem(abc, "a", "1");
+            Item a2 = transformingGraph.NewItem(abc, "a", "2");
+            Item b = transformingGraph.NewItem(abc, "b", "");
 
             return new[] {
-                FromTo(transformingEnvironment, a1, a1), FromTo(transformingEnvironment, a1, a2),
-                FromTo(transformingEnvironment, a2, a1), FromTo(transformingEnvironment, a2, a2),
-                FromTo(transformingEnvironment, a1, b)
+                FromTo(transformingGraph, a1, a1), FromTo(transformingGraph, a1, a2),
+                FromTo(transformingGraph, a2, a1), FromTo(transformingGraph, a2, a2),
+                FromTo(transformingGraph, a1, b)
             };
         }
 
-        private Dependency FromTo(Environment env, Item from, Item to) {
-            return env.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: 1);
+        private Dependency FromTo(WorkingGraph graph, Item from, Item to) {
+            return graph.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: 1);
         }
 
         private void AfterAllTransforms() {

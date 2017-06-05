@@ -19,7 +19,7 @@ namespace NDepCheck.Rendering.TextWriting {
             var writtenTypes = new HashSet<ItemType>();
 
             int n = 0;
-            foreach (var d in dependencies.Where(d => d.IsMatch(matches, excludes))) {
+            foreach (var d in dependencies.Where(d => d.IsMarkerMatch(matches, excludes))) {
                 WriteItemType(writtenTypes, d.UsingItem.Type, sw);
                 WriteItemType(writtenTypes, d.UsedItem.Type, sw);
 
@@ -60,26 +60,26 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
+        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
             ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
 
-            var bac = renderingEnvironment.NewItem(amo, "BAC:BAC:0100".Split(':'));
-            var kst = renderingEnvironment.NewItem(amo, "KST:KST:0200".Split(':'));
-            var kah = renderingEnvironment.NewItem(amo, "KAH:KAH:0300".Split(':'));
-            var kah_mi = renderingEnvironment.NewItem(amo, "Kah.MI:KAH:0301".Split(':'));
-            var vkf = renderingEnvironment.NewItem(amo, "VKF:VKF:0400".Split(':'));
+            var bac = renderingGraph.NewItem(amo, "BAC:BAC:0100".Split(':'));
+            var kst = renderingGraph.NewItem(amo, "KST:KST:0200".Split(':'));
+            var kah = renderingGraph.NewItem(amo, "KAH:KAH:0300".Split(':'));
+            var kah_mi = renderingGraph.NewItem(amo, "Kah.MI:KAH:0301".Split(':'));
+            var vkf = renderingGraph.NewItem(amo, "VKF:VKF:0400".Split(':'));
 
             return new[] {
-                    FromTo(renderingEnvironment, kst, bac), FromTo(renderingEnvironment, kst, kah_mi),
-                FromTo(renderingEnvironment, kah, bac), FromTo(renderingEnvironment, vkf, bac),
-                FromTo(renderingEnvironment, vkf, kst), FromTo(renderingEnvironment, vkf, kah, 3),
-                FromTo(renderingEnvironment, vkf, kah_mi, 2, 2)
+                    FromTo(renderingGraph, kst, bac), FromTo(renderingGraph, kst, kah_mi),
+                FromTo(renderingGraph, kah, bac), FromTo(renderingGraph, vkf, bac),
+                FromTo(renderingGraph, vkf, kst), FromTo(renderingGraph, vkf, kah, 3),
+                FromTo(renderingGraph, vkf, kah_mi, 2, 2)
                     // ... more to come
                 };
         }
 
-        private Dependency FromTo(Environment env, Item from, Item to, int ct = 1, int questionable = 0) {
-            return env.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
+        private Dependency FromTo(WorkingGraph graph, Item from, Item to, int ct = 1, int questionable = 0) {
+            return graph.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
         }
 
         public string GetHelp(bool detailedHelp, string filter) {

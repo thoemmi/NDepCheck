@@ -78,8 +78,8 @@ $@"  Writes dependencies to file in .dot format (graphviz; see http://graphviz.o
             return GetDotFileName(baseTarget);
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
-            return RendererSupport.CreateSomeTestItems(renderingEnvironment);
+        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
+            return RendererSupport.CreateSomeTestItems(renderingGraph);
         }
     }
 }

@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace NDepCheck.Tests {
     [TestClass]
     public class TestHideTransitiveEdges {
-        private static readonly ItemType TEST = ItemType.New("TEST", new[] { "NAME" }, new[] { "" }, ignoreCase: false);
+        private static readonly ItemType TEST = ItemType.New("TEST", new[] { "Name" }, new[] { "" }, ignoreCase: false);
 
         ////private void CreateEdge(Dictionary<string, Item> nodes, string from, string to) {
         ////    Item fromNode = GetOrCreate(nodes, "\"" + from + "\"");
@@ -12,10 +12,10 @@ namespace NDepCheck.Tests {
         ////    fromNode.AddEdgeTo(toNode);
         ////}
 
-        private Item GetOrCreate(Environment environment, Dictionary<string, Item> nodes, string name) {
+        private Item GetOrCreate(WorkingGraph workingGraph, Dictionary<string, Item> nodes, string name) {
             Item result;
             if (!nodes.TryGetValue(name, out result)) {
-                nodes.Add(name, result = environment.NewItem(TEST, new[] { name }));
+                nodes.Add(name, result = workingGraph.NewItem(TEST, new[] { name }));
             }
             return result;
         }

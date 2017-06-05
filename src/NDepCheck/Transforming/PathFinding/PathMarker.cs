@@ -415,33 +415,33 @@ namespace NDepCheck.Rendering.PathFinding {
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment transformingEnvironment) {
+        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
-            var a = transformingEnvironment.NewItem(t3, "a:aa:aaa".Split(':'));
-            var b = transformingEnvironment.NewItem(t3, "b:bb:bbb".Split(':'));
-            var c = transformingEnvironment.NewItem(t3, "c:cc:ccc".Split(':'));
-            var d = transformingEnvironment.NewItem(t3, "d:dd:ddd".Split(':'));
-            var e = transformingEnvironment.NewItem(t3, "e:ee:eee".Split(':'));
-            var f = transformingEnvironment.NewItem(t3, "f:ff:fff".Split(':'));
-            var g = transformingEnvironment.NewItem(t3, "g:gg:ggg".Split(':'));
-            var h = transformingEnvironment.NewItem(t3, "h:hh:hhh".Split(':'));
+            var a = transformingGraph.NewItem(t3, "a:aa:aaa".Split(':'));
+            var b = transformingGraph.NewItem(t3, "b:bb:bbb".Split(':'));
+            var c = transformingGraph.NewItem(t3, "c:cc:ccc".Split(':'));
+            var d = transformingGraph.NewItem(t3, "d:dd:ddd".Split(':'));
+            var e = transformingGraph.NewItem(t3, "e:ee:eee".Split(':'));
+            var f = transformingGraph.NewItem(t3, "f:ff:fff".Split(':'));
+            var g = transformingGraph.NewItem(t3, "g:gg:ggg".Split(':'));
+            var h = transformingGraph.NewItem(t3, "h:hh:hhh".Split(':'));
 
             return new[] {
-                FromTo(transformingEnvironment, a, b),
-                FromTo(transformingEnvironment, a, h),
-                FromTo(transformingEnvironment, b, c),
-                FromTo(transformingEnvironment, c, d),
-                FromTo(transformingEnvironment, d, e),
-                FromTo(transformingEnvironment, d, b),
-                FromTo(transformingEnvironment, e, f),
-                FromTo(transformingEnvironment, b, g),
-                FromTo(transformingEnvironment, h, g),
+                FromTo(transformingGraph, a, b),
+                FromTo(transformingGraph, a, h),
+                FromTo(transformingGraph, b, c),
+                FromTo(transformingGraph, c, d),
+                FromTo(transformingGraph, d, e),
+                FromTo(transformingGraph, d, b),
+                FromTo(transformingGraph, e, f),
+                FromTo(transformingGraph, b, g),
+                FromTo(transformingGraph, h, g),
             };
         }
 
-        private Dependency FromTo(Environment transformingEnvironment, Item from, Item to, int ct = 1, int questionable = 0) {
-            return transformingEnvironment.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
+        private Dependency FromTo(WorkingGraph transformingGraph, Item from, Item to, int ct = 1, int questionable = 0) {
+            return transformingGraph.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
         }
     }
 }

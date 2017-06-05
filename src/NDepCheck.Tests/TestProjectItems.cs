@@ -13,7 +13,7 @@ namespace NDepCheck.Tests {
         private static void SmallTestForPrefixOptimizedProjector(Func<Projection[], bool, ProjectItems.IProjector> createProjector) {
             var pi = new ProjectItems(createProjector);
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
             pi.Configure(gc, @"{ -pl
     $ (Ignore:Name) ---% SIMPLE
 
@@ -25,25 +25,25 @@ namespace NDepCheck.Tests {
 }", forceReload: false);
 
             ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
-            Item a = env.NewItem(generic2, "x:a");
-            Item ab = env.NewItem(generic2, "x:ab");
-            Item ac = env.NewItem(generic2, "x:ac");
-            Item ca = env.NewItem(generic2, "x:ca");
-            Item cb = env.NewItem(generic2, "x:cb");
-            Item s = env.NewItem(generic2, "m:s");
-            Item t = env.NewItem(generic2, "m:t");
+            Item a = graph.NewItem(generic2, "x:a");
+            Item ab = graph.NewItem(generic2, "x:ab");
+            Item ac = graph.NewItem(generic2, "x:ac");
+            Item ca = graph.NewItem(generic2, "x:ca");
+            Item cb = graph.NewItem(generic2, "x:cb");
+            Item s = graph.NewItem(generic2, "m:s");
+            Item t = graph.NewItem(generic2, "m:t");
 
             var result = new List<Dependency>();
             pi.Transform(gc, new[] {
-                env.CreateDependency(a, a, null, "a_a", 1), // the first surviving dependency
-                env.CreateDependency(a, s, null, "a_s", 1), // vanishes, because s is not mapped
-                env.CreateDependency(ab, s, null, "ab_s", 1), // same
-                env.CreateDependency(ca, s, null, "ca_s", 1), // etc.
-                env.CreateDependency(cb, cb, null, "cb_cb", 1), // the second surviving dependency
-                env.CreateDependency(cb, t, null, "cb_t", 1), // vanishes, because t is not mapped
-                env.CreateDependency(a, t, null, "a_t", 1),
-                env.CreateDependency(ac, t, null, "ac_t", 1),
-                env.CreateDependency(a, s, null, "a_s", 1),
+                graph.CreateDependency(a, a, null, "a_a", 1), // the first surviving dependency
+                graph.CreateDependency(a, s, null, "a_s", 1), // vanishes, because s is not mapped
+                graph.CreateDependency(ab, s, null, "ab_s", 1), // same
+                graph.CreateDependency(ca, s, null, "ca_s", 1), // etc.
+                graph.CreateDependency(cb, cb, null, "cb_cb", 1), // the second surviving dependency
+                graph.CreateDependency(cb, t, null, "cb_t", 1), // vanishes, because t is not mapped
+                graph.CreateDependency(a, t, null, "a_t", 1),
+                graph.CreateDependency(ac, t, null, "ac_t", 1),
+                graph.CreateDependency(a, s, null, "a_s", 1),
 
                 // Counts: 
                 // !a  5
@@ -115,19 +115,19 @@ namespace NDepCheck.Tests {
 }", forceReload: false);
 
             ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
-            Environment env = gc.CurrentEnvironment;
-            Item a = env.NewItem(generic2, "x:a");
-            Item ab = env.NewItem(generic2, "x:ab");
-            Item abc = env.NewItem(generic2, "x:abc");
-            Item abcd = env.NewItem(generic2, "x:abcd");
-            Item t = env.NewItem(generic2, "m:t");
+            WorkingGraph graph = gc.CurrentGraph;
+            Item a = graph.NewItem(generic2, "x:a");
+            Item ab = graph.NewItem(generic2, "x:ab");
+            Item abc = graph.NewItem(generic2, "x:abc");
+            Item abcd = graph.NewItem(generic2, "x:abcd");
+            Item t = graph.NewItem(generic2, "m:t");
 
             var result = new List<Dependency>();
             pi.Transform(gc, new[] {
-                env.CreateDependency(a, t, null, "a_t", 1), // A_T
-                env.CreateDependency(ab, t, null, "ab_t", 1), // A_ T
-                env.CreateDependency(abc, t, null, "abc_t", 1), // ADetail _T
-                env.CreateDependency(abcd, t, null, "abcd_t", 1), // A _ T
+                graph.CreateDependency(a, t, null, "a_t", 1), // A_T
+                graph.CreateDependency(ab, t, null, "ab_t", 1), // A_ T
+                graph.CreateDependency(abc, t, null, "abc_t", 1), // ADetail _T
+                graph.CreateDependency(abcd, t, null, "abcd_t", 1), // A _ T
             }, "", result);
 
             Assert.AreEqual(2, result.Count);
@@ -152,23 +152,23 @@ namespace NDepCheck.Tests {
 }}", forceReload: false);
 
             ItemType threeFields = ItemType.Find(THREE_FIELDS);
-            Environment env = gc.CurrentEnvironment;
-            Item abc = env.NewItem(threeFields, "a:b:c");
-            Item ab = env.NewItem(threeFields, "a:b:-");
-            Item a = env.NewItem(threeFields, "a:-:-");
+            WorkingGraph graph = gc.CurrentGraph;
+            Item abc = graph.NewItem(threeFields, "a:b:c");
+            Item ab = graph.NewItem(threeFields, "a:b:-");
+            Item a = graph.NewItem(threeFields, "a:-:-");
 
             var result = new List<Dependency>();
             pi.Transform(gc, new[] {
-                env.CreateDependency(abc, abc, null, "abc", 1),
-                env.CreateDependency(ab, ab, null, "ab", 1),
-                env.CreateDependency(a, a, null, "a", 1),
+                graph.CreateDependency(abc, abc, null, "abc", 1),
+                graph.CreateDependency(ab, ab, null, "ab", 1),
+                graph.CreateDependency(a, a, null, "a", 1),
             }, "", result);
 
             Assert.AreEqual(0, result.Count);
         }
 
-        private Dependency Dep(Environment env, Item from, Item to, int ct = 1, int questionable = 0) {
-            return env.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
+        private Dependency Dep(WorkingGraph graph, Item from, Item to, int ct = 1, int questionable = 0) {
+            return graph.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
         }
 
         [TestMethod]
@@ -176,23 +176,23 @@ namespace NDepCheck.Tests {
             ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
 
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            Item a1 = env.NewItem(generic2, "a:1");
-            Item b1 = env.NewItem(generic2, "b:1");
-            Item c1 = env.NewItem(generic2, "c:1");
-            Item d1 = env.NewItem(generic2, "d:1");
-            Item e1 = env.NewItem(generic2, "e:1");
-            Item a2 = env.NewItem(generic2, "a:2");
-            Item b2 = env.NewItem(generic2, "b:2");
-            Item c2 = env.NewItem(generic2, "c:2");
-            Item d2 = env.NewItem(generic2, "d:2");
-            Item e2 = env.NewItem(generic2, "e:2");
-            Item x2 = env.NewItem(generic2, "x:2");
+            Item a1 = graph.NewItem(generic2, "a:1");
+            Item b1 = graph.NewItem(generic2, "b:1");
+            Item c1 = graph.NewItem(generic2, "c:1");
+            Item d1 = graph.NewItem(generic2, "d:1");
+            Item e1 = graph.NewItem(generic2, "e:1");
+            Item a2 = graph.NewItem(generic2, "a:2");
+            Item b2 = graph.NewItem(generic2, "b:2");
+            Item c2 = graph.NewItem(generic2, "c:2");
+            Item d2 = graph.NewItem(generic2, "d:2");
+            Item e2 = graph.NewItem(generic2, "e:2");
+            Item x2 = graph.NewItem(generic2, "x:2");
 
             var deps = new[] {
-                Dep(env, a1, b1), Dep(env, b1, c1), Dep(env, c1, d1), Dep(env, d1, e1), Dep(env, d1, b1),
-                Dep(env, a2, x2), Dep(env, b2, x2), Dep(env, c2, x2), Dep(env, d2, x2), Dep(env, e2, x2),
+                Dep(graph, a1, b1), Dep(graph, b1, c1), Dep(graph, c1, d1), Dep(graph, d1, e1), Dep(graph, d1, b1),
+                Dep(graph, a2, x2), Dep(graph, b2, x2), Dep(graph, c2, x2), Dep(graph, d2, x2), Dep(graph, e2, x2),
             };
 
             List<Dependency> backProjectedDeps = ProjectMarkCyclesAndBackProject(deps, gc);
@@ -214,16 +214,16 @@ namespace NDepCheck.Tests {
         public void TestBackProjectSmallCycle() {
             ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
             var gc = new GlobalContext();
-            Environment env = gc.CurrentEnvironment;
+            WorkingGraph graph = gc.CurrentGraph;
 
-            Item a1 = env.NewItem(generic2, "a:1");
-            Item b1 = env.NewItem(generic2, "b:1");
-            Item a2 = env.NewItem(generic2, "a:2");
-            Item b2 = env.NewItem(generic2, "b:2");
-            Item b3 = env.NewItem(generic2, "b:3");
+            Item a1 = graph.NewItem(generic2, "a:1");
+            Item b1 = graph.NewItem(generic2, "b:1");
+            Item a2 = graph.NewItem(generic2, "a:2");
+            Item b2 = graph.NewItem(generic2, "b:2");
+            Item b3 = graph.NewItem(generic2, "b:3");
 
             var deps = new[] {
-                Dep(env, a1, b1), Dep(env, b1, a2), Dep(env, b2, a2), Dep(env, a1, b3)
+                Dep(graph, a1, b1), Dep(graph, b1, a2), Dep(graph, b2, a2), Dep(graph, a1, b3)
             };
 
             List<Dependency> backProjectedDeps = ProjectMarkCyclesAndBackProject(deps, gc);
@@ -235,7 +235,7 @@ namespace NDepCheck.Tests {
 
             var pw = new FlatPathWriter();
             using (var t = DisposingFile.CreateTempFileWithTail(".txt")) {
-                pw.Render(gc, backProjectedDeps, $"{{ {FlatPathWriter.PathMarkerOption} C* }}".Replace(" ", System.Environment.NewLine), new WriteTarget(t.FileName, append: false, limitLinesForConsole: 100), ignoreCase: false);
+                pw.Render(gc, backProjectedDeps, $"{{ {FlatPathWriter.PathMarkerOption} C* }}".Replace(" ", Environment.NewLine), new WriteTarget(t.FileName, append: false, limitLinesForConsole: 100), ignoreCase: false);
 
                 using (var sr = new StreamReader(t.FileName)) {
                     var o = sr.ReadToEnd();
@@ -250,22 +250,22 @@ namespace NDepCheck.Tests {
         private static List<Dependency> ProjectMarkCyclesAndBackProject(Dependency[] deps, GlobalContext globalContext) {
             var backProjectedDeps = new List<Dependency>();
 
-            globalContext.RenameCurrentEnvironment("INPUT");
-            globalContext.CurrentEnvironment.AddDependencies(deps);
+            globalContext.RenameCurrentGraph("INPUT");
+            globalContext.CurrentGraph.AddDependencies(deps);
 
             var pi = new ProjectItems();
             pi.Configure(globalContext,
-                $"{{ {ProjectItems.ProjectionsOption} $GENERIC_2---%SIMPLE !(**) }}".Replace(" ", System.Environment.NewLine),
+                $"{{ {ProjectItems.ProjectionsOption} $GENERIC_2---%SIMPLE !(**) }}".Replace(" ", Environment.NewLine),
                 false);
             var projectedDeps = new List<Dependency>();
             pi.Transform(globalContext, deps, "", projectedDeps);
 
             var mc = new MarkCycleDeps();
             mc.Transform(globalContext, projectedDeps,
-                $"{{ {MarkCycleDeps.IgnoreSelfCyclesOption} {MarkCycleDeps.AddIndexedMarkerOption} C }}".Replace(" ", System.Environment.NewLine), new List<Dependency>());
+                $"{{ {MarkCycleDeps.ConsiderSelfCyclesOption} {MarkCycleDeps.AddIndexedMarkerOption} C }}".Replace(" ", Environment.NewLine), new List<Dependency>());
 
             pi.Transform(globalContext, projectedDeps,
-                $"{{ {ProjectItems.BackProjectionEnvironmentOption} INPUT }}".Replace(" ", System.Environment.NewLine),
+                $"{{ {ProjectItems.BackProjectionGraphOption} INPUT }}".Replace(" ", Environment.NewLine),
                 backProjectedDeps);
 
             return backProjectedDeps;

@@ -10,23 +10,24 @@ using JetBrains.Annotations;
 namespace NDepCheck.Rendering.TextWriting {
     public class RuleViolationWriter : IRenderer {
         public static readonly Option XmlOutputOption = new Option("xo", "xml-output", "", "Write output to XML file", @default: false);
+        public static readonly Option RuleOutputOption = new Option("ro", "rule-output", "", "Write output in rule format", @default: false);
         public static readonly Option NewlineOption = new Option("nl", "newline", "", "Write violations on three lines", @default: false);
 
         private static readonly Option[] _allOptions = { XmlOutputOption, NewlineOption };
 
         public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
-            bool xmlOutput, newLine;
-            ParseArgs(globalContext, argsAsString, out xmlOutput, out newLine);
+            bool xmlOutput, simpleRuleOutput, newLine;
+            ParseArgs(globalContext, argsAsString, out xmlOutput, out simpleRuleOutput, out newLine);
 
             int violationsCount = dependencies.Count(d => d.NotOkCt > 0);
 
             if (target.IsConsoleOut) {
                 var consoleLogger = new ConsoleLogger();
                 foreach (var d in dependencies.Where(d => d.QuestionableCt > 0 && d.BadCt == 0)) {
-                    consoleLogger.WriteViolation(d);
+                    consoleLogger.WriteViolation(d, simpleRuleOutput);
                 }
                 foreach (var d in dependencies.Where(d => d.BadCt > 0)) {
-                    consoleLogger.WriteViolation(d);
+                    consoleLogger.WriteViolation(d, simpleRuleOutput);
                 }
             } else if (xmlOutput) {
                 var document = new XDocument(
@@ -52,7 +53,7 @@ namespace NDepCheck.Rendering.TextWriting {
                 WriteTarget writeTarget = GetTextFile(target);
                 Log.WriteInfo($"Writing {violationsCount} violations to {writeTarget }");
                 using (var sw = writeTarget.CreateWriter()) {
-                    RenderToTextWriter(dependencies, sw, newLine);
+                    RenderToTextWriter(dependencies, sw, simpleRuleOutput, newLine);
                 }
             }
         }
@@ -65,12 +66,18 @@ namespace NDepCheck.Rendering.TextWriting {
             return target.ChangeExtension(".xml");
         }
 
-        private static void ParseArgs([NotNull] GlobalContext globalContext, [CanBeNull] string argsAsString, out bool xmlOutput, out bool newLine) {
+        private static void ParseArgs([NotNull] GlobalContext globalContext, [CanBeNull] string argsAsString, 
+            out bool xmlOutput, out bool simpleRuleOutput, out bool newLine) {
             bool xml = false;
             bool nl = false;
+            bool ro = false;
             Option.Parse(globalContext, argsAsString,
                 XmlOutputOption.Action((args, j) => {
-                    xml= true;
+                    xml = true;
+                    return j;
+                }),
+                RuleOutputOption.Action((args, j) => {
+                    ro = true;
                     return j;
                 }),
                 NewlineOption.Action((args, j) => {
@@ -78,32 +85,33 @@ namespace NDepCheck.Rendering.TextWriting {
                     return j;
                 }));
             xmlOutput = xml;
+            simpleRuleOutput = ro;
             newLine = nl;
         }
 
-        private static void RenderToTextWriter([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, ITargetWriter sw, bool newLine) {
+        private static void RenderToTextWriter([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, ITargetWriter sw, bool simpleRuleOutput, bool newLine) {
             sw.WriteLine($"// Written {DateTime.Now} by {typeof(RuleViolationWriter).Name} in NDepCheck {Program.VERSION}");
             foreach (var d in dependencies.Where(d => d.NotOkCt > 0)) {
-                sw.WriteLine(d.NotOkMessage(newLine));
+                sw.WriteLine(d.NotOkMessage(simpleRuleOutput: simpleRuleOutput, newLine: newLine));
             }
         }
 
         public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
             using (var sw = new TargetStreamWriter(stream)) {
-                RenderToTextWriter(dependencies, sw, false);
+                RenderToTextWriter(dependencies, sw, false, false);
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
+        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
             ItemType simple = ItemType.New("SIMPLE(Name)");
-            Item root = renderingEnvironment.NewItem(simple, "root");
-            Item ok = renderingEnvironment.NewItem(simple, "ok");
-            Item questionable = renderingEnvironment.NewItem(simple, "questionable");
-            Item bad = renderingEnvironment.NewItem(simple, "bad");
+            Item root = renderingGraph.NewItem(simple, "root");
+            Item ok = renderingGraph.NewItem(simple, "ok");
+            Item questionable = renderingGraph.NewItem(simple, "questionable");
+            Item bad = renderingGraph.NewItem(simple, "bad");
             return new[] {
-                renderingEnvironment.CreateDependency(root, ok, new TextFileSourceLocation("Test", 1), "Use", 4, 0, 0, "to root"),
-                renderingEnvironment.CreateDependency(root, questionable, new TextFileSourceLocation("Test", 1), "Use", 4, 1, 0, "to questionable"),
-                renderingEnvironment.CreateDependency(root, bad, new TextFileSourceLocation("Test", 1), "Use", 4, 2, 1, "to bad")
+                renderingGraph.CreateDependency(root, ok, new TextFileSourceLocation("Test", 1), "Use", 4, 0, 0, "to root"),
+                renderingGraph.CreateDependency(root, questionable, new TextFileSourceLocation("Test", 1), "Use", 4, 1, 0, "to questionable"),
+                renderingGraph.CreateDependency(root, bad, new TextFileSourceLocation("Test", 1), "Use", 4, 2, 1, "to bad")
             };
         }
 
@@ -116,8 +124,8 @@ $@"  Writes dependency rule violations to file in text or xml format.
         }
 
         public WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget) {
-            bool xmlOutput, ignore;
-            ParseArgs(globalContext, argsAsString, out xmlOutput, out ignore);
+            bool xmlOutput, ignoreRuleOutput, ignoreNewLine;
+            ParseArgs(globalContext, argsAsString, out xmlOutput, out ignoreRuleOutput, out ignoreNewLine);
             return xmlOutput ? GetXmlFile(baseTarget) : GetTextFile(baseTarget);
         }
     }

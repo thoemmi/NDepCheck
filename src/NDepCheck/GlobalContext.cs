@@ -13,8 +13,6 @@ namespace NDepCheck {
     public class GlobalContext {
         private const string HELP_SEPARATOR = "=============================================";
 
-        private static readonly string NewLine = System.Environment.NewLine;
-
         internal bool SomethingDone {
             get; set;
         }
@@ -34,26 +32,27 @@ namespace NDepCheck {
         private readonly ValuesFrame _globalValues = new ValuesFrame();
         private ValuesFrame _localParameters = new ValuesFrame();
 
-        private readonly List<Environment> _environments = new List<Environment> { CreateDefaultEnvironment() };
+        private readonly List<WorkingGraph> _workingGraphs = new List<WorkingGraph>();
 
-        public Environment CurrentEnvironment => _environments[_environments.Count - 1];
+        public WorkingGraph CurrentGraph => _workingGraphs[_workingGraphs.Count - 1];
 
-        private int _autoEnvironmentForTransform = 10;
-        private int _autoEnvironmentForRead = 0;
-
-
-        //private readonly Stack<IEnumerable<Dependency>> _dependencies = new Stack<IEnumerable<Dependency>>();
-
-        //private IEnumerable<Dependency> AllDependencies => _dependencies.Peek();
+        private int _autoGraphsForTransform = 10;
+        private int _autoGraphsForRead = 0;
 
         [NotNull]
         private readonly List<IPlugin> _plugins = new List<IPlugin>();
+
+        private readonly ItemAndDependencyFactoryList _itemAndDependencyFactories = new ItemAndDependencyFactoryList();
 
         static GlobalContext() {
             // Initialize all built-in reader factories because they contain predefined ItemTypes
             foreach (var t in GetPluginTypes<IReaderFactory>("")) {
                 Activator.CreateInstance(t);
             }
+        }
+
+        public GlobalContext() {
+            _workingGraphs.Add(CreateDefaultGraph(_itemAndDependencyFactories));
         }
 
         public bool WorkLazily {
@@ -97,8 +96,7 @@ namespace NDepCheck {
             IEnumerable<Type> pluginTypes = GetPluginTypes<T>(assemblyName);
             Type pluginType =
                 pluginTypes.FirstOrDefault(
-                    t => string.Compare(t.FullName, pluginClassName, StringComparison.InvariantCultureIgnoreCase) ==
-                        0) ??
+                    t => string.Compare(t.FullName, pluginClassName, StringComparison.InvariantCultureIgnoreCase) == 0) ??
                 pluginTypes.FirstOrDefault(
                     t => string.Compare(t.Name, pluginClassName, StringComparison.InvariantCultureIgnoreCase) == 0);
             if (pluginType == null) {
@@ -115,7 +113,7 @@ namespace NDepCheck {
             } catch (Exception ex) {
                 throw new ApplicationException(
                     $"Cannot create '{pluginClassName}' from assembly '{ShowAssemblyName(assemblyName)}' running in working " +
-                    $"directory {System.Environment.CurrentDirectory}; problem: {ex.Message}", ex);
+                    $"directory {Environment.CurrentDirectory}; problem: {ex.Message}", ex);
             }
         }
 
@@ -159,9 +157,10 @@ namespace NDepCheck {
             foreach (var plugin in CreatePlugins<T>(assemblyName)) {
                 string fullName = plugin.GetType().FullName;
                 try {
-                    string help = fullName + ":" + NewLine + plugin.GetHelp(detailedHelp: false, filter: "");
+                    var newLine = Environment.NewLine;
+                    string help = fullName + ":" + newLine + plugin.GetHelp(detailedHelp: false, filter: "");
                     if (help.IndexOf(filter ?? "", StringComparison.InvariantCultureIgnoreCase) >= 0) {
-                        matched.Add(fullName, HELP_SEPARATOR + NewLine + help + NewLine);
+                        matched.Add(fullName, HELP_SEPARATOR + newLine + help + newLine);
                     }
                 } catch (Exception ex) {
                     Log.WriteError($"Cannot get help for renderer '{fullName}'; reason: {ex.Message}");
@@ -190,7 +189,8 @@ namespace NDepCheck {
         /// <param name="excludes"></param>
         /// <param name="assemblyName"></param>
         /// <param name="readerFactoryClassNameOrNull">if null, detect from reader class from first extension in patterns</param>
-        public void ReadFiles(IEnumerable<string> includes, IEnumerable<string> excludes, string assemblyName, [CanBeNull] string readerFactoryClassNameOrNull) {
+        public void ReadFiles(IEnumerable<string> includes, IEnumerable<string> excludes, string assemblyName,
+                             [CanBeNull] string readerFactoryClassNameOrNull) {
             IReaderFactory readerFactory;
             if (readerFactoryClassNameOrNull == null) {
                 IEnumerable<string> allFileNames = includes.Concat(excludes);
@@ -230,36 +230,36 @@ namespace NDepCheck {
             // Currently, we add the previous set of dependencies to the newly read ones; with the introduction of a useful "working set" concept, this should vanish ...
             var readSet = new List<Dependency>();
             foreach (var r in readers) {
-                Dependency[] dependencies = r.ReadDependencies(CurrentEnvironment, 0, IgnoreCase).ToArray();
+                Dependency[] dependencies = r.ReadDependencies(CurrentGraph, 0, IgnoreCase).ToArray();
                 if (!dependencies.Any()) {
                     Log.WriteWarning("No dependencies found in " + r.FullFileName);
                 }
 
                 readSet.AddRange(dependencies);
             }
-            if (_autoEnvironmentForRead > 0) {
-                CreateEnvironment(readerFactory.GetType().Name, EnvironmentCreationType.AutoRead, readSet);
-                RemoveSuperfluousEnvironments(_autoEnvironmentForRead, EnvironmentCreationType.AutoRead);
+            if (_autoGraphsForRead > 0) {
+                CreateWorkingGraph(readerFactory.GetType().Name, GraphCreationType.AutoRead, readSet);
+                RemoveSuperfluousGraphs(_autoGraphsForRead, GraphCreationType.AutoRead);
             } else {
-                CurrentEnvironment.AddDependencies(readSet);
+                CurrentGraph.AddDependencies(readSet);
             }
 
-            Log.WriteInfo($"... now {CurrentEnvironment.DependencyCount} dependencies");
+            Log.WriteInfo($"... now {CurrentGraph.DependencyCount} dependencies");
         }
 
-        private void RemoveSuperfluousEnvironments(int limit, EnvironmentCreationType type) {
+        private void RemoveSuperfluousGraphs(int limit, GraphCreationType type) {
             if (limit <= 0) {
                 throw new ArgumentException("internal error", nameof(limit));
             }
-            var matchingEnvironments = _environments.Where(e => e.Type == type).ToArray();
-            if (matchingEnvironments.Length > limit) {
-                var toBeRemoved = matchingEnvironments.Take(matchingEnvironments.Length - limit);
-                _environments.RemoveAll(e => toBeRemoved.Contains(e));
+            var matchingGraphs = _workingGraphs.Where(e => e.Type == type).ToArray();
+            if (matchingGraphs.Length > limit) {
+                var toBeRemoved = matchingGraphs.Take(matchingGraphs.Length - limit);
+                _workingGraphs.RemoveAll(e => toBeRemoved.Contains(e));
             }
         }
 
-        private void CreateEnvironment(string namePrefix, EnvironmentCreationType type, IEnumerable<Dependency> dependencies) {
-            _environments.Add(new Environment(GetNewEnvironmentNameStartingWith(namePrefix), type, dependencies));
+        private void CreateWorkingGraph(string namePrefix, GraphCreationType type, IEnumerable<Dependency> dependencies) {
+            _workingGraphs.Add(new WorkingGraph(GetNewGraphNameStartingWith(namePrefix), type, dependencies, _itemAndDependencyFactories));
         }
 
         [CanBeNull]
@@ -292,12 +292,12 @@ namespace NDepCheck {
 
         public void TransformTestData(string assemblyName, string transformerClass, string transformerOptions) {
             ITransformer transformer = GetOrCreatePlugin<ITransformer>(assemblyName, transformerClass);
-            CreateEnvironment(transformerClass + ".TestDependencies", EnvironmentCreationType.AutoTransform, transformer.CreateSomeTestDependencies(CurrentEnvironment));
+            CreateWorkingGraph(transformerClass + ".TestDependencies", GraphCreationType.AutoTransform, transformer.CreateSomeTestDependencies(CurrentGraph));
 
             var newDependenciesCollector = new List<Dependency>();
-            transformer.Transform(this, CurrentEnvironment.Dependencies, transformerOptions, newDependenciesCollector);
+            transformer.Transform(this, CurrentGraph.VisibleDependencies, transformerOptions, newDependenciesCollector);
 
-            CurrentEnvironment.ReplaceDependencies(newDependenciesCollector);
+            CurrentGraph.ReplaceVisibleDependencies(newDependenciesCollector);
 
             SomethingDone = true;
         }
@@ -318,21 +318,21 @@ namespace NDepCheck {
 
                     RestartAbortWatchDog();
 
-                    if (_autoEnvironmentForTransform > 0) {
-                        CreateEnvironment(transformerClass, EnvironmentCreationType.AutoTransform, CurrentEnvironment.Dependencies);
-                        RemoveSuperfluousEnvironments(_autoEnvironmentForTransform, EnvironmentCreationType.AutoTransform);
+                    if (_autoGraphsForTransform > 0) {
+                        CreateWorkingGraph(transformerClass, GraphCreationType.AutoTransform, CurrentGraph.VisibleDependencies);
+                        RemoveSuperfluousGraphs(_autoGraphsForTransform, GraphCreationType.AutoTransform);
                     }
 
                     var newDependenciesCollector = new List<Dependency>();
-                    int result = transformer.Transform(this, CurrentEnvironment.Dependencies, transformerOptions, newDependenciesCollector);
+                    int result = transformer.Transform(this, CurrentGraph.VisibleDependencies, transformerOptions, newDependenciesCollector);
 
                     if (newDependenciesCollector.Contains(null)) {
                         throw new ArgumentNullException(nameof(newDependenciesCollector), "Contains null item");
                     }
 
-                    CurrentEnvironment.ReplaceDependencies(newDependenciesCollector);
+                    CurrentGraph.ReplaceVisibleDependencies(newDependenciesCollector);
 
-                    Log.WriteInfo($"... now {CurrentEnvironment.DependencyCount} dependencies");
+                    Log.WriteInfo($"... now {CurrentGraph.DependencyCount} dependencies");
 
                     SomethingDone = true;
                     return result;
@@ -375,7 +375,7 @@ namespace NDepCheck {
             string rendererOptions, [NotNull] WriteTarget target) {
             IRenderer renderer = GetOrCreatePlugin<IRenderer>(assemblyName, rendererClassName);
 
-            IEnumerable<Dependency> dependencies = renderer.CreateSomeTestDependencies(CurrentEnvironment);
+            IEnumerable<Dependency> dependencies = renderer.CreateSomeTestDependencies(CurrentGraph);
             renderer.Render(this, dependencies, rendererOptions, target, IgnoreCase);
 
             SomethingDone = true;
@@ -398,7 +398,7 @@ namespace NDepCheck {
                     } else {
                         RestartAbortWatchDog();
 
-                        renderer.Render(this, CurrentEnvironment.Dependencies, rendererOptions ?? "", target, IgnoreCase);
+                        renderer.Render(this, CurrentGraph.VisibleDependencies, rendererOptions ?? "", target, IgnoreCase);
                     }
                     SomethingDone = true;
 
@@ -414,8 +414,8 @@ namespace NDepCheck {
         }
 
         public void ResetAll() {
-            _environments.Clear();
-            _environments.Add(CreateDefaultEnvironment());
+            _workingGraphs.Clear();
+            _workingGraphs.Add(CreateDefaultGraph(_itemAndDependencyFactories));
 
             SomethingDone = false;
             SomethingDone = false;
@@ -430,8 +430,8 @@ namespace NDepCheck {
             [CanBeNull] string filter) where T : IPlugin {
             try {
                 T plugin = GetOrCreatePlugin<T>(assemblyName, pluginClassName);
-                Log.WriteInfo(plugin.GetType().FullName + ":" + NewLine +
-                              plugin.GetHelp(detailedHelp: true, filter: filter) + NewLine);
+                Log.WriteInfo(plugin.GetType().FullName + ":" + Environment.NewLine +
+                              plugin.GetHelp(detailedHelp: true, filter: filter) + Environment.NewLine);
             } catch (Exception ex) {
                 Log.WriteError(
                     $"Cannot print help for plugin '{pluginClassName}' in assembly '{ShowAssemblyName(assemblyName)}'; reason: {ex.Message}");
@@ -496,7 +496,7 @@ namespace NDepCheck {
 
         private IEnumerable<Dependency> LogOnlyDependencyCount(string pattern) {
             DependencyMatch m = pattern == null ? null : DependencyMatch.Create(pattern, IgnoreCase);
-            IEnumerable<Dependency> matchingDependencies = CurrentEnvironment.Dependencies.Where(d => m == null || m.IsMatch(d));
+            IEnumerable<Dependency> matchingDependencies = CurrentGraph.VisibleDependencies.Where(d => m == null || m.IsMatch(d));
             Log.WriteInfo(matchingDependencies.Count() + " dependencies" + (m == null ? "" : " matching " + pattern));
             return matchingDependencies;
         }
@@ -516,7 +516,7 @@ namespace NDepCheck {
         private IEnumerable<Item> LogOnlyItemCount(string pattern) {
             ItemMatch m = pattern == null ? null : new ItemMatch(pattern, IgnoreCase, anyWhereMatcherOk: true);
             IEnumerable<Item> allItems =
-                new HashSet<Item>(CurrentEnvironment.Dependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
+                new HashSet<Item>(CurrentGraph.VisibleDependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
             IEnumerable<Item> matchingItems = allItems.Where(i => ItemMatch.IsMatch(m, i));
             Log.WriteInfo(matchingItems.Count() + " items" + (m == null ? "" : " matching " + pattern));
             return matchingItems;
@@ -537,19 +537,19 @@ namespace NDepCheck {
             return GetPluginTypes<T>("").Any(t => t.Name == name);
         }
 
-        #region Environment handling
+        #region Graph handling
 
-        private string GetNewEnvironmentNameStartingWith(string s) {
-            int ct = _environments.Count(e => e.Name.StartsWith(s));
+        private string GetNewGraphNameStartingWith(string s) {
+            int ct = _workingGraphs.Count(e => e.Name.StartsWith(s));
             return s + (ct == 0 ? "" : "_" + ct);
         }
 
-        public void AutoForTransform(string flagArgument) {
-            SetAutoFlag(flagArgument, ref _autoEnvironmentForTransform);
+        public void AutoForTransform(string autoGraphCount) {
+            SetAutoFlag(autoGraphCount, ref _autoGraphsForTransform);
         }
 
-        public void AutoForRead(string flagArgument) {
-            SetAutoFlag(flagArgument, ref _autoEnvironmentForRead);
+        public void AutoForRead(string autoGraphCount) {
+            SetAutoFlag(autoGraphCount, ref _autoGraphsForRead);
         }
 
         private static void SetAutoFlag(string arg, ref int flag) {
@@ -565,119 +565,145 @@ namespace NDepCheck {
             }
         }
 
-        private static Environment CreateDefaultEnvironment() {
-            return new Environment("#0", EnvironmentCreationType.Manual, new Dependency[0]);
+        private static WorkingGraph CreateDefaultGraph(ItemAndDependencyFactoryList itemAndDependencyFactories) {
+            return new WorkingGraph("#0", GraphCreationType.Manual, new Dependency[0], itemAndDependencyFactories);
         }
 
         [CanBeNull]
-        private Environment FindEnvironment([NotNull] string name) {
-            Environment result = _environments.FirstOrDefault(e => e.Name == name) ??
-                                 _environments.FirstOrDefault(e => e.Name.StartsWith(name));
+        private WorkingGraph FindGraph([NotNull] string name) {
+            WorkingGraph result = _workingGraphs.FirstOrDefault(e => e.Name == name) ??
+                                 _workingGraphs.FirstOrDefault(e => e.Name.StartsWith(name));
             if (result == null) {
                 int id;
-                if (int.TryParse(name, out id) && id > 0 && id <= _environments.Count) {
-                    result = _environments[_environments.Count - id];
+                if (int.TryParse(name, out id) && id > 0 && id <= _workingGraphs.Count) {
+                    result = _workingGraphs[_workingGraphs.Count - id];
                 }
             }
             return result;
         }
 
         /// <summary>
-        /// Return dependencies in environment identified by name; if name is null, return the
-        /// environment below the current environment, if it exists.
+        /// Return dependencies in graph identified by name; if name is null, return the
+        /// graph below the current graph, if it exists.
         /// </summary>
         [CanBeNull]
-        public IEnumerable<Dependency> FindDependenciesInEnvironment([CanBeNull] string name) {
+        public IEnumerable<Dependency> FindDependenciesInGraph([CanBeNull] string name) {
             return name == null
-                ? (_environments.Count >= 2 ? _environments[_environments.Count - 2].Dependencies : null)
-                : FindEnvironment(name)?.Dependencies;
+                ? (_workingGraphs.Count >= 2 ? _workingGraphs[_workingGraphs.Count - 2].VisibleDependencies : null)
+                : FindGraph(name)?.VisibleDependencies;
         }
 
-        public void CloneEnvironments(string newName, IEnumerable<string> clonedNames) {
+        public void CloneGraphs(string newName, IEnumerable<string> clonedNames) {
             if (clonedNames.Any()) {
                 foreach (var n in clonedNames) {
-                    Environment e = FindEnvironment(n);
+                    WorkingGraph e = FindGraph(n);
                     if (e == null) {
-                        Log.WriteError($"No environment with name '{n}' found");
+                        Log.WriteError($"No graph with name '{n}' found");
                     } else {
-                        CreateEnvironment(e.Name, EnvironmentCreationType.Manual, e.Dependencies.Select(d => d.Clone()));
+                        CreateWorkingGraph(e.Name, GraphCreationType.Manual, e.VisibleDependencies.Select(d => d.Clone()));
                     }
                 }
             } else {
-                Environment e = CurrentEnvironment;
-                CreateEnvironment(e.Name, EnvironmentCreationType.Manual, e.Dependencies.Select(d => d.Clone()));
+                WorkingGraph e = CurrentGraph;
+                CreateWorkingGraph(e.Name, GraphCreationType.Manual, e.VisibleDependencies.Select(d => d.Clone()));
             }
         }
 
-        public void PushNewEnvironment(string newName) {
-            CreateEnvironment(newName, EnvironmentCreationType.Manual, new Dependency[0]);
+        public void PushNewGraph(string newName) {
+            CreateWorkingGraph(newName, GraphCreationType.Manual, new Dependency[0]);
         }
 
-        public void DeleteEnvironments(IEnumerable<string> namesToBeDeleted) {
+        public void DeleteGraphs(IEnumerable<string> namesToBeDeleted) {
             if (namesToBeDeleted.Any()) {
                 foreach (var n in namesToBeDeleted) {
-                    Environment e = FindEnvironment(n);
+                    WorkingGraph e = FindGraph(n);
                     if (e == null) {
-                        Log.WriteWarning($"No environment with name '{n}' found");
+                        Log.WriteWarning($"No graph with name '{n}' found");
                     } else {
-                        _environments.Remove(e);
+                        _workingGraphs.Remove(e);
                     }
                 }
             } else {
-                _environments.RemoveAt(_environments.Count - 1);
+                _workingGraphs.RemoveAt(_workingGraphs.Count - 1);
             }
-            if (!_environments.Any()) {
-                _environments.Add(CreateDefaultEnvironment());
+            if (!_workingGraphs.Any()) {
+                _workingGraphs.Add(CreateDefaultGraph(_itemAndDependencyFactories));
             }
         }
 
-        public void IncludeEnvironments(IEnumerable<string> namesToBeIncluded, bool removeIncluded) {
-            if (namesToBeIncluded.Contains(CurrentEnvironment.Name)) {
-                Log.WriteError($"Cannot add current environment to itself");
+        public void IncludeGraphs(IEnumerable<string> namesToBeIncluded, bool removeIncluded) {
+            if (namesToBeIncluded.Contains(CurrentGraph.Name)) {
+                Log.WriteError("Cannot add current graph to itself");
             }
             if (namesToBeIncluded.Any()) {
                 foreach (var n in namesToBeIncluded) {
-                    Environment e = FindEnvironment(n);
+                    WorkingGraph e = FindGraph(n);
                     if (e == null) {
-                        Log.WriteError($"No environment with name '{n}' found");
+                        Log.WriteError($"No graph with name '{n}' found");
                     } else {
-                        CurrentEnvironment.AddDependencies(e.Dependencies);
+                        CurrentGraph.AddDependencies(e.VisibleDependencies);
                         if (removeIncluded) {
-                            _environments.Remove(e);
+                            _workingGraphs.Remove(e);
                         }
                     }
                 }
             } else {
-                if (_environments.Count >= 2) {
-                    Environment e = _environments[_environments.Count - 2];
-                    CurrentEnvironment.AddDependencies(e.Dependencies);
+                if (_workingGraphs.Count >= 2) {
+                    WorkingGraph e = _workingGraphs[_workingGraphs.Count - 2];
+                    CurrentGraph.AddDependencies(e.VisibleDependencies);
                     if (removeIncluded) {
-                        _environments.Remove(e);
+                        _workingGraphs.Remove(e);
                     }
                 }
             }
         }
 
         public void MakeTop(string name) {
-            Environment e = FindEnvironment(name);
+            WorkingGraph e = FindGraph(name);
             if (e == null) {
-                Log.WriteError($"No environment with name '{name}' found");
+                Log.WriteError($"No graph with name '{name}' found");
             } else {
-                _environments.Remove(e);
-                _environments.Add(e);
+                _workingGraphs.Remove(e);
+                _workingGraphs.Add(e);
             }
         }
 
-        public void ListEnvironments() {
-            for (int i = _environments.Count - 1; i >= 0; i--) {
-                Log.WriteInfo(_environments.Count - i + ": " + _environments[i]);
+        public void ListGraphs() {
+            for (int i = _workingGraphs.Count - 1; i >= 0; i--) {
+                Log.WriteInfo(_workingGraphs.Count - i + ": " + _workingGraphs[i].AsString());
             }
         }
 
-        #endregion Environment handling
+        public void RenameCurrentGraph(string newName) {
+            CurrentGraph.Name = newName;
+        }
 
-        public void RenameCurrentEnvironment(string newName) {
-            CurrentEnvironment.Name = newName;
+        #endregion Graph handling
+
+        #region Item & dependency factories
+
+        public void AddItemAndDependencyFactory(string factoryAssembly, string factoryClass) {
+            _itemAndDependencyFactories.Add(GetOrCreatePlugin<IItemAndDependencyFactory>(factoryAssembly, factoryClass));
+        }
+
+        public void AddLocalItemAndDependencyFactory(string factoryAssembly, string factoryClass) {
+            CurrentGraph.AddItemAndDependencyFactory(GetOrCreatePlugin<IItemAndDependencyFactory>(
+                factoryAssembly, factoryClass));
+        }
+
+        public void RemoveItemAndDependencyFactories(string namePart) {
+            _itemAndDependencyFactories.Remove(namePart);
+        }
+
+        public void RemoveLocalItemAndDependencyFactories(string namePart) {
+            CurrentGraph.RemoveItemAndDependencyFactories(namePart);
+        }
+
+        #endregion Item & dependency factories
+
+        public void ListItemAndDependencyFactories() {
+            Log.WriteInfo(CurrentGraph.ListItemAndDependencyFactories() ??
+                          _itemAndDependencyFactories.ListItemAndDependencyFactories());
         }
     }
 }

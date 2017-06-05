@@ -217,7 +217,7 @@ namespace NDepCheck {
                     break;
                 }
             }
-            return string.Join(System.Environment.NewLine, argsList);
+            return string.Join(Environment.NewLine, argsList);
         }
 
         [NotNull]
@@ -291,8 +291,8 @@ namespace NDepCheck {
         }
 
         internal static void ThrowArgumentException(string message, string argsAsString) {
-            string singleLine = argsAsString.Replace(System.Environment.NewLine, " ");
-            throw new ArgumentException(message + System.Environment.NewLine + "Provided options: " + (singleLine.Length > 305 ? singleLine.Substring(0, 300) + "..." : singleLine));
+            string singleLine = argsAsString.Replace(Environment.NewLine, " ");
+            throw new ArgumentException(message + Environment.NewLine + "Provided options: " + (singleLine.Length > 305 ? singleLine.Substring(0, 300) + "..." : singleLine));
         }
 
         internal static void Parse([NotNull] GlobalContext globalContext, [CanBeNull] string argsAsString, params OptionAction[] optionActions) {
@@ -343,7 +343,7 @@ namespace NDepCheck {
                     } else {
                         message = "Invalid option " + arg;
                     }
-                    message += System.Environment.NewLine + "Allowed options: " +
+                    message += Environment.NewLine + "Allowed options: " +
                                CreateHelp(optionActions.Select(oa => oa.Option), detailed: false, filter: "");
                     ThrowArgumentException(message, argsAsString);
                 }
@@ -375,7 +375,7 @@ namespace NDepCheck {
                 string dir = sepPos < 0 ? "." : pattern.Substring(0, sepPos);
                 string filePattern = sepPos < 0 ? pattern : pattern.Substring(sepPos + 1);
                 if (!Directory.Exists(dir)) {
-                    throw new IOException($"Directory '{dir}' does not exist (current directory is '{System.Environment.CurrentDirectory}')");
+                    throw new IOException($"Directory '{dir}' does not exist (current directory is '{Environment.CurrentDirectory}')");
                 }
 
                 foreach (string name in Directory.GetFiles(dir, filePattern)) {

@@ -135,29 +135,29 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         //    return ct >= 1000000 ? ct / 1000 + "M" : ct >= 1000 ? ct / 1000 + "K" : "" + ct;
         //}
 
-        public override IEnumerable<Dependency> CreateSomeTestDependencies(Environment renderingEnvironment) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
             ItemType ar = ItemType.New("AR(Assembly:Ref)");
 
-            var wlg = renderingEnvironment.NewItem(ar, "WLG:1".Split(':'));
-            var kst = renderingEnvironment.NewItem(ar, "KST:2".Split(':'));
-            var vkf = renderingEnvironment.NewItem(ar, "VKF:3".Split(':'));
-            var impA = renderingEnvironment.NewItem(ar, "IMP.A:4".Split(':'));
-            var impB = renderingEnvironment.NewItem(ar, "IMP.B:5".Split(':'));
-            var impC = renderingEnvironment.NewItem(ar, "IMP.C:6".Split(':'));
-            var impD = renderingEnvironment.NewItem(ar, "IMP.D:".Split(':'));
+            var wlg = renderingGraph.NewItem(ar, "WLG:1".Split(':'));
+            var kst = renderingGraph.NewItem(ar, "KST:2".Split(':'));
+            var vkf = renderingGraph.NewItem(ar, "VKF:3".Split(':'));
+            var impA = renderingGraph.NewItem(ar, "IMP.A:4".Split(':'));
+            var impB = renderingGraph.NewItem(ar, "IMP.B:5".Split(':'));
+            var impC = renderingGraph.NewItem(ar, "IMP.C:6".Split(':'));
+            var impD = renderingGraph.NewItem(ar, "IMP.D:".Split(':'));
 
             return new[] {
-                    FromTo(renderingEnvironment, vkf, impA), FromTo(renderingEnvironment, vkf, impD),
-                    FromTo(renderingEnvironment, wlg, impB), FromTo(renderingEnvironment, wlg, impD),
-                    FromTo(renderingEnvironment, kst, impA), FromTo(renderingEnvironment, kst, impB),
-                    FromTo(renderingEnvironment, kst, impC)
+                    FromTo(renderingGraph, vkf, impA), FromTo(renderingGraph, vkf, impD),
+                    FromTo(renderingGraph, wlg, impB), FromTo(renderingGraph, wlg, impD),
+                    FromTo(renderingGraph, kst, impA), FromTo(renderingGraph, kst, impB),
+                    FromTo(renderingGraph, kst, impC)
                 };
 
             // Put vkf on x axis, rest on y
         }
 
-        private Dependency FromTo(Environment renderingEnvironment, Item from, Item to, int ct = 1, int questionableCt = 0) {
-            return renderingEnvironment.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
+        private Dependency FromTo(WorkingGraph renderingGraph, Item from, Item to, int ct = 1, int questionableCt = 0) {
+            return renderingGraph.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionableCt, exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
         public static readonly Option BottomRegexOption = new Option("pb", "place-on-bottom", "&", "Regex to select elements to place on bottom", @default: "all items on both axes");

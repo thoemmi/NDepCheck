@@ -14,8 +14,8 @@ namespace NDepCheck.Transforming.Projecting {
 
             public double CostPerProjection => (MatchCount + 1e-3) / (ProjectCount + 1e-9);
 
-            public override Item Project(Environment cachingEnvironment, Item item, bool left) {
-                return ProjectBySequentialSearch(cachingEnvironment, item, left);
+            public override Item Project(WorkingGraph cachingGraph, Item item, bool left) {
+                return ProjectBySequentialSearch(cachingGraph, item, left);
             }
 
             public int CompareTo(IResortableProjectorWithCost other) {
