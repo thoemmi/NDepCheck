@@ -11,6 +11,7 @@ using NDepCheck.Matching;
 
 namespace NDepCheck {
     public class GlobalContext {
+        private const string WORKING_GRAPH_DEFAULT_PREFIX = "#_";
         private const string HELP_SEPARATOR = "=============================================";
 
         internal bool SomethingDone {
@@ -44,6 +45,16 @@ namespace NDepCheck {
 
         private readonly ItemAndDependencyFactoryList _itemAndDependencyFactories = new ItemAndDependencyFactoryList();
 
+        public bool WorkLazily {
+            get; set;
+        }
+
+        public TimeSpan TimeLongerThan { get; set; } = TimeSpan.FromSeconds(10);
+        public TimeSpan AbortTime { get; set; } = TimeSpan.FromSeconds(10);
+
+        [CanBeNull]
+        private CancellationTokenSource _cancellationTokenSource;
+
         static GlobalContext() {
             // Initialize all built-in reader factories because they contain predefined ItemTypes
             foreach (var t in GetPluginTypes<IReaderFactory>("")) {
@@ -54,16 +65,6 @@ namespace NDepCheck {
         public GlobalContext() {
             _workingGraphs.Add(CreateDefaultGraph(_itemAndDependencyFactories));
         }
-
-        public bool WorkLazily {
-            get; set;
-        }
-
-        public TimeSpan TimeLongerThan { get; set; } = TimeSpan.FromSeconds(10);
-        public TimeSpan AbortTime { get; set; } = TimeSpan.FromSeconds(10);
-
-        [CanBeNull]
-        private CancellationTokenSource _cancellationTokenSource;
 
         public void SetDefine(string key, string value, string location) {
             _globalValues.SetDefine(key, value, location);
@@ -82,7 +83,7 @@ namespace NDepCheck {
         public static string ExpandHexChars([CanBeNull] string s) {
             return s != null && s.Contains('%')
                 ? Regex.Replace(s, "%[0-9a-fA-F][0-9a-fA-F]",
-                    m => "" + (char)int.Parse(m.Value.Substring(1), NumberStyles.HexNumber))
+                    m => "" + (char) int.Parse(m.Value.Substring(1), NumberStyles.HexNumber))
                 : s;
         }
 
@@ -105,9 +106,9 @@ namespace NDepCheck {
             }
             try {
                 // Plugins can have state, therefore we must manage them in a repository. A simple list is sufficient.
-                T result = (T)_plugins.FirstOrDefault(t => t.GetType() == pluginType);
+                T result = (T) _plugins.FirstOrDefault(t => t.GetType() == pluginType);
                 if (result == null) {
-                    _plugins.Add(result = (T)Activator.CreateInstance(pluginType));
+                    _plugins.Add(result = (T) Activator.CreateInstance(pluginType));
                 }
                 return result;
             } catch (Exception ex) {
@@ -142,7 +143,7 @@ namespace NDepCheck {
         private IEnumerable<T> CreatePlugins<T>(string assemblyName) where T : class, IPlugin {
             return GetPluginTypes<T>(assemblyName).Select(t => {
                 try {
-                    return (T)Activator.CreateInstance(t);
+                    return (T) Activator.CreateInstance(t);
                 } catch (Exception ex) {
                     Log.WriteError($"Cannot get help for renderer '{t.FullName}'; reason: {ex.Message}");
                     return null;
@@ -292,11 +293,13 @@ namespace NDepCheck {
 
         public void TransformTestData(string assemblyName, string transformerClass, string transformerOptions) {
             ITransformer transformer = GetOrCreatePlugin<ITransformer>(assemblyName, transformerClass);
-            CreateWorkingGraph(transformerClass + ".TestDependencies", GraphCreationType.AutoTransform, 
+            var workingGraphsAtStartOfTransform = new List<WorkingGraph>(_workingGraphs);
+            CreateWorkingGraph(transformerClass + ".TestDependencies", GraphCreationType.AutoTransform,
                                transformer.CreateSomeTestDependencies(CurrentGraph));
 
             var newDependenciesCollector = new List<Dependency>();
-            transformer.Transform(this, CurrentGraph.VisibleDependencies, transformerOptions, newDependenciesCollector);
+            transformer.Transform(this, CurrentGraph.VisibleDependencies, transformerOptions, newDependenciesCollector,
+                                  s => FindDependenciesInFirstGraphMatchingName(s, workingGraphsAtStartOfTransform));
 
             CurrentGraph.ReplaceVisibleDependencies(newDependenciesCollector);
 
@@ -319,13 +322,16 @@ namespace NDepCheck {
 
                     RestartAbortWatchDog();
 
+                    var workingGraphsAtStartOfTransform = new List<WorkingGraph>(_workingGraphs);
+
                     if (_autoGraphsForTransform > 0) {
                         CreateWorkingGraph(transformerClass, GraphCreationType.AutoTransform, Clone(CurrentGraph.VisibleDependencies));
                         RemoveSuperfluousGraphs(_autoGraphsForTransform, GraphCreationType.AutoTransform);
                     }
 
                     var newDependenciesCollector = new List<Dependency>();
-                    int result = transformer.Transform(this, CurrentGraph.VisibleDependencies, transformerOptions, newDependenciesCollector);
+                    int result = transformer.Transform(this, CurrentGraph.VisibleDependencies, transformerOptions, newDependenciesCollector, 
+                                                       s => FindDependenciesInFirstGraphMatchingName(s, workingGraphsAtStartOfTransform));
 
                     if (newDependenciesCollector.Contains(null)) {
                         throw new ArgumentNullException(nameof(newDependenciesCollector), "Contains null item");
@@ -540,9 +546,18 @@ namespace NDepCheck {
 
         #region Graph handling
 
-        private string GetNewGraphNameStartingWith(string s) {
-            int ct = _workingGraphs.Count(e => e.Name.StartsWith(s));
-            return s + (ct == 0 ? "" : "_" + ct);
+        private string GetNewGraphNameStartingWith([CanBeNull] string s) {
+            string prefix = s ?? WORKING_GRAPH_DEFAULT_PREFIX;
+            int? maxId = null;
+            foreach (var g in _workingGraphs) {
+                if (g.Name.StartsWith(prefix)) {
+                    int id;
+                    if (int.TryParse(g.Name.Substring(prefix.Length), out id) && (!maxId.HasValue || id > maxId)) {
+                        maxId = id;
+                    }
+                }
+            }
+            return maxId.HasValue ? prefix + (maxId + 1) : prefix;
         }
 
         public void AutoForTransform(string autoGraphCount) {
@@ -567,17 +582,24 @@ namespace NDepCheck {
         }
 
         private static WorkingGraph CreateDefaultGraph(ItemAndDependencyFactoryList itemAndDependencyFactories) {
-            return new WorkingGraph("#0", GraphCreationType.Manual, new Dependency[0], itemAndDependencyFactories);
+            return new WorkingGraph(WORKING_GRAPH_DEFAULT_PREFIX + "1", GraphCreationType.Manual, new Dependency[0], itemAndDependencyFactories);
         }
 
-        [CanBeNull]
-        private WorkingGraph FindGraph([NotNull] string name) {
-            WorkingGraph result = _workingGraphs.FirstOrDefault(e => e.Name == name) ??
-                                 _workingGraphs.FirstOrDefault(e => e.Name.StartsWith(name));
-            if (result == null) {
-                int id;
-                if (int.TryParse(name, out id) && id > 0 && id <= _workingGraphs.Count) {
-                    result = _workingGraphs[_workingGraphs.Count - id];
+        [NotNull, ItemNotNull]
+        private IEnumerable<WorkingGraph> FindGraph([NotNull] string name) {
+            return FindGraph(name, _workingGraphs);
+        }
+
+        [NotNull, ItemNotNull]
+        private static IEnumerable<WorkingGraph> FindGraph([NotNull] string name, List<WorkingGraph> workingGraphs) {
+            IEnumerable<WorkingGraph> result;
+            int id;
+            if (int.TryParse(name, out id) && id > 0 && id <= workingGraphs.Count) {
+                result = new[] { workingGraphs[workingGraphs.Count - id] };
+            } else {
+                result = workingGraphs.Where(e => e.Name == name);
+                if (!result.Any()) {
+                    result = workingGraphs.Where(e => e.Name.StartsWith(name));
                 }
             }
             return result;
@@ -588,10 +610,8 @@ namespace NDepCheck {
         /// graph below the current graph, if it exists.
         /// </summary>
         [CanBeNull]
-        public IEnumerable<Dependency> FindDependenciesInGraph([CanBeNull] string name) {
-            return name == null
-                ? (_workingGraphs.Count >= 2 ? _workingGraphs[_workingGraphs.Count - 2].VisibleDependencies : null)
-                : FindGraph(name)?.VisibleDependencies;
+        public IEnumerable<Dependency> FindDependenciesInFirstGraphMatchingName([CanBeNull] string name, List<WorkingGraph> workingGraphsAtStartOfTransform) {
+            return FindGraph(name ?? "2", workingGraphsAtStartOfTransform).FirstOrDefault()?.VisibleDependencies;
         }
 
         private IEnumerable<Dependency> Clone(IEnumerable<Dependency> dependencies) {
@@ -601,13 +621,11 @@ namespace NDepCheck {
             return dependencies.Select(d => d.Clone());
         }
 
-        public void CloneGraphs(string newName, IEnumerable<string> clonedNames) {
+        public void CloneGraphs(string newName, [NotNull, ItemNotNull] IEnumerable<string> clonedNames) {
             if (clonedNames.Any()) {
-                foreach (var n in clonedNames) {
-                    WorkingGraph g = FindGraph(n);
-                    if (g == null) {
-                        Log.WriteError($"No graph with name '{n}' found");
-                    } else {
+                IEnumerable<WorkingGraph> toBeCloned = FindGraphs(clonedNames);
+                if (toBeCloned != null) {
+                    foreach (var g in toBeCloned) {
                         CreateWorkingGraph(g.Name, GraphCreationType.Manual, Clone(g.VisibleDependencies));
                     }
                 }
@@ -616,21 +634,30 @@ namespace NDepCheck {
             }
         }
 
+        [CanBeNull, ItemNotNull]
+        private IEnumerable<WorkingGraph> FindGraphs([NotNull, ItemNotNull] IEnumerable<string> clonedNames) {
+            var toBeCloned = new List<WorkingGraph>();
+            foreach (var n in clonedNames) {
+                IEnumerable<WorkingGraph> foundGraphs = FindGraph(n);
+                if (!foundGraphs.Any()) {
+                    Log.WriteWarning($"No graph with name '{n}' found");
+                    toBeCloned = null;
+                }
+                toBeCloned?.AddRange(foundGraphs);
+            }
+            return toBeCloned;
+        }
+
         public void PushNewGraph(string newName) {
             CreateWorkingGraph(newName, GraphCreationType.Manual, new Dependency[0]);
         }
 
-        public void DeleteGraphs(IEnumerable<string> namesToBeDeleted) {
+        public void DeleteGraphs([NotNull, ItemNotNull] IEnumerable<string> namesToBeDeleted) {
             if (namesToBeDeleted.Any()) {
-                foreach (var n in namesToBeDeleted) {
-                    WorkingGraph e = FindGraph(n);
-                    if (e == null) {
-                        Log.WriteWarning($"No graph with name '{n}' found");
-                    } else {
-                        while (e != null) {
-                            _workingGraphs.Remove(e);
-                            e = FindGraph(n);
-                        }
+                IEnumerable<WorkingGraph> toBeDeleted = FindGraphs(namesToBeDeleted);
+                if (toBeDeleted != null) {
+                    foreach (var g in toBeDeleted) {
+                        _workingGraphs.Remove(g);
                     }
                 }
             } else {
@@ -641,40 +668,28 @@ namespace NDepCheck {
             }
         }
 
-        public void IncludeGraphs(IEnumerable<string> namesToBeIncluded, bool removeIncluded) {
+        public void IncludeGraphs([NotNull, ItemNotNull] IEnumerable<string> namesToBeIncluded, bool removeIncluded) {
             if (namesToBeIncluded.Contains(CurrentGraph.Name)) {
                 Log.WriteError("Cannot add current graph to itself");
             }
-            if (namesToBeIncluded.Any()) {
-                foreach (var n in namesToBeIncluded) {
-                    WorkingGraph e = FindGraph(n);
-                    if (e == null) {
-                        Log.WriteError($"No graph with name '{n}' found");
-                    } else {
-                        CurrentGraph.AddDependencies(e.VisibleDependencies);
-                        if (removeIncluded) {
-                            _workingGraphs.Remove(e);
-                        }
-                    }
-                }
-            } else {
-                if (_workingGraphs.Count >= 2) {
-                    WorkingGraph e = _workingGraphs[_workingGraphs.Count - 2];
-                    CurrentGraph.AddDependencies(e.VisibleDependencies);
+            IEnumerable<WorkingGraph> toBeIncluded = FindGraphs(namesToBeIncluded.Any() ? namesToBeIncluded : new[] { "2" });
+            if (toBeIncluded != null) {
+                foreach (var g in toBeIncluded) {
+                    CurrentGraph.AddDependencies(g.VisibleDependencies);
                     if (removeIncluded) {
-                        _workingGraphs.Remove(e);
+                        _workingGraphs.Remove(g);
                     }
                 }
             }
         }
 
-        public void MakeTop(string name) {
-            WorkingGraph e = FindGraph(name);
-            if (e == null) {
+        public void MakeTop([CanBeNull] string name) {
+            WorkingGraph g = FindGraph(name ?? "2").FirstOrDefault();
+            if (g == null) {
                 Log.WriteError($"No graph with name '{name}' found");
             } else {
-                _workingGraphs.Remove(e);
-                _workingGraphs.Add(e);
+                _workingGraphs.Remove(g);
+                _workingGraphs.Add(g);
             }
         }
 

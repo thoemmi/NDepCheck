@@ -54,7 +54,7 @@ namespace NDepCheck.Tests {
                 // !cb 3
                 // !s  4
                 // !t  3
-            }, "", result);
+            }, "", result, n => null);
 
             Assert.AreEqual(2, result.Count);
             Assert.AreEqual("A", result[0].UsingItem.Values[0]);
@@ -128,7 +128,7 @@ namespace NDepCheck.Tests {
                 graph.CreateDependency(ab, t, null, "ab_t", 1), // A_ T
                 graph.CreateDependency(abc, t, null, "abc_t", 1), // ADetail _T
                 graph.CreateDependency(abcd, t, null, "abcd_t", 1), // A _ T
-            }, "", result);
+            }, "", result, s => null);
 
             Assert.AreEqual(2, result.Count);
             Assert.AreEqual("A", result[0].UsingItem.Values[0]);
@@ -162,7 +162,7 @@ namespace NDepCheck.Tests {
                 graph.CreateDependency(abc, abc, null, "abc", 1),
                 graph.CreateDependency(ab, ab, null, "ab", 1),
                 graph.CreateDependency(a, a, null, "a", 1),
-            }, "", result);
+            }, "", result, s => null);
 
             Assert.AreEqual(0, result.Count);
         }
@@ -235,7 +235,8 @@ namespace NDepCheck.Tests {
 
             var pw = new FlatPathWriter();
             using (var t = DisposingFile.CreateTempFileWithTail(".txt")) {
-                pw.Render(gc, backProjectedDeps, $"{{ {FlatPathWriter.PathMarkerOption} C* }}".Replace(" ", Environment.NewLine), new WriteTarget(t.FileName, append: false, limitLinesForConsole: 100), ignoreCase: false);
+                pw.Render(gc, backProjectedDeps, $"{{ {FlatPathWriter.PathMarkerOption} C* }}".Replace(" ", Environment.NewLine), 
+                          new WriteTarget(t.FileName, append: false, limitLinesForConsole: 100), ignoreCase: false);
 
                 using (var sr = new StreamReader(t.FileName)) {
                     var o = sr.ReadToEnd();
@@ -258,15 +259,15 @@ namespace NDepCheck.Tests {
                 $"{{ {ProjectItems.ProjectionsOption} $GENERIC_2---%SIMPLE !(**) }}".Replace(" ", Environment.NewLine),
                 false);
             var projectedDeps = new List<Dependency>();
-            pi.Transform(globalContext, deps, "", projectedDeps);
+            pi.Transform(globalContext, deps, "", projectedDeps, s => null);
 
             var mc = new MarkCycleDeps();
             mc.Transform(globalContext, projectedDeps,
-                $"{{ {MarkCycleDeps.ConsiderSelfCyclesOption} {MarkCycleDeps.AddIndexedMarkerOption} C }}".Replace(" ", Environment.NewLine), new List<Dependency>());
+                $"{{ {MarkCycleDeps.ConsiderSelfCyclesOption} {MarkCycleDeps.AddIndexedMarkerOption} C }}".Replace(" ", Environment.NewLine), new List<Dependency>(), s => null);
 
             pi.Transform(globalContext, projectedDeps,
                 $"{{ {ProjectItems.BackProjectionGraphOption} INPUT }}".Replace(" ", Environment.NewLine),
-                backProjectedDeps);
+                backProjectedDeps, s => globalContext.CurrentGraph.VisibleDependencies);
 
             return backProjectedDeps;
         }

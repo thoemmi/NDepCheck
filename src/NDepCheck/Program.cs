@@ -241,6 +241,7 @@ namespace NDepCheck {
                     Console.Write(value: globalContext.CurrentGraph.Name + "> ");
                     Console.ResetColor();
                     string commands = Console.ReadLine();
+
                     string lowerInvariant = commands?.Trim().ToLowerInvariant();
                     if (commands == null
                         || Option.ArgMatches("q", "quit", "exit")
@@ -248,6 +249,10 @@ namespace NDepCheck {
                         || lowerInvariant == "exit") {
                         break;
                     } else {
+                        int commentStart = commands.IndexOf("//", StringComparison.InvariantCulture);
+                        if (commentStart >= 0) {
+                            commands = commands.Substring(0, commentStart);
+                        }
                         commands = commands.Trim();
                         if (commands != "") {
                             InteractiveLog(program, commands);

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
@@ -21,9 +22,8 @@ Transformer options: {Option.CreateHelp(DependencyMatchOptions.WithOptions(), de
             _ignoreCase = globalContext.IgnoreCase;
         }
 
-        public int Transform([NotNull] GlobalContext globalContext,
-            [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string transformOptions,
-            [NotNull] List<Dependency> transformedDependencies) {
+        public int Transform([NotNull] GlobalContext globalContext, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies, 
+            [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
 
             var matches = new List<DependencyMatch>();
             var excludes = new List<DependencyMatch>();

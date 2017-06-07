@@ -18,7 +18,7 @@ namespace NDepCheck.Tests {
 
             var cd = new CheckDeps();
             cd.Configure(gc, "{ -rd $SIMPLE--->SIMPLE a--->(a|b) }".Replace(" ", "\r\n"), true);
-            cd.Transform(gc, deps, "", ignore);
+            cd.Transform(gc, deps, "", ignore, s => null);
 
             Assert.IsFalse(deps.Any(d => d.BadCt > 0));
         }
@@ -41,7 +41,7 @@ namespace NDepCheck.Tests {
     a ===> y
 }", true);
             var ignore = new List<Dependency>();
-            cd.Transform(gc, deps, "", ignore);
+            cd.Transform(gc, deps, "", ignore, s => null);
 
             Assert.IsFalse(deps.Any(d => d.BadCt > 0));
 

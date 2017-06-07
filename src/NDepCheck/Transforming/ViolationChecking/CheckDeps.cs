@@ -154,7 +154,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         private int _allFilesCt, _okFilesCt;
         private Dictionary<string, int> _matchesByGroup;
 
-        public override void BeforeAllTransforms([NotNull] GlobalContext globalContext, string transformOptions) {
+        public override void BeforeAllTransforms([NotNull] GlobalContext globalContext, string transformOptions, IEnumerable<string> containerNames) {
             _showUnusedQuestionableRules = _showUnusedRules = _addMarker = false;
 
             Option.Parse(globalContext, transformOptions,
@@ -173,6 +173,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             _allCheckedGroups = new HashSet<DependencyRuleGroup>();
 
             _matchesByGroup = new Dictionary<string, int>();
+
+            Log.WriteInfo("Checking dependencies from " + string.Join(", ", containerNames));
         }
 
         public override int TransformContainer([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
@@ -245,7 +247,6 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
             DependencyRuleGroup[] checkedGroups = ruleSetForAssembly.GetAllDependencyGroupsWithRules(globalContext.IgnoreCase).ToArray();
             if (checkedGroups.Any()) {
-                Log.WriteInfo("Checking " + containerName);
                 int badCount = 0;
                 int questionableCount = 0;
 
@@ -261,7 +262,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 _allCheckedGroups.UnionWith(checkedGroups);
 
                 if (Log.IsVerboseEnabled) {
-                    string msg = 
+                    string msg =
                         $"{containerName}: {badCount} bad dependencies, {questionableCount} questionable dependecies";
                     if (badCount > 0) {
                         Log.WriteError(msg);
@@ -278,7 +279,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                     return Program.OK_RESULT;
                 }
             } else {
-                Log.WriteInfo("No rule groups found for " + containerName + " - no dependency checking is done");
+                Log.WriteInfo("No rule groups found for " + containerName + " - no dependency checking is done for its dependencies");
                 return Program.NO_RULE_GROUPS_FOUND;
             }
         }
@@ -309,13 +310,13 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             }
 
             if (_allFilesCt == 1) {
-                if (_okFilesCt == 1) {
-                    Log.WriteInfo("Input file is without violations.");
-                }
+                Log.WriteInfo(_okFilesCt == 1 ? "Input file is without violations." : "Input file has violations.");
+            } else if (_okFilesCt == _allFilesCt) {
+                Log.WriteInfo($"All {_okFilesCt} input files are without violations.");
+            } else if (_okFilesCt == 0) {
+                Log.WriteInfo($"All {_allFilesCt} input files have violations.");
             } else {
-                Log.WriteInfo(_okFilesCt == 1
-                    ? "One input file is without violations."
-                    : $"{_okFilesCt} input files are without violations.");
+                Log.WriteInfo($"{_allFilesCt - _okFilesCt} input files have violations, {_okFilesCt} are without violations.");
             }
         }
 

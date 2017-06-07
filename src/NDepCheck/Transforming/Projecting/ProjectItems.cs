@@ -217,16 +217,15 @@ Examples:
 
         #region Transform
 
-        public override int Transform([NotNull] GlobalContext globalContext, 
-                            [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
-                            string transformOptions, [NotNull] List<Dependency> transformedDependencies) {
+        public override int Transform([NotNull] GlobalContext globalContext, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
+            [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies, [NotNull] Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
             IEnumerable<Dependency> backProjectionDependencies = null;
             Option.Parse(globalContext, transformOptions,
                 BackProjectionGraphOption.Action((args, j) => {
-                    string backProjectionGraph = Option.ExtractOptionValue(args, ref j);
-                    backProjectionDependencies = globalContext.FindDependenciesInGraph(backProjectionGraph);
+                    string backProjectionGraphName = Option.ExtractOptionValue(args, ref j);
+                    backProjectionDependencies = findOtherWorkingGraph(backProjectionGraphName);
                     if (backProjectionDependencies == null) {
-                        throw new ArgumentException($"Could not find graph '{backProjectionGraph}'");
+                        throw new ArgumentException($"Could not find graph '{backProjectionGraphName}'");
                     }
                     return j;
                 })

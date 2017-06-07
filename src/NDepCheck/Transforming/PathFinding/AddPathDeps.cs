@@ -182,8 +182,8 @@ namespace NDepCheck.Transforming.PathFinding {
             // empty
         }
 
-        public int Transform([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
-            string transformOptions, [NotNull] List<Dependency> transformedDependencies) {
+        public int Transform([NotNull] GlobalContext globalContext, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
+            string transformOptions, [NotNull] List<Dependency> transformedDependencies, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
             bool backwards;
             ItemMatch pathAnchor;
             bool pathAnchorIsCountMatch;

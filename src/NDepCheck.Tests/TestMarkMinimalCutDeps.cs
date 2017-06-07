@@ -19,7 +19,7 @@ namespace NDepCheck.Tests {
             try {
                 var mmc = new MarkMinimalCutDeps();
                 var result = new List<Dependency>();
-                mmc.Transform(gc, dependencies ?? mmc.CreateSomeTestDependencies(gc.CurrentGraph), options.Replace(" ", "\r\n"), result);
+                mmc.Transform(gc, dependencies ?? mmc.CreateSomeTestDependencies(gc.CurrentGraph), options.Replace(" ", "\r\n"), result, s => null);
                 return result;
             } finally {
                 // Also static caches must be reset, as "Mark" modifies Items

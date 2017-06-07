@@ -139,8 +139,8 @@ namespace NDepCheck.Transforming {
 
         #region Transform
 
-        public abstract int Transform([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, 
-                                      string transformOptions, [NotNull] List<Dependency> transformedDependencies);
+        public abstract int Transform([NotNull] GlobalContext globalContext, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
+            [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies, [NotNull] Func<string, IEnumerable<Dependency>> findOtherWorkingGraph);
 
         public abstract IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph);
 

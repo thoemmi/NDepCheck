@@ -72,7 +72,7 @@ T3:b:bb:bbb'A $", result.Trim());
             var pm = new PathMarker();
             pm.Configure(gc, "", false);
             var transformedDependencies = new List<Dependency>();
-            pm.Transform(gc, dependencies, transformOptions, transformedDependencies);
+            pm.Transform(gc, dependencies, transformOptions, transformedDependencies, s => null);
 
             string result;
             using (var s = new MemoryStream()) {

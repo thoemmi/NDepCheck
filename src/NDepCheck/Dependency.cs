@@ -99,7 +99,7 @@ namespace NDepCheck {
                 string markers = MarkerSet.AsFullString(maxLength / 3);
                 return
                     $"{prefix}{nounTail}{reason}: {brk}{UsingItem.AsFullString(maxLength / 3)}{brk}-- {ct}{markers}{brk}-> {UsedItem.AsFullString(maxLength / 3)}" +
-                    (Source != null ? (Ct > 1 ? " (e.g. at " : " (at ") + Source + ")" : "") +
+                    (Source != null ? $" {brk}" + (Ct > 1 ? "(e.g. at " : "(at ") + Source + ")" : "") +
                     (newLine ? Environment.NewLine : "");
             }
         }
