@@ -163,16 +163,16 @@ namespace NDepCheck {
             return result;
         }
 
-        public Item NewItem([NotNull] ItemType type, [ItemNotNull] params string[] values) {
+        public Item CreateItem([NotNull] ItemType type, [ItemNotNull] params string[] values) {
             return CompleteItem((_itemAndDependencyFactories ?? _globalItemAndDependencyFactories).CreateItem(type, values), null);
         }
 
-        public Item NewItem([NotNull] ItemType type, [ItemNotNull] string[] values,
+        public Item CreateItem([NotNull] ItemType type, [ItemNotNull] string[] values,
             [CanBeNull] [ItemNotNull] string[] markers) {
             return CompleteItem((_itemAndDependencyFactories ?? _globalItemAndDependencyFactories).CreateItem(type, values), markers);
         }
 
-        public Item NewItem([NotNull] ItemType type, [NotNull] string reducedName) {
+        public Item CreateItem([NotNull] ItemType type, [NotNull] string reducedName) {
             return CompleteItem((_itemAndDependencyFactories ?? _globalItemAndDependencyFactories).CreateItem(type, reducedName.Split(':')), null);
         }
 

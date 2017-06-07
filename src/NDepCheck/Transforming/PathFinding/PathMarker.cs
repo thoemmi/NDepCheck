@@ -330,14 +330,14 @@ namespace NDepCheck.Transforming.PathFinding {
         public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
-            var a = transformingGraph.NewItem(t3, "a:aa:aaa".Split(':'));
-            var b = transformingGraph.NewItem(t3, "b:bb:bbb".Split(':'));
-            var c = transformingGraph.NewItem(t3, "c:cc:ccc".Split(':'));
-            var d = transformingGraph.NewItem(t3, "d:dd:ddd".Split(':'));
-            var e = transformingGraph.NewItem(t3, "e:ee:eee".Split(':'));
-            var f = transformingGraph.NewItem(t3, "f:ff:fff".Split(':'));
-            var g = transformingGraph.NewItem(t3, "g:gg:ggg".Split(':'));
-            var h = transformingGraph.NewItem(t3, "h:hh:hhh".Split(':'));
+            var a = transformingGraph.CreateItem(t3, "a:aa:aaa".Split(':'));
+            var b = transformingGraph.CreateItem(t3, "b:bb:bbb".Split(':'));
+            var c = transformingGraph.CreateItem(t3, "c:cc:ccc".Split(':'));
+            var d = transformingGraph.CreateItem(t3, "d:dd:ddd".Split(':'));
+            var e = transformingGraph.CreateItem(t3, "e:ee:eee".Split(':'));
+            var f = transformingGraph.CreateItem(t3, "f:ff:fff".Split(':'));
+            var g = transformingGraph.CreateItem(t3, "g:gg:ggg".Split(':'));
+            var h = transformingGraph.CreateItem(t3, "h:hh:hhh".Split(':'));
 
             return new[] {
                 FromTo(transformingGraph, a, b),

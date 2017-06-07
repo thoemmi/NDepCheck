@@ -135,8 +135,8 @@ Examples:
         }
 
         public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
-            var a = transformingGraph.NewItem(ItemType.SIMPLE, "A");
-            var b = transformingGraph.NewItem(ItemType.SIMPLE, "B");
+            var a = transformingGraph.CreateItem(ItemType.SIMPLE, "A");
+            var b = transformingGraph.CreateItem(ItemType.SIMPLE, "B");
             return new[] {
                 transformingGraph.CreateDependency(a, a, source: null, markers: "", ct:10, questionableCt:5, badCt:3, notOkReason: "test"),
                 transformingGraph.CreateDependency(a, b, source: null, markers: "use+define", ct:1, questionableCt:0,badCt: 0),

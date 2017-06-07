@@ -11,8 +11,8 @@ namespace NDepCheck.Tests {
             GlobalContext gc = new GlobalContext();
 
             var env = gc.CurrentGraph;
-            var a = env.NewItem(ItemType.SIMPLE, "a");
-            var b = env.NewItem(ItemType.SIMPLE, "b");
+            var a = env.CreateItem(ItemType.SIMPLE, "a");
+            var b = env.CreateItem(ItemType.SIMPLE, "b");
             var deps = new[] { env.CreateDependency(a, b, null, "", 1) };
             var ignore = new List<Dependency>();
 
@@ -28,8 +28,8 @@ namespace NDepCheck.Tests {
             GlobalContext gc = new GlobalContext();
 
             var env = gc.CurrentGraph;
-            var a = env.NewItem(ItemType.SIMPLE, "a");
-            var b = env.NewItem(ItemType.SIMPLE, "b");
+            var a = env.CreateItem(ItemType.SIMPLE, "a");
+            var b = env.CreateItem(ItemType.SIMPLE, "b");
             var deps = new[] { env.CreateDependency(a, b, null, "", 1) };
 
             var cd = new CheckDeps();

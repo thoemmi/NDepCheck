@@ -117,16 +117,16 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         }
 
         public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
-            Item a = transformingGraph.NewItem(ItemType.SIMPLE, "Ax");
-            Item b = transformingGraph.NewItem(ItemType.SIMPLE, "Bx");
-            Item c = transformingGraph.NewItem(ItemType.SIMPLE, "Cloop");
-            Item d = transformingGraph.NewItem(ItemType.SIMPLE, "Dloop");
-            Item e = transformingGraph.NewItem(ItemType.SIMPLE, "Eselfloop");
-            Item f = transformingGraph.NewItem(ItemType.SIMPLE, "Fy");
-            Item g = transformingGraph.NewItem(ItemType.SIMPLE, "Gy");
-            Item h = transformingGraph.NewItem(ItemType.SIMPLE, "Hy");
-            Item i = transformingGraph.NewItem(ItemType.SIMPLE, "Iy");
-            Item j = transformingGraph.NewItem(ItemType.SIMPLE, "Jy");
+            Item a = transformingGraph.CreateItem(ItemType.SIMPLE, "Ax");
+            Item b = transformingGraph.CreateItem(ItemType.SIMPLE, "Bx");
+            Item c = transformingGraph.CreateItem(ItemType.SIMPLE, "Cloop");
+            Item d = transformingGraph.CreateItem(ItemType.SIMPLE, "Dloop");
+            Item e = transformingGraph.CreateItem(ItemType.SIMPLE, "Eselfloop");
+            Item f = transformingGraph.CreateItem(ItemType.SIMPLE, "Fy");
+            Item g = transformingGraph.CreateItem(ItemType.SIMPLE, "Gy");
+            Item h = transformingGraph.CreateItem(ItemType.SIMPLE, "Hy");
+            Item i = transformingGraph.CreateItem(ItemType.SIMPLE, "Iy");
+            Item j = transformingGraph.CreateItem(ItemType.SIMPLE, "Jy");
             return new[] {
                 // Pure sources
                 transformingGraph.CreateDependency(a, b, source: null, markers: "", ct: 10, questionableCt: 5, badCt: 3),

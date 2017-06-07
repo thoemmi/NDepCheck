@@ -181,8 +181,8 @@ NDepCheck:Tests ---> **
 
         private Dependency NewDependency(WorkingGraph workingGraph, string usingA, string usingN, string usingC, string usedA, string usedN,
             string usedC) {
-            return workingGraph.CreateDependency(workingGraph.NewItem(ITEMTYPE, usingA, usingN, usingC),
-                                  workingGraph.NewItem(ITEMTYPE, usedA, usedN, usedC),
+            return workingGraph.CreateDependency(workingGraph.CreateItem(ITEMTYPE, usingA, usingN, usingC),
+                                  workingGraph.CreateItem(ITEMTYPE, usedA, usedN, usedC),
                 null, "Test", ct: 1);
         }
 

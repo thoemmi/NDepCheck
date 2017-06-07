@@ -213,12 +213,12 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
         public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
             // Graph from http://web.stanford.edu/class/cs97si/08-network-flow-problems.pdf p.7
-            Item s = transformingGraph.NewItem(ItemType.SIMPLE, "s");
-            Item a = transformingGraph.NewItem(ItemType.SIMPLE, "a");
-            Item b = transformingGraph.NewItem(ItemType.SIMPLE, "b");
-            Item c = transformingGraph.NewItem(ItemType.SIMPLE, "c");
-            Item d = transformingGraph.NewItem(ItemType.SIMPLE, "d");
-            Item t = transformingGraph.NewItem(ItemType.SIMPLE, "t");
+            Item s = transformingGraph.CreateItem(ItemType.SIMPLE, "s");
+            Item a = transformingGraph.CreateItem(ItemType.SIMPLE, "a");
+            Item b = transformingGraph.CreateItem(ItemType.SIMPLE, "b");
+            Item c = transformingGraph.CreateItem(ItemType.SIMPLE, "c");
+            Item d = transformingGraph.CreateItem(ItemType.SIMPLE, "d");
+            Item t = transformingGraph.CreateItem(ItemType.SIMPLE, "t");
             return new[] {
                 transformingGraph.CreateDependency(s, a, null, "s_a", 101, 16, 0, "test data"),
                 transformingGraph.CreateDependency(s, c, null, "s_c", 103, 13, 0, "test data"),

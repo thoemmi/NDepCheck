@@ -27,6 +27,4 @@ src/CommonAssemblyInfo.cs
 /uuu.dip
 /rrr.nd
 /rrr.dip
-/src/NDepCheckViolations~NamespaceClass2.txt
-/src/NDepCheckViolations2~NamespaceClass.txt
-/src/NDepCheckViolations2.txt
+/src/NDepCheckViolations*.txt

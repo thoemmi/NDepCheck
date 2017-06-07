@@ -138,13 +138,13 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
             ItemType ar = ItemType.New("AR(Assembly:Ref)");
 
-            var wlg = renderingGraph.NewItem(ar, "WLG:1".Split(':'));
-            var kst = renderingGraph.NewItem(ar, "KST:2".Split(':'));
-            var vkf = renderingGraph.NewItem(ar, "VKF:3".Split(':'));
-            var impA = renderingGraph.NewItem(ar, "IMP.A:4".Split(':'));
-            var impB = renderingGraph.NewItem(ar, "IMP.B:5".Split(':'));
-            var impC = renderingGraph.NewItem(ar, "IMP.C:6".Split(':'));
-            var impD = renderingGraph.NewItem(ar, "IMP.D:".Split(':'));
+            var wlg = renderingGraph.CreateItem(ar, "WLG:1".Split(':'));
+            var kst = renderingGraph.CreateItem(ar, "KST:2".Split(':'));
+            var vkf = renderingGraph.CreateItem(ar, "VKF:3".Split(':'));
+            var impA = renderingGraph.CreateItem(ar, "IMP.A:4".Split(':'));
+            var impB = renderingGraph.CreateItem(ar, "IMP.B:5".Split(':'));
+            var impC = renderingGraph.CreateItem(ar, "IMP.C:6".Split(':'));
+            var impD = renderingGraph.CreateItem(ar, "IMP.D:".Split(':'));
 
             return new[] {
                     FromTo(renderingGraph, vkf, impA), FromTo(renderingGraph, vkf, impD),

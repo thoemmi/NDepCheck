@@ -29,9 +29,9 @@ namespace NDepCheck.Tests {
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
             var pathMarker = "P0";
 
-            Item a = graph.NewItem(t3, "a:aa:aaa".Split(':'));
+            Item a = graph.CreateItem(t3, "a:aa:aaa".Split(':'));
             a.MarkPathElement(pathMarker, 0, isStart: false, isEnd: false, isMatchedByCountMatch: false, isLoopBack: false);
-            Item b = graph.NewItem(t3, "b:bb:bbb".Split(':'));
+            Item b = graph.CreateItem(t3, "b:bb:bbb".Split(':'));
             b.SetMarker(pathMarker, 1);
 
             var d = CreateDependency(graph, a, b, pathMarker, true, true, false, false);
@@ -54,8 +54,8 @@ b:bb:bbb $", result.Trim());
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            var a = graph.NewItem(t3, "a:aa:aaa".Split(':'));
-            var b = graph.NewItem(t3, "b:bb:bbb".Split(':'));
+            var a = graph.CreateItem(t3, "a:aa:aaa".Split(':'));
+            var b = graph.CreateItem(t3, "b:bb:bbb".Split(':'));
 
             var dependencies = new[] {
                 FromTo(graph, a, b),
@@ -97,8 +97,8 @@ T3:b:bb:bbb'A $", result.Trim());
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            var a = graph.NewItem(t3, "a:aa:aaa".Split(':'));
-            var c = graph.NewItem(t3, "c:cc:ccc".Split(':'));
+            var a = graph.CreateItem(t3, "a:aa:aaa".Split(':'));
+            var c = graph.CreateItem(t3, "c:cc:ccc".Split(':'));
 
             var dependencies = new[] { FromTo(graph, a, c) };
 
@@ -182,10 +182,10 @@ T3:g:gg:ggg'A $", result.Trim());
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            var a = graph.NewItem(t3, "a:aa:aaa".Split(':'));
-            var b = graph.NewItem(t3, "b:bb:bbb".Split(':'));
-            var c = graph.NewItem(t3, "c:cc:ccc".Split(':'));
-            var d = graph.NewItem(t3, "d:dd:ddd".Split(':'));
+            var a = graph.CreateItem(t3, "a:aa:aaa".Split(':'));
+            var b = graph.CreateItem(t3, "b:bb:bbb".Split(':'));
+            var c = graph.CreateItem(t3, "c:cc:ccc".Split(':'));
+            var d = graph.CreateItem(t3, "d:dd:ddd".Split(':'));
 
             var dependencies = new[] {
                         FromTo(graph, a, b),
@@ -207,13 +207,13 @@ T3:d:dd:ddd'A $", result.Trim());
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            Item a = graph.NewItem(xy, "a", "1");
-            Item b = graph.NewItem(xy, "b", "2");
-            Item c = graph.NewItem(xy, "c", "2");
-            Item d = graph.NewItem(xy, "d", "3");
-            Item e = graph.NewItem(xy, "e", "4");
-            Item f = graph.NewItem(xy, "f", "4");
-            Item g = graph.NewItem(xy, "g", "5");
+            Item a = graph.CreateItem(xy, "a", "1");
+            Item b = graph.CreateItem(xy, "b", "2");
+            Item c = graph.CreateItem(xy, "c", "2");
+            Item d = graph.CreateItem(xy, "d", "3");
+            Item e = graph.CreateItem(xy, "e", "4");
+            Item f = graph.CreateItem(xy, "f", "4");
+            Item g = graph.CreateItem(xy, "g", "5");
             Dependency[] dependencies = {
                 FromTo(graph, a, b),
                 FromTo(graph, a, c),

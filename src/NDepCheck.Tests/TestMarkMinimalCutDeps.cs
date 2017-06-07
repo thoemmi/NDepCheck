@@ -31,10 +31,10 @@ namespace NDepCheck.Tests {
         public void TestMarkTrivialCut() {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
-            Item a = graph.NewItem(ItemType.SIMPLE, "a");
-            Item b = graph.NewItem(ItemType.SIMPLE, "b");
-            Item c = graph.NewItem(ItemType.SIMPLE, "c");
-            Item d = graph.NewItem(ItemType.SIMPLE, "d");
+            Item a = graph.CreateItem(ItemType.SIMPLE, "a");
+            Item b = graph.CreateItem(ItemType.SIMPLE, "b");
+            Item c = graph.CreateItem(ItemType.SIMPLE, "c");
+            Item d = graph.CreateItem(ItemType.SIMPLE, "d");
             var dependencies = new[] {
                 graph.CreateDependency(a, b, null, "D10", 10, 0, 4, notOkReason: "test data"),
                 graph.CreateDependency(b, c, null, "D20", 20, 0, 2, notOkReason: "test data"), // critical edge
@@ -54,12 +54,12 @@ namespace NDepCheck.Tests {
             // Backflow problem from http://www.cs.princeton.edu/courses/archive/spring06/cos226/lectures/maxflow.pdf
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
-            Item s = graph.NewItem(ItemType.SIMPLE, "s");
-            Item n2 = graph.NewItem(ItemType.SIMPLE, "2");
-            Item n3 = graph.NewItem(ItemType.SIMPLE, "3");
-            Item n4 = graph.NewItem(ItemType.SIMPLE, "4");
-            Item n5 = graph.NewItem(ItemType.SIMPLE, "5");
-            Item t = graph.NewItem(ItemType.SIMPLE, "t");
+            Item s = graph.CreateItem(ItemType.SIMPLE, "s");
+            Item n2 = graph.CreateItem(ItemType.SIMPLE, "2");
+            Item n3 = graph.CreateItem(ItemType.SIMPLE, "3");
+            Item n4 = graph.CreateItem(ItemType.SIMPLE, "4");
+            Item n5 = graph.CreateItem(ItemType.SIMPLE, "5");
+            Item t = graph.CreateItem(ItemType.SIMPLE, "t");
             var dependencies = new[] {
                 graph.CreateDependency(s, n2, null, "s_2", 10, 0, 10, notOkReason: "test data"),
                 graph.CreateDependency(s, n4, null, "s_4", 20, 0, 4, notOkReason: "test data"),
@@ -86,14 +86,14 @@ namespace NDepCheck.Tests {
             // First graph (not the Soviet railways ...) from 
             // http://www.cs.princeton.edu/courses/archive/spring06/cos226/lectures/maxflow.pdf
             var graph = gc.CurrentGraph;
-            Item s = graph.NewItem(ItemType.SIMPLE, "s");
-            Item n2 = graph.NewItem(ItemType.SIMPLE, "2");
-            Item n3 = graph.NewItem(ItemType.SIMPLE, "3");
-            Item n4 = graph.NewItem(ItemType.SIMPLE, "4");
-            Item n5 = graph.NewItem(ItemType.SIMPLE, "5");
-            Item n6 = graph.NewItem(ItemType.SIMPLE, "6");
-            Item n7 = graph.NewItem(ItemType.SIMPLE, "7");
-            Item t = graph.NewItem(ItemType.SIMPLE, "t");
+            Item s = graph.CreateItem(ItemType.SIMPLE, "s");
+            Item n2 = graph.CreateItem(ItemType.SIMPLE, "2");
+            Item n3 = graph.CreateItem(ItemType.SIMPLE, "3");
+            Item n4 = graph.CreateItem(ItemType.SIMPLE, "4");
+            Item n5 = graph.CreateItem(ItemType.SIMPLE, "5");
+            Item n6 = graph.CreateItem(ItemType.SIMPLE, "6");
+            Item n7 = graph.CreateItem(ItemType.SIMPLE, "7");
+            Item t = graph.CreateItem(ItemType.SIMPLE, "t");
             var dependencies = new[] {
                 graph.CreateDependency(s, n2, null, "s_2", 12, 0, 10, notOkReason: "test data"),
                 graph.CreateDependency(s, n3, null, "s_3", 13, 0, 5, notOkReason: "test data"),
@@ -133,9 +133,9 @@ namespace NDepCheck.Tests {
             Dependency[] exampleDependencies = CreateExampleGraph(gc);
             Item s = exampleDependencies[0].UsingItem;
             WorkingGraph graph = gc.CurrentGraph;
-            Item r0 = graph.NewItem(ItemType.SIMPLE, "r0");
-            Item r1 = graph.NewItem(ItemType.SIMPLE, "r1");
-            Item r2 = graph.NewItem(ItemType.SIMPLE, "r2");
+            Item r0 = graph.CreateItem(ItemType.SIMPLE, "r0");
+            Item r1 = graph.CreateItem(ItemType.SIMPLE, "r1");
+            Item r2 = graph.CreateItem(ItemType.SIMPLE, "r2");
             Dependency[] dependencies = exampleDependencies.Concat(new[] {
                 graph.CreateDependency(r0, s, null, "r0_s", 1000, 0, 1000, notOkReason: "test data"),
                 graph.CreateDependency(r1, s, null, "r1_s", 1000, 0, 1000, notOkReason: "test data"),
@@ -155,10 +155,10 @@ namespace NDepCheck.Tests {
             // Graph from http://www.cs.princeton.edu/courses/archive/spring06/cos226/lectures/maxflow.pdf p.30 (and Wikipedia)
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
-            Item s = graph.NewItem(ItemType.SIMPLE, "s");
-            Item n2 = graph.NewItem(ItemType.SIMPLE, "2");
-            Item n4 = graph.NewItem(ItemType.SIMPLE, "4");
-            Item t = graph.NewItem(ItemType.SIMPLE, "t");
+            Item s = graph.CreateItem(ItemType.SIMPLE, "s");
+            Item n2 = graph.CreateItem(ItemType.SIMPLE, "2");
+            Item n4 = graph.CreateItem(ItemType.SIMPLE, "4");
+            Item t = graph.CreateItem(ItemType.SIMPLE, "t");
             var dependencies = new[] {
                 graph.CreateDependency(s, n2, null, "s_2", 102, 0, 100, notOkReason: "test data"),
                 graph.CreateDependency(s, n4, null, "s_4", 104, 0, 100, notOkReason: "test data"),
@@ -200,10 +200,10 @@ namespace NDepCheck.Tests {
         public void TestMarkZeroCut() {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
-            Item a = graph.NewItem(ItemType.SIMPLE, "a");
-            Item b = graph.NewItem(ItemType.SIMPLE, "b");
-            Item c = graph.NewItem(ItemType.SIMPLE, "c");
-            Item d = graph.NewItem(ItemType.SIMPLE, "d");
+            Item a = graph.CreateItem(ItemType.SIMPLE, "a");
+            Item b = graph.CreateItem(ItemType.SIMPLE, "b");
+            Item c = graph.CreateItem(ItemType.SIMPLE, "c");
+            Item d = graph.CreateItem(ItemType.SIMPLE, "d");
             var dependencies = new[] {
                 graph.CreateDependency(a, b, null, "D10", 10, 0, 4, notOkReason: "test data"),
                 graph.CreateDependency(c, d, null, "D30", 30, 0, 1, notOkReason: "test data"),

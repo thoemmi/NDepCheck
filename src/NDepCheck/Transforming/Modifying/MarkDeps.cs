@@ -200,9 +200,9 @@ Examples:
         }
 
         public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
-            Item am = transformingGraph.NewItem(ItemType.SIMPLE, new[] { "A" }, new[] { "M" });
-            Item bm = transformingGraph.NewItem(ItemType.SIMPLE, new[] { "B" }, new[] { "M" });
-            Item cn = transformingGraph.NewItem(ItemType.SIMPLE, new[] { "C" }, new[] { "N" });
+            Item am = transformingGraph.CreateItem(ItemType.SIMPLE, new[] { "A" }, new[] { "M" });
+            Item bm = transformingGraph.CreateItem(ItemType.SIMPLE, new[] { "B" }, new[] { "M" });
+            Item cn = transformingGraph.CreateItem(ItemType.SIMPLE, new[] { "C" }, new[] { "N" });
             return new[] {
                 transformingGraph.CreateDependency(am, am, source: null, markers: "", ct:10, questionableCt:5, badCt:3, notOkReason: "test"),
                 transformingGraph.CreateDependency(am, bm, source: null, markers: "use+define", ct:1, questionableCt:0,badCt: 0),

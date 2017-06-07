@@ -137,16 +137,16 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         }
 
         public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
-            var s1 = transformingGraph.NewItem(ItemType.SIMPLE, "S1");
-            var s2 = transformingGraph.NewItem(ItemType.SIMPLE, "S2");
-            var a = transformingGraph.NewItem(ItemType.SIMPLE, "A");
-            var t1 = transformingGraph.NewItem(ItemType.SIMPLE, "T1");
-            var t2 = transformingGraph.NewItem(ItemType.SIMPLE, "T2");
-            var b = transformingGraph.NewItem(ItemType.SIMPLE, "B");
-            var c = transformingGraph.NewItem(ItemType.SIMPLE, "C");
-            var d = transformingGraph.NewItem(ItemType.SIMPLE, "D");
-            var t3 = transformingGraph.NewItem(ItemType.SIMPLE, "T3");
-            var t4 = transformingGraph.NewItem(ItemType.SIMPLE, "T4");
+            var s1 = transformingGraph.CreateItem(ItemType.SIMPLE, "S1");
+            var s2 = transformingGraph.CreateItem(ItemType.SIMPLE, "S2");
+            var a = transformingGraph.CreateItem(ItemType.SIMPLE, "A");
+            var t1 = transformingGraph.CreateItem(ItemType.SIMPLE, "T1");
+            var t2 = transformingGraph.CreateItem(ItemType.SIMPLE, "T2");
+            var b = transformingGraph.CreateItem(ItemType.SIMPLE, "B");
+            var c = transformingGraph.CreateItem(ItemType.SIMPLE, "C");
+            var d = transformingGraph.CreateItem(ItemType.SIMPLE, "D");
+            var t3 = transformingGraph.CreateItem(ItemType.SIMPLE, "T3");
+            var t4 = transformingGraph.CreateItem(ItemType.SIMPLE, "T4");
             return new[] {
                 transformingGraph.CreateDependency(s1, a, source: null, markers: "1", ct:10, questionableCt:5, badCt:3, notOkReason: "test"),
                 transformingGraph.CreateDependency(s1, d, source: null, markers: "D", ct:10, questionableCt:5, badCt:3, notOkReason: "test"),

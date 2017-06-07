@@ -63,11 +63,11 @@ namespace NDepCheck.Rendering.TextWriting {
         public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
             ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
 
-            var bac = renderingGraph.NewItem(amo, "BAC:BAC:0100".Split(':'));
-            var kst = renderingGraph.NewItem(amo, "KST:KST:0200".Split(':'));
-            var kah = renderingGraph.NewItem(amo, "KAH:KAH:0300".Split(':'));
-            var kah_mi = renderingGraph.NewItem(amo, "Kah.MI:KAH:0301".Split(':'));
-            var vkf = renderingGraph.NewItem(amo, "VKF:VKF:0400".Split(':'));
+            var bac = renderingGraph.CreateItem(amo, "BAC:BAC:0100".Split(':'));
+            var kst = renderingGraph.CreateItem(amo, "KST:KST:0200".Split(':'));
+            var kah = renderingGraph.CreateItem(amo, "KAH:KAH:0300".Split(':'));
+            var kah_mi = renderingGraph.CreateItem(amo, "Kah.MI:KAH:0301".Split(':'));
+            var vkf = renderingGraph.CreateItem(amo, "VKF:VKF:0400".Split(':'));
 
             return new[] {
                     FromTo(renderingGraph, kst, bac), FromTo(renderingGraph, kst, kah_mi),

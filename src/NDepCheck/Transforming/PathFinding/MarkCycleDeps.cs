@@ -218,16 +218,16 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         }
 
         public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
-            Item a = transformingGraph.NewItem(ItemType.SIMPLE, "A");
-            Item b = transformingGraph.NewItem(ItemType.SIMPLE, "B");
-            Item c = transformingGraph.NewItem(ItemType.SIMPLE, "C");
-            Item d = transformingGraph.NewItem(ItemType.SIMPLE, "D");
-            Item e = transformingGraph.NewItem(ItemType.SIMPLE, "E");
-            Item f = transformingGraph.NewItem(ItemType.SIMPLE, "F");
-            Item g = transformingGraph.NewItem(ItemType.SIMPLE, "G");
-            Item h = transformingGraph.NewItem(ItemType.SIMPLE, "H");
-            Item i = transformingGraph.NewItem(ItemType.SIMPLE, "I");
-            Item j = transformingGraph.NewItem(ItemType.SIMPLE, "J");
+            Item a = transformingGraph.CreateItem(ItemType.SIMPLE, "A");
+            Item b = transformingGraph.CreateItem(ItemType.SIMPLE, "B");
+            Item c = transformingGraph.CreateItem(ItemType.SIMPLE, "C");
+            Item d = transformingGraph.CreateItem(ItemType.SIMPLE, "D");
+            Item e = transformingGraph.CreateItem(ItemType.SIMPLE, "E");
+            Item f = transformingGraph.CreateItem(ItemType.SIMPLE, "F");
+            Item g = transformingGraph.CreateItem(ItemType.SIMPLE, "G");
+            Item h = transformingGraph.CreateItem(ItemType.SIMPLE, "H");
+            Item i = transformingGraph.CreateItem(ItemType.SIMPLE, "I");
+            Item j = transformingGraph.CreateItem(ItemType.SIMPLE, "J");
 
             //   a<=>b->c->d->e<=>f->g
             //          ^  ^         |

@@ -25,13 +25,13 @@ namespace NDepCheck.Tests {
 }", forceReload: false);
 
             ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
-            Item a = graph.NewItem(generic2, "x:a");
-            Item ab = graph.NewItem(generic2, "x:ab");
-            Item ac = graph.NewItem(generic2, "x:ac");
-            Item ca = graph.NewItem(generic2, "x:ca");
-            Item cb = graph.NewItem(generic2, "x:cb");
-            Item s = graph.NewItem(generic2, "m:s");
-            Item t = graph.NewItem(generic2, "m:t");
+            Item a = graph.CreateItem(generic2, "x:a");
+            Item ab = graph.CreateItem(generic2, "x:ab");
+            Item ac = graph.CreateItem(generic2, "x:ac");
+            Item ca = graph.CreateItem(generic2, "x:ca");
+            Item cb = graph.CreateItem(generic2, "x:cb");
+            Item s = graph.CreateItem(generic2, "m:s");
+            Item t = graph.CreateItem(generic2, "m:t");
 
             var result = new List<Dependency>();
             pi.Transform(gc, new[] {
@@ -116,11 +116,11 @@ namespace NDepCheck.Tests {
 
             ItemType generic2 = ItemType.Generic(2, ignoreCase: false);
             WorkingGraph graph = gc.CurrentGraph;
-            Item a = graph.NewItem(generic2, "x:a");
-            Item ab = graph.NewItem(generic2, "x:ab");
-            Item abc = graph.NewItem(generic2, "x:abc");
-            Item abcd = graph.NewItem(generic2, "x:abcd");
-            Item t = graph.NewItem(generic2, "m:t");
+            Item a = graph.CreateItem(generic2, "x:a");
+            Item ab = graph.CreateItem(generic2, "x:ab");
+            Item abc = graph.CreateItem(generic2, "x:abc");
+            Item abcd = graph.CreateItem(generic2, "x:abcd");
+            Item t = graph.CreateItem(generic2, "m:t");
 
             var result = new List<Dependency>();
             pi.Transform(gc, new[] {
@@ -153,9 +153,9 @@ namespace NDepCheck.Tests {
 
             ItemType threeFields = ItemType.Find(THREE_FIELDS);
             WorkingGraph graph = gc.CurrentGraph;
-            Item abc = graph.NewItem(threeFields, "a:b:c");
-            Item ab = graph.NewItem(threeFields, "a:b:-");
-            Item a = graph.NewItem(threeFields, "a:-:-");
+            Item abc = graph.CreateItem(threeFields, "a:b:c");
+            Item ab = graph.CreateItem(threeFields, "a:b:-");
+            Item a = graph.CreateItem(threeFields, "a:-:-");
 
             var result = new List<Dependency>();
             pi.Transform(gc, new[] {
@@ -178,17 +178,17 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            Item a1 = graph.NewItem(generic2, "a:1");
-            Item b1 = graph.NewItem(generic2, "b:1");
-            Item c1 = graph.NewItem(generic2, "c:1");
-            Item d1 = graph.NewItem(generic2, "d:1");
-            Item e1 = graph.NewItem(generic2, "e:1");
-            Item a2 = graph.NewItem(generic2, "a:2");
-            Item b2 = graph.NewItem(generic2, "b:2");
-            Item c2 = graph.NewItem(generic2, "c:2");
-            Item d2 = graph.NewItem(generic2, "d:2");
-            Item e2 = graph.NewItem(generic2, "e:2");
-            Item x2 = graph.NewItem(generic2, "x:2");
+            Item a1 = graph.CreateItem(generic2, "a:1");
+            Item b1 = graph.CreateItem(generic2, "b:1");
+            Item c1 = graph.CreateItem(generic2, "c:1");
+            Item d1 = graph.CreateItem(generic2, "d:1");
+            Item e1 = graph.CreateItem(generic2, "e:1");
+            Item a2 = graph.CreateItem(generic2, "a:2");
+            Item b2 = graph.CreateItem(generic2, "b:2");
+            Item c2 = graph.CreateItem(generic2, "c:2");
+            Item d2 = graph.CreateItem(generic2, "d:2");
+            Item e2 = graph.CreateItem(generic2, "e:2");
+            Item x2 = graph.CreateItem(generic2, "x:2");
 
             var deps = new[] {
                 Dep(graph, a1, b1), Dep(graph, b1, c1), Dep(graph, c1, d1), Dep(graph, d1, e1), Dep(graph, d1, b1),
@@ -216,11 +216,11 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            Item a1 = graph.NewItem(generic2, "a:1");
-            Item b1 = graph.NewItem(generic2, "b:1");
-            Item a2 = graph.NewItem(generic2, "a:2");
-            Item b2 = graph.NewItem(generic2, "b:2");
-            Item b3 = graph.NewItem(generic2, "b:3");
+            Item a1 = graph.CreateItem(generic2, "a:1");
+            Item b1 = graph.CreateItem(generic2, "b:1");
+            Item a2 = graph.CreateItem(generic2, "a:2");
+            Item b2 = graph.CreateItem(generic2, "b:2");
+            Item b3 = graph.CreateItem(generic2, "b:3");
 
             var deps = new[] {
                 Dep(graph, a1, b1), Dep(graph, b1, a2), Dep(graph, b2, a2), Dep(graph, a1, b3)

@@ -226,20 +226,20 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
             ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
 
-            var bac = renderingGraph.NewItem(amo, "BAC:BAC:0100".Split(':'));
-            var kst = renderingGraph.NewItem(amo, "KST:KST:0200".Split(':'));
-            var kah = renderingGraph.NewItem(amo, "KAH:KAH:0300".Split(':'));
-            var kah_mi = renderingGraph.NewItem(amo, "Kah.MI:KAH:0301".Split(':'));
-            var vkf = renderingGraph.NewItem(amo, "VKF:VKF:0400".Split(':'));
-            var vkf1_mi = renderingGraph.NewItem(amo, "Vkf1.MI:VKF:0401".Split(':'));
-            var vkf2_mi = renderingGraph.NewItem(amo, "Vkf2.MI:VKF:0402".Split(':'));
+            var bac = renderingGraph.CreateItem(amo, "BAC:BAC:0100".Split(':'));
+            var kst = renderingGraph.CreateItem(amo, "KST:KST:0200".Split(':'));
+            var kah = renderingGraph.CreateItem(amo, "KAH:KAH:0300".Split(':'));
+            var kah_mi = renderingGraph.CreateItem(amo, "Kah.MI:KAH:0301".Split(':'));
+            var vkf = renderingGraph.CreateItem(amo, "VKF:VKF:0400".Split(':'));
+            var vkf1_mi = renderingGraph.CreateItem(amo, "Vkf1.MI:VKF:0401".Split(':'));
+            var vkf2_mi = renderingGraph.CreateItem(amo, "Vkf2.MI:VKF:0402".Split(':'));
             //var vkf3_mi = renderingGraph.ItemAndDependencyFactory.New(amo, "Vkf3.MI:VKF:0402".Split(':'));
             //var vkf4_mi = renderingGraph.ItemAndDependencyFactory.New(amo, "Vkf4.MI:VKF:0402".Split(':'));
-            var wlg = renderingGraph.NewItem(amo, "WLG:WLG:0500".Split(':'));
-            var wlg1_mi = renderingGraph.NewItem(amo, "Wlg1.MI:WLG:0501".Split(':'));
-            var wlg2_mi = renderingGraph.NewItem(amo, "Wlg2.MI:WLG:0502".Split(':'));
+            var wlg = renderingGraph.CreateItem(amo, "WLG:WLG:0500".Split(':'));
+            var wlg1_mi = renderingGraph.CreateItem(amo, "Wlg1.MI:WLG:0501".Split(':'));
+            var wlg2_mi = renderingGraph.CreateItem(amo, "Wlg2.MI:WLG:0502".Split(':'));
             //var imp = renderingGraph.ItemAndDependencyFactory.New(amo, "IMP:IMP:0600".Split(':'));
-            var imp_mi = renderingGraph.NewItem(amo, "Imp.MI:IMP:0601".Split(':'));
+            var imp_mi = renderingGraph.CreateItem(amo, "Imp.MI:IMP:0601".Split(':'));
             //var top = renderingGraph.ItemAndDependencyFactory.New(amo, "Top:TOP:0700".Split(':'));
 
             return new[] {

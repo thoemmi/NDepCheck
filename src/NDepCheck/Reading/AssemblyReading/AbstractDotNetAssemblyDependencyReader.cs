@@ -82,7 +82,6 @@ namespace NDepCheck.Reading.AssemblyReading {
 #pragma warning restore 168
         }
 
-
         protected abstract class RawAbstractItem {
             public readonly string NamespaceName;
             public readonly string ClassName;
@@ -93,7 +92,7 @@ namespace NDepCheck.Reading.AssemblyReading {
             [CanBeNull, ItemNotNull]
             private readonly string[] _markers;
             [NotNull]
-            private readonly WorkingGraph _readingGraph;
+            protected readonly WorkingGraph _readingGraph;
 
             protected RawAbstractItem(string namespaceName, string className, string assemblyName, string assemblyVersion,
                                       string assemblyCulture, string memberName, [CanBeNull, ItemNotNull] string[] markers,
@@ -124,7 +123,7 @@ namespace NDepCheck.Reading.AssemblyReading {
 
             [NotNull]
             public virtual Item ToItem(ItemType type) {
-                return _readingGraph.NewItem(type, new[] { NamespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, MemberName }, _markers);
+                return _readingGraph.CreateItem(type, new[] { NamespaceName, ClassName, AssemblyName, _assemblyVersion, _assemblyCulture, MemberName }, _markers);
             }
 
             [NotNull]
@@ -182,7 +181,7 @@ namespace NDepCheck.Reading.AssemblyReading {
             public override Item ToItem(ItemType type) {
                 // ReSharper disable once ConvertIfStatementToNullCoalescingExpression
                 if (_item == null) {
-                    _item = base.ToItem(type).Append(_tail);
+                    _item = base.ToItem(type).Append(_readingGraph, _tail);
                 }
                 return _item;
             }
@@ -217,7 +216,8 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
 
             [CanBeNull] // null (I think) if assemblies do not match (different compiles) and hence a used item is not found in target reader.
-            public Item ToItemWithTail(WorkingGraph readingGraph, ItemType type, AbstractDotNetAssemblyDependencyReader reader, int depth) {
+            public Item ToItemWithTail(WorkingGraph readingGraph, ItemType type, AbstractDotNetAssemblyDependencyReader reader,
+                                       int depth) {
                 return reader.GetFullItemFor(readingGraph, this, depth);
             }
 
@@ -291,8 +291,8 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
 
             [NotNull]
-            private Dependency ToDependency(WorkingGraph readingEnviroment, Item usedItem, string containerUri) {
-                return readingEnviroment.CreateDependency(UsingItem.ToItem(_type), usedItem, _sequencePoint == null
+            private Dependency ToDependency(WorkingGraph readingGraph, Item usedItem, string containerUri) {
+                return readingGraph.CreateDependency(UsingItem.ToItem(_type), usedItem, _sequencePoint == null
                             ? (ISourceLocation)new LocalSourceLocation(containerUri, UsingItem.NamespaceName + "." + UsingItem.ClassName + (string.IsNullOrWhiteSpace(UsingItem.MemberName) ? "" : "." + UsingItem.MemberName))
                             : new ProgramFileSourceLocation(containerUri, _sequencePoint.Document.Url, _sequencePoint.StartLine, _sequencePoint.StartColumn, _sequencePoint.EndLine, _sequencePoint.EndColumn),
                         Usage.ToString(), 1);

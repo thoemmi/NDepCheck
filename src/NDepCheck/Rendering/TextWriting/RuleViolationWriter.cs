@@ -104,10 +104,10 @@ namespace NDepCheck.Rendering.TextWriting {
 
         public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
             ItemType simple = ItemType.New("SIMPLE(Name)");
-            Item root = renderingGraph.NewItem(simple, "root");
-            Item ok = renderingGraph.NewItem(simple, "ok");
-            Item questionable = renderingGraph.NewItem(simple, "questionable");
-            Item bad = renderingGraph.NewItem(simple, "bad");
+            Item root = renderingGraph.CreateItem(simple, "root");
+            Item ok = renderingGraph.CreateItem(simple, "ok");
+            Item questionable = renderingGraph.CreateItem(simple, "questionable");
+            Item bad = renderingGraph.CreateItem(simple, "bad");
             return new[] {
                 renderingGraph.CreateDependency(root, ok, new TextFileSourceLocation("Test", 1), "Use", 4, 0, 0, "to root"),
                 renderingGraph.CreateDependency(root, questionable, new TextFileSourceLocation("Test", 1), "Use", 4, 1, 0, "to questionable"),

@@ -15,7 +15,7 @@ namespace NDepCheck.Tests {
         private Item GetOrCreate(WorkingGraph workingGraph, Dictionary<string, Item> nodes, string name) {
             Item result;
             if (!nodes.TryGetValue(name, out result)) {
-                nodes.Add(name, result = workingGraph.NewItem(TEST, new[] { name }));
+                nodes.Add(name, result = workingGraph.CreateItem(TEST, new[] { name }));
             }
             return result;
         }

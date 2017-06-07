@@ -52,9 +52,9 @@ namespace NDepCheck.Tests {
             WorkingGraph graph = gc.CurrentGraph;
 
             items = new[] {
-                graph.NewItem(ItemType.SIMPLE, new[] {"n1"}),
-                graph.NewItem(ItemType.SIMPLE, new[] {"n2"}),
-                graph.NewItem(ItemType.SIMPLE, new[] {"n3"})
+                graph.CreateItem(ItemType.SIMPLE, new[] {"n1"}),
+                graph.CreateItem(ItemType.SIMPLE, new[] {"n2"}),
+                graph.CreateItem(ItemType.SIMPLE, new[] {"n3"})
             };
             dependencies = new[] {
                 CreateDependency(graph, items[2], items[1]),
@@ -71,9 +71,9 @@ namespace NDepCheck.Tests {
             WorkingGraph graph = gc.CurrentGraph;
 
             var nodes = new[] {
-                graph.NewItem(ItemType.SIMPLE, new[] {"n1"}),
-                graph.NewItem(ItemType.SIMPLE, new[] {"n2"}),
-                graph.NewItem(ItemType.SIMPLE, new[] {"n3"})
+                graph.CreateItem(ItemType.SIMPLE, new[] {"n1"}),
+                graph.CreateItem(ItemType.SIMPLE, new[] {"n2"}),
+                graph.CreateItem(ItemType.SIMPLE, new[] {"n3"})
             };
             var edges = new[] {
                 CreateDependency(graph, nodes[2], nodes[1], 55),
@@ -101,9 +101,9 @@ namespace NDepCheck.Tests {
             WorkingGraph graph = gc.CurrentGraph;
 
             var nodes = new[] {
-                graph.NewItem(ItemType.SIMPLE, new[] {"n1"}),
-                graph.NewItem(ItemType.SIMPLE, new[] {"n2"}),
-                graph.NewItem(ItemType.SIMPLE, new[] {"n3"})
+                graph.CreateItem(ItemType.SIMPLE, new[] {"n1"}),
+                graph.CreateItem(ItemType.SIMPLE, new[] {"n2"}),
+                graph.CreateItem(ItemType.SIMPLE, new[] {"n3"})
             };
             int ct = 100;
             Dependency[] edges = nodes.SelectMany(from => nodes.Select(to => CreateDependency(graph, from, to, ++ct, ct / 2))).ToArray();

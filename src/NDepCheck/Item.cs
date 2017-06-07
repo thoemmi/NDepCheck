@@ -258,10 +258,10 @@ namespace NDepCheck {
         public override IMarkerSet MarkerSet => _markerSet;
 
         [NotNull]
-        public Item Append([CanBeNull] ItemTail additionalValues) {
+        public Item Append(WorkingGraph graph, [CanBeNull] ItemTail additionalValues) {
             return additionalValues == null
                 ? this
-                : new Item(additionalValues.Type, Values.Concat(additionalValues.Values.Skip(Type.Length)).ToArray());
+                : graph.CreateItem(additionalValues.Type, Values.Concat(additionalValues.Values.Skip(Type.Length)).ToArray());
         }
 
         public void MergeWithMarkers(IMarkerSet markers) {

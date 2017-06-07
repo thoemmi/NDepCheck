@@ -168,9 +168,9 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            Item a = graph.NewItem(ItemType.SIMPLE, "a");
-            Item b = graph.NewItem(ItemType.SIMPLE, "b");
-            Item c = graph.NewItem(ItemType.SIMPLE, "c");
+            Item a = graph.CreateItem(ItemType.SIMPLE, "a");
+            Item b = graph.CreateItem(ItemType.SIMPLE, "b");
+            Item c = graph.CreateItem(ItemType.SIMPLE, "c");
             var dependencies = new[] {
                 graph.CreateDependency(a, b, source: null, markers: "", ct:1),
                 graph.CreateDependency(c, a, source: null, markers: "", ct:100),

@@ -33,7 +33,7 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            Dependency dep = graph.CreateDependency(graph.NewItem(itemType, "n1", "c1"), graph.NewItem(itemType, "n2", "c2"), null, "Test", ct: 1);
+            Dependency dep = graph.CreateDependency(graph.CreateItem(itemType, "n1", "c1"), graph.CreateItem(itemType, "n2", "c2"), null, "Test", ct: 1);
             Assert.IsTrue(r1.IsMatch(dep));
 
             Assert.IsTrue(rn1.IsMatch(dep));
@@ -72,7 +72,7 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            Dependency dep = graph.CreateDependency(graph.NewItem(itemtype, "s1", "t1"), graph.NewItem(itemtype, "s2", "t2"), null, "Test", ct: 1);
+            Dependency dep = graph.CreateDependency(graph.CreateItem(itemtype, "s1", "t1"), graph.CreateItem(itemtype, "s2", "t2"), null, "Test", ct: 1);
             Assert.IsTrue(rn1.IsMatch(dep));
             Assert.IsTrue(rn2.IsMatch(dep));
             Assert.IsTrue(rn3.IsMatch(dep));
@@ -89,7 +89,7 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            Dependency dep = graph.CreateDependency(graph.NewItem(itemtype, "sx", "tx"), graph.NewItem(itemtype, "sx", "tx"), null, "Test", ct: 1);
+            Dependency dep = graph.CreateDependency(graph.CreateItem(itemtype, "sx", "tx"), graph.CreateItem(itemtype, "sx", "tx"), null, "Test", ct: 1);
             Assert.IsTrue(rn3.IsMatch(dep));
             Assert.IsTrue(rn5.IsMatch(dep));
         }
@@ -108,7 +108,7 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            Dependency dep = graph.CreateDependency(graph.NewItem(itemType, "s1", "t1"), graph.NewItem(itemType, "s1", "t2"), null, "Test", ct: 1);
+            Dependency dep = graph.CreateDependency(graph.CreateItem(itemType, "s1", "t1"), graph.CreateItem(itemType, "s1", "t2"), null, "Test", ct: 1);
             Assert.IsTrue(rn1.IsMatch(dep));
             Assert.IsTrue(rn2.IsMatch(dep));
             Assert.IsTrue(rn3.IsMatch(dep));
@@ -157,7 +157,7 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            Item i = graph.NewItem(testType, "n1", "c1");
+            Item i = graph.CreateItem(testType, "n1", "c1");
 
             Assert.AreEqual("", g1.Match(gc.CurrentGraph, i, true).Name);
 
@@ -251,7 +251,7 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            Item i = graph.NewItem(testType, "n1", "c1");
+            Item i = graph.CreateItem(testType, "n1", "c1");
 
             Assert.AreEqual("", g1.Match(gc.CurrentGraph, i, true).Name);
 
@@ -312,9 +312,9 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            Assert.AreEqual("n1", g1.Match(gc.CurrentGraph, graph.NewItem(testType, "n1"), true).Name);
-            Assert.AreEqual("n1.n2", g1.Match(gc.CurrentGraph, graph.NewItem(testType, "n1.n2"), true).Name);
-            Assert.AreEqual("n1.n2.n3", g1.Match(gc.CurrentGraph, graph.NewItem(testType, "n1.n2.n3"), true).Name);
+            Assert.AreEqual("n1", g1.Match(gc.CurrentGraph, graph.CreateItem(testType, "n1"), true).Name);
+            Assert.AreEqual("n1.n2", g1.Match(gc.CurrentGraph, graph.CreateItem(testType, "n1.n2"), true).Name);
+            Assert.AreEqual("n1.n2.n3", g1.Match(gc.CurrentGraph, graph.CreateItem(testType, "n1.n2.n3"), true).Name);
         }
         //
 
@@ -328,8 +328,8 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            Assert.AreEqual("\\1", g1.Match(gc.CurrentGraph, graph.NewItem(testType, "Framework.Core.NunitTests.IBOL"), true).Name);
-            Assert.AreEqual("", g2.Match(gc.CurrentGraph, graph.NewItem(testType, "Framework.Core.NunitTests.IBOL"), true).Name);
+            Assert.AreEqual("\\1", g1.Match(gc.CurrentGraph, graph.CreateItem(testType, "Framework.Core.NunitTests.IBOL"), true).Name);
+            Assert.AreEqual("", g2.Match(gc.CurrentGraph, graph.CreateItem(testType, "Framework.Core.NunitTests.IBOL"), true).Name);
         }
 
         [TestMethod]
@@ -339,8 +339,8 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            var @using = graph.NewItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
-            var used = graph.NewItem(itemType, "System", "Object", "mscorlib", "", "", "");
+            var @using = graph.CreateItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
+            var used = graph.CreateItem(itemType, "System", "Object", "mscorlib", "", "", "");
             var d = graph.CreateDependency(@using, used, null, "Test", ct: 1);
 
             var r = CreateDependencyRule(itemType, "**", "System.**");
@@ -354,8 +354,8 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            Item @using = graph.NewItem(itemType, "NDepCheck.TestAssembly.dir1.dir2", "SomeClass", "NDepCheck.TestAssembly", "1.0.0.0", "", "AnotherMethod");
-            Item used = graph.NewItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "I");
+            Item @using = graph.CreateItem(itemType, "NDepCheck.TestAssembly.dir1.dir2", "SomeClass", "NDepCheck.TestAssembly", "1.0.0.0", "", "AnotherMethod");
+            Item used = graph.CreateItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "I");
             var d = graph.CreateDependency(@using, used, null, "Test", ct: 1);
 
             var r = CreateDependencyRule(itemType, "NDepCheck.TestAssembly.dir1.dir2:SomeClass:**", "-:NamespacelessTestClassForNDepCheck::I");
@@ -373,7 +373,7 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            Item used = graph.NewItem(itemType, "System", "Byte&", "mscorlib", "4.0.0.0", "", "");
+            Item used = graph.CreateItem(itemType, "System", "Byte&", "mscorlib", "4.0.0.0", "", "");
 
             string result = ga.Match(gc.CurrentGraph, used, true).Name;
 
@@ -385,8 +385,8 @@ namespace NDepCheck.Tests {
             ItemType itemType = DotNetAssemblyDependencyReaderFactory.DOTNETITEM;
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
-            Item @using = graph.NewItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
-            Item used = graph.NewItem(itemType, "System", "Object", "mscorlib", "", "", "");
+            Item @using = graph.CreateItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
+            Item used = graph.CreateItem(itemType, "System", "Object", "mscorlib", "", "", "");
             var d = graph.CreateDependency(@using, used, null, "Test", ct: 1);
 
             DependencyRule r = CreateDependencyRule(itemType, "**", "Assembly.Name=mscorlib");
@@ -399,8 +399,8 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            Item @using = graph.NewItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
-            Item used = graph.NewItem(itemType, "System", "Object", "mscorlib", "", "", "");
+            Item @using = graph.CreateItem(itemType, "", "NamespacelessTestClassForNDepCheck", "NDepCheck.TestAssembly", "1.0.0.0", "", "");
+            Item used = graph.CreateItem(itemType, "System", "Object", "mscorlib", "", "", "");
             var d = graph.CreateDependency(@using, used, null, "Test", ct: 1);
 
             DependencyRule r = CreateDependencyRule(itemType, "**", "Assembly.Name=mscorlib:Class=Object");

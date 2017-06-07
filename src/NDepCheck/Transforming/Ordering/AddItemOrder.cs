@@ -83,10 +83,10 @@ Transform options: {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
         public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
-            var a = transformingGraph.NewItem(ItemType.SIMPLE, "A");
-            var b = transformingGraph.NewItem(ItemType.SIMPLE, "B");
-            var c = transformingGraph.NewItem(ItemType.SIMPLE, "C");
-            var d = transformingGraph.NewItem(ItemType.SIMPLE, "D");
+            var a = transformingGraph.CreateItem(ItemType.SIMPLE, "A");
+            var b = transformingGraph.CreateItem(ItemType.SIMPLE, "B");
+            var c = transformingGraph.CreateItem(ItemType.SIMPLE, "C");
+            var d = transformingGraph.CreateItem(ItemType.SIMPLE, "D");
             //    |   A   B   C   D #
             // ---------------------#----
             //  A |  15 100   0   . # 115

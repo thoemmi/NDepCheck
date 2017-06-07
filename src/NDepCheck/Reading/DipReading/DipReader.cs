@@ -166,7 +166,7 @@ namespace NDepCheck.Reading.DipReading {
             } else {
                 string[] values = prefixAndValues.Length > 1 ? prefixAndValues[1].Split(':', ';') : new string[0];
 
-                return values.Contains("?") ? new ItemProxy(foundType, values, markers) : readingGraph.NewItem(foundType, values, markers);
+                return values.Contains("?") ? new ItemProxy(foundType, values, markers) : readingGraph.CreateItem(foundType, values, markers);
             }
         }
 

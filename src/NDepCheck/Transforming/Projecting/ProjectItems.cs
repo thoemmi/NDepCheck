@@ -320,9 +320,9 @@ Examples:
 
         public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
             ItemType abc = ItemType.New("AB+(A:B)");
-            Item a1 = transformingGraph.NewItem(abc, "a", "1");
-            Item a2 = transformingGraph.NewItem(abc, "a", "2");
-            Item b = transformingGraph.NewItem(abc, "b", "");
+            Item a1 = transformingGraph.CreateItem(abc, "a", "1");
+            Item a2 = transformingGraph.CreateItem(abc, "a", "2");
+            Item b = transformingGraph.CreateItem(abc, "b", "");
 
             return new[] {
                 FromTo(transformingGraph, a1, a1), FromTo(transformingGraph, a1, a2),

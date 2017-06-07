@@ -26,8 +26,8 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            var a = graph.NewItem(ItemType.SIMPLE, "a");
-            var b = graph.NewItem(ItemType.SIMPLE, "b");
+            var a = graph.CreateItem(ItemType.SIMPLE, "a");
+            var b = graph.CreateItem(ItemType.SIMPLE, "b");
             var deps = new[] { graph.CreateDependency(a, b, null, "", 1), graph.CreateDependency(b, a, null, "", 1), };
             var result = new List<Dependency>();
 
@@ -43,11 +43,11 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            var a = graph.NewItem(ItemType.SIMPLE, "a");
-            var b = graph.NewItem(ItemType.SIMPLE, "b");
-            var c = graph.NewItem(ItemType.SIMPLE, "c");
-            var d = graph.NewItem(ItemType.SIMPLE, "d");
-            var e = graph.NewItem(ItemType.SIMPLE, "e");
+            var a = graph.CreateItem(ItemType.SIMPLE, "a");
+            var b = graph.CreateItem(ItemType.SIMPLE, "b");
+            var c = graph.CreateItem(ItemType.SIMPLE, "c");
+            var d = graph.CreateItem(ItemType.SIMPLE, "d");
+            var e = graph.CreateItem(ItemType.SIMPLE, "e");
             var deps = new[] {
                 graph.CreateDependency(a, b, null, "", 1),
                 graph.CreateDependency(b, c, null, "", 1),
@@ -75,11 +75,11 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            var a = graph.NewItem(ItemType.SIMPLE, "a");
-            var b = graph.NewItem(ItemType.SIMPLE, "b");
-            var c = graph.NewItem(ItemType.SIMPLE, "c");
-            var d = graph.NewItem(ItemType.SIMPLE, "d");
-            var e = graph.NewItem(ItemType.SIMPLE, "e");
+            var a = graph.CreateItem(ItemType.SIMPLE, "a");
+            var b = graph.CreateItem(ItemType.SIMPLE, "b");
+            var c = graph.CreateItem(ItemType.SIMPLE, "c");
+            var d = graph.CreateItem(ItemType.SIMPLE, "d");
+            var e = graph.CreateItem(ItemType.SIMPLE, "e");
 
             List<Dependency> result = CreateDependenciesAndFindCycles(gc, a, b, c, d, e, keepOnlyCyclesOption: true, markerPrefix: "Kreis");
 
@@ -131,11 +131,11 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            var a = graph.NewItem(ItemType.SIMPLE, "a");
-            var b = graph.NewItem(ItemType.SIMPLE, "b");
-            var c = graph.NewItem(ItemType.SIMPLE, "c");
-            var d = graph.NewItem(ItemType.SIMPLE, "d");
-            var e = graph.NewItem(ItemType.SIMPLE, "e");
+            var a = graph.CreateItem(ItemType.SIMPLE, "a");
+            var b = graph.CreateItem(ItemType.SIMPLE, "b");
+            var c = graph.CreateItem(ItemType.SIMPLE, "c");
+            var d = graph.CreateItem(ItemType.SIMPLE, "d");
+            var e = graph.CreateItem(ItemType.SIMPLE, "e");
             var deps = new[] {
                 graph.CreateDependency(a, b, null, "", 1),
                 graph.CreateDependency(b, c, null, "", 1),
@@ -192,11 +192,11 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            var a = graph.NewItem(ItemType.SIMPLE, "a");
-            var b = graph.NewItem(ItemType.SIMPLE, "b");
-            var c = graph.NewItem(ItemType.SIMPLE, "c");
-            var d = graph.NewItem(ItemType.SIMPLE, "d");
-            var e = graph.NewItem(ItemType.SIMPLE, "e");
+            var a = graph.CreateItem(ItemType.SIMPLE, "a");
+            var b = graph.CreateItem(ItemType.SIMPLE, "b");
+            var c = graph.CreateItem(ItemType.SIMPLE, "c");
+            var d = graph.CreateItem(ItemType.SIMPLE, "d");
+            var e = graph.CreateItem(ItemType.SIMPLE, "e");
             var deps = new[] {
                 graph.CreateDependency(a, b, null, "", 1),
                 graph.CreateDependency(b, c, null, "", 1),
@@ -261,11 +261,11 @@ SIMPLE:e
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
 
-            var a = graph.NewItem(ItemType.SIMPLE, "a");
-            var b = graph.NewItem(ItemType.SIMPLE, "b");
-            var c = graph.NewItem(ItemType.SIMPLE, "c");
-            var d = graph.NewItem(ItemType.SIMPLE, "d");
-            var e = graph.NewItem(ItemType.SIMPLE, "e");
+            var a = graph.CreateItem(ItemType.SIMPLE, "a");
+            var b = graph.CreateItem(ItemType.SIMPLE, "b");
+            var c = graph.CreateItem(ItemType.SIMPLE, "c");
+            var d = graph.CreateItem(ItemType.SIMPLE, "d");
+            var e = graph.CreateItem(ItemType.SIMPLE, "e");
 
             List<Dependency> dependencies = CreateDependenciesAndFindCycles(gc, a, b, c, d, e, keepOnlyCyclesOption: false, markerPrefix: cycleMarkerPrefix);
 

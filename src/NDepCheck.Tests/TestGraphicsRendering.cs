@@ -28,8 +28,8 @@ namespace NDepCheck.Tests {
 
             public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
                 ItemType simple = ItemType.New("SIMPLE(Name)");
-                Item i1 = renderingGraph.NewItem(simple, "I1");
-                Item i2 = renderingGraph.NewItem(simple, "I2");
+                Item i1 = renderingGraph.CreateItem(simple, "I1");
+                Item i2 = renderingGraph.CreateItem(simple, "I2");
                 return new[] { renderingGraph.CreateDependency(i1, i1, new TextFileSourceLocation("Test", 1), "Test", ct: 1),
                                renderingGraph.CreateDependency(i1, i2, new TextFileSourceLocation("Test", 2), "Test", ct: 1) };
             }
@@ -259,7 +259,7 @@ namespace NDepCheck.Tests {
 
             public static IEnumerable<Dependency> CreateSomeTestItems(int n, string prefix, WorkingGraph renderingGraph) {
                 ItemType simple = ItemType.New("SIMPLE(Name)");
-                var localItems = Enumerable.Range(0, n).Select(i => renderingGraph.NewItem(simple, prefix + i)).ToArray();
+                var localItems = Enumerable.Range(0, n).Select(i => renderingGraph.CreateItem(simple, prefix + i)).ToArray();
                 return localItems.SelectMany(
                         (from, i) => localItems.Skip(i).Select(to => renderingGraph.CreateDependency(from, to, new TextFileSourceLocation(prefix, i), "Use", 10 * i))).ToArray();
             }
@@ -277,7 +277,7 @@ namespace NDepCheck.Tests {
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
             ItemType simple = ItemType.New("SIMPLE(Name)");
-            Item[] items = Enumerable.Range(0, n).Select(i => graph.NewItem(simple, prefix + i)).ToArray();
+            Item[] items = Enumerable.Range(0, n).Select(i => graph.CreateItem(simple, prefix + i)).ToArray();
             Dependency[] dependencies =
                 items.SelectMany(
                     (from, i) => items.Skip(i).Select(to => graph.CreateDependency(from, to, new TextFileSourceLocation(prefix, i), "Use", 10 * i))).ToArray();
@@ -332,7 +332,7 @@ namespace NDepCheck.Tests {
             WorkingGraph graph = gc.CurrentGraph;
 
             ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
-            Item i = graph.NewItem(amo, "VKF", "VKF", "01");
+            Item i = graph.CreateItem(amo, "VKF", "VKF", "01");
 
             CreateAndRender(r => {
                 VariableVector pos = r.F(0, 0);
