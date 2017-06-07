@@ -28,10 +28,10 @@ namespace NDepCheck.Transforming.ViolationChecking {
             }
             visited.Add(this);
             foreach (var g in _ruleGroups) {
-                if (result.ContainsKey(g.GroupMarker)) {
-                    result[g.GroupMarker] = result[g.GroupMarker].Combine(g, ignoreCase);
+                if (result.ContainsKey(g.GroupPattern)) {
+                    result[g.GroupPattern] = result[g.GroupPattern].Combine(g, ignoreCase);
                 } else {
-                    result[g.GroupMarker] = g;
+                    result[g.GroupPattern] = g;
                 }
             }
             foreach (var includedRuleSet in _includedRuleSets) {

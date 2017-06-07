@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
@@ -7,6 +8,7 @@ using NDepCheck.Markers;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.ViolationChecking {
+    [DebuggerDisplay("{" + nameof(ToString) + "()}")]
     public class DependencyRuleGroup {
         private static readonly Comparison<DependencyRule> _sortOnDescendingHitCount = (r1, r2) => r2.HitCount - r1.HitCount;
 
@@ -53,6 +55,10 @@ namespace NDepCheck.Transforming.ViolationChecking {
 
         [NotNull]
         public string GroupPattern => _groupPattern;
+
+        public override string ToString() {
+            return "DependencyRuleGroup " + _groupPattern;
+        }
 
         /// <summary>
         /// Add one or more <c>DependencyRules</c>s from a single input line.

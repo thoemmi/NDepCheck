@@ -97,6 +97,8 @@
     <Compile Include="Calculating\GetHash.cs" />
     <Compile Include="AbstractSourceLocation.cs" />
     <Compile Include="ItemAndDependencyFactoryList.cs" />
+    <Compile Include="Transforming\PathFinding\AddPathDeps.cs" />
+    <Compile Include="Transforming\PathFinding\PathOptions.cs" />
     <Compile Include="WorkingGraph.cs" />
     <Compile Include="ICalculator.cs" />
     <Compile Include="ConstraintSolving\Range.cs" />
@@ -249,7 +251,7 @@
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Import Project="..\packages\CreateAssemblyInfoFromGit.1.0.0-beta0025\build\CreateAssemblyInfoFromGit.targets" Condition="Exists('..\packages\CreateAssemblyInfoFromGit.1.0.0-beta0025\build\CreateAssemblyInfoFromGit.targets')" />
   <PropertyGroup>
-    <PostBuildEvent>$(TargetPath) -rd $(TargetPath) -ds $(ProjectDir)NDepCheck.nd</PostBuildEvent>
+    <PostBuildEvent>REM $(TargetPath) -rd $(TargetPath) -ds $(ProjectDir)NDepCheck.nd</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

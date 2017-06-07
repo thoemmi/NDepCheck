@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using Gibraltar;
 using JetBrains.Annotations;
 using NDepCheck.Markers;
 using NDepCheck.Reading.AssemblyReading;
@@ -12,7 +10,7 @@ namespace NDepCheck.TestPlugin {
         }
 
         // TODO - paths ... ... 
-        public IEnumerable<Dependency> ToBaseTypes => Outgoing.Where(d => d.IsMarkerMatch(DotNetConstants._directlyinherits, DotNetConstants._directlyimplements));
+        public IEnumerable<Dependency> ToBaseTypes => GetOutgoing().Where(d => d.IsMarkerMatch(DotNetConstants._directlyinherits, DotNetConstants._directlyimplements));
     }
 
 

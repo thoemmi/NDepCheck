@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NDepCheck.Rendering.PathFinding;
 using NDepCheck.Rendering.TextWriting;
 using NDepCheck.Transforming.PathFinding;
 
@@ -86,9 +85,9 @@ T3:b:bb:bbb'A $", result.Trim());
 
         private static string CreateDefaultOptions(string markerPrefix, int maxPathLength = 5) {
             return ($"{{ {PathMarker.AddIndexedMarkerOption} {markerPrefix} " +
-                    $"{PathMarker.MaxPathLengthOption} {maxPathLength} " +
-                    $"{PathMarker.CountItemAnchorOption} a: " +
-                    $"{PathMarker.MultipleItemAnchorOption} ~c: }}").Replace(" ", Environment.NewLine);
+                    $"{PathMarker.PathOptions.MaxPathLengthOption} {maxPathLength} " +
+                    $"{PathMarker.PathOptions.CountItemAnchorOption} a: " +
+                    $"{PathMarker.PathOptions.MultipleItemAnchorOption} ~c: }}").Replace(" ", Environment.NewLine);
         }
 
         [TestMethod]

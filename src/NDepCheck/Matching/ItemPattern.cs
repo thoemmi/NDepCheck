@@ -120,7 +120,7 @@ namespace NDepCheck.Matching {
                 foreach (var p in parts) {
                     string[] nameAndPattern = p.Split(new[] { '=' }, 2);
                     string[] keyAndSubkey = nameAndPattern[0].Split('.');
-                    int i = _itemType.IndexOf(keyAndSubkey[0].Trim(), keyAndSubkey.Length > 1 ? "." + keyAndSubkey[1].Trim() : null);
+                    int i = _itemType.IndexOf(keyAndSubkey[0].Trim(), keyAndSubkey.Length > 1 ? "." + keyAndSubkey[1].Trim() : "");
                     if (i < 0) {
                         throw new ApplicationException($"Key '{nameAndPattern[0]}' not defined in item type {_itemType.Name}; keys are {_itemType.KeysAndSubkeys()}");
                     }

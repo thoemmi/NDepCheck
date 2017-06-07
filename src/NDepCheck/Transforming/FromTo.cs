@@ -3,11 +3,13 @@ using JetBrains.Annotations;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming {
-    public class FromTo {
-        [NotNull]
-        public readonly Item From;
-        public readonly Item To;
-        public FromTo([NotNull] Item from, [NotNull] Item to) {
+    public class FromTo<TItem, TDependency>
+            where TDependency : AbstractDependency<TItem>
+            where TItem : AbstractItem<TItem> {
+        [NotNull] public readonly TItem From;
+        public readonly TItem To;
+
+        public FromTo([NotNull] TItem from, [NotNull] TItem to) {
             From = from;
             To = to;
         }
@@ -20,11 +22,17 @@ namespace NDepCheck.Transforming {
         public override int GetHashCode() {
             return From.GetHashCode() ^ To.GetHashCode();
         }
+    }
+
+    public class FromTo : FromTo <Item,Dependency>{
+        public FromTo([NotNull] Item @from, [NotNull] Item to) : base(@from, to) {
+        }
 
         public FromTo AggregateDependency(WorkingGraph graph, Dependency d, Dictionary<FromTo, Dependency> edgeCollector) {
             Dependency result;
             if (!edgeCollector.TryGetValue(this, out result)) {
-                result = graph.CreateDependency(From, To, d.Source, d.MarkerSet, d.Ct, d.QuestionableCt, d.BadCt, d.NotOkReason, d.ExampleInfo);
+                result = graph.CreateDependency(From, To, d.Source, d.MarkerSet, d.Ct, d.QuestionableCt, d.BadCt,
+                    d.NotOkReason, d.ExampleInfo);
                 edgeCollector.Add(this, result);
             } else {
                 result.AggregateMarkersAndCounts(d);
@@ -34,7 +42,8 @@ namespace NDepCheck.Transforming {
             return this;
         }
 
-        public static Dictionary<FromTo, Dependency> AggregateAllDependencies(WorkingGraph graph, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies) {
+        public static Dictionary<FromTo, Dependency> AggregateAllDependencies(WorkingGraph graph,
+            [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies) {
             var result = new Dictionary<FromTo, Dependency>();
             foreach (var d in dependencies) {
                 new FromTo(d.UsingItem, d.UsedItem).AggregateDependency(graph, d, result);

@@ -1,5 +1,7 @@
 // Checkable architectural information for NDepCheck
 
+-fp VIOLATIONS ..\NDepCheckViolations
+
 -cf CheckDeps { -rd
     $ (::Assembly.Name) ---> (::Assembly.Name) 
     
@@ -79,7 +81,7 @@
     }
 
     // -----------------------------------------------------------------------------
-    // An experimental, incomplete project defining immutable items and dependencies
+    // An experimental, CURRENTLY INCOMPLETE project defining immutable items and dependencies
     // Ensure immutable ("ReadOnly...") classes are really immutable
     NDepCheck:ReadOnly* ---> : {
         : -- '_declaresfield  -> '_readonly&_primitive
@@ -94,16 +96,16 @@
         :                  -- '~_declaresfield -> :
     }
 
-    // Specific rules for immutability project
+    // Specific rules for (CURRENTLY DEAD) immutability project
     NDepCheck: ---> : {
         :Program ---! :Dependency
     }
 }
--tf CheckDeps { -ag }
+-tf CheckDeps
 
--wr RuleViolationWriter ..\NDepCheckViolations.txt
+-wr RuleViolationWriter { -nl } VIOLATIONS.txt 
 
 -cf ProjectItems { -pl $DOTNETITEM---%NC(Namespace:Class) !(**):(**) }
 -tf ProjectItems
 -tf MarkDeps { -cl -cd -cr }
--wr RuleViolationWriter ..\NDepCheckViolations~NamespaceClass.txt
+-wr RuleViolationWriter { -nl } VIOLATIONS~NamespaceClass.txt

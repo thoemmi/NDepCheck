@@ -75,14 +75,18 @@ namespace NDepCheck {
                 LazilyFillVisibilityCaches();
                 return _visibleDependencies;
             }
-        } 
+        }
 
         private void LazilyFillVisibilityCaches() {
             if (_visibleDependencies == null) {
-                _visibleDependencies = new List<Dependency>();
                 _hiddenDependencies = new List<Dependency>();
-                foreach (var d in _dependencies) {
-                    (_filters.Any(f => f.IsMatch(d)) ? _hiddenDependencies : _visibleDependencies).Add(d);
+                if (_filters.Any()) {
+                    _visibleDependencies = new List<Dependency>();
+                    foreach (var d in _dependencies) {
+                        (_filters.Any(f => f.IsMatch(d)) ? _visibleDependencies : _hiddenDependencies).Add(d);
+                    }
+                } else {
+                    _visibleDependencies = _dependencies.ToList();
                 }
             }
         }
@@ -222,6 +226,7 @@ namespace NDepCheck {
         public void RemoveGraphFilters(string substring, bool ignorecase) {
             if (substring == null) {
                 if (_filters.Any()) {
+                    // Filters change
                     ClearAllCaches();
                 }
                 _filters.Clear();

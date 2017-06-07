@@ -242,9 +242,11 @@ namespace NDepCheck {
             return this;
         }
 
-        public IEnumerable<Dependency> Outgoing => _workingGraph.VisibleOutgoingVisible[this];
+        [NotNull, ItemNotNull]
+        public IEnumerable<Dependency> GetOutgoing() => _workingGraph.VisibleOutgoingVisible.Get(this) ?? Enumerable.Empty<Dependency>();
 
-        public IEnumerable<Dependency> Incoming => _workingGraph.VisibleIncomingVisible[this];
+        [NotNull, ItemNotNull]
+        public IEnumerable<Dependency> GetIncoming() => _workingGraph.VisibleIncomingVisible.Get(this) ?? Enumerable.Empty<Dependency>();
 
         [NotNull]
         private readonly MutableMarkerSet _markerSet;

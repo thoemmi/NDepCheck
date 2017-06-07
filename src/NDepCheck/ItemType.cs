@@ -49,10 +49,10 @@ namespace NDepCheck {
             get;
         }
 
-        [NotNull]
+        [NotNull, ItemNotNull]
         public readonly string[] Keys;
 
-        [NotNull]
+        [NotNull, ItemNotNull]
         public readonly string[] SubKeys;
 
         private ItemType([NotNull] string name, [NotNull] string[] keys, [NotNull] string[] subKeys, bool matchesOnFieldNr, bool ignoreCase, bool predefined) {
@@ -66,8 +66,8 @@ namespace NDepCheck {
                 throw new ArgumentException($"Subkeys of item type {name} must either be empty or .name; there are unsupported subkeys: " + string.Join(" ", subKeys), nameof(subKeys));
             }
 
-            Keys = keys.Select(s => s?.Trim()).ToArray();
-            SubKeys = subKeys.Select(s => s?.Trim()).ToArray();
+            Keys = keys.Select(s => s?.Trim() ?? "").ToArray();
+            SubKeys = subKeys.Select(s => s?.Trim() ?? "").ToArray();
             Name = name;
             _matchesOnFieldNr = matchesOnFieldNr;
             _predefined = predefined;
@@ -87,6 +87,21 @@ namespace NDepCheck {
                 _allTypes.Add(name, result = new ItemType(name, keys, subKeys, matchesOnFieldNr, ignoreCase, predefined));
             }
             return result;
+        }
+
+
+        public static ItemType New([NotNull] string format, bool forceIgnoreCase = false) {
+            string[] parts = format.Trim().TrimEnd(')').Split(':', ';', '(');
+            string namePart = parts[0].Trim();
+            string[] fieldParts = parts.Skip(1).Select((p, i) => string.IsNullOrWhiteSpace(p) ? "_" + (i + 1) : p).ToArray();
+            string name = parts[0] == "" || parts[0] == "+" ? "_" + string.Join("_", fieldParts) : namePart.TrimEnd('+');
+            return New(name, fieldParts, namePart.EndsWith("+") || forceIgnoreCase);
+        }
+
+        public static ItemType New(string name, IEnumerable<string> keysAndSubKeys, bool ignoreCase) {
+            string[] keys = keysAndSubKeys.Select(k => k.Split('.')[0]).ToArray();
+            string[] subkeys = keysAndSubKeys.Select(k => k.Split('.').Length > 1 ? "." + k.Split('.')[1] : "").ToArray();
+            return New(name, keys, subkeys, ignoreCase);
         }
 
         public int Length => Keys.Length;
@@ -137,20 +152,6 @@ namespace NDepCheck {
             }
             result.Append(')');
             return result.ToString();
-        }
-
-        public static ItemType New([NotNull] string format, bool forceIgnoreCase = false) {
-            string[] parts = format.Trim().TrimEnd(')').Split(':', ';', '(');
-            string namePart = parts[0].Trim();
-            string[] fieldParts = parts.Skip(1).Select((p, i) => string.IsNullOrWhiteSpace(p) ? "_" + (i + 1) : p).ToArray();
-            string name = parts[0] == "" || parts[0] == "+" ? "_" + string.Join("_", fieldParts) : namePart.TrimEnd('+');
-            return New(name, fieldParts, namePart.EndsWith("+") || forceIgnoreCase);
-        }
-
-        public static ItemType New(string name, IEnumerable<string> keysAndSubKeys, bool ignoreCase) {
-            string[] keys = keysAndSubKeys.Select(k => k.Split('.')[0]).ToArray();
-            string[] subkeys = keysAndSubKeys.Select(k => k.Split('.').Length > 1 ? "." + k.Split('.')[1] : "").ToArray();
-            return New(name, keys, subkeys, ignoreCase);
         }
 
         public static void Reset() {
@@ -208,6 +209,12 @@ namespace NDepCheck {
         }
 
         public int IndexOf(string key, string subkey) {
+            if (key == null) {
+                throw new ArgumentNullException(nameof(key));
+            }
+            if (subkey == null) {
+                throw new ArgumentNullException(nameof(subkey));
+            }
             for (int i = 0; i < Keys.Length; i++) {
                 if (key == Keys[i] && subkey == SubKeys[i]) {
                     return i;

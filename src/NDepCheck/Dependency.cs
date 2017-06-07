@@ -98,7 +98,7 @@ namespace NDepCheck {
                     : QuestionableCt > 0 ? $";{QuestionableCt};" : ";;";
                 string markers = MarkerSet.AsFullString(maxLength / 3);
                 return
-                    $"{prefix}{nounTail}{reason}: {brk}{UsingItem.AsFullString(maxLength / 3)} --{brk}{ct}{markers}{brk}-> {UsedItem.AsFullString(maxLength / 3)}" +
+                    $"{prefix}{nounTail}{reason}: {brk}{UsingItem.AsFullString(maxLength / 3)}{brk}-- {ct}{markers}{brk}-> {UsedItem.AsFullString(maxLength / 3)}" +
                     (Source != null ? (Ct > 1 ? " (e.g. at " : " (at ") + Source + ")" : "") +
                     (newLine ? Environment.NewLine : "");
             }
@@ -367,7 +367,8 @@ namespace NDepCheck {
         }
 
         public Dependency Clone() {
-            return new Dependency(UsingItem, UsedItem, Source, MarkerSet, Ct, QuestionableCt, BadCt, ExampleInfo);
+            return new Dependency(usingItem: UsingItem, usedItem: UsedItem, source: Source, markers: MarkerSet, ct: Ct, 
+                                  questionableCt: QuestionableCt, badCt: BadCt, notOkReason: NotOkReason, exampleInfo: ExampleInfo);
         }
     }
 }

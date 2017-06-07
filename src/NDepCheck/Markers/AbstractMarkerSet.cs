@@ -8,7 +8,7 @@ using NDepCheck.Matching;
 
 namespace NDepCheck.Markers {
     public abstract class AbstractMarkerSet : IMarkerSet {
-        public const string MARKER_PATTERN = @"^[\p{L}\p{N}_./\\]+$";
+        public const string MARKER_PATTERN = @"^[\p{L}\p{N}_./\\~]+$";
 
         private static readonly Dictionary<string, int> _empty = new Dictionary<string, int>(StringComparer.InvariantCulture);
         private static readonly Dictionary<string, int> _emptyIgnoreCase = new Dictionary<string, int>(StringComparer.InvariantCultureIgnoreCase);
@@ -108,15 +108,15 @@ namespace NDepCheck.Markers {
         }
 
         private static string FirstReadableName(IEnumerable<ItemMatch> itemMatches) {
-            return itemMatches
+            return string.Join(".",
+                itemMatches
                 .SelectMany(m => m.ItemPattern.Matchers)
-                .Select(m => ToMarker(m.ToString()))
-                .FirstOrDefault(s => !string.IsNullOrWhiteSpace(s));
+                .Select(m => ToMarker(m.ToString())));
         }
 
         private static string ToMarker(string m) {
-            // Replace anything not letter, number or one of _ . / \\ with nothing
-            return Regex.Replace(m, @"[^\p{L}\p{N}_./\\]", "");
+            // Replace whitespace with nothing, then any sequence of not letter, number or one of _ . / \\ with ~
+            return Regex.Replace(Regex.Replace(m, @"\s", ""), @"[^\p{L}\p{N}_./\\]+", "~");
         }
 
         public string AsFullString(int maxLength = 250) {

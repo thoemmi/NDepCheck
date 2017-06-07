@@ -9,12 +9,12 @@ namespace NDepCheck.Matching {
 
         public DependencyMatchOptions(string verb) {
             DependencyMatchOption = new Option("dm", "dependency-match", "&", $"Match to select dependencies to {verb}",
-                @default : $"{verb} all dependencies", multiple : true);
-            NoMatchOption = new Option("nm", "no-match", "&", $"Edges not to {verb}", @default : "no excluded dependencies", multiple : true);
+                @default: $"{verb} all dependencies", multiple: true);
+            NoMatchOption = new Option("nm", "no-match", "&", $"Edges not to {verb}", @default: "no excluded dependencies", multiple: true);
         }
 
         public Option[] WithOptions(params Option[] moreOptions) {
-            return new[] {DependencyMatchOption, NoMatchOption}.Concat(moreOptions).ToArray();
+            return new[] { DependencyMatchOption, NoMatchOption }.Concat(moreOptions).ToArray();
         }
 
         public void Parse([NotNull] GlobalContext globalContext, [CanBeNull] string argsAsString, bool ignoreCase,

@@ -20,10 +20,10 @@ namespace NDepCheck {
         }
         private readonly AbstractPathMatch<TDependency, TItem>[] _dontMatches;
 
-        protected AbstractPathMatch(bool multipleOccurrencesAllowed, bool mayContinue, IEnumerable<AbstractPathMatch<TDependency, TItem>> dontMatches) {
+        protected AbstractPathMatch(bool multipleOccurrencesAllowed, bool mayContinue, IEnumerable<AbstractPathMatch<TDependency, TItem>> dontMatchesBeforeThis) {
             MayContinue = mayContinue;
             MultipleOccurrencesAllowed = multipleOccurrencesAllowed;
-            _dontMatches = dontMatches.ToArray();
+            _dontMatches = dontMatchesBeforeThis.ToArray();
         }
 
         public PathMatchResult Match(TDependency nextDep, TItem newTail) {
@@ -44,7 +44,9 @@ namespace NDepCheck {
             where TItem : AbstractItem<TItem> {
         private readonly DependencyMatch _dependencyMatch;
 
-        public DependencyPathMatch(string pattern, bool ignoreCase, bool multipleOccurrencesAllowed, bool mayContinue, IEnumerable<AbstractPathMatch<TDependency, TItem>> dontMatches) : base(multipleOccurrencesAllowed, mayContinue, dontMatches) {
+        public DependencyPathMatch(string pattern, bool ignoreCase, bool multipleOccurrencesAllowed, bool mayContinue, 
+                IEnumerable<AbstractPathMatch<TDependency, TItem>> dontMatchesBeforeThis) 
+                : base(multipleOccurrencesAllowed, mayContinue, dontMatchesBeforeThis) {
             _dependencyMatch = DependencyMatch.Create(pattern, ignoreCase);
         }
 
@@ -60,8 +62,8 @@ namespace NDepCheck {
         private readonly ItemMatch _itemMatch;
 
         public ItemPathMatch(string pattern, bool ignoreCase, bool multipleOccurrencesAllowed, bool mayContinue, 
-                             IEnumerable<AbstractPathMatch<TDependency, TItem>> dontMatches, bool anyWhereMatcherOk)
-                : base(multipleOccurrencesAllowed, mayContinue, dontMatches) {
+                             IEnumerable<AbstractPathMatch<TDependency, TItem>> dontMatchesBeforeThis, bool anyWhereMatcherOk)
+                : base(multipleOccurrencesAllowed, mayContinue, dontMatchesBeforeThis) {
             _itemMatch = new ItemMatch(pattern, ignoreCase, anyWhereMatcherOk);
         }
 
@@ -69,5 +71,4 @@ namespace NDepCheck {
             return _itemMatch.Matches(newTail).Success;
         }
     }
-
 }

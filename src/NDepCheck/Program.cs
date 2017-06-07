@@ -55,8 +55,8 @@ namespace NDepCheck {
         //   gl | gv                graph-list (gv can be typed with one hand ...)
         //   gt [+|-]               graph-for-transform
         //   gr [+|-]               graph-for-read
-        //   gh filter              graph-hide
-        //   gu [string]            graph-unhide
+        //   gv filter              graph-view-only
+        //   gu [string]            graph-unview
         //   gf                     graph-filters
         //
         // h    help
@@ -97,9 +97,9 @@ namespace NDepCheck {
         public static readonly Option GraphListOption = new ProgramOption(shortname: "gl", name: "graph-list", usage: "| gv", description: "", moreNames: new[] { "gv" });
         public static readonly Option AutoGraphForTransformOption = new ProgramOption(shortname: "gt", name: "graph-for-transform", usage: "[+|-]", description: "Create a new graph for each transform; default: 10");
         public static readonly Option AutoGraphForReadOption = new ProgramOption(shortname: "gr", name: "graph-for-read", usage: "[+|-]", description: "Create a new graph for each read");
-        public static readonly Option GraphHideOption = new ProgramOption(shortname: "gh", name: "graph-hide", usage: "pattern", description: "");
-        public static readonly Option GraphUnhideOption = new ProgramOption(shortname: "gu", name: "graph-unhide", usage: "[string]", description: "");
-        public static readonly Option GraphFiltersOption = new ProgramOption(shortname: "gf", name: "graph-filters", usage: "", description: "");
+        public static readonly Option GraphViewOnlyOption = new ProgramOption(shortname: "gv", name: "graph-view-only", usage: "pattern", description: "Limit dependencies visible to transformers and writers");
+        public static readonly Option GraphUnviewOption = new ProgramOption(shortname: "gu", name: "graph-unview", usage: "[string]", description: "Remove visibility limitation");
+        public static readonly Option GraphFiltersOption = new ProgramOption(shortname: "gf", name: "graph-filters", usage: "", description: $"Show all visibility filters used defined by {GraphViewOnlyOption}");
 
         public static readonly Option FactoryAddOption = new ProgramOption(shortname: "fa", name: "factory-add", usage: "assembly factory", description: "Add factory to front of global item and dependency factory list");
         public static readonly Option FactoryForGraphAddOption = new ProgramOption(shortname: "fg", name: "factory-add-to-graph", usage: "assembly factory", description: "Add factory to front of item and dependency factory list of current graph");
@@ -187,7 +187,7 @@ namespace NDepCheck {
 
             CloneGraphOption, CreateEmptyGraphOption, RenameGraphOption, DeleteGraphOption, IncludeGraphOption,
             WorkingGraphOption, GraphListOption, AutoGraphForTransformOption, AutoGraphForReadOption,
-            GraphHideOption, GraphUnhideOption, GraphFiltersOption,
+            GraphViewOnlyOption, GraphUnviewOption, GraphFiltersOption,
 
             TransformPluginOption, TransformOption, TransformTestDataOption, TransformPluginHelpOption, TransformHelpOption,
             TransformPluginDetailedHelpOption, TransformDetailedHelpOption,
@@ -361,10 +361,10 @@ namespace NDepCheck {
                         // -gr [#|-]               
                         string autoGraphCount = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true);
                         globalContext.AutoForRead(autoGraphCount);
-                    } else if (GraphHideOption.IsMatch(arg)) {
+                    } else if (GraphViewOnlyOption.IsMatch(arg)) {
                         string filter = ExtractRequiredOptionValue(globalContext, args, ref i, "Filter pattern missing");
                         globalContext.CurrentGraph.AddGraphFilter(filter, globalContext.IgnoreCase);
-                    } else if (GraphUnhideOption.IsMatch(arg)) {
+                    } else if (GraphUnviewOption.IsMatch(arg)) {
                         string substring = ExtractOptionValue(globalContext, args, ref i);
                         globalContext.CurrentGraph.RemoveGraphFilters(substring, globalContext.IgnoreCase);
                     } else if (GraphFiltersOption.IsMatch(arg)) {
@@ -808,14 +808,14 @@ namespace NDepCheck {
         }
 
         private static string GetListOptions(string[] args, GlobalContext globalContext, ref int i, out int maxCount) {
-            string s = ExtractOptionValue(globalContext, args, ref i);
-            string pattern = ExtractNextValue(globalContext, args, ref i);
+            string s = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true);
+            string pattern = ExtractNextValue(globalContext, args, ref i, allowOptionValue: true);
             if (pattern == null) {
                 maxCount = 10;
                 pattern = s;
             } else {
-                if (!int.TryParse(s, out maxCount)) {
-                    throw new ArgumentException($"'{s}' is not a valid number");
+                if (!int.TryParse(s, out maxCount) || maxCount <= 0) {
+                    throw new ArgumentException($"'{s}' is not a valid count");
                 }
             }
             return pattern;

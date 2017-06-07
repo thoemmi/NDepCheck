@@ -292,7 +292,8 @@ namespace NDepCheck {
 
         public void TransformTestData(string assemblyName, string transformerClass, string transformerOptions) {
             ITransformer transformer = GetOrCreatePlugin<ITransformer>(assemblyName, transformerClass);
-            CreateWorkingGraph(transformerClass + ".TestDependencies", GraphCreationType.AutoTransform, transformer.CreateSomeTestDependencies(CurrentGraph));
+            CreateWorkingGraph(transformerClass + ".TestDependencies", GraphCreationType.AutoTransform, 
+                               transformer.CreateSomeTestDependencies(CurrentGraph));
 
             var newDependenciesCollector = new List<Dependency>();
             transformer.Transform(this, CurrentGraph.VisibleDependencies, transformerOptions, newDependenciesCollector);
@@ -319,7 +320,7 @@ namespace NDepCheck {
                     RestartAbortWatchDog();
 
                     if (_autoGraphsForTransform > 0) {
-                        CreateWorkingGraph(transformerClass, GraphCreationType.AutoTransform, CurrentGraph.VisibleDependencies);
+                        CreateWorkingGraph(transformerClass, GraphCreationType.AutoTransform, Clone(CurrentGraph.VisibleDependencies));
                         RemoveSuperfluousGraphs(_autoGraphsForTransform, GraphCreationType.AutoTransform);
                     }
 
@@ -593,19 +594,25 @@ namespace NDepCheck {
                 : FindGraph(name)?.VisibleDependencies;
         }
 
+        private IEnumerable<Dependency> Clone(IEnumerable<Dependency> dependencies) {
+            // Currently, a new working graph clones its dependencies. This is bad for two reasons:
+            // TODO: (a) cloning dependencies is WRONG - the items are not cloned; but as they are mutable (markers!), changes are done in unrelated graphs :-(
+            // TODO: (b) cloning dependencies costs lot of memory - even dependencies which are not changed later are cloned; a copy-on-write should be done, or explicit handling of immutable and mutable dependencies (and items)
+            return dependencies.Select(d => d.Clone());
+        }
+
         public void CloneGraphs(string newName, IEnumerable<string> clonedNames) {
             if (clonedNames.Any()) {
                 foreach (var n in clonedNames) {
-                    WorkingGraph e = FindGraph(n);
-                    if (e == null) {
+                    WorkingGraph g = FindGraph(n);
+                    if (g == null) {
                         Log.WriteError($"No graph with name '{n}' found");
                     } else {
-                        CreateWorkingGraph(e.Name, GraphCreationType.Manual, e.VisibleDependencies.Select(d => d.Clone()));
+                        CreateWorkingGraph(g.Name, GraphCreationType.Manual, Clone(g.VisibleDependencies));
                     }
                 }
             } else {
-                WorkingGraph e = CurrentGraph;
-                CreateWorkingGraph(e.Name, GraphCreationType.Manual, e.VisibleDependencies.Select(d => d.Clone()));
+                CreateWorkingGraph(CurrentGraph.Name, GraphCreationType.Manual, Clone(CurrentGraph.VisibleDependencies));
             }
         }
 
@@ -620,7 +627,10 @@ namespace NDepCheck {
                     if (e == null) {
                         Log.WriteWarning($"No graph with name '{n}' found");
                     } else {
-                        _workingGraphs.Remove(e);
+                        while (e != null) {
+                            _workingGraphs.Remove(e);
+                            e = FindGraph(n);
+                        }
                     }
                 }
             } else {

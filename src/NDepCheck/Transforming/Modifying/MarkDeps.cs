@@ -17,13 +17,17 @@ namespace NDepCheck.Transforming.Modifying {
         public static readonly Option UnmarkRightItemOption = new Option("ur", "unmark-right", "marker", "Marker to be removed from item on right", @default: "", multiple: true);
 
         public static readonly Option ClearLeftItemOption = new Option("cl", "clear-left", "", "Remove all markers from item on left", @default: false);
-        public static readonly Option ClearDependencyItemOption = new Option("cd", "clear-dependency", "", "Remove all markersdependency", @default: false);
+        public static readonly Option ClearDependencyItemOption = new Option("cd", "clear-dependency", "", "Remove all markers from dependency", @default: false);
         public static readonly Option ClearRightItemOption = new Option("cr", "clear-right", "", "Remove all markers from item on right", @default: false);
+
+        public static readonly Option ResetQuestionableCountOption = new Option("rq", "reset-questionable", "", "Reset questionable count on dependencies", @default: false);
+        public static readonly Option ResetBadCountOption = new Option("rb", "reset-bad", "", "Reset bad count on dependencies", @default: false);
 
         private static readonly Option[] _configOptions = DependencyMatchOptions.WithOptions(
             MarkLeftItemOption, MarkDependencyItemOption, MarkRightItemOption,
             UnmarkLeftItemOption, UnmarkDependencyItemOption, UnmarkRightItemOption,
-            ClearLeftItemOption, ClearDependencyItemOption, ClearRightItemOption
+            ClearLeftItemOption, ClearDependencyItemOption, ClearRightItemOption,
+            ResetBadCountOption, ResetQuestionableCountOption
         );
 
         public string GetHelp(bool detailedHelp, string filter) {
@@ -90,6 +94,9 @@ Examples:
             var markersToRemoveOnDep = new List<string>();
             var markerPatternsToRemoveOnRight = new List<string>();
 
+            bool resetBad = false;
+            bool resetQuestionable = false;
+
             DependencyMatchOptions.Parse(globalContext, transformOptions, _ignoreCase, matches, excludes,
                 MarkLeftItemOption.Action((args, j) => {
                     string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
@@ -132,6 +139,14 @@ Examples:
                 ClearRightItemOption.Action((args, j) => {
                     clearRight = true;
                     return j;
+                }),
+                ResetBadCountOption.Action((args, j) => {
+                    resetBad = true;
+                    return j;
+                }),
+                ResetQuestionableCountOption.Action((args, j) => {
+                    resetQuestionable = true;
+                    return j;
                 })
             );
 
@@ -147,6 +162,12 @@ Examples:
                 } else {
                     d.UnionWithMarkers(markersToAddOnDep);
                     d.RemoveMarkers(markersToRemoveOnDep, _ignoreCase);
+                }
+                if (resetBad) {
+                    d.ResetBad();
+                }
+                if (resetQuestionable) {
+                    d.ResetQuestionable();
                 }
                 n++;
             }
