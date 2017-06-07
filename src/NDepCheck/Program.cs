@@ -238,7 +238,7 @@ namespace NDepCheck {
                     Console.WriteLine();
                     Console.ForegroundColor = ConsoleColor.DarkGray;
                     Console.WriteLine(value: "Type /?<enter> for help; or q<enter> for stopping NDepCheck.");
-                    Console.Write(value: globalContext.CurrentGraph.Name + "> ");
+                    Console.Write(value: globalContext.CurrentGraph.FullName + "> ");
                     Console.ResetColor();
                     string commands = Console.ReadLine();
 

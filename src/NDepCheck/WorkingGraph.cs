@@ -30,7 +30,10 @@ namespace NDepCheck {
     /// them.
     /// </summary>
     public class WorkingGraph {
-        public string Name;
+        private static int _stickyIdCt = 0;
+
+        public readonly string StickyId = "#_" + ++_stickyIdCt;
+        private string _usedDefinedName;
         public readonly GraphCreationType Type;
 
         private readonly List<Dependency> _dependencies;
@@ -51,23 +54,25 @@ namespace NDepCheck {
 
         private readonly List<DependencyMatch> _filters = new List<DependencyMatch>();
 
-        internal WorkingGraph(string name, GraphCreationType type, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
+        internal WorkingGraph(string usedDefinedName, GraphCreationType type, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
                            [NotNull] ItemAndDependencyFactoryList itemAndDependencyFactories) {
-            Name = name;
+            _usedDefinedName = usedDefinedName;
             Type = type;
             _dependencies = dependencies.ToList();
             ClearAllCaches();
             _globalItemAndDependencyFactories = itemAndDependencyFactories;
         }
 
+        public string FullName => $"{StickyId,-3}:{_usedDefinedName}";
+
         public override string ToString() {
-            return $"{Name} ({_dependencies.Count})";
+            return $"{FullName} ({_dependencies.Count})";
         }
 
         public string AsString() {
             LazilyFillVisibilityCaches();
             int hiddenCount = _hiddenDependencies.Count;
-            return $"{Name} ({_visibleDependencies.Count}" + (hiddenCount > 0 ? $"+[{hiddenCount}]" : "") + ")";
+            return $"{FullName} ({_visibleDependencies.Count}" + (hiddenCount > 0 ? $"+[{hiddenCount}]" : "") + ")";
         }
 
         public IEnumerable<Dependency> VisibleDependencies {
@@ -248,5 +253,9 @@ namespace NDepCheck {
         }
 
         #endregion Filters
+
+        public void SetName(string newName) {
+            _usedDefinedName = newName;
+        }
     }
 }

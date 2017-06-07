@@ -11,7 +11,6 @@ using NDepCheck.Matching;
 
 namespace NDepCheck {
     public class GlobalContext {
-        private const string WORKING_GRAPH_DEFAULT_PREFIX = "#_";
         private const string HELP_SEPARATOR = "=============================================";
 
         internal bool SomethingDone {
@@ -259,8 +258,8 @@ namespace NDepCheck {
             }
         }
 
-        private void CreateWorkingGraph(string namePrefix, GraphCreationType type, IEnumerable<Dependency> dependencies) {
-            _workingGraphs.Add(new WorkingGraph(GetNewGraphNameStartingWith(namePrefix), type, dependencies, _itemAndDependencyFactories));
+        private void CreateWorkingGraph(string name, GraphCreationType type, IEnumerable<Dependency> dependencies) {
+            _workingGraphs.Add(new WorkingGraph(name, type, dependencies, _itemAndDependencyFactories));
         }
 
         [CanBeNull]
@@ -325,7 +324,7 @@ namespace NDepCheck {
                     var workingGraphsAtStartOfTransform = new List<WorkingGraph>(_workingGraphs);
 
                     if (_autoGraphsForTransform > 0) {
-                        CreateWorkingGraph(transformerClass, GraphCreationType.AutoTransform, Clone(CurrentGraph.VisibleDependencies));
+                        CreateWorkingGraph(CurrentGraph.StickyId + "->" + transformerClass, GraphCreationType.AutoTransform, Clone(CurrentGraph.VisibleDependencies));
                         RemoveSuperfluousGraphs(_autoGraphsForTransform, GraphCreationType.AutoTransform);
                     }
 
@@ -546,20 +545,6 @@ namespace NDepCheck {
 
         #region Graph handling
 
-        private string GetNewGraphNameStartingWith([CanBeNull] string s) {
-            string prefix = s ?? WORKING_GRAPH_DEFAULT_PREFIX;
-            int? maxId = null;
-            foreach (var g in _workingGraphs) {
-                if (g.Name.StartsWith(prefix)) {
-                    int id;
-                    if (int.TryParse(g.Name.Substring(prefix.Length), out id) && (!maxId.HasValue || id > maxId)) {
-                        maxId = id;
-                    }
-                }
-            }
-            return maxId.HasValue ? prefix + (maxId + 1) : prefix;
-        }
-
         public void AutoForTransform(string autoGraphCount) {
             SetAutoFlag(autoGraphCount, ref _autoGraphsForTransform);
         }
@@ -582,7 +567,7 @@ namespace NDepCheck {
         }
 
         private static WorkingGraph CreateDefaultGraph(ItemAndDependencyFactoryList itemAndDependencyFactories) {
-            return new WorkingGraph(WORKING_GRAPH_DEFAULT_PREFIX + "1", GraphCreationType.Manual, new Dependency[0], itemAndDependencyFactories);
+            return new WorkingGraph("", GraphCreationType.Manual, new Dependency[0], itemAndDependencyFactories);
         }
 
         [NotNull, ItemNotNull]
@@ -597,9 +582,9 @@ namespace NDepCheck {
             if (int.TryParse(name, out id) && id > 0 && id <= workingGraphs.Count) {
                 result = new[] { workingGraphs[workingGraphs.Count - id] };
             } else {
-                result = workingGraphs.Where(e => e.Name == name);
+                result = workingGraphs.Where(e => e.FullName == name);
                 if (!result.Any()) {
-                    result = workingGraphs.Where(e => e.Name.StartsWith(name));
+                    result = workingGraphs.Where(e => e.FullName.StartsWith(name));
                 }
             }
             return result;
@@ -626,11 +611,11 @@ namespace NDepCheck {
                 IEnumerable<WorkingGraph> toBeCloned = FindGraphs(clonedNames);
                 if (toBeCloned != null) {
                     foreach (var g in toBeCloned) {
-                        CreateWorkingGraph(g.Name, GraphCreationType.Manual, Clone(g.VisibleDependencies));
+                        CreateWorkingGraph(g.StickyId + "->", GraphCreationType.Manual, Clone(g.VisibleDependencies));
                     }
                 }
             } else {
-                CreateWorkingGraph(CurrentGraph.Name, GraphCreationType.Manual, Clone(CurrentGraph.VisibleDependencies));
+                CreateWorkingGraph(CurrentGraph.StickyId + "->", GraphCreationType.Manual, Clone(CurrentGraph.VisibleDependencies));
             }
         }
 
@@ -669,11 +654,11 @@ namespace NDepCheck {
         }
 
         public void IncludeGraphs([NotNull, ItemNotNull] IEnumerable<string> namesToBeIncluded, bool removeIncluded) {
-            if (namesToBeIncluded.Contains(CurrentGraph.Name)) {
-                Log.WriteError("Cannot add current graph to itself");
-            }
             IEnumerable<WorkingGraph> toBeIncluded = FindGraphs(namesToBeIncluded.Any() ? namesToBeIncluded : new[] { "2" });
             if (toBeIncluded != null) {
+                if (toBeIncluded.Contains(CurrentGraph)) {
+                    Log.WriteError("Cannot add current graph to itself");
+                }
                 foreach (var g in toBeIncluded) {
                     CurrentGraph.AddDependencies(g.VisibleDependencies);
                     if (removeIncluded) {
@@ -700,7 +685,7 @@ namespace NDepCheck {
         }
 
         public void RenameCurrentGraph(string newName) {
-            CurrentGraph.Name = newName;
+            CurrentGraph.SetName(newName);
         }
 
         #endregion Graph handling
