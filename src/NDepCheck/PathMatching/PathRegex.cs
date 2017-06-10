@@ -638,20 +638,16 @@ namespace NDepCheck.PathMatching {
                 bool c = false;
                 foreach (var se in _active) {
                     MatchAndTarget<TMatch, TTargetNode>[] matchAndTargets =
-                        se.Node.CollectReachableViaEpsilons()
-                            .SelectMany(n => n.Transitions)
-                            .Where(
-                                t =>
-                                    (t.MatchesOrNullForMatchAny == null ||
-                                     t.MatchesOrNullForMatchAny.Any(m => match(m, obj))) == !t.Invert)
-                            .ToArray();
+                        se.Node
+                          .CollectReachableViaEpsilons()
+                          .SelectMany(n => n.Transitions)
+                          .Where(t => (t.MatchesOrNullForMatchAny == null ||
+                                         t.MatchesOrNullForMatchAny.Any(m => match(m, obj))) == !t.Invert)
+                          .ToArray();
                     c |= matchAndTargets.Any(m => m.IsCount);
 
-                    result.AddRange(
-                        matchAndTargets.Select(
-                            t =>
-                                new StateElement<TTargetNode>(t.TargetNode,
-                                    se.BehindCount ?? (t.IsCount ? obj : default(T)))));
+                    result.AddRange(matchAndTargets.Select(t => new StateElement<TTargetNode>(t.TargetNode,
+                                                                     se.BehindCount ?? (t.IsCount ? obj : default(T)))));
                 }
                 atEnd = result.SelectMany(se => se.Node.CollectAllReachableViaEpsilons()).Any(n => n.IsEnd);
                 atCount = c;

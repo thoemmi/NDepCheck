@@ -11,9 +11,10 @@ namespace NDepCheck.Tests {
     internal class SimpleTestPathRegex : PathRegex<string, int, Func<string, bool>, Func<int, bool>> {
         public SimpleTestPathRegex(string definition, Dictionary<string, Func<string, bool>> definedItemMatches = null,
             Dictionary<string, Func<int, bool>> definedDependencyMatches = null)
-                : base(definition,
-                      definedItemMatches: definedItemMatches ?? new Dictionary<string, Func<string, bool>>(),
-                      definedDependencyMatches: definedDependencyMatches ?? new Dictionary<string, Func<int, bool>>(), ignoreCase: false) {
+            : base(
+                definition, definedItemMatches: definedItemMatches ?? new Dictionary<string, Func<string, bool>>(),
+                definedDependencyMatches: definedDependencyMatches ?? new Dictionary<string, Func<int, bool>>(),
+                ignoreCase: false) {
         }
 
         protected override Func<string, bool> CreateItemMatch(string pattern, bool ignoreCase) {
@@ -48,7 +49,8 @@ namespace NDepCheck.Tests {
 
             Func<Func<string, bool>, string, bool> itemMatch = (f, i) => f(i);
             bool atEnd, atCount;
-            IBeforeDependencyGraphkenState<string, int, Func<string, bool>, Func<int, bool>> stateAfterA = initState.Advance("A", itemMatch, out atEnd, out atCount);
+            IBeforeDependencyGraphkenState<string, int, Func<string, bool>, Func<int, bool>> stateAfterA =
+                initState.Advance("A", itemMatch, out atEnd, out atCount);
             Assert.IsTrue(stateAfterA.CanContinue);
         }
 
@@ -61,14 +63,17 @@ namespace NDepCheck.Tests {
             Func<Func<int, bool>, int, bool> dependencyMatch = (f, d) => f(d);
             bool atEnd, atCount;
 
-            IBeforeDependencyGraphkenState<string, int, Func<string, bool>, Func<int, bool>> stateAfterA = initState.Advance("A", itemMatch, out atEnd, out atCount);
+            IBeforeDependencyGraphkenState<string, int, Func<string, bool>, Func<int, bool>> stateAfterA =
+                initState.Advance("A", itemMatch, out atEnd, out atCount);
             Assert.IsTrue(stateAfterA.CanContinue);
             Assert.IsFalse(atEnd);
 
-            IBeforeItemGraphkenState<string, int, Func<string, bool>, Func<int, bool>> stateAfter1 = stateAfterA.Advance(1, dependencyMatch, out atCount);
+            IBeforeItemGraphkenState<string, int, Func<string, bool>, Func<int, bool>> stateAfter1 =
+                stateAfterA.Advance(1, dependencyMatch, out atCount);
             Assert.IsTrue(stateAfter1.CanContinue);
 
-            IBeforeDependencyGraphkenState<string, int, Func<string, bool>, Func<int, bool>> stateAfterB = stateAfter1.Advance("B", itemMatch, out atEnd, out atCount);
+            IBeforeDependencyGraphkenState<string, int, Func<string, bool>, Func<int, bool>> stateAfterB =
+                stateAfter1.Advance("B", itemMatch, out atEnd, out atCount);
             Assert.IsTrue(stateAfterB.CanContinue);
             Assert.IsTrue(atEnd);
         }
@@ -201,12 +206,19 @@ namespace NDepCheck.Tests {
             Assert.IsNotNull(regex);
         }
 
-        private IBeforeDependencyGraphkenState<string, int, Func<string, bool>, Func<int, bool>> AdvanceToEnd(string pattern, params string[] objects) {
+        private IBeforeDependencyGraphkenState<string, int, Func<string, bool>, Func<int, bool>> AdvanceToEnd(
+            string pattern, params string[] objects) {
+            return AdvanceToEnd(pattern, "", objects);
+        }
+
+        private IBeforeDependencyGraphkenState<string, int, Func<string, bool>, Func<int, bool>> AdvanceToEnd(
+            string pattern, string msg, string[] objects) {
             SimpleTestPathRegex regex = new SimpleTestPathRegex(pattern);
 
-            Console.WriteLine(regex.GetGraphkenRepresentation());
+            //Console.WriteLine(regex.GetGraphkenRepresentation());
 
-            IBeforeItemGraphkenState<string, int, Func<string, bool>, Func<int, bool>> beforeItemState = regex.CreateState();
+            IBeforeItemGraphkenState<string, int, Func<string, bool>, Func<int, bool>> beforeItemState =
+                regex.CreateState();
             Assert.IsTrue(beforeItemState.CanContinue);
 
             Func<Func<string, bool>, string, bool> itemMatch = (f, i) => f(i);
@@ -218,12 +230,12 @@ namespace NDepCheck.Tests {
                 {
                     string item = objects[i];
                     bool atEnd;
-                    beforeDependencyState = beforeItemState.Advance(item.TrimStart('+', '#', '$'), itemMatch,
-                            out atEnd, out atCount);
+                    beforeDependencyState = beforeItemState.Advance(item.TrimStart('+', '#', '$'), itemMatch, out atEnd,
+                        out atCount);
                     Assert.AreNotEqual(item.Contains("#"), beforeDependencyState.CanContinue,
-                        "CanContinue wrong for " + item);
-                    Assert.AreEqual(item.Contains("-"), atEnd, "AtEnd wrong for " + item);
-                    Assert.AreEqual(item.Contains("$"), atCount, "AtCount wrong for " + item);
+                        "CanContinue wrong for " + item + msg);
+                    Assert.AreEqual(item.Contains("-"), atEnd, "AtEnd wrong for " + item + msg);
+                    Assert.AreEqual(item.Contains("$"), atCount, "AtCount wrong for " + item + msg);
                 }
                 if (++i >= objects.Length) {
                     return beforeDependencyState;
@@ -232,8 +244,9 @@ namespace NDepCheck.Tests {
                     string dependency = objects[i];
                     beforeItemState = beforeDependencyState.Advance(int.Parse(dependency.TrimStart('+', '#', '$')),
                         dependencyMatch, out atCount);
-                    Assert.AreNotEqual(dependency.Contains("#"), beforeItemState.CanContinue, "CanContinue wrong for " + dependency);
-                    Assert.AreEqual(dependency.Contains("$"), atCount, "AtCount wrong for " + dependency);
+                    Assert.AreNotEqual(dependency.Contains("#"), beforeItemState.CanContinue,
+                        "CanContinue wrong for " + dependency + msg);
+                    Assert.AreEqual(dependency.Contains("$"), atCount, "AtCount wrong for " + dependency + msg);
                 }
             }
         }
@@ -246,9 +259,51 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestAdvanceOneOrMore() {
-            var result = AdvanceToEnd(":(.:)+", "a", "1", "-b", "2", "-c");
+            IGraphkenState result = AdvanceToEnd(":(.:)+", "a", "1", "-b", "2", "-c");
             Assert.IsFalse(result.CountedObjects.Any());
         }
 
+        [TestMethod]
+        public void TestAdvanceIndeterministicAlternative() {
+            IGraphkenState result = AdvanceToEnd(":(.b|.c)", "a", "1", "-b");
+            Assert.IsFalse(result.CountedObjects.Any());
+        }
+
+        [TestMethod]
+        public void TestAdvanceIndeterministicAlternativeFails() {
+            IGraphkenState result = AdvanceToEnd(":(.b|.c)", "a", "1", "#d");
+            Assert.IsFalse(result.CountedObjects.Any());
+        }
+
+        [TestMethod]
+        public void TestAdvanceAlternativeWithOneSuccess() {
+            const string oneOrTwoBs = "a(.b.b|.b).c";
+            {
+                IGraphkenState result = AdvanceToEnd(oneOrTwoBs, "a", "1", "b", "1", "-c");
+                Assert.IsFalse(result.CountedObjects.Any());
+            }
+            {
+                IGraphkenState result = AdvanceToEnd(oneOrTwoBs, "a", "1", "b", "1", "b", "1", "-c");
+                Assert.IsFalse(result.CountedObjects.Any());
+            }
+            {
+                IGraphkenState result = AdvanceToEnd(oneOrTwoBs, "a", "1", "b", "1", "b", "1", "#b");
+                Assert.IsFalse(result.CountedObjects.Any());
+            }
+        }
+
+
+        [TestMethod]
+        public void TestAdvanceMultiplesOfTwoAndThree() {
+            const string bsInPairsOrTriples = "a((.b.b.b)+|(.b.b)+).c";
+            for (int i = 1; i < 40; i++) {
+                string[] path = new[] { "a" }
+                        .Concat(Enumerable.Range(0, i).Select(_ => new[] { "1", "b" }).SelectMany(s => s))
+                        .Concat(i % 2 == 0 || i % 3 == 0 ? new[] { "2", "-c" } : new[] { "2", "#c" })
+                        .ToArray();
+                IGraphkenState result = AdvanceToEnd(bsInPairsOrTriples, " (for i=" + i + ")", path);
+                Assert.IsFalse(result.CountedObjects.Any());
+            }
+        }
     }
 }
