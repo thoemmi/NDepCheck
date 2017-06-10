@@ -5,7 +5,7 @@
 //using NDepCheck.Rendering.TextWriting;
 
 //namespace NDepCheck.Tests {
-//    [TestClass]
+//    [TestClass, ExcludeFromCodeCoverage]
 //    public class TestTreeWriters : AbstractWriterTest {
 //        [TestMethod]
 //        public void TestTrivialTreeTwoPathWriter() {

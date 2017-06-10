@@ -1,11 +1,12 @@
-﻿using System.IO;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.Transforming.Modifying;
 using NDepCheck.Transforming.DependencyCreating;
 
 namespace NDepCheck.Tests {
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class TestAddReverseDeps {
         [TestMethod]
         public void TestAddReverseWithoutRemove() {

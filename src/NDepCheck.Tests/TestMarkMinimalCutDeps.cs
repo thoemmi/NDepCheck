@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
 using NDepCheck.Markers;
@@ -6,6 +7,7 @@ using NDepCheck.Matching;
 using NDepCheck.Transforming.SpecialDependencyMarking;
 
 namespace NDepCheck.Tests {
+    [ExcludeFromCodeCoverage]
     public static class TestUtils {
         public static bool MarkersContain(this IWithMarkerSet d, string s) {
             CountPattern<IMatcher>.Eval eval = MarkerMatch.CreateEval(s + ">0", ignoreCase: false);
@@ -13,7 +15,7 @@ namespace NDepCheck.Tests {
         }
     }
 
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class TestMarkMinimalCutDeps {
         private static IEnumerable<Dependency> Run(GlobalContext gc, string options, IEnumerable<Dependency> dependencies) {
             try {

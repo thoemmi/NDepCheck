@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Linq;
 using NDepCheck.ConstraintSolving;
 using NDepCheck.Rendering.GraphicsRendering;
 
 namespace NDepCheck.TestRenderer {
+    [ExcludeFromCodeCoverage]
     public class TestRendererForLoadFromAssembly : GraphicsRenderer {
         protected override Color GetBackGroundColor => Color.Yellow;
 

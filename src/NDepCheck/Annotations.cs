@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 #pragma warning disable 1591
 // ReSharper disable UnusedMember.Global
@@ -25,6 +26,7 @@ namespace JetBrains.Annotations {
     [AttributeUsage(
       AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
       AttributeTargets.Delegate | AttributeTargets.Field | AttributeTargets.Event)]
+    [ExcludeFromCodeCoverage]
     public sealed class CanBeNullAttribute : Attribute {
     }
 
@@ -39,6 +41,7 @@ namespace JetBrains.Annotations {
     [AttributeUsage(
       AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
       AttributeTargets.Delegate | AttributeTargets.Field | AttributeTargets.Event)]
+    [ExcludeFromCodeCoverage]
     public sealed class NotNullAttribute : Attribute {
     }
 
@@ -50,6 +53,7 @@ namespace JetBrains.Annotations {
     [AttributeUsage(
       AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
       AttributeTargets.Delegate | AttributeTargets.Field)]
+    [ExcludeFromCodeCoverage]
     public sealed class ItemNotNullAttribute : Attribute {
     }
 
@@ -61,6 +65,7 @@ namespace JetBrains.Annotations {
     [AttributeUsage(
       AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
       AttributeTargets.Delegate | AttributeTargets.Field)]
+    [ExcludeFromCodeCoverage]
     public sealed class ItemCanBeNullAttribute : Attribute {
     }
 
@@ -80,6 +85,7 @@ namespace JetBrains.Annotations {
     [AttributeUsage(
       AttributeTargets.Constructor | AttributeTargets.Method |
       AttributeTargets.Property | AttributeTargets.Delegate)]
+    [ExcludeFromCodeCoverage]
     public sealed class StringFormatMethodAttribute : Attribute {
         /// <param name="formatParameterName">
         /// Specifies which parameter of an annotated method should be treated as format-string
@@ -98,6 +104,7 @@ namespace JetBrains.Annotations {
     /// Specify fields of which type should be used as values for this parameter.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property | AttributeTargets.Field)]
+    [ExcludeFromCodeCoverage]
     public sealed class ValueProviderAttribute : Attribute {
         public ValueProviderAttribute(string name) {
             Name = name;
@@ -121,6 +128,7 @@ namespace JetBrains.Annotations {
     /// }
     /// </code></example>
     [AttributeUsage(AttributeTargets.Parameter)]
+    [ExcludeFromCodeCoverage]
     public sealed class InvokerParameterNameAttribute : Attribute {
     }
 
@@ -163,6 +171,7 @@ namespace JetBrains.Annotations {
     /// </list>
     /// </example>
     [AttributeUsage(AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class NotifyPropertyChangedInvocatorAttribute : Attribute {
         public NotifyPropertyChangedInvocatorAttribute() {
         }
@@ -219,6 +228,7 @@ namespace JetBrains.Annotations {
     /// </code></item>
     /// </list></examples>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
+    [ExcludeFromCodeCoverage]
     public sealed class ContractAnnotationAttribute : Attribute {
         public ContractAnnotationAttribute([NotNull] string contract)
           : this(contract, false) {
@@ -247,6 +257,7 @@ namespace JetBrains.Annotations {
     /// }
     /// </code></example>
     [AttributeUsage(AttributeTargets.All)]
+    [ExcludeFromCodeCoverage]
     public sealed class LocalizationRequiredAttribute : Attribute {
         public LocalizationRequiredAttribute() : this(true) {
         }
@@ -280,6 +291,7 @@ namespace JetBrains.Annotations {
     /// }
     /// </code></example>
     [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class | AttributeTargets.Struct)]
+    [ExcludeFromCodeCoverage]
     public sealed class CannotApplyEqualityOperatorAttribute : Attribute {
     }
 
@@ -296,6 +308,7 @@ namespace JetBrains.Annotations {
     /// </code></example>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     [BaseTypeRequired(typeof(Attribute))]
+    [ExcludeFromCodeCoverage]
     public sealed class BaseTypeRequiredAttribute : Attribute {
         public BaseTypeRequiredAttribute([NotNull] Type baseType) {
             BaseType = baseType;
@@ -312,6 +325,7 @@ namespace JetBrains.Annotations {
     /// so this symbol will not be marked as unused (as well as by other usage inspections).
     /// </summary>
     [AttributeUsage(AttributeTargets.All)]
+    [ExcludeFromCodeCoverage]
     public sealed class UsedImplicitlyAttribute : Attribute {
         public UsedImplicitlyAttribute()
           : this(ImplicitUseKindFlags.Default, ImplicitUseTargetFlags.Default) {
@@ -343,6 +357,7 @@ namespace JetBrains.Annotations {
     /// as unused (as well as by other usage inspections)
     /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.GenericParameter)]
+    [ExcludeFromCodeCoverage]
     public sealed class MeansImplicitUseAttribute : Attribute {
         public MeansImplicitUseAttribute()
           : this(ImplicitUseKindFlags.Default, ImplicitUseTargetFlags.Default) {
@@ -406,6 +421,7 @@ namespace JetBrains.Annotations {
     /// which should not be removed and so is treated as used.
     /// </summary>
     [MeansImplicitUse(ImplicitUseTargetFlags.WithMembers)]
+    [ExcludeFromCodeCoverage]
     public sealed class PublicAPIAttribute : Attribute {
         public PublicAPIAttribute() {
         }
@@ -424,6 +440,7 @@ namespace JetBrains.Annotations {
     /// If the parameter is an enumerable, indicates that it is enumerated while the method is executed.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
+    [ExcludeFromCodeCoverage]
     public sealed class InstantHandleAttribute : Attribute {
     }
 
@@ -439,6 +456,7 @@ namespace JetBrains.Annotations {
     /// }
     /// </code></example>
     [AttributeUsage(AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class PureAttribute : Attribute {
     }
 
@@ -446,6 +464,7 @@ namespace JetBrains.Annotations {
     /// Indicates that the return value of method invocation must be used.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class MustUseReturnValueAttribute : Attribute {
         public MustUseReturnValueAttribute() {
         }
@@ -476,6 +495,7 @@ namespace JetBrains.Annotations {
     [AttributeUsage(
       AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Parameter |
       AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class ProvidesContextAttribute : Attribute {
     }
 
@@ -484,6 +504,7 @@ namespace JetBrains.Annotations {
     /// Path can be relative or absolute, starting from web root (~).
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
+    [ExcludeFromCodeCoverage]
     public sealed class PathReferenceAttribute : Attribute {
         public PathReferenceAttribute() {
         }
@@ -520,6 +541,7 @@ namespace JetBrains.Annotations {
     /// </code>
     /// </example>
     [AttributeUsage(AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class SourceTemplateAttribute : Attribute {
     }
 
@@ -552,6 +574,7 @@ namespace JetBrains.Annotations {
     /// </code>
     /// </example>
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method, AllowMultiple = true)]
+    [ExcludeFromCodeCoverage]
     public sealed class MacroAttribute : Attribute {
         /// <summary>
         /// Allows specifying a macro that will be executed for a <see cref="SourceTemplateAttribute">source template</see>
@@ -583,6 +606,7 @@ namespace JetBrains.Annotations {
     }
 
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcAreaMasterLocationFormatAttribute : Attribute {
         public AspMvcAreaMasterLocationFormatAttribute(string format) {
             Format = format;
@@ -594,6 +618,7 @@ namespace JetBrains.Annotations {
     }
 
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcAreaPartialViewLocationFormatAttribute : Attribute {
         public AspMvcAreaPartialViewLocationFormatAttribute(string format) {
             Format = format;
@@ -605,6 +630,7 @@ namespace JetBrains.Annotations {
     }
 
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcAreaViewLocationFormatAttribute : Attribute {
         public AspMvcAreaViewLocationFormatAttribute(string format) {
             Format = format;
@@ -616,6 +642,7 @@ namespace JetBrains.Annotations {
     }
 
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcMasterLocationFormatAttribute : Attribute {
         public AspMvcMasterLocationFormatAttribute(string format) {
             Format = format;
@@ -627,6 +654,7 @@ namespace JetBrains.Annotations {
     }
 
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcPartialViewLocationFormatAttribute : Attribute {
         public AspMvcPartialViewLocationFormatAttribute(string format) {
             Format = format;
@@ -638,6 +666,7 @@ namespace JetBrains.Annotations {
     }
 
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcViewLocationFormatAttribute : Attribute {
         public AspMvcViewLocationFormatAttribute(string format) {
             Format = format;
@@ -655,6 +684,7 @@ namespace JetBrains.Annotations {
     /// <c>System.Web.Mvc.Html.ChildActionExtensions.RenderAction(HtmlHelper, string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcActionAttribute : Attribute {
         public AspMvcActionAttribute() {
         }
@@ -673,6 +703,7 @@ namespace JetBrains.Annotations {
     /// <c>System.Web.Mvc.Html.ChildActionExtensions.RenderAction(HtmlHelper, string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcAreaAttribute : Attribute {
         public AspMvcAreaAttribute() {
         }
@@ -692,6 +723,7 @@ namespace JetBrains.Annotations {
     /// <c>System.Web.Mvc.Html.ChildActionExtensions.RenderAction(HtmlHelper, string, string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcControllerAttribute : Attribute {
         public AspMvcControllerAttribute() {
         }
@@ -709,6 +741,7 @@ namespace JetBrains.Annotations {
     /// for custom wrappers similar to <c>System.Web.Mvc.Controller.View(string, string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcMasterAttribute : Attribute {
     }
 
@@ -717,6 +750,7 @@ namespace JetBrains.Annotations {
     /// for custom wrappers similar to <c>System.Web.Mvc.Controller.View(string, Object)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcModelTypeAttribute : Attribute {
     }
 
@@ -727,6 +761,7 @@ namespace JetBrains.Annotations {
     /// <c>System.Web.Mvc.Html.RenderPartialExtensions.RenderPartial(HtmlHelper, string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcPartialViewAttribute : Attribute {
     }
 
@@ -734,6 +769,7 @@ namespace JetBrains.Annotations {
     /// ASP.NET MVC attribute. Allows disabling inspections for MVC views within a class or a method.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcSuppressViewErrorAttribute : Attribute {
     }
 
@@ -743,6 +779,7 @@ namespace JetBrains.Annotations {
     /// <c>System.Web.Mvc.Html.DisplayExtensions.DisplayForModel(HtmlHelper, string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcDisplayTemplateAttribute : Attribute {
     }
 
@@ -752,6 +789,7 @@ namespace JetBrains.Annotations {
     /// <c>System.Web.Mvc.Html.EditorExtensions.EditorForModel(HtmlHelper, string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcEditorTemplateAttribute : Attribute {
     }
 
@@ -761,6 +799,7 @@ namespace JetBrains.Annotations {
     /// <c>System.ComponentModel.DataAnnotations.UIHintAttribute(System.string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcTemplateAttribute : Attribute {
     }
 
@@ -771,6 +810,7 @@ namespace JetBrains.Annotations {
     /// <c>System.Web.Mvc.Controller.View(Object)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcViewAttribute : Attribute {
     }
 
@@ -779,6 +819,7 @@ namespace JetBrains.Annotations {
     /// is an MVC view component name.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcViewComponentAttribute : Attribute {
     }
 
@@ -787,6 +828,7 @@ namespace JetBrains.Annotations {
     /// is an MVC view component view. If applied to a method, the MVC view component view name is default.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcViewComponentViewAttribute : Attribute {
     }
 
@@ -802,10 +844,12 @@ namespace JetBrains.Annotations {
     /// }
     /// </code></example>
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMvcActionSelectorAttribute : Attribute {
     }
 
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property | AttributeTargets.Field)]
+    [ExcludeFromCodeCoverage]
     public sealed class HtmlElementAttributesAttribute : Attribute {
         public HtmlElementAttributesAttribute() {
         }
@@ -819,6 +863,7 @@ namespace JetBrains.Annotations {
     }
 
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Field | AttributeTargets.Property)]
+    [ExcludeFromCodeCoverage]
     public sealed class HtmlAttributeValueAttribute : Attribute {
         public HtmlAttributeValueAttribute([NotNull] string name) {
             Name = name;
@@ -836,6 +881,7 @@ namespace JetBrains.Annotations {
     /// <c>System.Web.WebPages.WebPageBase.RenderSection(string)</c>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class RazorSectionAttribute : Attribute {
     }
 
@@ -844,6 +890,7 @@ namespace JetBrains.Annotations {
     /// over collection type affects content of the collection.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Property)]
+    [ExcludeFromCodeCoverage]
     public sealed class CollectionAccessAttribute : Attribute {
         public CollectionAccessAttribute(CollectionAccessType collectionAccessType) {
             CollectionAccessType = collectionAccessType;
@@ -872,6 +919,7 @@ namespace JetBrains.Annotations {
     /// <see cref="AssertionConditionAttribute"/> attribute.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class AssertionMethodAttribute : Attribute {
     }
 
@@ -881,6 +929,7 @@ namespace JetBrains.Annotations {
     /// the attribute is the assertion type.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
+    [ExcludeFromCodeCoverage]
     public sealed class AssertionConditionAttribute : Attribute {
         public AssertionConditionAttribute(AssertionConditionType conditionType) {
             ConditionType = conditionType;
@@ -912,6 +961,7 @@ namespace JetBrains.Annotations {
     /// </summary>
     [Obsolete("Use [ContractAnnotation('=> halt')] instead")]
     [AttributeUsage(AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class TerminatesProgramAttribute : Attribute {
     }
 
@@ -921,6 +971,7 @@ namespace JetBrains.Annotations {
     /// of delegate type by analyzing LINQ method chains.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class LinqTunnelAttribute : Attribute {
     }
 
@@ -928,6 +979,7 @@ namespace JetBrains.Annotations {
     /// Indicates that IEnumerable, passed as parameter, is not enumerated.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
+    [ExcludeFromCodeCoverage]
     public sealed class NoEnumerationAttribute : Attribute {
     }
 
@@ -935,6 +987,7 @@ namespace JetBrains.Annotations {
     /// Indicates that parameter is regular expression pattern.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
+    [ExcludeFromCodeCoverage]
     public sealed class RegexPatternAttribute : Attribute {
     }
 
@@ -943,6 +996,7 @@ namespace JetBrains.Annotations {
     /// as <c>ItemsControl</c>-derived type, to enable inner items <c>DataContext</c> type resolve.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class)]
+    [ExcludeFromCodeCoverage]
     public sealed class XamlItemsControlAttribute : Attribute {
     }
 
@@ -956,10 +1010,12 @@ namespace JetBrains.Annotations {
     /// marked with the <see cref="XamlItemsControlAttribute"/> attribute.
     /// </remarks>
     [AttributeUsage(AttributeTargets.Property)]
+    [ExcludeFromCodeCoverage]
     public sealed class XamlItemBindingOfItemsControlAttribute : Attribute {
     }
 
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspChildControlTypeAttribute : Attribute {
         public AspChildControlTypeAttribute(string tagName, Type controlType) {
             TagName = tagName;
@@ -975,18 +1031,22 @@ namespace JetBrains.Annotations {
     }
 
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspDataFieldAttribute : Attribute {
     }
 
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspDataFieldsAttribute : Attribute {
     }
 
     [AttributeUsage(AttributeTargets.Property)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspMethodPropertyAttribute : Attribute {
     }
 
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspRequiredAttributeAttribute : Attribute {
         public AspRequiredAttributeAttribute([NotNull] string attribute) {
             Attribute = attribute;
@@ -998,6 +1058,7 @@ namespace JetBrains.Annotations {
     }
 
     [AttributeUsage(AttributeTargets.Property)]
+    [ExcludeFromCodeCoverage]
     public sealed class AspTypePropertyAttribute : Attribute {
         public bool CreateConstructorReferences {
             get; private set;
@@ -1009,6 +1070,7 @@ namespace JetBrains.Annotations {
     }
 
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
+    [ExcludeFromCodeCoverage]
     public sealed class RazorImportNamespaceAttribute : Attribute {
         public RazorImportNamespaceAttribute(string name) {
             Name = name;
@@ -1020,6 +1082,7 @@ namespace JetBrains.Annotations {
     }
 
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
+    [ExcludeFromCodeCoverage]
     public sealed class RazorInjectionAttribute : Attribute {
         public RazorInjectionAttribute(string type, string fieldName) {
             Type = type;
@@ -1035,22 +1098,27 @@ namespace JetBrains.Annotations {
     }
 
     [AttributeUsage(AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class RazorHelperCommonAttribute : Attribute {
     }
 
     [AttributeUsage(AttributeTargets.Property)]
+    [ExcludeFromCodeCoverage]
     public sealed class RazorLayoutAttribute : Attribute {
     }
 
     [AttributeUsage(AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class RazorWriteLiteralMethodAttribute : Attribute {
     }
 
     [AttributeUsage(AttributeTargets.Method)]
+    [ExcludeFromCodeCoverage]
     public sealed class RazorWriteMethodAttribute : Attribute {
     }
 
     [AttributeUsage(AttributeTargets.Parameter)]
+    [ExcludeFromCodeCoverage]
     public sealed class RazorWriteMethodParameterAttribute : Attribute {
     }
 
@@ -1061,6 +1129,7 @@ namespace JetBrains.Annotations {
     /// The attribute must be mentioned in your member reordering patterns
     /// </remarks>
     [AttributeUsage(AttributeTargets.All)]
+    [ExcludeFromCodeCoverage]
     public sealed class NoReorder : Attribute {
     }
 }

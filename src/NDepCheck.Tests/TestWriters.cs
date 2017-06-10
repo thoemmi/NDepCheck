@@ -1,18 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Text;
 using NDepCheck.Rendering.TextWriting;
 
 namespace NDepCheck.Tests {
+    [ExcludeFromCodeCoverage]
     public class AbstractWriterTest {
         protected Dependency FromTo(WorkingGraph graph, Item from, Item to, int ct = 1, int questionable = 0) {
             return graph.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable, notOkReason: "test data");
         }
     }
 
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class TestItemWriters : AbstractWriterTest {
         [TestMethod]
         public void TestItemWriter() {
@@ -34,7 +36,7 @@ namespace NDepCheck.Tests {
         }
     }
 
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class TestDipWriters : AbstractWriterTest {
         [TestMethod]
         public void WriteAndReadDotNetDependencies() {

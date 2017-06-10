@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -7,7 +8,7 @@ using NDepCheck.Rendering.TextWriting;
 using NDepCheck.Transforming.PathFinding;
 
 namespace NDepCheck.Tests {
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class TestFlatPathWriters : AbstractWriterTest {
         [TestInitialize]
         public void TestInitialize() {

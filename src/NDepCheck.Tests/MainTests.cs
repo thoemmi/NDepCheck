@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -14,7 +15,7 @@ namespace NDepCheck.Tests {
     /// <remarks>
     /// Tests of NDepCheck
     /// </remarks>
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class MainTests {
         // ReSharper disable once AssignNullToNotNullAttribute - certainly ok in this test
         public static readonly string TestAssemblyPath =
@@ -225,7 +226,9 @@ NDepCheck:Tests ---> **
                 using (TextWriter tw = new StreamWriter(d.FileName)) {
                     tw.Write(@"
                     $ DOTNETITEM ---> DOTNETITEM
-                  
+
+                    ** ---> :ExcludeFromCodeCoverageAttribute
+
                     NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
                     NDepCheck.TestAssembly.**::NDepCheck.TestAssembly ---> System.**::mscorlib
                     NDepCheck.TestAssembly.dir1.dir2:SomeClass ---? -:NamespacelessTestClassForNDepCheck::I
@@ -281,6 +284,8 @@ NDepCheck:Tests ---> **
                 using (TextWriter tw = new StreamWriter(d.FileName)) {
                     tw.Write(@"
                     $ DOTNETITEM ---> DOTNETITEM
+
+                    ** ---> :ExcludeFromCodeCoverageAttribute
                   
                     _B.** ---> _B.**
                     _B.** ---> System.**

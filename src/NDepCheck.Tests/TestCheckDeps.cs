@@ -1,10 +1,11 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.Transforming.ViolationChecking;
 
 namespace NDepCheck.Tests {
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class TestCheckDeps {
         [TestMethod]
         public void TestRuleWithParenthesesAndBarsWorksAgain() {
@@ -44,7 +45,6 @@ namespace NDepCheck.Tests {
             cd.Transform(gc, deps, "", ignore, s => null);
 
             Assert.IsFalse(deps.Any(d => d.BadCt > 0));
-
         }
     }
 }

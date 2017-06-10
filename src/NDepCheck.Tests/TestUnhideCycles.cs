@@ -4,7 +4,7 @@
 //using NDepCheck.Transforming.GraphTransformations;
 
 //namespace NDepCheck.Tests {
-//    [TestClass]
+//    [TestClass, ExcludeFromCodeCoverage]
 //    public class TestUnhideCycles {
 //        private static readonly ItemType TEST = ItemType.New("TEST", new[] { "Name" }, new[] { "" });
 

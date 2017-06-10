@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -6,7 +7,7 @@ using NDepCheck.Transforming;
 using NDepCheck.Transforming.Ordering;
 
 namespace NDepCheck.Tests {
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class TestTopologicalOrder {
         [TestMethod]
         public void TestSmallMatrixDictionary() {

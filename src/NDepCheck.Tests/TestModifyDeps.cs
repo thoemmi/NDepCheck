@@ -1,9 +1,10 @@
-﻿using System.IO;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.Transforming.Modifying;
 
 namespace NDepCheck.Tests {
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class TestModifyDeps {
         [TestMethod]
         public void TestResetBadCt() {

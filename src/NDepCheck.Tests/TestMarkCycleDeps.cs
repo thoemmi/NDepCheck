@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -8,7 +9,7 @@ using NDepCheck.Rendering.TextWriting;
 using NDepCheck.Transforming.PathFinding;
 
 namespace NDepCheck.Tests {
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class TestMarkCycleDeps {
         [TestInitialize]
         public void TestInitialize() {

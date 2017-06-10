@@ -1,6 +1,7 @@
 // (c) HMMüller 2006...2010
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using NDepCheck.TestAssembly.dir1.dir3;
 using NDepCheck.TestAssembly.dirUEmlAEutSZ;
 using NDepCheck.TestAssembly.dirümläutö;
@@ -11,10 +12,12 @@ namespace NDepCheck.TestAssembly.dir1.dir3 {
     /// the <c>dir1</c> namespace are used for testing
     /// the NDepCheck.
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public struct Struct13 {
         public int I;
     }
 
+    [ExcludeFromCodeCoverage]
     public class Class13A {
         public string S;
         public string[][] T;
@@ -25,10 +28,12 @@ namespace NDepCheck.TestAssembly.dir1.dir3 {
         }
     }
 
+    [ExcludeFromCodeCoverage]
     public class Class13B {
         public double D;
     }
 
+    [ExcludeFromCodeCoverage]
     public class Class13C {
         public decimal M;
 
@@ -37,6 +42,7 @@ namespace NDepCheck.TestAssembly.dir1.dir3 {
         }
     }
 
+    [ExcludeFromCodeCoverage]
     public class Class13D {
         #region Enum13GInner enum
 
@@ -55,6 +61,7 @@ namespace NDepCheck.TestAssembly.dir1.dir3 {
         }
     }
 
+    [ExcludeFromCodeCoverage]
     public class Class13E {
         public char C;
 
@@ -83,6 +90,7 @@ namespace NDepCheck.TestAssembly.dir1.dir3 {
     public delegate Class13E Delegate13(Class13D e);
 }
 
+[ExcludeFromCodeCoverage]
 public class NamespacelessTestClassForNDepCheck {
     public static int I;
 
@@ -109,6 +117,7 @@ namespace NDepCheck.TestAssembly.dir1.dir2 {
 
     // gibt es hier auch Abhängigkeiten, z.B. EnumConst = ...?
 
+    [ExcludeFromCodeCoverage]
     public struct SomeStruct {
         public Class13B InstVar;
         public bool B;
@@ -127,6 +136,7 @@ namespace NDepCheck.TestAssembly.dir1.dir2 {
         }
     }
 
+    [ExcludeFromCodeCoverage]
     public class SomeClass {
         public int I;
 
@@ -176,6 +186,7 @@ namespace NDepCheck.TestAssembly.dir1.dir2 {
 }
 
 namespace NDepCheck.TestAssembly.dir1.dir4 {
+    [ExcludeFromCodeCoverage]
     public class Class14 {
         #region Nested type: Class13eInner2
 
@@ -203,6 +214,7 @@ namespace NDepCheck.TestAssembly.dir1.dir4 {
 }
 
 namespace NDepCheck.TestAssembly.dirümläut {
+    [ExcludeFromCodeCoverage]
     public class Class14 {
         public int Method() {
             return ClassA.Mäthod() + ClassÄ.Method();
@@ -211,12 +223,14 @@ namespace NDepCheck.TestAssembly.dirümläut {
 }
 
 namespace NDepCheck.TestAssembly.dirümläutö {
+    [ExcludeFromCodeCoverage]
     public class ClassA {
         public static int Mäthod() {
             return 0;
         }
     }
 
+    [ExcludeFromCodeCoverage]
     public class ClassÄ {
         public static int Method() {
             return 1;
@@ -225,12 +239,14 @@ namespace NDepCheck.TestAssembly.dirümläutö {
 }
 
 namespace NDepCheck.TestAssembly.dirUEmlAEut {
+    [ExcludeFromCodeCoverage]
     public class Class14A {
         public int Method() {
             return ClassA.Mäthod() + ClassÄ.Method();
         }
     }
 
+    [ExcludeFromCodeCoverage]
     public class Class14B {
         public int Method() {
             return ClassAA.Mäthod() + ClassÄ.Method();
@@ -239,12 +255,14 @@ namespace NDepCheck.TestAssembly.dirUEmlAEut {
 }
 
 namespace NDepCheck.TestAssembly.dirUEmlAEutSZ {
+    [ExcludeFromCodeCoverage]
     public class ClassAA {
         public static int Mäthod() {
             return 0;
         }
     }
 
+    [ExcludeFromCodeCoverage]
     public class ClassAE {
         public static int Method() {
             return 1;
@@ -253,6 +271,7 @@ namespace NDepCheck.TestAssembly.dirUEmlAEutSZ {
 }
 
 namespace NDepCheck.TestAssembly.dirumlaut {
+    [ExcludeFromCodeCoverage]
     public class Class14 {
         public int Method() {
             return dirumlauts.ClassA.Mäthod() + dirumlauts.ClassÄ.Method();
@@ -261,12 +280,14 @@ namespace NDepCheck.TestAssembly.dirumlaut {
 }
 
 namespace NDepCheck.TestAssembly.dirumlauts {
+    [ExcludeFromCodeCoverage]
     public class ClassA {
         public static int Mäthod() {
             return 0;
         }
     }
 
+    [ExcludeFromCodeCoverage]
     public class ClassÄ {
         public static int Method() {
             return 1;

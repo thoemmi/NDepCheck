@@ -1,11 +1,12 @@
-﻿using System.IO;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.Rendering.GraphicsRendering;
 
 namespace NDepCheck.Tests {
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class TestWriteMatrixFile {
         private static Dependency CreateDependency(WorkingGraph graph, Item @using, Item used, int ct = 1, int badCt = 0) {
             return graph.CreateDependency(@using, used, null, "", ct, badCt: badCt, notOkReason: "test data");

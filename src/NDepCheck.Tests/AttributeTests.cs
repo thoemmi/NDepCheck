@@ -1,11 +1,12 @@
 // (c) HMMüller 2006...2015
 
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.Transforming.ViolationChecking;
 
 namespace NDepCheck.Tests {
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class AttributeTests {
         private static readonly string _testAssemblyPath = Path.Combine(Path.GetDirectoryName(typeof(MainTests).Assembly.Location ?? "IGNORE"), "NDepCheck.TestAssemblyForAttributes.dll");
 

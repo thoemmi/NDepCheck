@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace NDepCheck.TestAssembly {
+    [ExcludeFromCodeCoverage]
     internal class EnumerableComparer<T> {
 
         private readonly Func<T, T, bool> _matchesPerfectly;

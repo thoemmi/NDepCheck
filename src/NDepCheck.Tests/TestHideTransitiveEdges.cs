@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace NDepCheck.Tests {
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class TestHideTransitiveEdges {
         private static readonly ItemType TEST = ItemType.New("TEST", new[] { "Name" }, new[] { "" }, ignoreCase: false);
 

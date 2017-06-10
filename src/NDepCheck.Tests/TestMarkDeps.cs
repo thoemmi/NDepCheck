@@ -1,10 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.Transforming.Modifying;
 
 namespace NDepCheck.Tests {
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class TestMarkDeps {
         [TestMethod]
         public void TestMarkFromTo() {

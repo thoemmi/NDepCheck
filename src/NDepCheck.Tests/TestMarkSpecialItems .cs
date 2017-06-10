@@ -1,10 +1,11 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
 using NDepCheck.Transforming.SpecialItemMarking;
 
 namespace NDepCheck.Tests {
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class TestMarkSpecialItems {
         private static IEnumerable<Item> Run(string options, string mark) {
             var gc = new GlobalContext();

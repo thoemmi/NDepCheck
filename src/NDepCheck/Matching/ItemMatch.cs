@@ -41,7 +41,8 @@ namespace NDepCheck.Matching {
             Representation = pattern;
         }
 
-        public ItemMatch([NotNull] string pattern, bool ignoreCase, bool anyWhereMatcherOk) : this(null, pattern, 0, ignoreCase, anyWhereMatcherOk) {
+        public ItemMatch([NotNull] string pattern, bool ignoreCase, bool anyWhereMatcherOk)
+            : this(null, pattern, 0, ignoreCase, anyWhereMatcherOk) {
         }
 
         public ItemPattern ItemPattern => _itemPattern;

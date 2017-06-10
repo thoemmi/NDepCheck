@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -8,7 +9,7 @@ using NDepCheck.ConstraintSolving;
 using NDepCheck.Rendering.GraphicsRendering;
 
 namespace NDepCheck.Tests {
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class TestGraphicsRendering {
 
         #region Simple tests

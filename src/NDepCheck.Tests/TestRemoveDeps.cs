@@ -1,11 +1,12 @@
-﻿using System.IO;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.Transforming.Modifying;
 using System.Linq;
 using NDepCheck.Rendering.TextWriting;
 
 namespace NDepCheck.Tests {
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class TestRemoveDeps {
         private void AssertEdgeCount(int expected, string o) {
             string[] lines = o.Split('\n');

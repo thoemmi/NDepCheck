@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -9,7 +10,7 @@ using NDepCheck.TestAssemblyÄÖÜß.dir1.dir3;
 using NDepCheck.Transforming.ViolationChecking;
 
 namespace NDepCheck.Tests {
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class FileHandlingTests {
         private readonly Random _rnd = new Random();
         private string _basePath;

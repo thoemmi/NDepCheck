@@ -1,7 +1,9 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 
 namespace NDepCheck.Tests {
+    [ExcludeFromCodeCoverage]
     public class DisposingFile : IDisposable {
         private bool _doDelete = true;
         public string FileName { get; }

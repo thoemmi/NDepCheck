@@ -1,11 +1,12 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.Matching;
 using NDepCheck.Reading.AssemblyReading;
 using NDepCheck.Transforming.Projecting;
 using NDepCheck.Transforming.ViolationChecking;
 
 namespace NDepCheck.Tests {
-    [TestClass]
+    [TestClass, ExcludeFromCodeCoverage]
     public class TestPatternsAndItems {
         private const bool IGNORECASE = false;
 
