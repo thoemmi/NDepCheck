@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 
@@ -29,15 +30,16 @@ namespace NDepCheck.PathMatching {
         public bool Invert { get; }
         public bool IsCount { get; }
 
-        [NotNull]
-        public readonly IEnumerable<TMatch> Matches;
+        [CanBeNull]
+        public readonly IEnumerable<TMatch> MatchesOrNullForMatchAny;
         [CanBeNull]
         public readonly TTargetNode TargetNode;
 
-        public MatchAndTarget(bool invert, bool isCount, [NotNull] IEnumerable<TMatch> matches, TTargetNode targetNode) {
+        public MatchAndTarget(bool invert, bool isCount, [CanBeNull] IEnumerable<TMatch> matchesOrNullForMatchAny,
+            TTargetNode targetNode) {
             Invert = invert;
             IsCount = isCount;
-            Matches = matches;
+            MatchesOrNullForMatchAny = matchesOrNullForMatchAny;
             TargetNode = targetNode;
         }
 
@@ -48,24 +50,65 @@ namespace NDepCheck.PathMatching {
     }
 
     public abstract class Node {
+        private static int _nodeCt;
+        public readonly int NodeId = ++_nodeCt;
+
         public abstract void AddEpsilonTo(Node t);
         public abstract Node CreateNodeOfSameKind();
         public bool IsEnd { get; set; }
+
+        public string GetRepresentation() {
+            var sb = new StringBuilder();
+            GetRepresentation(sb, "", new HashSet<Node>());
+            return sb.ToString();
+        }
+
+        protected internal abstract void GetRepresentation(StringBuilder result, string indent,
+            HashSet<Node> alreadyVisisted);
+
+        public abstract IEnumerable<Node> CollectAllReachableViaEpsilons();
     }
 
     [DebuggerDisplay("{" + nameof(ToString) + "()}")]
     public abstract class NodeBefore<TMatch, TThis, TTargetNode> : Node
-            where TThis : NodeBefore<TMatch, TThis, TTargetNode>
-            where TTargetNode : Node {
+            where TThis : NodeBefore<TMatch, TThis, TTargetNode> where TTargetNode : Node {
         private readonly List<TThis> _epsilonTargets = new List<TThis>();
-        private readonly List<MatchAndTarget<TMatch, TTargetNode>> _transitions = new List<MatchAndTarget<TMatch, TTargetNode>>();
+
+        private readonly List<MatchAndTarget<TMatch, TTargetNode>> _transitions =
+            new List<MatchAndTarget<TMatch, TTargetNode>>();
+
+        protected NodeBefore(string representation) {
+            Representation = representation;
+        }
+
+        public string Representation { get; }
+
+        protected internal override void GetRepresentation(StringBuilder result, string indent,
+            HashSet<Node> alreadyVisisted) {
+            if (alreadyVisisted.Add(this)) {
+                result.AppendLine(indent + this);
+                foreach (var e in _epsilonTargets) {
+                    e.GetRepresentation(result, indent + " -", alreadyVisisted);
+                }
+                foreach (var t in _transitions.Select(t => t.TargetNode)) {
+                    if (t == null) {
+                        result.AppendLine(indent + " =null");
+                    } else {
+                        t.GetRepresentation(result, indent + " =", alreadyVisisted);
+                    }
+                }
+            } else {
+                result.AppendLine(indent + "^" + this);
+            }
+        }
 
         public IEnumerable<TThis> EpsilonTargets => _epsilonTargets;
         public IEnumerable<MatchAndTarget<TMatch, TTargetNode>> Transitions => _transitions;
 
         [ExcludeFromCodeCoverage]
         public override string ToString() {
-            return $"{GetType().Name}({_transitions.Count}/{_epsilonTargets.Count}/{(IsEnd ? "E" : "")})";
+            return
+                $"{NodeId} {GetType().Name}({_transitions.Count}/{_epsilonTargets.Count}/{(IsEnd ? "E" : "")}) {Representation}";
         }
 
         public override void AddEpsilonTo(Node t) {
@@ -76,11 +119,11 @@ namespace NDepCheck.PathMatching {
             _epsilonTargets.Add(sameType);
         }
 
-        public IEnumerable<NodeBefore<TMatch, TThis, TTargetNode>> CollectBrethren() {
-            if (_transitions.Any()) {
-                yield return this;
-            }
-            foreach (var e in EpsilonTargets.SelectMany(e => e.CollectBrethren())) {
+        public override IEnumerable<Node> CollectAllReachableViaEpsilons() => CollectReachableViaEpsilons();
+
+        public IEnumerable<NodeBefore<TMatch, TThis, TTargetNode>> CollectReachableViaEpsilons() {
+            yield return this;
+            foreach (var e in EpsilonTargets.SelectMany(e => e.CollectReachableViaEpsilons())) {
                 yield return e;
             }
         }
@@ -92,14 +135,21 @@ namespace NDepCheck.PathMatching {
 
     public abstract class PathRegex<TItem, TDependency, TItemMatch, TDependencyMatch> {
         public class NodeBeforeItemMatch : NodeBefore<TItemMatch, NodeBeforeItemMatch, NodeBeforeDependencyMatch> {
+            public NodeBeforeItemMatch(string representation) : base(representation) {
+            }
+
             public override Node CreateNodeOfSameKind() {
-                return new NodeBeforeItemMatch();
+                return new NodeBeforeItemMatch("=" + NodeId + " " + Representation);
             }
         }
 
-        public class NodeBeforeDependencyMatch : NodeBefore<TDependencyMatch, NodeBeforeDependencyMatch, NodeBeforeItemMatch> {
+        public class NodeBeforeDependencyMatch :
+            NodeBefore<TDependencyMatch, NodeBeforeDependencyMatch, NodeBeforeItemMatch> {
+            public NodeBeforeDependencyMatch(string representation) : base(representation) {
+            }
+
             public override Node CreateNodeOfSameKind() {
-                return new NodeBeforeDependencyMatch();
+                return new NodeBeforeDependencyMatch("=" + NodeId + " " + Representation);
             }
         }
 
@@ -120,12 +170,15 @@ namespace NDepCheck.PathMatching {
         public class ItemMatchAnyElement : PathRegexElement {
             private readonly bool _invert;
             private readonly bool _isCount;
-            public IEnumerable<TItemMatch> ItemMatches { get; }
 
-            public ItemMatchAnyElement(bool invert, bool isCount, int textPos, IEnumerable<TItemMatch> itemMatches) : base(textPos) {
+            [CanBeNull, ItemNotNull]
+            public IEnumerable<TItemMatch> ItemMatchesOrNullForMatchAny { get; }
+
+            public ItemMatchAnyElement(bool invert, bool isCount, int textPos,
+                [CanBeNull, ItemNotNull] IEnumerable<TItemMatch> itemMatchesOrNullForMatchAny) : base(textPos) {
                 _invert = invert;
                 _isCount = isCount;
-                ItemMatches = itemMatches;
+                ItemMatchesOrNullForMatchAny = itemMatchesOrNullForMatchAny;
             }
 
             public override bool StartsWithItem => true;
@@ -133,9 +186,13 @@ namespace NDepCheck.PathMatching {
             public override bool CanBeEmpty => false;
 
             public override Graphken CreateGraphken() {
-                NodeBeforeItemMatch start = new NodeBeforeItemMatch();
-                NodeBeforeDependencyMatch end = new NodeBeforeDependencyMatch();
-                start.Add(_invert, _isCount, ItemMatches, end);
+                string representation = "{" +
+                                        (ItemMatchesOrNullForMatchAny == null
+                                            ? ":"
+                                            : string.Join(",", ItemMatchesOrNullForMatchAny)) + "}";
+                NodeBeforeItemMatch start = new NodeBeforeItemMatch("<" + representation);
+                NodeBeforeDependencyMatch end = new NodeBeforeDependencyMatch(">" + representation);
+                start.Add(_invert, _isCount, ItemMatchesOrNullForMatchAny, end);
                 return new Graphken(start, end);
             }
         }
@@ -143,12 +200,16 @@ namespace NDepCheck.PathMatching {
         public class DependencyMatchAnyElement : PathRegexElement {
             private readonly bool _invert;
             private readonly bool _isCount;
-            public IEnumerable<TDependencyMatch> DependencyMatches { get; }
 
-            public DependencyMatchAnyElement(bool invert, bool isCount, int textPos, IEnumerable<TDependencyMatch> dependencyMatches) : base(textPos) {
+            [CanBeNull, ItemNotNull]
+            public IEnumerable<TDependencyMatch> DependencyMatchesOrNullForMatchAny { get; }
+
+            public DependencyMatchAnyElement(bool invert, bool isCount, int textPos,
+                [CanBeNull, ItemNotNull] IEnumerable<TDependencyMatch> dependencyMatchesOrNullForMatchAny)
+                : base(textPos) {
                 _invert = invert;
                 _isCount = isCount;
-                DependencyMatches = dependencyMatches;
+                DependencyMatchesOrNullForMatchAny = dependencyMatchesOrNullForMatchAny;
             }
 
             public override bool StartsWithItem => false;
@@ -156,9 +217,13 @@ namespace NDepCheck.PathMatching {
             public override bool CanBeEmpty => false;
 
             public override Graphken CreateGraphken() {
-                NodeBeforeDependencyMatch start = new NodeBeforeDependencyMatch();
-                NodeBeforeItemMatch end = new NodeBeforeItemMatch();
-                start.Add(_invert, _isCount, DependencyMatches, end);
+                string representation = "{" +
+                                        (DependencyMatchesOrNullForMatchAny == null
+                                            ? "."
+                                            : string.Join(",", DependencyMatchesOrNullForMatchAny)) + "}";
+                NodeBeforeDependencyMatch start = new NodeBeforeDependencyMatch("<" + representation);
+                NodeBeforeItemMatch end = new NodeBeforeItemMatch(representation + ">");
+                start.Add(_invert, _isCount, DependencyMatchesOrNullForMatchAny, end);
                 return new Graphken(start, end);
             }
         }
@@ -195,10 +260,9 @@ namespace NDepCheck.PathMatching {
 
             public override Graphken CreateGraphken() {
                 Graphken inner = Inner.CreateGraphken();
-                Graphken loop = inner.Wrap();
-                loop.EndNode.AddEpsilonTo(loop.StartNode);
+                inner.EndNode.AddEpsilonTo(inner.StartNode);
+                Graphken loop = new Graphken(inner.StartNode, inner.StartNode);
                 Graphken wrap = loop.Wrap();
-                wrap.StartNode.AddEpsilonTo(wrap.EndNode);
                 return wrap;
             }
         }
@@ -226,7 +290,8 @@ namespace NDepCheck.PathMatching {
             public override bool StartsWithItem { get; }
             public override bool EndsWithItem { get; }
 
-            public Sequence(bool startsWithItem, bool endsWithItem, int textPos, IEnumerable<PathRegexElement> elements) : base(textPos) {
+            public Sequence(bool startsWithItem, bool endsWithItem, int textPos,
+                IEnumerable<PathRegexElement> elements) : base(textPos) {
                 StartsWithItem = startsWithItem;
                 EndsWithItem = endsWithItem;
                 Elements = elements.ToArray();
@@ -247,7 +312,9 @@ namespace NDepCheck.PathMatching {
                     }
                     return new Graphken(init.StartNode, previous.EndNode);
                 } else {
-                    Node startNode = StartsWithItem ? (Node)new NodeBeforeItemMatch() : new NodeBeforeDependencyMatch();
+                    Node startNode = StartsWithItem
+                        ? (Node)new NodeBeforeItemMatch("<>")
+                        : new NodeBeforeDependencyMatch("<>");
                     Node endNode = startNode.CreateNodeOfSameKind();
                     startNode.AddEpsilonTo(endNode);
                     return new Graphken(startNode, endNode);
@@ -256,7 +323,8 @@ namespace NDepCheck.PathMatching {
         }
 
         public class Alternatives : PathRegexElement {
-            public Alternatives(bool startsWithItem, bool endsWithItem, int textPos, IEnumerable<PathRegexElement> elements) : base(textPos) {
+            public Alternatives(bool startsWithItem, bool endsWithItem, int textPos,
+                IEnumerable<PathRegexElement> elements) : base(textPos) {
                 StartsWithItem = startsWithItem;
                 EndsWithItem = endsWithItem;
                 Elements = elements.ToArray();
@@ -289,7 +357,7 @@ namespace NDepCheck.PathMatching {
         private bool _isCountEncountered;
 
         protected PathRegex(string definition, Dictionary<string, TItemMatch> definedItemMatches,
-        Dictionary<string, TDependencyMatch> definedDependencyMatches, bool ignoreCase) {
+            Dictionary<string, TDependencyMatch> definedDependencyMatches, bool ignoreCase) {
             _definedItemMatches = definedItemMatches;
             _definedDependencyMatches = definedDependencyMatches;
             _ignoreCase = ignoreCase;
@@ -299,6 +367,10 @@ namespace NDepCheck.PathMatching {
             PathRegexElement regex = ParseItemAlternatives(ref pos, startsWithItem: true);
             _graph = regex.CreateGraphken();
             _graph.EndNode.IsEnd = true;
+        }
+
+        public string GetGraphkenRepresentation() {
+            return _graph.StartNode.GetRepresentation();
         }
 
         public string RawPeekSymbol(int pos) {
@@ -353,7 +425,8 @@ namespace NDepCheck.PathMatching {
             }
 
             return elements.Count > 1
-                ? new Alternatives(startsWithItem: startsWithItem, endsWithItem: endsWithItem, textPos: startPos, elements: elements)
+                ? new Alternatives(startsWithItem: startsWithItem, endsWithItem: endsWithItem, textPos: startPos,
+                    elements: elements)
                 : first;
         }
 
@@ -436,18 +509,22 @@ namespace NDepCheck.PathMatching {
                 AdvanceSymbolPos(ref pos);
                 bool isCount = ParseOptionalCount(ref pos);
                 if (startsWithItem) {
-                    return new ItemMatchAnyElement(invert, isCount, startPos, matches.Select(kvp => CreateItemMatch(kvp.Key, kvp.Value)));
+                    return new ItemMatchAnyElement(invert, isCount, startPos,
+                        matches.Select(kvp => CreateItemMatch(kvp.Key, kvp.Value)));
                 } else {
-                    return new DependencyMatchAnyElement(invert, isCount, startPos, matches.Select(kvp => CreateDependencyMatch(kvp.Key, kvp.Value)));
+                    return new DependencyMatchAnyElement(invert, isCount, startPos,
+                        matches.Select(kvp => CreateDependencyMatch(kvp.Key, kvp.Value)));
                 }
             } else if (Matches(peekSym, NAME_REGEX)) {
                 AdvanceSymbolPos(ref pos);
 
                 bool isCount = ParseOptionalCount(ref pos);
                 if (startsWithItem) {
-                    return new ItemMatchAnyElement(false, isCount, startPos, new[] { CreateItemMatch(startPos, peekSym) });
+                    return new ItemMatchAnyElement(false, isCount, startPos,
+                        new[] { CreateItemMatch(startPos, peekSym) });
                 } else {
-                    return new DependencyMatchAnyElement(false, isCount, startPos, new[] { CreateDependencyMatch(startPos, peekSym) });
+                    return new DependencyMatchAnyElement(false, isCount, startPos,
+                        new[] { CreateDependencyMatch(startPos, peekSym) });
                 }
             } else if (Matches(peekSym, ".")) {
                 AdvanceSymbolPos(ref pos);
@@ -455,14 +532,14 @@ namespace NDepCheck.PathMatching {
                     throw new RegexSyntaxException(_definition, startPos, ". cannot be used at item position");
                 }
                 bool isCount = ParseOptionalCount(ref pos);
-                return new DependencyMatchAnyElement(false, isCount, startPos, new TDependencyMatch[0]);
+                return new DependencyMatchAnyElement(false, isCount, startPos, null);
             } else if (Matches(peekSym, ":")) {
                 AdvanceSymbolPos(ref pos);
                 if (!startsWithItem) {
                     throw new RegexSyntaxException(_definition, startPos, ": cannot be used at dependency position");
                 }
                 bool isCount = ParseOptionalCount(ref pos);
-                return new ItemMatchAnyElement(false, isCount, startPos, new TItemMatch[0]);
+                return new ItemMatchAnyElement(false, isCount, startPos, null);
             } else {
                 throw new RegexSyntaxException(_definition, startPos,
                     "Unexpected element - [, ( or " + (startsWithItem ? ":" : ".") + " expected");
@@ -490,7 +567,8 @@ namespace NDepCheck.PathMatching {
                     ? definedMatch
                     : CreateItemMatch(s, _ignoreCase);
             } catch (Exception ex) {
-                throw new RegexSyntaxException(_definition, pos, $"Cannot create ItemMatch from '{s}' - reason: {ex.Message}");
+                throw new RegexSyntaxException(_definition, pos,
+                    $"Cannot create ItemMatch from '{s}' - reason: {ex.Message}");
             }
         }
 
@@ -504,7 +582,8 @@ namespace NDepCheck.PathMatching {
                     ? definedMatch
                     : CreateDependencyMatch(s, _ignoreCase);
             } catch (Exception ex) {
-                throw new RegexSyntaxException(_definition, pos, $"Cannot create dependency match from '{s}' - reason: {ex.Message}");
+                throw new RegexSyntaxException(_definition, pos,
+                    $"Cannot create dependency match from '{s}' - reason: {ex.Message}");
             }
         }
 
@@ -520,11 +599,12 @@ namespace NDepCheck.PathMatching {
         }
 
         public IBeforeItemGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> CreateState() {
-            return new BeforeItemGraphkenState(
-                new[] { new StateElement<NodeBeforeItemMatch>((NodeBeforeItemMatch)_graph.StartNode, null/*????*/) });
+            return
+                new BeforeItemGraphkenState(new[]
+                    {new StateElement<NodeBeforeItemMatch>((NodeBeforeItemMatch) _graph.StartNode, null /*????*/)});
         }
 
-        private struct StateElement<TNode> {
+        private struct StateElement<TNode> where TNode : Node {
             public readonly TNode Node;
             public readonly object BehindCount;
 
@@ -535,10 +615,12 @@ namespace NDepCheck.PathMatching {
         }
 
         private abstract class AbstractGraphkenState<T, TMatch, TNode, TTargetNode>
-            where TNode : NodeBefore<TMatch, TNode, TTargetNode>
-            where TTargetNode : Node {
+            where TNode : NodeBefore<TMatch, TNode, TTargetNode> where TTargetNode : Node {
 
             private readonly StateElement<TNode>[] _active;
+
+            public IEnumerable<object> CountedObjects
+                => _active.Select(se => se.BehindCount).Where(obj => !Equals(obj, default(T)));
 
             protected AbstractGraphkenState(IEnumerable<StateElement<TNode>> active) {
                 _active = active.ToArray();
@@ -546,26 +628,32 @@ namespace NDepCheck.PathMatching {
 
             public bool CanContinue => _active.Any();
 
-            protected IEnumerable<StateElement<TTargetNode>> AdvanceState(T obj, Func<TMatch, T, bool> match, out bool atEnd, out bool atCount) {
+            protected IEnumerable<StateElement<TTargetNode>> AdvanceState(T obj, Func<TMatch, T, bool> match,
+                out bool atEnd, out bool atCount) {
+                if (!CanContinue) {
+                    throw new InvalidOperationException("Advance is not possible on state with CanContinue=false");
+                }
+
                 var result = new List<StateElement<TTargetNode>>();
-                bool e = false;
                 bool c = false;
                 foreach (var se in _active) {
                     MatchAndTarget<TMatch, TTargetNode>[] matchAndTargets =
-                        se.Node
-                            .CollectBrethren()
+                        se.Node.CollectReachableViaEpsilons()
                             .SelectMany(n => n.Transitions)
-                            .Where(t => t.Matches.Any(m => match(m, obj)) != t.Invert)
+                            .Where(
+                                t =>
+                                    (t.MatchesOrNullForMatchAny == null ||
+                                     t.MatchesOrNullForMatchAny.Any(m => match(m, obj))) == !t.Invert)
                             .ToArray();
-                    e |= matchAndTargets.Any(m => m.TargetNode != null && m.TargetNode.IsEnd);
                     c |= matchAndTargets.Any(m => m.IsCount);
 
                     result.AddRange(
-                        matchAndTargets
-                            .Select(t => new StateElement<TTargetNode>(t.TargetNode,
-                                        se.BehindCount ?? (t.IsCount ? obj : default(T)))));
+                        matchAndTargets.Select(
+                            t =>
+                                new StateElement<TTargetNode>(t.TargetNode,
+                                    se.BehindCount ?? (t.IsCount ? obj : default(T)))));
                 }
-                atEnd = e;
+                atEnd = result.SelectMany(se => se.Node.CollectAllReachableViaEpsilons()).Any(n => n.IsEnd);
                 atCount = c;
                 return result;
             }
@@ -585,21 +673,25 @@ namespace NDepCheck.PathMatching {
         }
 
         private class BeforeDependencyGraphkenState :
-                AbstractGraphkenState<TDependency, TDependencyMatch, NodeBeforeDependencyMatch, NodeBeforeItemMatch>,
-                IBeforeDependencyGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> {
-            public BeforeDependencyGraphkenState(IEnumerable<StateElement<NodeBeforeDependencyMatch>> active) : base(active) {
+            AbstractGraphkenState<TDependency, TDependencyMatch, NodeBeforeDependencyMatch, NodeBeforeItemMatch>,
+            IBeforeDependencyGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> {
+            public BeforeDependencyGraphkenState(IEnumerable<StateElement<NodeBeforeDependencyMatch>> active)
+                : base(active) {
             }
 
-            public IBeforeItemGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> Advance(TDependency dependency,
-                Func<TDependencyMatch, TDependency, bool> dependencyMatch, out bool atCount) {
+            public IBeforeItemGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> Advance(
+                TDependency dependency, Func<TDependencyMatch, TDependency, bool> dependencyMatch, out bool atCount) {
                 bool ignoreAtEnd;
-                return new BeforeItemGraphkenState(AdvanceState(dependency, dependencyMatch, out ignoreAtEnd, out atCount));
+                return
+                    new BeforeItemGraphkenState(AdvanceState(dependency, dependencyMatch, out ignoreAtEnd,
+                        out atCount));
             }
         }
     }
 
     public interface IGraphkenState {
         bool CanContinue { get; }
+        IEnumerable<object> CountedObjects { get; }
     }
 
     public interface IBeforeItemGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> : IGraphkenState {
@@ -607,20 +699,22 @@ namespace NDepCheck.PathMatching {
             Func<TItemMatch, TItem, bool> itemMatch, out bool atEnd, out bool atCount);
     }
 
-    public interface IBeforeDependencyGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> : IGraphkenState {
+    public interface IBeforeDependencyGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> :
+        IGraphkenState {
         IBeforeItemGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> Advance(TDependency dependency,
             Func<TDependencyMatch, TDependency, bool> dependencyMatch, out bool atCount);
     }
 
     [ExcludeFromCodeCoverage]
     public class RegexSyntaxException : Exception {
-        public RegexSyntaxException(string definition, int pos, string message) : base(CreateMessage(definition, pos, message)) {
+        public RegexSyntaxException(string definition, int pos, string message)
+            : base(CreateMessage(definition, pos, message)) {
             // empty
         }
 
         private static string CreateMessage(string definition, int pos, string message) {
-            return message + " at '" + Substring(definition, pos - 4, 4) + ">>>" +
-                   Substring(definition, pos, 25) + "'";
+            return message + " at '" + Substring(definition, pos - 4, 4) + ">>>" + Substring(definition, pos, 25) +
+                   "'";
         }
 
         private static object Substring(string definition, int start, int length) {
