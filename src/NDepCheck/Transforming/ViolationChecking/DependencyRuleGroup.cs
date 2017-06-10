@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
@@ -56,6 +57,7 @@ namespace NDepCheck.Transforming.ViolationChecking {
         [NotNull]
         public string GroupPattern => _groupPattern;
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return "DependencyRuleGroup " + _groupPattern;
         }

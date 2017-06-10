@@ -53,8 +53,8 @@ namespace NDepCheck {
         //   gi [name...]           graph-include (default: previous one)
         //   gw [name|#]            graph-work (move to top stack position)
         //   gl | gv                graph-list (gv can be typed with one hand ...)
-        //   gt [+|-]               graph-for-transform
-        //   gr [+|-]               graph-for-read
+        //   gt [#]                 graph-for-transform
+        //   gr [#]                 graph-for-read
         //   gv filter              graph-view-only
         //   gu [string]            graph-unview
         //   gf                     graph-filters
@@ -95,8 +95,8 @@ namespace NDepCheck {
         public static readonly Option GraphUnionOption = new ProgramOption(shortname: "gu", name: "graph-union", usage: "[name...]", description: "default: include the one below the current graph, and then remove it");
         public static readonly Option WorkingGraphOption = new ProgramOption(shortname: "gw", name: "graph-work", usage: "[name|#]", description: "move to top stack position");
         public static readonly Option GraphListOption = new ProgramOption(shortname: "gl", name: "graph-list", usage: "| gv", description: "", moreNames: new[] { "gv" });
-        public static readonly Option AutoGraphForTransformOption = new ProgramOption(shortname: "gt", name: "graph-for-transform", usage: "[+|-]", description: "Create a new graph for each transform; default: 10");
-        public static readonly Option AutoGraphForReadOption = new ProgramOption(shortname: "gr", name: "graph-for-read", usage: "[+|-]", description: "Create a new graph for each read");
+        public static readonly Option AutoGraphForTransformOption = new ProgramOption(shortname: "gt", name: "graph-for-transform", usage: "[#]", description: "Create a new graph for each transform; default: 10");
+        public static readonly Option AutoGraphForReadOption = new ProgramOption(shortname: "gr", name: "graph-for-read", usage: "[#]", description: "Create a new graph for each read; default: no new graph for read");
         public static readonly Option GraphViewOnlyOption = new ProgramOption(shortname: "gv", name: "graph-view-only", usage: "pattern", description: "Limit dependencies visible to transformers and writers");
         public static readonly Option GraphUnviewOption = new ProgramOption(shortname: "gu", name: "graph-unview", usage: "[string]", description: "Remove visibility limitation");
         public static readonly Option GraphFiltersOption = new ProgramOption(shortname: "gf", name: "graph-filters", usage: "", description: $"Show all visibility filters used defined by {GraphViewOnlyOption}");
@@ -318,14 +318,14 @@ namespace NDepCheck {
                         Log.WriteWarning("For help, use -? or -help");
                     } else if (HelpAllOption.IsMatch(arg)) {
                         // -? [filter]
-                        string filter = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true);
+                        string filter = ExtractOptionValue(globalContext, args, ref i, allowOptionWithLeadingMinus: true);
                         return UsageAndExit(message: null, globalContext: globalContext, withIntro: _interactiveLogFile == null,
-                                            detailed: filter != null, filter: filter ?? "");
+                                            detailed: filter != null, filter: filter ?? "", exitValue: 0);
                     } else if (HelpDetailedHelpOption.IsMatch(arg)) {
                         // -! [filter]
-                        string filter = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true);
+                        string filter = ExtractOptionValue(globalContext, args, ref i, allowOptionWithLeadingMinus: true);
                         return UsageAndExit(message: null, globalContext: globalContext, withIntro: true,
-                                            detailed: true, filter: filter ?? "");
+                                            detailed: true, filter: filter ?? "", exitValue: 0);
                     } else if (DebugOption.IsMatch(arg)) {
                         globalContext.StopAbortWatchDog();
                         globalContext.AbortTime = TimeSpan.FromMilliseconds(int.MaxValue); // max. value allowed for CancellationTokenSource.CancelAfter()
@@ -359,18 +359,18 @@ namespace NDepCheck {
                         // -gl | gv                
                         globalContext.ListGraphs();
                     } else if (AutoGraphForTransformOption.IsMatch(arg)) {
-                        // -gt [#|-]
-                        string autoGraphCount = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true);
+                        // -gt [#]
+                        string autoGraphCount = ExtractOptionValue(globalContext, args, ref i);
                         globalContext.AutoForTransform(autoGraphCount);
                     } else if (AutoGraphForReadOption.IsMatch(arg)) {
-                        // -gr [#|-]               
-                        string autoGraphCount = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true);
+                        // -gr [#]               
+                        string autoGraphCount = ExtractOptionValue(globalContext, args, ref i);
                         globalContext.AutoForRead(autoGraphCount);
                     } else if (GraphViewOnlyOption.IsMatch(arg)) {
-                        string filter = ExtractRequiredOptionValue(globalContext, args, ref i, "Filter pattern missing");
+                        string filter = ExtractRequiredOptionValue(globalContext, args, ref i, "Filter pattern missing", allowOptionWithLeadingMinus: true);
                         globalContext.CurrentGraph.AddGraphFilter(filter, globalContext.IgnoreCase);
                     } else if (GraphUnviewOption.IsMatch(arg)) {
-                        string substring = ExtractOptionValue(globalContext, args, ref i);
+                        string substring = ExtractOptionValue(globalContext, args, ref i, allowOptionWithLeadingMinus: true);
                         globalContext.CurrentGraph.RemoveGraphFilters(substring, globalContext.IgnoreCase);
                     } else if (GraphFiltersOption.IsMatch(arg)) {
                         globalContext.CurrentGraph.ShowFilters();
@@ -700,12 +700,12 @@ namespace NDepCheck {
                         globalContext.LogAboutNDependencies(maxCount, pattern, target);
                     } else if (CountDependenciesOption.IsMatch(arg)) {
                         // -id [pattern] [#]
-                        string pattern = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true /* as --x-> patterns start with -*/);
+                        string pattern = ExtractOptionValue(globalContext, args, ref i, allowOptionWithLeadingMinus: true /* as --x-> patterns start with -*/);
                         int maxValue = ExtractIntOptionValue(globalContext, args, ref i) ?? int.MaxValue;
                         SetResult(ref result, globalContext.LogDependencyCount(pattern, maxValue));
                     } else if (CountItemsOption.IsMatch(arg)) {
                         // -ii [pattern] [#]
-                        string pattern = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true /* as --x-> patterns start with -*/);
+                        string pattern = ExtractOptionValue(globalContext, args, ref i, allowOptionWithLeadingMinus: true /* as --x-> patterns start with -*/);
                         int maxValue = ExtractIntOptionValue(globalContext, args, ref i) ?? int.MaxValue;
                         SetResult(ref result, globalContext.LogItemCount(pattern, maxValue));
                     } else if (CurrentDirectoryOption.IsMatch(arg)) {
@@ -724,7 +724,7 @@ namespace NDepCheck {
                     } else if (ListFilesOption.IsMatch(arg)) {
                         string filename;
                         bool recursive;
-                        string s = ExtractNextValue(globalContext, args, ref i, allowOptionValue: true);
+                        string s = ExtractNextValue(globalContext, args, ref i, allowOptionWithLeadingMinus: true);
                         if (s != null && Option.ArgMatches(s, "r", "recursive")) {
                             recursive = true;
                             filename = ExtractNextValue(globalContext, args, ref i);
@@ -813,8 +813,8 @@ namespace NDepCheck {
         }
 
         private static string GetListOptions(string[] args, GlobalContext globalContext, ref int i, out int maxCount) {
-            string s = ExtractOptionValue(globalContext, args, ref i, allowOptionValue: true);
-            string pattern = ExtractNextValue(globalContext, args, ref i, allowOptionValue: true);
+            string s = ExtractOptionValue(globalContext, args, ref i, allowOptionWithLeadingMinus: true);
+            string pattern = ExtractNextValue(globalContext, args, ref i, allowOptionWithLeadingMinus: true);
             if (pattern == null) {
                 maxCount = 10;
                 pattern = s;
@@ -831,18 +831,18 @@ namespace NDepCheck {
         }
 
         [CanBeNull]
-        private static string ExtractNextValue([NotNull] GlobalContext globalContext, string[] args, ref int i, bool allowOptionValue = false, bool allowRedirection = false) {
-            return globalContext.ExpandDefinesAndHexChars(Option.ExtractNextValue(args, ref i, allowOptionValue, allowRedirection), null);
+        private static string ExtractNextValue([NotNull] GlobalContext globalContext, string[] args, ref int i, bool allowOptionWithLeadingMinus = false, bool allowRedirection = false) {
+            return globalContext.ExpandDefinesAndHexChars(Option.ExtractNextValue(args, ref i, allowOptionWithLeadingMinus, allowRedirection), null);
         }
 
         [CanBeNull]
-        private static string ExtractNextRequiredValue([NotNull] GlobalContext globalContext, string[] args, ref int i, string message, bool allowOptionValue = false, bool allowRedirection = false) {
-            return globalContext.ExpandDefinesAndHexChars(Option.ExtractNextRequiredValue(args, ref i, message, allowOptionValue, allowRedirection), null);
+        private static string ExtractNextRequiredValue([NotNull] GlobalContext globalContext, string[] args, ref int i, string message, bool allowOptionWithLeadingMinus = false, bool allowRedirection = false) {
+            return globalContext.ExpandDefinesAndHexChars(Option.ExtractNextRequiredValue(args, ref i, message, allowOptionWithLeadingMinus, allowRedirection), null);
         }
 
         [CanBeNull]
-        private static string ExtractOptionValue([NotNull] GlobalContext globalContext, string[] args, ref int i, bool allowOptionValue = false, bool allowRedirection = false) {
-            return globalContext.ExpandDefinesAndHexChars(Option.ExtractOptionValue(args, ref i, allowOptionValue, allowRedirection), null);
+        private static string ExtractOptionValue([NotNull] GlobalContext globalContext, string[] args, ref int i, bool allowOptionWithLeadingMinus = false, bool allowRedirection = false) {
+            return globalContext.ExpandDefinesAndHexChars(Option.ExtractOptionValue(args, ref i, allowOptionWithLeadingMinus, allowRedirection), null);
         }
 
         private static int? ExtractIntOptionValue([NotNull] GlobalContext globalContext, string[] args, ref int i) {
@@ -867,8 +867,8 @@ namespace NDepCheck {
         }
 
         [NotNull]
-        private static string ExtractRequiredOptionValue([NotNull] GlobalContext globalContext, string[] args, ref int i, string message, bool allowRedirection = false) {
-            return globalContext.ExpandDefinesAndHexChars(Option.ExtractRequiredOptionValue(args, ref i, message, allowRedirection: allowRedirection), null);
+        private static string ExtractRequiredOptionValue([NotNull] GlobalContext globalContext, string[] args, ref int i, string message, bool allowRedirection = false, bool allowOptionWithLeadingMinus = false) {
+            return globalContext.ExpandDefinesAndHexChars(Option.ExtractRequiredOptionValue(args, ref i, message, allowOptionWithLeadingMinus: allowOptionWithLeadingMinus, allowRedirection: allowRedirection), null);
         }
 
         private static void ExtractFilePatterns([NotNull] GlobalContext globalContext, string[] args, ref int i, string firstFilePattern, List<string> includes, List<string> excludes) {

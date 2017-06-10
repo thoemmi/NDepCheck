@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using JetBrains.Annotations;
 
@@ -35,6 +36,7 @@ namespace NDepCheck.Transforming {
         private readonly Func<TValue, TValue, TValue> _sum;
         private readonly Func<TValue, TValue, TValue> _diff;
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             var sb = new StringBuilder();
             foreach (var rowKey in RowKeys) {

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 
 namespace NDepCheck.ConstraintSolving {
@@ -46,6 +47,7 @@ namespace NDepCheck.ConstraintSolving {
             return a == b || Math.Abs(a - b) < eps || Math.Abs(a - b) < eps * Math.Abs(a + b);
         }
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return $"[{_lo}..{_hi}]";
         }

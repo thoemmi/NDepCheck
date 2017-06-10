@@ -650,5 +650,29 @@ script2.nd value1 defaultValue2 defaultValue3 defaultValue4 globalF5"));
                 }
             }
         }
+
+        [TestMethod]
+        public void TestGraphOptions() {
+            Assert.AreEqual(0,
+                Program.Main(new[] {
+                        Program.CreateEmptyGraphOption.Opt, "A", // A
+                        Program.CreateEmptyGraphOption.Opt, "B", // AB
+                        Program.CreateEmptyGraphOption.Opt, "C", // ABC
+                        Program.CreateEmptyGraphOption.Opt, "D", // ABCD
+                        Program.CloneGraphOption.Opt, "E", // ABCDE
+                        Program.RenameGraphOption.Opt, "F", //ABCDF
+                        Program.DeleteGraphOption.Opt, "A", "C", //BDF
+                        Program.IncludeGraphOption.Opt, "B", // BDF
+                        Program.GraphUnionOption.Opt,  "B", // DF
+                        Program.WorkingGraphOption.Opt, "D", // FD
+                        Program.GraphListOption.Opt,
+                        Program.AutoGraphForTransformOption.Opt,
+                        Program.AutoGraphForReadOption.Opt,
+                        Program.GraphViewOnlyOption.Opt, "--a->",
+                        Program.GraphFiltersOption.Opt,
+                        Program.GraphUnviewOption.Opt, "--a->",
+                        Program.HelpAllOption.Opt
+                }));
+        }
     }
 }

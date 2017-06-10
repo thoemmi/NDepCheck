@@ -557,8 +557,6 @@ namespace NDepCheck {
             int ct;
             if (arg == null) {
                 flag = 10;
-            } else if (arg == "-") {
-                flag = 0;
             } else if (int.TryParse(arg, out ct) && ct >= 0 && ct < 100) {
                 flag = ct;
             } else {
@@ -571,20 +569,23 @@ namespace NDepCheck {
         }
 
         [NotNull, ItemNotNull]
-        private IEnumerable<WorkingGraph> FindGraph([NotNull] string name) {
-            return FindGraph(name, _workingGraphs);
+        private IEnumerable<WorkingGraph> FindGraphs([NotNull] string name) {
+            return FindGraphs(name, _workingGraphs);
         }
 
         [NotNull, ItemNotNull]
-        private static IEnumerable<WorkingGraph> FindGraph([NotNull] string name, List<WorkingGraph> workingGraphs) {
+        private static IEnumerable<WorkingGraph> FindGraphs([NotNull] string name, List<WorkingGraph> workingGraphs) {
             IEnumerable<WorkingGraph> result;
             int id;
             if (int.TryParse(name, out id) && id > 0 && id <= workingGraphs.Count) {
                 result = new[] { workingGraphs[workingGraphs.Count - id] };
             } else {
-                result = workingGraphs.Where(e => e.FullName == name);
+                result = workingGraphs.Where(g => g.UserDefinedName == name);
                 if (!result.Any()) {
-                    result = workingGraphs.Where(e => e.FullName.StartsWith(name));
+                    result = workingGraphs.Where(g => g.UserDefinedName.StartsWith(name));
+                    if (!result.Any()) {
+                        result = workingGraphs.Where(g => g.FullName.Contains(name));
+                    }
                 }
             }
             return result;
@@ -596,7 +597,7 @@ namespace NDepCheck {
         /// </summary>
         [CanBeNull]
         public IEnumerable<Dependency> FindDependenciesInFirstGraphMatchingName([CanBeNull] string name, List<WorkingGraph> workingGraphsAtStartOfTransform) {
-            return FindGraph(name ?? "2", workingGraphsAtStartOfTransform).FirstOrDefault()?.VisibleDependencies;
+            return FindGraphs(name ?? "2", workingGraphsAtStartOfTransform).FirstOrDefault()?.VisibleDependencies;
         }
 
         private IEnumerable<Dependency> Clone(IEnumerable<Dependency> dependencies) {
@@ -620,10 +621,10 @@ namespace NDepCheck {
         }
 
         [CanBeNull, ItemNotNull]
-        private IEnumerable<WorkingGraph> FindGraphs([NotNull, ItemNotNull] IEnumerable<string> clonedNames) {
+        private IEnumerable<WorkingGraph> FindGraphs([NotNull, ItemNotNull] IEnumerable<string> names) {
             var toBeCloned = new List<WorkingGraph>();
-            foreach (var n in clonedNames) {
-                IEnumerable<WorkingGraph> foundGraphs = FindGraph(n);
+            foreach (var n in names) {
+                IEnumerable<WorkingGraph> foundGraphs = FindGraphs(n);
                 if (!foundGraphs.Any()) {
                     Log.WriteWarning($"No graph with name '{n}' found");
                     toBeCloned = null;
@@ -669,7 +670,7 @@ namespace NDepCheck {
         }
 
         public void MakeTop([CanBeNull] string name) {
-            WorkingGraph g = FindGraph(name ?? "2").FirstOrDefault();
+            WorkingGraph g = FindGraphs(name ?? "2").FirstOrDefault();
             if (g == null) {
                 Log.WriteError($"No graph with name '{name}' found");
             } else {

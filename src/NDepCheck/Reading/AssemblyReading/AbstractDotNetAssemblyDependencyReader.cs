@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using Gibraltar;
@@ -116,6 +117,7 @@ namespace NDepCheck.Reading.AssemblyReading {
                 _readingGraph = readingGraph;
             }
 
+            [ExcludeFromCodeCoverage]
             public override string ToString() {
                 return NamespaceName + ":" + ClassName + ":" + AssemblyName + ";" + _assemblyVersion + ";" +
                        _assemblyCulture + ":" + MemberName + (_markers == null ? "" : "'" + string.Join("+", _markers));
@@ -211,6 +213,7 @@ namespace NDepCheck.Reading.AssemblyReading {
                 return new RawUsedItem(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, readingGraph);
             }
 
+            [ExcludeFromCodeCoverage]
             public override string ToString() {
                 return "RawUsedItem(" + base.ToString() + ")";
             }
@@ -286,6 +289,7 @@ namespace NDepCheck.Reading.AssemblyReading {
                 return UsedItem.GetHashCode() ^ UsingItem.GetHashCode();
             }
 
+            [ExcludeFromCodeCoverage]
             public override string ToString() {
                 return "RawDep " + UsingItem + "=>" + UsedItem;
             }

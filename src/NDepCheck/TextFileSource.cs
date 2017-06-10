@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace NDepCheck {
     public class TextFileSourceLocation : AbstractSourceLocation {
         public TextFileSourceLocation(string sourceName, int? line) : base(sourceName) {
@@ -10,6 +12,7 @@ namespace NDepCheck {
 
         public override string AsDipString() => $"{ContainerUri}|{Line}";
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() => base.ToString() + $"/{ContainerUri}{(Line.HasValue ? "/" + Line : "")}";
 
         public static ISourceLocation MaybeCreate(string[] fields) {

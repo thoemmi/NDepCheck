@@ -23,13 +23,13 @@ namespace NDepCheck.Matching {
             Option.Parse(globalContext, argsAsString, new[] {
                 DependencyMatchOption.Action((args, j) => {
                     string pattern = Option.ExtractRequiredOptionValue(args, ref j, "missing dependency match pattern",
-                        allowOptionValue : true);
+                        allowOptionWithLeadingMinus : true);
                     matches.Add(DependencyMatch.Create(pattern, ignoreCase));
                     return j;
                 }),
                 NoMatchOption.Action((args, j) => {
                     string pattern = Option.ExtractRequiredOptionValue(args, ref j, "missing dependency match pattern",
-                        allowOptionValue : true);
+                        allowOptionWithLeadingMinus : true);
                     excludes.Add(DependencyMatch.Create(pattern, ignoreCase));
                     return j;
                 })

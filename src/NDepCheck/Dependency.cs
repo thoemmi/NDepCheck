@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using JetBrains.Annotations;
@@ -61,6 +62,7 @@ namespace NDepCheck {
         /// <summary>
         /// string representation of a Dependency.
         /// </summary>
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return UsingItem.AsFullString(50) + " --" + MarkerSet.AsFullString(50) + "-> " + UsedItem.AsFullString(50);
         }

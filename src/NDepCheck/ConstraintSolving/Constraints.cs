@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using JetBrains.Annotations;
 
@@ -127,6 +128,7 @@ namespace NDepCheck.ConstraintSolving {
             return v.RestrictRange(_range);
         }
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return $"{Info} Range {_range}";
         }
@@ -181,6 +183,7 @@ namespace NDepCheck.ConstraintSolving {
             return v.RestrictRange((v == _variable1 ? _variable2 : _variable1).Value);
         }
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return $"{Info} Equality .{_variable1.VarIndex}===.{_variable2.VarIndex}";
         }
@@ -207,6 +210,7 @@ namespace NDepCheck.ConstraintSolving {
             return v.RestrictRange(-(v == _variable1 ? _variable2 : _variable1).Value);
         }
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return $"{Info} IsInverse .{_variable1.VarIndex}=-=.{_variable2.VarIndex}";
         }
@@ -273,6 +277,7 @@ namespace NDepCheck.ConstraintSolving {
             }
         }
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return $"{Info} Proportional {_d}*.{_variable1.VarIndex}==.{_variable2.VarIndex}";
         }
@@ -302,6 +307,7 @@ namespace NDepCheck.ConstraintSolving {
             _inputVariables = inputVariables;
         }
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return $"{Info} Sum0 " + string.Join("+", _inputVariables.Select(v => "." + v.VarIndex)) + "==0";
         }
@@ -439,6 +445,7 @@ namespace NDepCheck.ConstraintSolving {
             return (_input.Length + 10 * _output.Length) ^ BaseGetHashCode();
         }
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return $"{Info} Uni " + string.Join(",", _input.Select(v => "." + v.VarIndex)) + "==>>" + string.Join(",", _output.Select(v => "." + v.VarIndex));
         }

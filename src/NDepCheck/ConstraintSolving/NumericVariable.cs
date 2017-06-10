@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using JetBrains.Annotations;
 
@@ -77,6 +78,7 @@ namespace NDepCheck.ConstraintSolving {
 
         public int VarIndex => _varIndex;
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return $".{_varIndex} '{ShortName}'={Value} {(Fixed?'F':' ')} Definition={Definition} lastChange@{_lastChangedAt}";
         }

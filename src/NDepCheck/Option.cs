@@ -126,8 +126,8 @@ namespace NDepCheck {
         }
 
         [NotNull]
-        public static string ExtractRequiredOptionValue(string[] args, ref int i, string message, bool allowOptionValue = false, bool allowRedirection = false) {
-            string optionValue = ExtractOptionValue(args, ref i, allowOptionValue, allowRedirection);
+        public static string ExtractRequiredOptionValue(string[] args, ref int i, string message, bool allowOptionWithLeadingMinus = false, bool allowRedirection = false) {
+            string optionValue = ExtractOptionValue(args, ref i, allowOptionWithLeadingMinus, allowRedirection);
             if (string.IsNullOrWhiteSpace(optionValue)) {
                 throw new ArgumentException(message);
             }
@@ -138,7 +138,7 @@ namespace NDepCheck {
         /// Helper method to get option value of value 
         /// </summary>
         [CanBeNull]
-        public static string ExtractOptionValue(string[] args, ref int i, bool allowOptionValue = false, bool allowRedirection = false) {
+        public static string ExtractOptionValue(string[] args, ref int i, bool allowOptionWithLeadingMinus = false, bool allowRedirection = false) {
             string optionValue;
             string arg = args[i];
             string[] argparts = arg.Split(new[] { '=' }, 2);
@@ -157,7 +157,7 @@ namespace NDepCheck {
             if (optionValue == null) {
                 i = nextI;
                 return null;
-            } else if (!allowOptionValue && LooksLikeAnOption(optionValue)) {
+            } else if (!allowOptionWithLeadingMinus && LooksLikeAnOption(optionValue)) {
                 // This is the following option - i is not changed
                 return null;
             } else if (!allowRedirection && LooksLikeRedirection(optionValue)) {
@@ -221,8 +221,8 @@ namespace NDepCheck {
         }
 
         [NotNull]
-        public static string ExtractNextRequiredValue(string[] args, ref int i, string message, bool allowOptionValue = false, bool allowRedirection = false) {
-            string result = ExtractNextValue(args, ref i, allowOptionValue, allowRedirection);
+        public static string ExtractNextRequiredValue(string[] args, ref int i, string message, bool allowOptionWithLeadingMinus = false, bool allowRedirection = false) {
+            string result = ExtractNextValue(args, ref i, allowOptionWithLeadingMinus, allowRedirection);
             if (result == null) {
                 throw new ArgumentException(message);
             }
@@ -230,14 +230,14 @@ namespace NDepCheck {
         }
 
         [CanBeNull]
-        public static string ExtractNextValue(string[] args, ref int i, bool allowOptionValue = false, bool allowRedirection = false) {
+        public static string ExtractNextValue(string[] args, ref int i, bool allowOptionWithLeadingMinus = false, bool allowRedirection = false) {
             if (i >= args.Length - 1) {
                 return null;
             } else {
                 string value = args[++i];
                 if (IsOptionGroupStart(value)) {
                     return CollectMultipleArgs(args, ref i);
-                } else if (!allowOptionValue && LooksLikeAnOption(value)) {
+                } else if (!allowOptionWithLeadingMinus && LooksLikeAnOption(value)) {
                     --i;
                     return null;
                 } else if (!allowRedirection && LooksLikeRedirection(value)) {

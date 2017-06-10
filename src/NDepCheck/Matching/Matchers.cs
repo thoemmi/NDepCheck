@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
@@ -54,6 +55,7 @@ namespace NDepCheck.Matching {
             return value == "" ? _groups : null;
         }
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return "[-]";
         }
@@ -133,6 +135,7 @@ namespace NDepCheck.Matching {
                   ignoreCase, maxSize) {
         }
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return "[*" + _segment + "*]";
         }
@@ -154,6 +157,7 @@ namespace NDepCheck.Matching {
                   ignoreCase, maxSize) {
         }
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return "[" + _segment + "]";
         }
@@ -184,6 +188,7 @@ namespace NDepCheck.Matching {
             return trimmed == "" ? trimmedWithPossibleDotsAtEnd : trimmed;
         }
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return "[" + _segment + "*]";
         }
@@ -205,6 +210,7 @@ namespace NDepCheck.Matching {
                   ignoreCase, maxSize) {
         }
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return "[*" + _segment + "]";
         }

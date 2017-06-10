@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using Gibraltar;
@@ -69,6 +70,7 @@ namespace NDepCheck {
             return cache.GetReference(new ItemTail(type, values));
         }
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return "ItemTail(" + Type + ":" + string.Join(":", Values) + ")";
         }
@@ -121,6 +123,7 @@ namespace NDepCheck {
             return SegmentHashCode();
         }
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return AsFullString(300);
         }

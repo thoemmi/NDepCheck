@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace NDepCheck {
     public abstract class AbstractSourceLocation : ISourceLocation {
         protected AbstractSourceLocation(string containerUri) {
@@ -8,6 +10,7 @@ namespace NDepCheck {
 
         public virtual string AsDipString() => ContainerUri;
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() => ContainerUri;
 
         public static ISourceLocation Create(string[] fields) {

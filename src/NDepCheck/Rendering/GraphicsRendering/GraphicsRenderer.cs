@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -350,6 +351,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
                 _sectorAngle = 2 * Math.PI / connectors;
             }
 
+            [ExcludeFromCodeCoverage]
             public override string ToString() {
                 return "BoxBuilder " + Name;
             }
@@ -600,6 +602,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
                 _textBox = new VariableVector(_name + ".TXT", solver);
             }
 
+            [ExcludeFromCodeCoverage]
             public override string ToString() {
                 return "ArrowBuilder " + Name;
             }

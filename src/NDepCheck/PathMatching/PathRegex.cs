@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
@@ -40,6 +41,7 @@ namespace NDepCheck.PathMatching {
             TargetNode = targetNode;
         }
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return $"{GetType().Name}:{TargetNode}{(IsCount ? "C" : "")}{(Invert ? "I" : "")}";
         }
@@ -61,6 +63,7 @@ namespace NDepCheck.PathMatching {
         public IEnumerable<TThis> EpsilonTargets => _epsilonTargets;
         public IEnumerable<MatchAndTarget<TMatch, TTargetNode>> Transitions => _transitions;
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             return $"{GetType().Name}({_transitions.Count}/{_epsilonTargets.Count}/{(IsEnd ? "E" : "")})";
         }
@@ -354,6 +357,7 @@ namespace NDepCheck.PathMatching {
                 : first;
         }
 
+        [ExcludeFromCodeCoverage]
         private string ItemOrDependency(bool endsWithItem) {
             return endsWithItem ? "item match" : "dependency match";
         }
@@ -608,7 +612,7 @@ namespace NDepCheck.PathMatching {
             Func<TDependencyMatch, TDependency, bool> dependencyMatch, out bool atCount);
     }
 
-
+    [ExcludeFromCodeCoverage]
     public class RegexSyntaxException : Exception {
         public RegexSyntaxException(string definition, int pos, string message) : base(CreateMessage(definition, pos, message)) {
             // empty

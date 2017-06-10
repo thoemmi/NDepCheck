@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using JetBrains.Annotations;
@@ -134,6 +135,7 @@ namespace NDepCheck {
             return Name.GetHashCode();
         }
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() {
             var result = new StringBuilder(Name);
             if (IgnoreCase) {
