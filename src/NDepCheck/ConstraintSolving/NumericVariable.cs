@@ -87,7 +87,7 @@ namespace NDepCheck.ConstraintSolving {
             return result;
         }
 
-        private NumericVariable DeriveVariable(string shortName, string definition) {
+        private NumericVariable DeriveVariable([NotNull] string shortName, string definition) {
             return Solver.GetOrCreateVariable(shortName, definition, null, null, Interpolate);
         }
 

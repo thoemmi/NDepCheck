@@ -52,6 +52,27 @@ namespace NDepCheck.Tests {
         }
 
         [TestMethod]
+        public void TestAdvanceToEndSimpleRegex() {
+            SimpleTestPathRegex regex = new SimpleTestPathRegex("A1B");
+            IBeforeItemGraphkenState<string, int, Func<string, bool>, Func<int, bool>> initState = regex.CreateState();
+
+            Func<Func<string, bool>, string, bool> itemMatch = (f, i) => f(i);
+            Func<Func<int, bool>, int, bool> dependencyMatch = (f, d) => f(d);
+            bool atEnd, atCount;
+
+            IBeforeDependencyGraphkenState<string, int, Func<string, bool>, Func<int, bool>> stateAfterA = initState.Advance("A", itemMatch, out atEnd, out atCount);
+            Assert.IsTrue(stateAfterA.CanContinue);
+            Assert.IsFalse(atEnd);
+
+            IBeforeItemGraphkenState<string, int, Func<string, bool>, Func<int, bool>> stateAfter1 = stateAfterA.Advance(1, dependencyMatch, out atCount);
+            Assert.IsTrue(stateAfter1.CanContinue);
+
+            IBeforeDependencyGraphkenState<string, int, Func<string, bool>, Func<int, bool>> stateAfterB = stateAfter1.Advance("B", itemMatch, out atEnd, out atCount);
+            //Assert.IsFalse(stateAfterB.CanContinue);
+            Assert.IsTrue(atEnd);
+        }
+
+        [TestMethod]
         public void TestCreateLoopRegex() {
             SimpleTestPathRegex regex = new SimpleTestPathRegex("A(1B)*");
             Assert.IsNotNull(regex);

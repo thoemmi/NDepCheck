@@ -92,10 +92,9 @@ namespace NDepCheck.Matching {
     internal abstract class AbstractRememberingDelegateMatcher : AbstractRememberingMatcher, IMatcher {
         protected readonly string _segment;
         private readonly Func<string, string, bool> _isMatch;
-        private readonly bool _ignoreCase;
         private readonly int _resultGroupCt;
 
-        public bool IgnoreCase => _ignoreCase;
+        public bool IgnoreCase { get; }
 
         protected static StringComparison GetComparisonType(bool ignoreCase) {
             return ignoreCase ? StringComparison.InvariantCulture : StringComparison.InvariantCultureIgnoreCase;
@@ -106,7 +105,7 @@ namespace NDepCheck.Matching {
             _segment = segment;
             _resultGroupCt = resultGroupCt;
             _isMatch = isMatch;
-            _ignoreCase = ignoreCase;
+            IgnoreCase = ignoreCase;
         }
 
         public IEnumerable<string> Matches(string value, string[] ignoredReferences) {

@@ -42,19 +42,19 @@ namespace NDepCheck.ConstraintSolving {
             POSITIVE_INF = CreateConstant("+inf", double.PositiveInfinity);
         }
 
-        public NumericVariable CreateConstant(string shortName, double value) {
+        public NumericVariable CreateConstant([NotNull] string shortName, double value) {
             return GetOrCreateVariable(shortName, $"{_allVariables.Count}.{shortName}", value, value, 0);
         }
 
-        public NumericVariable CreateVariable(string shortName, float interpolate = 0.5f) {
+        public NumericVariable CreateVariable([NotNull] string shortName, float interpolate = 0.5f) {
             return GetOrCreateVariable(shortName, $"{_allVariables.Count}.{shortName}[{interpolate}]", null, null, interpolate);
         }
 
-        public NumericVariable CreateVariable(string shortName, double? lo, double? hi, float interpolate) {
+        public NumericVariable CreateVariable([NotNull] string shortName, double? lo, double? hi, float interpolate) {
             return GetOrCreateVariable(shortName, $"{_allVariables.Count}.{shortName}[{lo}..{hi}@{interpolate}]", lo, hi, interpolate);
         }
 
-        internal NumericVariable GetOrCreateVariable([CanBeNull] string shortName, [NotNull] string definition, double? lo, double? hi, float interpolate) {
+        internal NumericVariable GetOrCreateVariable([NotNull] string shortName, [NotNull] string definition, double? lo, double? hi, float interpolate) {
             if (_solved) {
                 throw new InvalidOperationException($"Solver is solved - no new variable '{shortName}', please! (definition='{definition}')");
             }

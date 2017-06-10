@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Gibraltar;
 using JetBrains.Annotations;
 using Mono.Cecil;
 

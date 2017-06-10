@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
@@ -23,8 +24,7 @@ namespace NDepCheck.PathMatching {
         }
     }
 
-    public struct MatchAndTarget<TMatch, TTargetNode>
-            where TTargetNode : Node {
+    public struct MatchAndTarget<TMatch, TTargetNode> where TTargetNode : Node {
         public bool Invert { get; }
         public bool IsCount { get; }
 
@@ -39,6 +39,10 @@ namespace NDepCheck.PathMatching {
             Matches = matches;
             TargetNode = targetNode;
         }
+
+        public override string ToString() {
+            return $"{GetType().Name}:{TargetNode}{(IsCount ? "C" : "")}{(Invert ? "I" : "")}";
+        }
     }
 
     public abstract class Node {
@@ -47,6 +51,7 @@ namespace NDepCheck.PathMatching {
         public bool IsEnd { get; set; }
     }
 
+    [DebuggerDisplay("{" + nameof(ToString) + "()}")]
     public abstract class NodeBefore<TMatch, TThis, TTargetNode> : Node
             where TThis : NodeBefore<TMatch, TThis, TTargetNode>
             where TTargetNode : Node {
@@ -55,6 +60,10 @@ namespace NDepCheck.PathMatching {
 
         public IEnumerable<TThis> EpsilonTargets => _epsilonTargets;
         public IEnumerable<MatchAndTarget<TMatch, TTargetNode>> Transitions => _transitions;
+
+        public override string ToString() {
+            return $"{GetType().Name}({_transitions.Count}/{_epsilonTargets.Count}/{(IsEnd ? "E" : "")})";
+        }
 
         public override void AddEpsilonTo(Node t) {
             TThis sameType = t as TThis;
