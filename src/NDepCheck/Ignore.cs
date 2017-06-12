@@ -1,5 +1,5 @@
 ﻿namespace NDepCheck {
-    internal enum Ignore {
+    public enum Ignore {
         Om
     }
 }

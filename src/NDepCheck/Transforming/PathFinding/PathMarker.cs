@@ -54,7 +54,7 @@ namespace NDepCheck.Transforming.PathFinding {
             }
         }
 
-        private class PathWriterTraverser<TDependency, TItem> : AbstractDepthFirstPathTraverser<TDependency, TItem,
+        private class PathMarkerTraverser<TDependency, TItem> : AbstractDepthFirstPathTraverser<TDependency, TItem,
             DownInfo, HereInfo, List<PathNode<TItem, TDependency>>>
                 where TDependency : AbstractDependency<TItem>
                 where TItem : AbstractItem<TItem> {
@@ -70,7 +70,7 @@ namespace NDepCheck.Transforming.PathFinding {
 
             private int _nodesWithEndFlag;
 
-            public PathWriterTraverser(int maxPathLength, bool backwards, AbstractPathMatch<TDependency, TItem> countMatch, [NotNull] Action checkAbort) : base(checkAbort) {
+            public PathMarkerTraverser(int maxPathLength, bool backwards, AbstractPathMatch<TDependency, TItem> countMatch, [NotNull] Action checkAbort) : base(checkAbort) {
                 _maxPathLength = maxPathLength;
                 _backwards = backwards;
                 _countMatch = countMatch;
@@ -301,7 +301,7 @@ namespace NDepCheck.Transforming.PathFinding {
                 })
             );
             AbstractPathMatch<Dependency, Item>[] expectedPathMatchesArray = expectedPathMatches.ToArray();
-            var c = new PathWriterTraverser<Dependency, Item>(maxPathLength ?? 1 + expectedPathMatchesArray.Length * 2,
+            var c = new PathMarkerTraverser<Dependency, Item>(maxPathLength ?? 1 + expectedPathMatchesArray.Length * 2,
                                                               backwards, countMatch, globalContext.CheckAbort);
             c.Traverse(dependencies, pathAnchor, pathAnchorIsCountMatch, expectedPathMatchesArray);
 

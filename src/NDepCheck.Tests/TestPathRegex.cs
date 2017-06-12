@@ -7,27 +7,26 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.PathMatching;
 
 namespace NDepCheck.Tests {
-    [ExcludeFromCodeCoverage]
-    internal class SimpleTestPathRegex : PathRegex<string, int, Func<string, bool>, Func<int, bool>> {
-        public SimpleTestPathRegex(string definition, Dictionary<string, Func<string, bool>> definedItemMatches = null,
-            Dictionary<string, Func<int, bool>> definedDependencyMatches = null)
-            : base(
-                definition, definedItemMatches: definedItemMatches ?? new Dictionary<string, Func<string, bool>>(),
-                definedDependencyMatches: definedDependencyMatches ?? new Dictionary<string, Func<int, bool>>(),
-                ignoreCase: false) {
-        }
-
-        protected override Func<string, bool> CreateItemMatch(string pattern, bool ignoreCase) {
-            return item => Regex.IsMatch(item, pattern);
-        }
-
-        protected override Func<int, bool> CreateDependencyMatch(string pattern, bool ignoreCase) {
-            return dependency => int.Parse(pattern) == dependency;
-        }
-    }
-
     [TestClass, ExcludeFromCodeCoverage]
     public class TestPathRegex {
+        internal class SimpleTestPathRegex : PathRegex<string, int, Func<string, bool>, Func<int, bool>> {
+            public SimpleTestPathRegex(string definition, Dictionary<string, Func<string, bool>> definedItemMatches = null,
+                Dictionary<string, Func<int, bool>> definedDependencyMatches = null)
+                : base(
+                    definition, definedItemMatches: definedItemMatches ?? new Dictionary<string, Func<string, bool>>(),
+                    definedDependencyMatches: definedDependencyMatches ?? new Dictionary<string, Func<int, bool>>(),
+                    ignoreCase: false) {
+            }
+
+            protected override Func<string, bool> CreateItemMatch(string pattern, bool ignoreCase) {
+                return item => Regex.IsMatch(item, pattern);
+            }
+
+            protected override Func<int, bool> CreateDependencyMatch(string pattern, bool ignoreCase) {
+                return dependency => int.Parse(pattern) == dependency;
+            }
+        }
+
         [TestMethod]
         public void TestCreateSimpleRegex() {
             SimpleTestPathRegex regex = new SimpleTestPathRegex("A1B");

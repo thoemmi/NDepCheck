@@ -91,6 +91,7 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="PathMatching\AbstractRegexDepthFirstPathTraverser.cs" />
     <Compile Include="AbstractLogger.cs" />
     <Compile Include="AbstractDepthFirstPathTraverser.cs" />
     <Compile Include="Annotations.cs" />

@@ -356,8 +356,8 @@ namespace NDepCheck.PathMatching {
         private readonly Graphken _graph;
         private bool _isCountEncountered;
 
-        protected PathRegex(string definition, Dictionary<string, TItemMatch> definedItemMatches,
-            Dictionary<string, TDependencyMatch> definedDependencyMatches, bool ignoreCase) {
+        protected PathRegex([NotNull] string definition, [NotNull] Dictionary<string, TItemMatch> definedItemMatches,
+            [NotNull] Dictionary<string, TDependencyMatch> definedDependencyMatches, bool ignoreCase) {
             _definedItemMatches = definedItemMatches;
             _definedDependencyMatches = definedDependencyMatches;
             _ignoreCase = ignoreCase;
@@ -572,7 +572,7 @@ namespace NDepCheck.PathMatching {
             }
         }
 
-        protected abstract TItemMatch CreateItemMatch(string pattern, bool ignoreCase);
+        protected abstract TItemMatch CreateItemMatch([NotNull] string pattern, bool ignoreCase);
 
         [CanBeNull]
         private TDependencyMatch CreateDependencyMatch(int pos, [NotNull] string s) {
@@ -587,7 +587,7 @@ namespace NDepCheck.PathMatching {
             }
         }
 
-        protected abstract TDependencyMatch CreateDependencyMatch(string pattern, bool ignoreCase);
+        protected abstract TDependencyMatch CreateDependencyMatch([NotNull] string pattern, bool ignoreCase);
 
         private string PeekName(int pos) {
             string name = PeekSymbol(pos);
@@ -608,7 +608,7 @@ namespace NDepCheck.PathMatching {
             public readonly TNode Node;
             public readonly object BehindCount;
 
-            public StateElement(TNode node, object behindCount) {
+            public StateElement([NotNull] TNode node, [CanBeNull] object behindCount) {
                 Node = node;
                 BehindCount = behindCount;
             }
@@ -646,8 +646,9 @@ namespace NDepCheck.PathMatching {
                           .ToArray();
                     c |= matchAndTargets.Any(m => m.IsCount);
 
-                    result.AddRange(matchAndTargets.Select(t => new StateElement<TTargetNode>(t.TargetNode,
-                                                                     se.BehindCount ?? (t.IsCount ? obj : default(T)))));
+                    result.AddRange(matchAndTargets
+                        .Where(t => t.TargetNode != null)
+                        .Select(t => new StateElement<TTargetNode>(t.TargetNode, se.BehindCount ?? (t.IsCount ? obj : default(T)))));
                 }
                 atEnd = result.SelectMany(se => se.Node.CollectAllReachableViaEpsilons()).Any(n => n.IsEnd);
                 atCount = c;
