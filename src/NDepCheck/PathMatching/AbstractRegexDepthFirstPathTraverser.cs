@@ -25,30 +25,6 @@ namespace NDepCheck.PathMatching {
         private readonly PathRegex<TItem, TDependency> _regex;
         private readonly Action _checkAbort;
 
-        public struct ItemAndInt {
-            [NotNull]
-            private readonly TItem _item;
-            private readonly int _int;
-
-            public ItemAndInt([NotNull] TItem item, int @int) {
-                _item = item;
-                _int = @int;
-            }
-
-            public override bool Equals(object obj) {
-                if (obj is ItemAndInt) {
-                    ItemAndInt other = (ItemAndInt)obj;
-                    return Equals(other._item, _item) && other._int == _int;
-                } else {
-                    return false;
-                }
-            }
-
-            public override int GetHashCode() {
-                return _item.GetHashCode();
-            }
-        }
-
         protected struct DownAndHere {
             public readonly TDownInfo Down;
             public readonly THereInfo Save;
@@ -86,13 +62,16 @@ namespace NDepCheck.PathMatching {
             bool atEnd, atCount;
             IBeforeDependencyGraphkenState<TItem, TDependency, ItemMatch, DependencyMatch> beforeDependencyState = initState.Advance(root, (m, i) => ItemMatch.IsMatch(m, i), out atEnd, out atCount);
             if (beforeDependencyState.CanContinue) {
-                return Traverse(root, incidentDependencies, beforeDependencyState, down, atCount ? root : null);
+                return Traverse(root, incidentDependencies, beforeDependencyState, down, 
+                    new HashSet<IBeforeDependencyGraphkenState> { beforeDependencyState }, atCount ? root : null);
             } else {
                 return default(TUpInfo); // ??????????
             }
         }
 
-        private TUpInfo Traverse([NotNull] TItem tail, [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies, IBeforeDependencyGraphkenState<TItem, TDependency, ItemMatch, DependencyMatch> beforeDependencyState, TDownInfo rawDown, object countedObject) {
+        private TUpInfo Traverse([NotNull] TItem tail, [NotNull] Dictionary<TItem, TDependency[]> incidentDependencies, 
+            IBeforeDependencyGraphkenState<TItem, TDependency, ItemMatch, DependencyMatch> beforeDependencyState, 
+            TDownInfo rawDown, HashSet<IBeforeDependencyGraphkenState> statesOnPath, object countedObject) {
             if (!beforeDependencyState.CanContinue) {
                 throw new ArgumentException("Traverse must be called with continueable state", nameof(beforeDependencyState));
             }
@@ -127,10 +106,10 @@ namespace NDepCheck.PathMatching {
                         DownAndHere downAndHere = AfterPushDependency(_currentPath, atEnd, rawDown, countedObject);
 
                         TUpInfo childUp;
-                        if (beforeNextDependencyState.CanContinue) {
+                        if (beforeNextDependencyState.CanContinue && statesOnPath.Add(beforeNextDependencyState)) { 
                             childUp = Traverse(nextTail, incidentDependencies, beforeNextDependencyState,
-                                downAndHere.Down, countedObject);
-
+                                downAndHere.Down, statesOnPath, countedObject);
+                            statesOnPath.Remove(beforeNextDependencyState);
                         } else {
                             childUp = default(TUpInfo); // ??? as above ____
                         }

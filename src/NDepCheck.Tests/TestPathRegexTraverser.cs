@@ -113,5 +113,12 @@ namespace NDepCheck.Tests {
 
             Assert.AreEqual(1, traverser.CountedObjects.Distinct().Count());
         }
+
+        // Test: b-loop in Item-Graph matched by a.b.b.b.c is actually looped 3 times
+        // Better test on a->b-->b->b->b->b
+        //                  / \\_
+        //                  +-+  \->c           ... must loop, but also run along b list and not find an end there!
+
+        // Test: That exactly same position in regex AND in graph can be detected and stop search!
     }
 }

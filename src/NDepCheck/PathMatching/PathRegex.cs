@@ -369,6 +369,8 @@ namespace NDepCheck.PathMatching {
             _graph.EndNode.IsEnd = true;
         }
 
+        public bool ContainsCountSymbol => _isCountEncountered;
+
         public string GetGraphkenRepresentation() {
             return _graph.StartNode.GetRepresentation();
         }
@@ -599,58 +601,70 @@ namespace NDepCheck.PathMatching {
         }
 
         public IBeforeItemGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> CreateState() {
-            return
-                new BeforeItemGraphkenState(new[]
-                    {new StateElement<NodeBeforeItemMatch>((NodeBeforeItemMatch) _graph.StartNode, null /*????*/)});
-        }
-
-        private struct StateElement<TNode> where TNode : Node {
-            public readonly TNode Node;
-            public readonly object BehindCount;
-
-            public StateElement([NotNull] TNode node, [CanBeNull] object behindCount) {
-                Node = node;
-                BehindCount = behindCount;
-            }
+            return new BeforeItemGraphkenState(new Dictionary<NodeBeforeItemMatch, object> {
+                        { (NodeBeforeItemMatch)_graph.StartNode, null}
+                    });
         }
 
         private abstract class AbstractGraphkenState<T, TMatch, TNode, TTargetNode>
             where TNode : NodeBefore<TMatch, TNode, TTargetNode> where TTargetNode : Node {
 
-            private readonly StateElement<TNode>[] _active;
+            private readonly IDictionary<TNode, object> _active;
 
-            public IEnumerable<object> CountedObjects
-                => _active.Select(se => se.BehindCount).Where(obj => !Equals(obj, default(T)));
+            public IEnumerable<object> CountedObjects => _active.Select(se => se.Value).Where(obj => obj != null);
 
-            protected AbstractGraphkenState(IEnumerable<StateElement<TNode>> active) {
-                _active = active.ToArray();
+            protected AbstractGraphkenState([NotNull] IDictionary<TNode, object> active) {
+                _active = active;
+            }
+
+            public override int GetHashCode() {
+                return _active.Aggregate(0, (current, kvp) => current ^ kvp.Key.GetHashCode());
+            }
+
+            public override bool Equals(object obj) {
+                var other = obj as AbstractGraphkenState<T, TMatch, TNode, TTargetNode>;
+                if (other == null || other._active.Count != _active.Count) {
+                    return false;
+                } else {
+                    foreach (var kvp in _active) {
+                        object behind;
+                        if (!other._active.TryGetValue(kvp.Key, out behind) || !Equals(kvp.Value, behind)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
             }
 
             public bool CanContinue => _active.Any();
 
-            protected IEnumerable<StateElement<TTargetNode>> AdvanceState(T obj, Func<TMatch, T, bool> match,
+            protected Dictionary<TTargetNode, object> AdvanceState(T obj, Func<TMatch, T, bool> match,
                 out bool atEnd, out bool atCount) {
                 if (!CanContinue) {
                     throw new InvalidOperationException("Advance is not possible on state with CanContinue=false");
                 }
 
-                var result = new List<StateElement<TTargetNode>>();
+                var result = new Dictionary<TTargetNode, object>();
                 bool c = false;
-                foreach (var se in _active) {
+                foreach (var se in _active.Keys) {
                     MatchAndTarget<TMatch, TTargetNode>[] matchAndTargets =
-                        se.Node
-                          .CollectReachableViaEpsilons()
+                        se.CollectReachableViaEpsilons()
                           .SelectMany(n => n.Transitions)
                           .Where(t => (t.MatchesOrNullForMatchAny == null ||
                                          t.MatchesOrNullForMatchAny.Any(m => match(m, obj))) == !t.Invert)
                           .ToArray();
                     c |= matchAndTargets.Any(m => m.IsCount);
 
-                    result.AddRange(matchAndTargets
-                        .Where(t => t.TargetNode != null)
-                        .Select(t => new StateElement<TTargetNode>(t.TargetNode, se.BehindCount ?? (t.IsCount ? obj : default(T)))));
+                    foreach (var t in matchAndTargets) {
+                        if (t.TargetNode != null) {
+                            object countedObj;
+                            if (!result.TryGetValue(t.TargetNode, out countedObj) || countedObj == null) {
+                                result[t.TargetNode] = t.IsCount ? obj : default(T);
+                            }
+                        }
+                    }
                 }
-                atEnd = result.SelectMany(se => se.Node.CollectAllReachableViaEpsilons()).Any(n => n.IsEnd);
+                atEnd = result.Keys.SelectMany(se => se.CollectAllReachableViaEpsilons()).Any(n => n.IsEnd);
                 atCount = c;
                 return result;
             }
@@ -660,7 +674,7 @@ namespace NDepCheck.PathMatching {
             AbstractGraphkenState<TItem, TItemMatch, NodeBeforeItemMatch, NodeBeforeDependencyMatch>,
             IBeforeItemGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> {
 
-            public BeforeItemGraphkenState(IEnumerable<StateElement<NodeBeforeItemMatch>> active) : base(active) {
+            public BeforeItemGraphkenState(Dictionary<NodeBeforeItemMatch, object> active) : base(active) {
             }
 
             public IBeforeDependencyGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> Advance(
@@ -672,16 +686,13 @@ namespace NDepCheck.PathMatching {
         private class BeforeDependencyGraphkenState :
             AbstractGraphkenState<TDependency, TDependencyMatch, NodeBeforeDependencyMatch, NodeBeforeItemMatch>,
             IBeforeDependencyGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> {
-            public BeforeDependencyGraphkenState(IEnumerable<StateElement<NodeBeforeDependencyMatch>> active)
-                : base(active) {
+            public BeforeDependencyGraphkenState(Dictionary<NodeBeforeDependencyMatch, object> active) : base(active) {
             }
 
             public IBeforeItemGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> Advance(
                 TDependency dependency, Func<TDependencyMatch, TDependency, bool> dependencyMatch, out bool atCount) {
                 bool ignoreAtEnd;
-                return
-                    new BeforeItemGraphkenState(AdvanceState(dependency, dependencyMatch, out ignoreAtEnd,
-                        out atCount));
+                return new BeforeItemGraphkenState(AdvanceState(dependency, dependencyMatch, out ignoreAtEnd, out atCount));
             }
         }
     }
@@ -691,13 +702,17 @@ namespace NDepCheck.PathMatching {
         IEnumerable<object> CountedObjects { get; }
     }
 
-    public interface IBeforeItemGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> : IGraphkenState {
+    public interface IBeforeDependencyGraphkenState : IGraphkenState { }
+
+    public interface IBeforeItemGraphkenState : IGraphkenState { }
+
+    public interface IBeforeItemGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> : IBeforeItemGraphkenState {
         IBeforeDependencyGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> Advance(TItem item,
             Func<TItemMatch, TItem, bool> itemMatch, out bool atEnd, out bool atCount);
     }
 
     public interface IBeforeDependencyGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> :
-        IGraphkenState {
+        IBeforeDependencyGraphkenState {
         IBeforeItemGraphkenState<TItem, TDependency, TItemMatch, TDependencyMatch> Advance(TDependency dependency,
             Func<TDependencyMatch, TDependency, bool> dependencyMatch, out bool atCount);
     }
