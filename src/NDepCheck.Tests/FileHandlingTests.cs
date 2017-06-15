@@ -69,7 +69,7 @@ namespace NDepCheck.Tests {
                   _B.** ---> **
                   :* ---? **
 
-                  $ DOTNETREF ---> DOTNETREF 
+                  $ DOTNETASSEMBLY ---> DOTNETASSEMBLY 
                   * ---> *
                 ");
             WriteDep2To(@"a\b\c");
@@ -123,7 +123,7 @@ namespace NDepCheck.Tests {
                   NDepCheck.TestAssembly.** ---> **
                   :* ---? **
 
-                  $ DOTNETREF ---> DOTNETREF
+                  $ DOTNETASSEMBLY ---> DOTNETASSEMBLY
                   ** ---? **
                 ");
         }
@@ -135,7 +135,7 @@ namespace NDepCheck.Tests {
                   NDepCheck.TestAssembly.** ---> **
                   :* ---? **
 
-                  $ DOTNETREF ---> DOTNETREF
+                  $ DOTNETASSEMBLY ---> DOTNETASSEMBLY
                   ** ---? **
                 ");
         }
@@ -145,7 +145,7 @@ namespace NDepCheck.Tests {
                 @"$ DOTNETITEM ---> DOTNETITEM
                   NDepCheck.TestAssemblyÄÖÜß.** ---> **
 
-                  $ DOTNETREF ---> DOTNETREF
+                  $ DOTNETASSEMBLY ---> DOTNETASSEMBLY
                   ** ---? **
                 ");
         }
@@ -165,7 +165,7 @@ namespace NDepCheck.Tests {
                 $ DOTNETITEM ---> DOTNETITEM
                 ** ---? **
 
-                $ DOTNETREF ---> DOTNETREF
+                $ DOTNETASSEMBLY ---> DOTNETASSEMBLY
                 * ---> *");
         }
 

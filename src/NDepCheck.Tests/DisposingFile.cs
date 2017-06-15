@@ -10,6 +10,7 @@ namespace NDepCheck.Tests {
 
         public DisposingFile Keep {
             get {
+                Console.WriteLine("Writing to " + FileName);
                 _doDelete = false;
                 return this;
             }

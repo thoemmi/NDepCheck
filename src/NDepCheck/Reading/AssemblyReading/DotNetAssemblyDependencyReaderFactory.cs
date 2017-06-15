@@ -5,20 +5,46 @@ using Mono.Cecil;
 
 namespace NDepCheck.Reading.AssemblyReading {
     public class DotNetAssemblyDependencyReaderFactory : AbstractReaderFactory {
-        public static readonly ItemType DOTNETREF = ItemType.New(
-            "DOTNETREF",
+        public static readonly ItemType DOTNETASSEMBLY = ItemType.New(
+            "DOTNETASSEMBLY",
             new[] { "Assembly", "Assembly", "Assembly" },
             new[] { ".Name", ".Version", ".Culture" }, ignoreCase: false, predefined: true);
 
-        public static readonly ItemType DOTNETITEM = ItemType.New(
-            "DOTNETITEM",
-            new[] { "Namespace", "Class", "Assembly", "Assembly", "Assembly", "Member" },
-            new[] { null, null, ".Name", ".Version", ".Culture", ".Name" }, ignoreCase: false, predefined: true);
+        private static readonly string[] _dotNetItemKeys = { "Namespace", "Class", "Assembly", "Assembly", "Assembly", "Member" };
+        private static readonly string[] _dotNetItemSubkeys = { null, null, ".Name", ".Version", ".Culture", ".Name" };
+
+        public static readonly ItemType DOTNETITEM = ItemType.New("DOTNETITEM", _dotNetItemKeys, _dotNetItemSubkeys,
+                                                                  ignoreCase: false, predefined: true);
+        public static readonly ItemType DOTNETTYPE = ItemType.New("DOTNETTYPE", _dotNetItemKeys, _dotNetItemSubkeys,
+                                                                  ignoreCase: false, predefined: true);
+        public static readonly ItemType DOTNETFIELD = ItemType.New("DOTNETFIELD", _dotNetItemKeys, _dotNetItemSubkeys,
+                                                                  ignoreCase: false, predefined: true);
+        public static readonly ItemType DOTNETMETHOD = ItemType.New("DOTNETMETHOD", _dotNetItemKeys, _dotNetItemSubkeys,
+                                                                  ignoreCase: false, predefined: true);
+        public static readonly ItemType DOTNETPROPERTY = ItemType.New("DOTNETPROPERTY", _dotNetItemKeys, _dotNetItemSubkeys,
+                                                                  ignoreCase: false, predefined: true);
+        public static readonly ItemType DOTNETEVENT = ItemType.New("DOTNETEVENT", _dotNetItemKeys, _dotNetItemSubkeys,
+                                                                  ignoreCase: false, predefined: true);
+        public static readonly ItemType DOTNETVARIABLE = ItemType.New("DOTNETVARIABLE", _dotNetItemKeys, _dotNetItemSubkeys,
+                                                                  ignoreCase: false, predefined: true);
+        public static readonly ItemType DOTNETPARAMETER = ItemType.New("DOTNETPARAMETER", _dotNetItemKeys, _dotNetItemSubkeys,
+                                                          ignoreCase: false, predefined: true);
+
+        private static readonly string[] _supportedFileExtensions = { ".dll", ".exe" };
+
+
 
         [UsedImplicitly]
         public DotNetAssemblyDependencyReaderFactory() {
+            ItemType.ForceLoadingPredefinedType(DOTNETASSEMBLY);
             ItemType.ForceLoadingPredefinedType(DOTNETITEM);
-            ItemType.ForceLoadingPredefinedType(DOTNETREF);
+            ItemType.ForceLoadingPredefinedType(DOTNETEVENT);
+            ItemType.ForceLoadingPredefinedType(DOTNETFIELD);
+            ItemType.ForceLoadingPredefinedType(DOTNETITEM);
+            ItemType.ForceLoadingPredefinedType(DOTNETMETHOD);
+            ItemType.ForceLoadingPredefinedType(DOTNETPARAMETER);
+            ItemType.ForceLoadingPredefinedType(DOTNETPROPERTY);
+            ItemType.ForceLoadingPredefinedType(DOTNETTYPE);
         }
 
         public override IDependencyReader CreateReader(string fileName, bool needsOnlyItemTails) {
@@ -58,30 +84,70 @@ namespace NDepCheck.Reading.AssemblyReading {
         public override string GetHelp(bool detailedHelp, string filter) {
             string result = @"Read data from .Net assembly file (.dll or .exe)
 
-This reader returns items of two types:
-    DOTNETITEM(NAMESPACE:CLASS:Assembly.Name;Assembly.VERSION;Assembly.CULTURE:MEMBER.Name)
-    DOTNETREF(Assembly.Name;Assembly.VERSION;Assembly.CULTURE)
+The files are read with Mono.Cecil.
+This reader returns items of the various specific types, all of which have the 
+following fields:
+    (NAMESPACE:CLASS:Assembly.Name;Assembly.VERSION;Assembly.CULTURE:MEMBER.Name)
 ";
             if (detailedHelp) {
                 result += @"
 
-The following constructs in .Net files are recognized:
+The reader creates items of the following types:
+    DOTNETTYPE (member name is always empty)
+    DOTNETEVENT, DOTNETFIELD, DOTNETMETHOD, DOTNETPARAMETER, DOTNETPROPERTY, and
+    DOTNETVARIABLE.
 
-___EXPLANATIONS MISSING___
+Moreover, ___IN WHICH CASES ??__ items for assemblies are returned:
+    DOTNETASSEMBLY(Assembly.Name;Assembly.VERSION;Assembly.CULTURE)
 
-...
-* When a type N1.T1 in assembly A1 declares a field V of type N2.T2 in assembly A2, this yields 
-** DOTNETITEM(N1:T1:A1:V) ---> DOTNETITEM(N2:T2:A2)
-...
-The files are read with Mono.Cecil.
+Created items are marked with the following markers, where appropriate:
 
+                                           DOTNET...
+                      TYPE   METHOD EVENT  PARAMETER  VARIABLE  FIELD  PROPERTY
+                                  (untested) (buggy)  ......(untested).........
+_abstract               x      x
+_array                  x
+_class                  x
+_const                  
+_ctor                          x
+_definition             x      x      x                           x      x
+_delegate               
+_enum                   x
+_get                           x
+_in                                          x
+_interface              x
+_nested                 x
+_notpublic              x
+_optional               x                    x
+_out                                         x
+_pinned                 x                               x
+_primitive              x
+_private                       x                                  x
+_public                 x      x                                  x
+_readonly                                                         x
+_returnvalue                                 x
+_sealed                 x      x
+_set                           x
+_static                        x                                  x
+_struct                 x
+_virtual                       x
+
+Dependencies from one item to another are marked with the following markers, where appropriate:
+
+                      DOTNET...
+_declaresevent        TYPE -> EVENT
+_declaresfield        TYPE -> FIELD
+_declaresparameter    METHOD -> PARAMETER
+_declaresreturntype   METHOD -> TYPE
+_declaresvariable     METHOD -> VARIABLE
+_directlyimplements   TYPE -> TYPE
+_directlyderivedfrom  TYPE -> TYPE
+_usesmember           TYPE -> all, METHOD -> all, PROPERTY -> all
+_usestype             all -> TYPE
 ";
-
             }
             return result;
         }
-
-        private static readonly string[] _supportedFileExtensions = { ".dll", ".exe" };
 
         public override IEnumerable<string> SupportedFileExtensions => _supportedFileExtensions;
     }

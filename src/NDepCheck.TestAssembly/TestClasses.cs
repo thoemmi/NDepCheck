@@ -101,7 +101,7 @@ public class NamespacelessTestClassForNDepCheck {
 
 namespace NDepCheck.TestAssembly.dir1 {
     public interface ISomeInterface {
-        Class13A Class13AMethod(Class13B b, Class13C c);
+        Class13A Class13AMethod(Class13B b, ref Class13C c);
         Class13E.Class13EInner.Class13EInnerInner CreateInner3();
     }
 }
@@ -181,6 +181,37 @@ namespace NDepCheck.TestAssembly.dir1.dir2 {
 
         public void SomeSpecialMethod2() {
             YetAnotherMethod(null);
+        }
+    }
+
+    public abstract class AbstractImplementingClass : ISomeInterface {
+        public abstract int IntMethod();
+
+        public Class13A Class13AMethod(Class13B b, Class13C c) {
+            throw new NotImplementedException();
+        }
+
+        public Class13E.Class13EInner.Class13EInnerInner CreateInner3() {
+            throw new NotImplementedException();
+        }
+
+        char ISomeInterface.CharProperty { get; set; }
+    }
+
+    internal class ImplementingClass1 : AbstractImplementingClass {
+        public override int IntMethod() {
+            throw new NotImplementedException();
+        }
+    }
+    internal class ImplementingClass2 : AbstractImplementingClass {
+        private readonly AbstractImplementingClass _delegate;
+
+        public ImplementingClass2(AbstractImplementingClass @delegate) {
+            _delegate = @delegate;
+        }
+
+        public override int IntMethod() {
+            return _delegate.IntMethod();
         }
     }
 }

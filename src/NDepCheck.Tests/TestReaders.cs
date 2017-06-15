@@ -49,8 +49,6 @@ namespace NDepCheck.Tests {
                         Program.CountDependenciesOption.Opt
                     });
                 Assert.AreEqual(Program.OK_RESULT, result);
-
-                Console.WriteLine(dipFile.FileName);
             }
         }
     }

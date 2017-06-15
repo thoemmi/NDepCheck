@@ -37,20 +37,20 @@ namespace NDepCheck.Reading.AssemblyReading {
         private readonly MarkerGenerator<FieldDefinition>[] _fieldDefinitionMarkers;
 
         private static readonly MarkerGenerator<EventDefinition>[] _eventDefinitionMarkers = {
-            CreateCheck<EventDefinition>(t => t.IsDefinition, DotNetConstants._definition),
+            CreateCheck<EventDefinition>(t => t.IsDefinition, _definition),
             // and maybe more, from other Mono.Cecil information
         };
 
         private static readonly MarkerGenerator<ParameterDefinition>[] _parameterDefinitionMarkers = {
-            CreateCheck<ParameterDefinition>(t => t.IsIn, DotNetConstants._in),
-            CreateCheck<ParameterDefinition>(t => t.IsOptional, DotNetConstants._optional),
-            CreateCheck<ParameterDefinition>(t => t.IsOut, DotNetConstants._out),
-            CreateCheck<ParameterDefinition>(t => t.IsReturnValue, DotNetConstants._return),
+            CreateCheck<ParameterDefinition>(t => t.IsIn, _in),
+            CreateCheck<ParameterDefinition>(t => t.IsOptional, _optional),
+            CreateCheck<ParameterDefinition>(t => t.IsOut, _out),
+            CreateCheck<ParameterDefinition>(t => t.IsReturnValue, _return),
             // and maybe more, from other Mono.Cecil information
         };
 
         private static readonly MarkerGenerator<VariableDefinition>[] _variableDefinitionMarkers = {
-            CreateCheck<VariableDefinition>(t => t.IsPinned, DotNetConstants._pinned),
+            CreateCheck<VariableDefinition>(t => t.IsPinned, _pinned),
             // and maybe more, from other Mono.Cecil information
         };
 
@@ -61,18 +61,18 @@ namespace NDepCheck.Reading.AssemblyReading {
         public FullDotNetAssemblyDependencyReader(DotNetAssemblyDependencyReaderFactory readerFactory, string fileName)
             : base(readerFactory, fileName) {
             _propertyDefinitionMarkers = new[] {
-                    CreateCheck<PropertyDefinition>(t => t.IsDefinition, DotNetConstants._definition),
+                    CreateCheck<PropertyDefinition>(t => t.IsDefinition, _definition),
                     // and maybe more, from other Mono.Cecil information
                 }.Concat(ForwardToTypeDefinition((PropertyDefinition p) => Resolve(p.PropertyType))).ToArray();
 
             _fieldDefinitionMarkers = new[] {
-                    CreateCheck<FieldDefinition>(t => t.IsDefinition, DotNetConstants._definition),
-                    CreateCheck<FieldDefinition>(t => t.IsPublic, DotNetConstants._public),
-                    CreateCheck<FieldDefinition>(t => t.IsPrivate, DotNetConstants._private),
-                    CreateCheck<FieldDefinition>(t => t.IsStatic, DotNetConstants._static),
-                    CreateCheck<FieldDefinition>(t => t.IsLiteral, DotNetConstants._const),
-                    CreateCheck<FieldDefinition>(t => t.IsInitOnly, DotNetConstants._readonly),
-                    CreateCheck<FieldDefinition>(t => t.IsNotSerialized, DotNetConstants._notserialized),
+                    CreateCheck<FieldDefinition>(t => t.IsDefinition, _definition),
+                    CreateCheck<FieldDefinition>(t => t.IsPublic, _public),
+                    CreateCheck<FieldDefinition>(t => t.IsPrivate, _private),
+                    CreateCheck<FieldDefinition>(t => t.IsStatic, _static),
+                    CreateCheck<FieldDefinition>(t => t.IsLiteral, _const),
+                    CreateCheck<FieldDefinition>(t => t.IsInitOnly, _readonly),
+                    CreateCheck<FieldDefinition>(t => t.IsNotSerialized, _notserialized),
                     // and maybe more, from other Mono.Cecil information
                 }.Concat(ForwardToTypeDefinition((FieldDefinition p) => Resolve(p.FieldType))).ToArray();
         }
@@ -131,16 +131,19 @@ namespace NDepCheck.Reading.AssemblyReading {
         }
 
         private static readonly MarkerGenerator<TypeDefinition>[] _typeDefinitionMarkers = {
-            CreateCheck<TypeDefinition>(t => t.IsAbstract, "_abstract"),
+            CreateCheck<TypeDefinition>(t => t.IsAbstract, _abstract),
+            CreateCheck<TypeDefinition>(t => t.IsArray, "_array"),
             CreateCheck<TypeDefinition>(t => t.IsClass, "_class"),
             CreateCheck<TypeDefinition>(t => t.IsEnum, "_enum"),
             CreateCheck<TypeDefinition>(t => t.IsInterface, "_interface"),
             CreateCheck<TypeDefinition>(t => t.IsPrimitive, "_primitive"),
-            CreateCheck<TypeDefinition>(t => t.IsPublic, "_public"),
+            CreateCheck<TypeDefinition>(t => t.IsPublic || t.IsNestedPublic, "_public"),
+            CreateCheck<TypeDefinition>(t => t.IsNestedPrivate, "_nestedprivate"),
             CreateCheck<TypeDefinition>(t => t.IsSealed, "_sealed"),
             CreateCheck<TypeDefinition>(t => t.IsValueType, "_struct"),
             CreateCheck<TypeDefinition>(t => t.IsNotPublic, "_notpublic"),
             CreateCheck<TypeDefinition>(t => t.IsArray, "_array"),
+            CreateCheck<TypeDefinition>(t => t.IsNested, "_nested"),
             // and 1000s more
         };
 
@@ -173,27 +176,30 @@ namespace NDepCheck.Reading.AssemblyReading {
         }
 
         [NotNull]
-        private IEnumerable<RawDependency> AnalyzeType([NotNull] TypeDefinition type, [CanBeNull] ItemTail parentCustomSections, WorkingGraph readingGraph) {
+        private IEnumerable<RawDependency> AnalyzeType([NotNull] TypeDefinition type, [CanBeNull] ItemTail parentCustomSections, 
+                                                       WorkingGraph readingGraph) {
             ItemTail typeCustomSections = GetCustomSections(readingGraph, type.CustomAttributes, parentCustomSections);
             {
-                RawUsingItem usingItem = GetClassItem(type, typeCustomSections, GetMemberMarkers(type, _typeDefinitionMarkers), readingGraph);
-                // readingGraph: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, usingItem, null, null);
+                RawUsingItem usingItem = CreateUsingItem(DOTNETTYPE,
+                    type, typeCustomSections, GetMemberMarkers(type, _typeDefinitionMarkers), readingGraph);
+                // readingGraph: WHY???yield return new RawDependency(DOTNETITEM, usingItem, null, null);
 
                 foreach (var dependency_ in AnalyzeCustomAttributes(usingItem, type.CustomAttributes, readingGraph)) {
                     yield return dependency_;
                 }
 
                 if (type.BaseType != null && !IsLinked(type.BaseType, type.DeclaringType)) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(type, _typeDefinitionMarkers),
-                        type.BaseType, usage: DotNetUsage._directlyinherits, sequencePoint: null, memberName: "", readingGraph: readingGraph)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, DOTNETTYPE, 
+                        GetMemberMarkers(type, _typeDefinitionMarkers), type.BaseType, 
+                        usage: DotNetUsage._directlyderivedfrom, sequencePoint: null, memberName: "", readingGraph: readingGraph)) {
                         yield return dependency_;
                     }
                 }
 
                 foreach (TypeReference interfaceRef in type.Interfaces) {
                     foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
-                        GetMemberMarkers(Resolve(interfaceRef), _typeDefinitionMarkers),
-                        interfaceRef, usage: DotNetUsage._directlyimplements, sequencePoint: null, memberName: "", readingGraph: readingGraph)) {
+                        DOTNETTYPE, GetMemberMarkers(Resolve(interfaceRef), _typeDefinitionMarkers), interfaceRef, 
+                        usage: DotNetUsage._directlyimplements, sequencePoint: null, memberName: "", readingGraph: readingGraph)) {
                         yield return dependency_;
                     }
                 }
@@ -201,10 +207,11 @@ namespace NDepCheck.Reading.AssemblyReading {
                 foreach (FieldDefinition field in type.Fields) {
                     //if (IsLinked(field.FieldType, type.DeclaringType)) {
                     ItemTail fieldCustomSections = GetCustomSections(readingGraph, field.CustomAttributes, typeCustomSections);
-                    // readingGraph: WHY??? yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, GetFullnameItem(type, field.Name, "", fieldCustomSections), null, null);
+                    // readingGraph: WHY??? yield return new RawDependency(DOTNETITEM, GetFullnameItem(type, field.Name, "", fieldCustomSections), null, null);
 
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(field, _fieldDefinitionMarkers),
-                             field.FieldType, usage: DotNetUsage._declaresfield, sequencePoint: null, memberName: field.Name, readingGraph: readingGraph)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, DOTNETFIELD,
+                        GetMemberMarkers(field, _fieldDefinitionMarkers), field.FieldType, usage: DotNetUsage._declaresfield,
+                        sequencePoint: null, memberName: field.Name, readingGraph: readingGraph)) {
                         yield return dependency_;
                     }
                     //}
@@ -212,10 +219,11 @@ namespace NDepCheck.Reading.AssemblyReading {
 
                 foreach (EventDefinition @event in type.Events) {
                     ItemTail eventCustomSections = GetCustomSections(readingGraph, @event.CustomAttributes, typeCustomSections);
-                    // readingGraph: WHY??? yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, GetFullnameItem(type, @event.Name, "", eventCustomSections), null, null);
+                    // readingGraph: WHY??? yield return new RawDependency(DOTNETITEM, GetFullnameItem(type, @event.Name, "", eventCustomSections), null, null);
 
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(@event, _eventDefinitionMarkers),
-                             @event.EventType, usage: DotNetUsage._declaresevent, sequencePoint: null, memberName: @event.Name, readingGraph: readingGraph)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, DOTNETEVENT,
+                        GetMemberMarkers(@event, _eventDefinitionMarkers), @event.EventType, 
+                        usage: DotNetUsage._declaresevent, sequencePoint: null, memberName: @event.Name, readingGraph: readingGraph)) {
                         yield return dependency_;
                     }
                 }
@@ -232,8 +240,9 @@ namespace NDepCheck.Reading.AssemblyReading {
             foreach (MethodDefinition method in type.Methods) {
                 ItemTail methodCustomSections = GetCustomSections(readingGraph, method.CustomAttributes, typeCustomSections);
 
-                RawUsingItem usingItem = GetFullNameItem(type, method.Name, GetMemberMarkers(method, _methodDefinitionMarkers), methodCustomSections, readingGraph);
-                // readingGraph: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, usingItem, null, null);
+                RawUsingItem usingItem = CreateUsingItem(DOTNETMETHOD,
+                    type, method.Name, GetMemberMarkers(method, _methodDefinitionMarkers), methodCustomSections, readingGraph);
+                // readingGraph: WHY???yield return new RawDependency(DOTNETITEM, usingItem, null, null);
 
                 foreach (var dependency_ in AnalyzeMethod(type, usingItem, method, readingGraph)) {
                     yield return dependency_;
@@ -255,15 +264,18 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
 
             foreach (ParameterDefinition parameter in property.Parameters) {
-                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetParameterMarkers(parameter, _parameterDefinitionMarkers),
-                         parameter.ParameterType, usage: DotNetUsage._declaresparameter, sequencePoint: null, memberName: parameter.Name, readingGraph: readingGraph)) {
+                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, DOTNETPARAMETER,
+                    GetParameterMarkers(parameter, _parameterDefinitionMarkers), parameter.ParameterType, 
+                    usage: DotNetUsage._declaresparameter, sequencePoint: null, memberName: parameter.Name, readingGraph: readingGraph)) {
                     yield return dependency_;
                 }
             }
 
             if (property.PropertyType != null) {
-                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(property, _propertyDefinitionMarkers),
-                         property.PropertyType, usage: DotNetUsage._declaresreturntype, sequencePoint: null, memberName: property.Name, readingGraph: readingGraph)) {
+                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, DOTNETTYPE, 
+                    GetMemberMarkers(property, _propertyDefinitionMarkers), property.PropertyType, 
+                    usage: DotNetUsage._declaresreturntype, sequencePoint: null, memberName: property.Name, 
+                    readingGraph: readingGraph)) {
                     yield return dependency_;
                 }
             }
@@ -280,8 +292,9 @@ namespace NDepCheck.Reading.AssemblyReading {
         private IEnumerable<RawDependency> AnalyzeCustomAttributes([NotNull] RawUsingItem usingItem,
                                                                    [NotNull] IEnumerable<CustomAttribute> customAttributes, WorkingGraph readingGraph) {
             foreach (CustomAttribute customAttribute in customAttributes) {
-                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, null, customAttribute.Constructor.DeclaringType,
-                         usage: DotNetUsage._usesmember, sequencePoint: null, memberName: customAttribute.Constructor.Name, readingGraph: readingGraph)) {
+                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, 
+                    DOTNETITEM, null, customAttribute.Constructor.DeclaringType, usage: DotNetUsage._usesmember, 
+                    sequencePoint: null, memberName: customAttribute.Constructor.Name, readingGraph: readingGraph)) {
                     yield return dependency_;
                 }
                 // See comment at Usage._usesmemberoftype on why this is commented out
@@ -296,8 +309,9 @@ namespace NDepCheck.Reading.AssemblyReading {
                                                                [NotNull] string[] markers, [CanBeNull] ItemTail propertyCustomSections,
                                                                [CanBeNull] MethodDefinition getterSetter, WorkingGraph readingGraph) {
             if (getterSetter != null) {
-                RawUsingItem usingItem = GetFullNameItem(property.DeclaringType, property.Name, markers, propertyCustomSections, readingGraph);
-                // readingGraph: WHY???yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, usingItem, null, null);
+                RawUsingItem usingItem = CreateUsingItem(DOTNETPROPERTY, property.DeclaringType,
+                    property.Name, markers, propertyCustomSections, readingGraph);
+                // readingGraph: WHY???yield return new RawDependency(DOTNETITEM, usingItem, null, null);
 
                 foreach (var dependency in AnalyzeMethod(owner, usingItem, getterSetter, readingGraph)) {
                     yield return dependency;
@@ -312,7 +326,7 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
 
             foreach (ParameterDefinition parameter in method.Parameters) {
-                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
+                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, DOTNETPARAMETER,
                          GetParameterMarkers(parameter, _parameterDefinitionMarkers), parameter.ParameterType,
                          usage: DotNetUsage._declaresparameter, sequencePoint: null, memberName: parameter.Name, readingGraph: readingGraph)) {
                     yield return dependency_;
@@ -320,7 +334,7 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
 
             if (method.ReturnType != null && !IsLinked(method.ReturnType, method.DeclaringType.DeclaringType)) {
-                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
+                foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, DOTNETTYPE,
                          GetMemberMarkers(Resolve(method.ReturnType), _typeDefinitionMarkers),
                          method.ReturnType, usage: DotNetUsage._declaresreturntype, sequencePoint: null, memberName: "", readingGraph: readingGraph)) {
                     yield return dependency_;
@@ -330,9 +344,10 @@ namespace NDepCheck.Reading.AssemblyReading {
             if (method.HasBody) {
                 foreach (var variable in method.Body.Variables) {
                     if (!IsLinked(variable.VariableType, method.DeclaringType.DeclaringType)) {
-                        foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
-                            GetVariableMarkers(variable, _variableDefinitionMarkers), variable.VariableType, usage: DotNetUsage._declaresvariable,
-                            sequencePoint: null, memberName: variable.Name, readingGraph: readingGraph)) {
+                        foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, DOTNETVARIABLE,
+                            GetVariableMarkers(variable, _variableDefinitionMarkers), variable.VariableType, 
+                            usage: DotNetUsage._declaresvariable, sequencePoint: null, memberName: variable.Name,
+                            readingGraph: readingGraph)) {
                             yield return dependency_;
                         }
                     }
@@ -361,7 +376,7 @@ namespace NDepCheck.Reading.AssemblyReading {
                 // werden ...
                 // WIESO SOLL DAS SO SEIN? - bitte um Erklärung! ==> SIehe nun temporäre Änderung an IsLinked - IST DAS OK?
                 if (methodReference != null && !IsLinked(methodReference.DeclaringType, owner)) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, DOTNETMETHOD,
                                 GetMemberMarkers(Resolve(methodReference.DeclaringType), _typeDefinitionMarkers),
                                 methodReference.DeclaringType, usage: DotNetUsage._usesmember, sequencePoint: sequencePoint,
                                 memberName: methodReference.Name, readingGraph: readingGraph)) {
@@ -378,7 +393,7 @@ namespace NDepCheck.Reading.AssemblyReading {
             {
                 var field = instruction.Operand as FieldDefinition;
                 if (field != null && !IsLinked(field.DeclaringType, owner)) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, DOTNETFIELD,
                                 GetMemberMarkers(field, _fieldDefinitionMarkers), field.FieldType, usage: DotNetUsage._usesmember,
                                 sequencePoint: sequencePoint, memberName: field.Name, readingGraph: readingGraph)) {
                         yield return dependency_;
@@ -393,8 +408,9 @@ namespace NDepCheck.Reading.AssemblyReading {
             {
                 var property = instruction.Operand as PropertyDefinition;
                 if (property != null && !IsLinked(property.DeclaringType, owner)) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, GetMemberMarkers(property, _propertyDefinitionMarkers),
-                                property.PropertyType, usage: DotNetUsage._usesmember, sequencePoint: sequencePoint, memberName: property.Name, readingGraph: readingGraph)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, DOTNETPROPERTY, 
+                        GetMemberMarkers(property, _propertyDefinitionMarkers), property.PropertyType, 
+                        usage: DotNetUsage._usesmember, sequencePoint: sequencePoint, memberName: property.Name, readingGraph: readingGraph)) {
                         yield return dependency_;
                     }
                     // See comment at Usage._usesmemberoftype on why this is commented out
@@ -407,9 +423,9 @@ namespace NDepCheck.Reading.AssemblyReading {
             {
                 var typeref = instruction.Operand as TypeReference;
                 if (typeref != null && !IsLinked(typeref, owner)) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
-                                GetMemberMarkers(Resolve(typeref), _typeDefinitionMarkers),
-                                typeref, usage: DotNetUsage._usestype, sequencePoint: sequencePoint, memberName: "", readingGraph: readingGraph)) {
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, DOTNETTYPE,
+                                GetMemberMarkers(Resolve(typeref), _typeDefinitionMarkers), typeref, 
+                                usage: DotNetUsage._usestype, sequencePoint: sequencePoint, memberName: "", readingGraph: readingGraph)) {
                         yield return dependency_;
                     }
                 }
@@ -434,30 +450,31 @@ namespace NDepCheck.Reading.AssemblyReading {
             ////return IsLinked(referringType, referrer.DeclaringType) || IsLinked(referringType.DeclaringType, referrer);
         }
 
-        private RawUsingItem GetClassItem([NotNull] TypeReference typeReference, [CanBeNull] ItemTail customSections, [CanBeNull, ItemNotNull] string[] markers, WorkingGraph readingGraph) {
+        private RawUsingItem CreateUsingItem([NotNull] ItemType itemType, [NotNull] TypeReference typeReference, [CanBeNull] ItemTail customSections, [CanBeNull, ItemNotNull] string[] markers, WorkingGraph readingGraph) {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
-            return RawUsingItem.New(_rawUsingItemsCache, namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, "", markers, customSections, readingGraph);
+            return RawUsingItem.New(_rawUsingItemsCache, itemType, namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, "", markers, customSections, readingGraph);
         }
 
-        private RawUsedItem GetFullNameItem([NotNull] TypeReference typeReference, [NotNull] string memberName, [CanBeNull, ItemNotNull] string[] markers, WorkingGraph readingGraph) {
+        private RawUsedItem CreateUsedItem([NotNull] ItemType itemType, [NotNull] TypeReference typeReference, [NotNull] string memberName, [CanBeNull, ItemNotNull] string[] markers, WorkingGraph readingGraph) {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
-            return RawUsedItem.New(namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, readingGraph);
+            return RawUsedItem.New(itemType, namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, readingGraph);
         }
 
-        private RawUsingItem GetFullNameItem([NotNull] TypeReference typeReference, [NotNull] string memberName, [CanBeNull, ItemNotNull] string[] markers, [CanBeNull] ItemTail customSections, WorkingGraph readingGraph) {
+        private RawUsingItem CreateUsingItem([NotNull] ItemType itemType, [NotNull] TypeReference typeReference, [NotNull] string memberName, [CanBeNull, ItemNotNull] string[] markers, [CanBeNull] ItemTail customSections, WorkingGraph readingGraph) {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
-            return RawUsingItem.New(_rawUsingItemsCache, namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, customSections, readingGraph);
+            return RawUsingItem.New(_rawUsingItemsCache, itemType, namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, customSections, readingGraph);
         }
 
         /// <summary>
         /// Create a single dependency to the calledType or (if passed) calledType+method.
         /// Create additional dependencies for each generic parameter type of calledType.
         /// </summary>
-        private IEnumerable<RawDependency> CreateTypeAndMethodDependencies([NotNull] RawUsingItem usingItem, [CanBeNull, ItemNotNull] string[] usedMarkers,
-            [NotNull] TypeReference usedType, DotNetUsage usage, [CanBeNull] SequencePoint sequencePoint, [NotNull] string memberName, WorkingGraph readingGraph) {
+        private IEnumerable<RawDependency> CreateTypeAndMethodDependencies([NotNull] RawUsingItem usingItem, 
+            [NotNull] ItemType usedItemType, [CanBeNull, ItemNotNull] string[] usedMarkers, [NotNull] TypeReference usedType, 
+            DotNetUsage usage, [CanBeNull] SequencePoint sequencePoint, [NotNull] string memberName, WorkingGraph readingGraph) {
             if (usedType is TypeSpecification) {
                 // E.g. the reference type System.int&, which is used for out parameters.
                 // or an arraytype?!?
@@ -468,15 +485,16 @@ namespace NDepCheck.Reading.AssemblyReading {
                 // untangle the usage of an actual (non-type-parameter) type's member
                 // to get a useful Dependency_ for the user.
 
-                RawUsedItem usedItem = GetFullNameItem(usedType, memberName, usedMarkers, readingGraph);
-                yield return new RawDependency(DotNetAssemblyDependencyReaderFactory.DOTNETITEM, usingItem, usedItem, usage, sequencePoint,
+                RawUsedItem usedItem = CreateUsedItem(usedItemType, usedType, memberName, usedMarkers, readingGraph);
+
+                yield return new RawDependency(usingItem, usedItem, usage, sequencePoint,
                     _readerGang.OfType<AbstractDotNetAssemblyDependencyReader>().FirstOrDefault(r => r.AssemblyName == usedItem.AssemblyName));
             }
 
             var genericInstanceType = usedType as GenericInstanceType;
             if (genericInstanceType != null) {
                 foreach (TypeReference genericArgument in genericInstanceType.GenericArguments) {
-                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem,
+                    foreach (var dependency_ in CreateTypeAndMethodDependencies(usingItem, DOTNETTYPE,
                              GetMemberMarkers(Resolve(genericArgument), _typeDefinitionMarkers), genericArgument,
                              usage: DotNetUsage._usesasgenericargument, sequencePoint: sequencePoint, memberName: genericArgument.Name,
                              readingGraph: readingGraph)) {
@@ -489,7 +507,7 @@ namespace NDepCheck.Reading.AssemblyReading {
         ////public Func<TypeReference, string, ItemTail> GetCustomSectionComputation() {
         ////    // Simple version - does not work for cyclic assembly dependencies!
         ////    [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies = ReadOrGetDependencies();
-        ////    IEnumerable<Item> items = dependencies.Select(d => d.UsingItem).Where(it => it.Type == DotNetAssemblyDependencyReaderFactory.DOTNETITEM).Distinct();
+        ////    IEnumerable<Item> items = dependencies.Select(d => d.UsingItem).Where(it => it.Type == DOTNETITEM).Distinct();
 
         ////    Dictionary<Tuple<string, string, string>, ItemTail> convertDict = items.ToDictionary(it => Tuple.Create(it.Values[0], it.Values[1], it.Values[5]), it => new ItemTail(it.Type, it.Values.Skip(6).ToArray()));
         ////    return (tr, m) => convertDict.ContainsKey(Tuple.Create(tr.Namespace, tr.Name, m)) ? convertDict[Tuple.Create(tr.Namespace, tr.Name, m)] : null;

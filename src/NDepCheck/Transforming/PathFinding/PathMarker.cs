@@ -6,7 +6,7 @@ using NDepCheck.Matching;
 using NDepCheck.PathMatching;
 
 namespace NDepCheck.Transforming.PathFinding {
-    public class PathMarker {
+    public class PathMarker : ITransformer {
         private class PathNode {
             [CanBeNull]
             private readonly PathNode _previous;
@@ -300,7 +300,7 @@ namespace NDepCheck.Transforming.PathFinding {
             }
 
             if (addTransitiveDependencyInsteadOfMarking) {
-                var transitiveEdges = new List<Dependency>();
+                var transitiveEdges = new HashSet<Dependency>();
                 foreach (var f in foundPaths) {
                     if (f.Tail == null) {
                         throw new Exception("Internal error - found path of length zero");

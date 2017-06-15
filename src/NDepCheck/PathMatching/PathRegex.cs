@@ -808,29 +808,30 @@ Here is a more complex example: Match all paths from a node marked with 'C
 to a node marked with 'I using only dependencies marked with 'i or 'm, and
 count the number of 'C items leading to each 'I:
 
-    {'C}# ( [{'i}{'m}] : )* [{'i}{'m}] {'I}
+    {'C}# ( [{'i}{'d}] : )* [{'i}{'d}] {'I}
 
 Explanation:
 
 * We start with a path match (see '-? matches') that matches all items marked
   with C.
 * Then we have a list of pairs of
-** dependencies marked with 'i or 'm
+** dependencies marked with 'i or 'd
 ** and a subsequent arbitrary item (the colon)
-* Finally, a last dependency also marked with 'i or 'm leads to an 'I item.
+* Finally, a last dependency also marked with 'i or 'd leads to an 'I item.
 
 This is a typical path that connects classes with the interfaces that they
-implement in C# or Java.
+implement, where 'i means 'directly implements' and 'd 'directly derived from'.
+
 From the example, one can see a few properties of path regexes:
 * They can have embedded item and dependency matches for selective matching.
   This produces quite a lot of curly braces; but fortunately, when using
   them e.g. with PathMarker, this can often be abbreviated to
-    C#([im]:)*[im]I
+    C#([id]:)*[id]I
   which then looks very much like a standard string regex.
 * They can contain embedded spaces which is ignored. Actually, also embedded
   underscores are ignored; this is useful when formatting a path regex used
   as an argument. The abbreviated expression above might then be written as
-    C#_([im]_:)*_[im]_I
+    C#_([id]_:)*_[id]_I
   for example.
 * There are no ^ and $ markers; path regexes are always anchored at both ends.
 * The # symbol indicates that the items (or dependencies) matching the preceding

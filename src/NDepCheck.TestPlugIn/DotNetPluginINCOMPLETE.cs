@@ -10,7 +10,8 @@ namespace NDepCheck.TestPlugin {
         }
 
         // TODO - paths ... ... 
-        public IEnumerable<Dependency> ToBaseTypes => GetOutgoing().Where(d => d.IsMarkerMatch(DotNetConstants._directlyinherits, DotNetConstants._directlyimplements));
+        public IEnumerable<Dependency> ToBaseTypes => GetOutgoing().Where(d => d.IsMarkerMatch(
+            AbstractDotNetAssemblyDependencyReader._directlyderivedfrom, AbstractDotNetAssemblyDependencyReader._directlyimplements));
     }
 
 

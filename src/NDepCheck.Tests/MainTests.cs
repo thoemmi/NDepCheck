@@ -235,7 +235,7 @@ NDepCheck:Tests ---> **
                     -:* ---? System:*
                     NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
 
-                    $ DOTNETREF ---> DOTNETREF
+                    $ DOTNETASSEMBLY ---> DOTNETASSEMBLY
                     * ---> *
                 ");
                 }
@@ -270,7 +270,7 @@ NDepCheck:Tests ---> **
                         ---> **::*ExtraordinaryMethod*
                     }
 
-                    $ DOTNETREF ---> DOTNETREF
+                    $ DOTNETASSEMBLY ---> DOTNETASSEMBLY
                     * ---> *
                     ");
                 }
@@ -292,7 +292,7 @@ NDepCheck:Tests ---> **
                     _B.dir1.dir2:SomeClass ---? -:NamespacelessTestClassForNDepCheck::I
                     -:* ---? System:*
 
-                    $ DOTNETREF ---> DOTNETREF
+                    $ DOTNETASSEMBLY ---> DOTNETASSEMBLY
                     * ---> *");
                 }
                 Assert.AreEqual(Program.OK_RESULT,
@@ -423,7 +423,7 @@ NDepCheck:Tests ---> **
                     -:*                       ---? System:**
                     NDepCheck.TestAssembly.** ---> NDepCheck.TestAssembly.**
 
-                    $ DOTNETREF ---> DOTNETREF
+                    $ DOTNETASSEMBLY ---> DOTNETASSEMBLY
                     **          ---> **
 
                     $ DOTNETITEM      ---> SIMPLE(Name)

@@ -37,7 +37,10 @@ namespace NDepCheck.Reading.AssemblyReading {
             }
 
             AssemblyNameDefinition currentAssembly = assembly.Name;
-            yield return RawUsingItem.New(_rawUsingItemsCache, "", "", currentAssembly.Name, currentAssembly.Version.ToString(), currentAssembly.Culture, memberName: "", markers: null, tail: null, readingGraph: readingGraph);
+            yield return RawUsingItem.New(_rawUsingItemsCache, DOTNETASSEMBLY,
+                namespaceName: "", className: "", assemblyName: currentAssembly.Name,
+                assemblyVersion: currentAssembly.Version.ToString(), assemblyCulture: currentAssembly.Culture,
+                memberName: "", markers: null, tail: null, readingGraph: readingGraph);
         }
 
         private IEnumerable<RawUsingItem> AnalyzeType(TypeDefinition type, ItemTail parentCustomSections, WorkingGraph readingGraph) {
@@ -75,14 +78,19 @@ namespace NDepCheck.Reading.AssemblyReading {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
 
-            return RawUsingItem.New(_rawUsingItemsCache, namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName: "", markers: null, tail: customSections, readingGraph: readingGraph);
+            return RawUsingItem.New(_rawUsingItemsCache, DotNetAssemblyDependencyReaderFactory.DOTNETTYPE, 
+                namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName: "", 
+                markers: null, tail: customSections, readingGraph: readingGraph);
         }
 
         [NotNull]
-        private RawUsingItem GetFullNameItem(TypeReference typeReference, string memberName, string[] markers, ItemTail customSections, WorkingGraph readingGraph) {
+        private RawUsingItem GetFullNameItem(TypeReference typeReference, string memberName, string[] markers, 
+            ItemTail customSections, WorkingGraph readingGraph) {
             string namespaceName, className, assemblyName, assemblyVersion, assemblyCulture;
             GetTypeInfo(typeReference, out namespaceName, out className, out assemblyName, out assemblyVersion, out assemblyCulture);
-            return RawUsingItem.New(_rawUsingItemsCache, namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, customSections, readingGraph: readingGraph);
+            return RawUsingItem.New(_rawUsingItemsCache, DotNetAssemblyDependencyReaderFactory.DOTNETTYPE, 
+                namespaceName, className, assemblyName, assemblyVersion, assemblyCulture, memberName, markers, 
+                customSections, readingGraph: readingGraph);
         }
 
         public override void SetReadersInSameReadFilesBeforeReadDependencies(IDependencyReader[] readerGang) {

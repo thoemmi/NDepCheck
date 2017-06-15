@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NDepCheck.Rendering.TextWriting;
 using NDepCheck.Transforming.PathFinding;
@@ -15,28 +16,30 @@ namespace NDepCheck.Tests {
             new GlobalContext().ResetAll();
         }
 
-        private Dependency CreateDependency(WorkingGraph graph, Item from, Item to, string RegexPathMarker, bool isStart, bool isEnd, bool isMatchedByCountMatch, bool isLoopBack) {
+        private Dependency CreateDependency(WorkingGraph graph, Item from, Item to, string RegexPathMarker, bool isStart,
+            bool isEnd, bool isMatchedByCountMatch, bool isLoopBack) {
             Dependency d = FromTo(graph, from, to);
-            d.MarkPathElement(RegexPathMarker, 0, isStart: isStart, isEnd: isEnd, isMatchedByCountSymbol: isMatchedByCountMatch,
-                isLoopBack: isLoopBack);
+            d.MarkPathElement(RegexPathMarker, 0, isStart: isStart, isEnd: isEnd,
+                isMatchedByCountSymbol: isMatchedByCountMatch, isLoopBack: isLoopBack);
             return d;
         }
 
         [TestMethod]
         public void TestSimpleFlatPathWriterForOnePath() {
-            var gc = new GlobalContext { IgnoreCase = true };
+            var gc = new GlobalContext {IgnoreCase = true};
             WorkingGraph graph = gc.CurrentGraph;
 
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
             var RegexPathMarker = "P0";
 
             Item a = graph.CreateItem(t3, "a:aa:aaa".Split(':'));
-            a.MarkPathElement(RegexPathMarker, 0, isStart: false, isEnd: false, isMatchedByCountSymbol: false, isLoopBack: false);
+            a.MarkPathElement(RegexPathMarker, 0, isStart: false, isEnd: false, isMatchedByCountSymbol: false,
+                isLoopBack: false);
             Item b = graph.CreateItem(t3, "b:bb:bbb".Split(':'));
             b.SetMarker(RegexPathMarker, 1);
 
             var d = CreateDependency(graph, a, b, RegexPathMarker, true, true, false, false);
-            Dependency[] dependencies = { d };
+            Dependency[] dependencies = {d};
 
             using (var s = new MemoryStream()) {
                 var w = new FlatPathWriter();
@@ -58,9 +61,7 @@ b:bb:bbb $", result.Trim());
             var a = graph.CreateItem(t3, "a:aa:aaa".Split(':'));
             var b = graph.CreateItem(t3, "b:bb:bbb".Split(':'));
 
-            var dependencies = new[] {
-                FromTo(graph, a, b),
-            };
+            var dependencies = new[] {FromTo(graph, a, b),};
 
             string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A", "{a:}#(.[^{c:}])*"));
 
@@ -70,7 +71,7 @@ T3:b:bb:bbb'A $", result.Trim());
         }
 
         private static string FindPathsAndWriteFlat(GlobalContext gc, IEnumerable<Dependency> dependencies,
-                                                    string markerPrefix, string transformOptions) {
+            string markerPrefix, string transformOptions) {
             var pm = new PathMarker();
             pm.Configure(gc, "", false);
             var transformedDependencies = new List<Dependency>();
@@ -85,12 +86,12 @@ T3:b:bb:bbb'A $", result.Trim());
             return result;
         }
 
-        private static string CreateDefaultOptions(string markerPrefix, string regex, int maxPathLength = 5, string additionalOptions = "") {
-            return ($"{{ {PathMarker.AddIndexedMarkerOption} {markerPrefix} " +
-                    $"{PathMarker.MaxPathLengthOption} {maxPathLength} " +
-                    $"{PathMarker.IgnorePrefixPaths} " +
-                    additionalOptions +
-                    $"{PathMarker.RegexOption} {regex} }}").Replace(" ", Environment.NewLine);
+        private static string CreateDefaultOptions(string markerPrefix, string regex, int maxPathLength = 5,
+            string additionalOptions = "") {
+            return
+            ($"{{ {PathMarker.AddIndexedMarkerOption} {markerPrefix} " +
+             $"{PathMarker.MaxPathLengthOption} {maxPathLength} " + $"{PathMarker.IgnorePrefixPaths} " +
+             additionalOptions + $"{PathMarker.RegexOption} {regex} }}").Replace(" ", Environment.NewLine);
         }
 
         [TestMethod]
@@ -103,7 +104,7 @@ T3:b:bb:bbb'A $", result.Trim());
             var a = graph.CreateItem(t3, "a:aa:aaa".Split(':'));
             var c = graph.CreateItem(t3, "c:cc:ccc".Split(':'));
 
-            var dependencies = new[] { FromTo(graph, a, c) };
+            var dependencies = new[] {FromTo(graph, a, c)};
 
             string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A", "{a:}#(.[^{c:}])*"));
 
@@ -116,7 +117,8 @@ T3:b:bb:bbb'A $", result.Trim());
 
             IEnumerable<Dependency> dependencies = new PathMarker().CreateSomeTestDependencies(gc.CurrentGraph);
 
-            string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A", "{a:}(.{c:}.:|.[^{c:}])*"));
+            string result = FindPathsAndWriteFlat(gc, dependencies, "A",
+                CreateDefaultOptions("A", "{a:}(.{c:}.:|.[^{c:}])*"));
 
             Assert.AreEqual(@"-- A0
 T3:a:aa:aaa'A0+A1+A2+A3
@@ -151,7 +153,7 @@ T3:g:gg:ggg $", result.Trim());
 
             IEnumerable<Dependency> dependencies = new PathMarker().CreateSomeTestDependencies(gc.CurrentGraph);
 
-            string result = FindPathsAndWriteFlat(gc, dependencies, "A", 
+            string result = FindPathsAndWriteFlat(gc, dependencies, "A",
                 CreateDefaultOptions("A", "{a:}#_(_._{c:}_._:_|_._[^{c:}]_)*", maxPathLength: 4));
 
             Assert.AreEqual(@"-- A0
@@ -191,11 +193,7 @@ T3:g:gg:ggg'A $", result.Trim());
             var c = graph.CreateItem(t3, "c:cc:ccc".Split(':'));
             var d = graph.CreateItem(t3, "d:dd:ddd".Split(':'));
 
-            var dependencies = new[] {
-                        FromTo(graph, a, b),
-                        FromTo(graph, b, c),
-                        FromTo(graph, b, d),
-                    };
+            var dependencies = new[] {FromTo(graph, a, b), FromTo(graph, b, c), FromTo(graph, b, d),};
 
             string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A", "{a:}#(.[^{c:}])*"));
 
@@ -206,7 +204,7 @@ T3:d:dd:ddd'A $", result.Trim());
         }
 
         [TestMethod]
-        public void TestOldCountPaths() {
+        public void TestCountPaths() {
             ItemType xy = ItemType.New("NL(Name:Layer)");
             var gc = new GlobalContext();
             WorkingGraph graph = gc.CurrentGraph;
@@ -224,17 +222,12 @@ T3:d:dd:ddd'A $", result.Trim());
             //  |        ^ |        ^
             //  +-> c:2 -+ +-> f:4 -+
             Dependency[] dependencies = {
-                FromTo(graph, a, b),
-                FromTo(graph, a, c),
-                FromTo(graph, b, d),
-                FromTo(graph, c, d),
-                FromTo(graph, d, e),
-                FromTo(graph, d, f),
-                FromTo(graph, e, g),
-                FromTo(graph, f, g)
+                FromTo(graph, a, b), FromTo(graph, a, c), FromTo(graph, b, d),
+                FromTo(graph, c, d), FromTo(graph, d, e), FromTo(graph, d, f), FromTo(graph, e, g), FromTo(graph, f, g)
             };
 
-            string o = FindPathsAndWriteFlat(gc, dependencies, "A", "{ -im A -pr a.{:2}#.d.:.g }".Replace(" ", Environment.NewLine));
+            string o = FindPathsAndWriteFlat(gc, dependencies, "A",
+                "{ -im A -pr a.{:2}#.d.:.g }".Replace(" ", Environment.NewLine));
 
             Console.WriteLine(o);
             Assert.IsTrue(o.Contains("b:2 #"));
@@ -242,6 +235,49 @@ T3:d:dd:ddd'A $", result.Trim());
             Assert.IsTrue(o.Contains("d:3'A=2"));
             Assert.IsTrue(o.Contains("e:4'A=2"));
             Assert.IsTrue(o.Contains("g:5'A=2 $"));
+        }
+
+        [TestMethod]
+        public void TestAddImplementsDependencies() {
+            using (var dipFile = DisposingFile.CreateTempFileWithTail(".dip").Keep) {
+                int result =
+                    Program.Main(new[] {
+                        MainTests.TestAssemblyPath,
+                        Program.TransformOption.Opt, typeof(PathMarker).Name, "{",
+                            PathMarker.DefineItemMatchOption.Opt, "C", "'_class",
+                            PathMarker.DefineItemMatchOption.Opt, "I", "'_interface",
+                            PathMarker.DefineDependencyMatchOption.Opt, "i", "'_directlyimplements",
+                            PathMarker.DefineDependencyMatchOption.Opt, "d", "'_directlyderivedfrom",
+                            PathMarker.RegexOption.Opt, "C#([id]:)*[id]I",
+                            PathMarker.AddDependencyOption.Opt,
+                            PathMarker.AddMarkerOption.Opt, "implements",
+                            //PathMarker.AddIndexedMarkerOption.Opt, "implements",
+                        "}",
+                        Program.WriteDipOption.Opt, dipFile.FileName,
+                        //typeof(FlatPathWriter).Name, "{",
+                        //    FlatPathWriter.PathMarkerOption.Opt, "_directlyimplements*",
+                        //    FlatPathWriter.ShowItemMarkersOption.Opt,
+                        //"}", dipFile.FileName,
+                    });
+                Assert.AreEqual(Program.OK_RESULT, result);
+
+                using (var tr = new StreamReader(dipFile.FileName)) {
+                    string o = tr.ReadToEnd().Trim();
+
+                    AssertImplements(o, "AbstractImplementingClass", "ISomeBaseInterface");
+                    AssertImplements(o, "ImplementingClass1", "ISomeBaseInterface");
+                    AssertImplements(o, "ImplementingClass2", "ISomeBaseInterface");
+                    AssertImplements(o, "AbstractImplementingClass", "ISomeInterface");
+                    AssertImplements(o, "ImplementingClass1", "ISomeInterface");
+                    AssertImplements(o, "ImplementingClass2", "ISomeInterface");
+                    AssertImplements(o, "ISomeInterface", "ISomeBaseInterface", false);
+                }
+            }
+        }
+
+        private void AssertImplements(string o, string className, string interfaceName, bool isTrue = true) {
+            string pattern = $"^.*{className}.*=>.*'implements.*=>.*{interfaceName}.*$";
+            Assert.AreEqual(isTrue, Regex.IsMatch(o, pattern, RegexOptions.Multiline), "Incorrect occurrence of " + pattern);
         }
     }
 }
