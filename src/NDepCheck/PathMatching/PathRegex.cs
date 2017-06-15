@@ -57,6 +57,7 @@ namespace NDepCheck.PathMatching {
         public abstract Node CreateNodeOfSameKind();
         public bool IsEnd { get; set; }
 
+        [ExcludeFromCodeCoverage]
         public string GetRepresentation() {
             var sb = new StringBuilder();
             GetRepresentation(sb, "", new HashSet<Node>());
@@ -83,6 +84,7 @@ namespace NDepCheck.PathMatching {
 
         public string Representation { get; }
 
+        [ExcludeFromCodeCoverage]
         protected internal override void GetRepresentation(StringBuilder result, string indent,
             HashSet<Node> alreadyVisisted) {
             if (alreadyVisisted.Add(this)) {
@@ -347,7 +349,7 @@ namespace NDepCheck.PathMatching {
         }
 
         private const string NAME_REGEX = "{[^}]*}|[a-zA-Z0-9]";
-        private const string SYMBOL_REGEX = @"\G\s*([*+?()|.:\[\]^$]|" + NAME_REGEX + ")";
+        private const string SYMBOL_REGEX = @"\G[\s_]*([*+?()|.:\[\]^#]|" + NAME_REGEX + ")";
 
         private readonly Dictionary<string, TItemMatch> _definedItemMatches;
         private readonly Dictionary<string, TDependencyMatch> _definedDependencyMatches;
@@ -355,6 +357,7 @@ namespace NDepCheck.PathMatching {
         private readonly string _definition;
         private readonly Graphken _graph;
         private bool _isCountEncountered;
+        private bool _containsLoops;
 
         protected PathRegex([NotNull] string definition, [NotNull] Dictionary<string, TItemMatch> definedItemMatches,
             [NotNull] Dictionary<string, TDependencyMatch> definedDependencyMatches, bool ignoreCase) {
@@ -371,6 +374,9 @@ namespace NDepCheck.PathMatching {
 
         public bool ContainsCountSymbol => _isCountEncountered;
 
+        public bool ContainsLoops => _containsLoops;
+
+        [ExcludeFromCodeCoverage]
         public string GetGraphkenRepresentation() {
             return _graph.StartNode.GetRepresentation();
         }
@@ -382,7 +388,7 @@ namespace NDepCheck.PathMatching {
             } else {
                 Match m = _symbols.Match(_definition, pos);
                 if (m.Success) {
-                    return m.Groups[1].Value;
+                    return m.Value;
                 } else {
                     throw new RegexSyntaxException(_definition, pos, "No valid symbol");
                 }
@@ -390,7 +396,7 @@ namespace NDepCheck.PathMatching {
         }
 
         public string PeekSymbol(int pos, bool eofOk = false) {
-            string sym = RawPeekSymbol(pos).TrimStart('{').TrimEnd('}').Trim();
+            string sym = RawPeekSymbol(pos).Trim().Trim('_');
             if (!eofOk && sym == "") {
                 throw new RegexSyntaxException(_definition, pos, "Unexpected end of input");
             }
@@ -486,9 +492,11 @@ namespace NDepCheck.PathMatching {
                     return new Optional(startPos, inner);
                 } else if (Matches(peekSym, "*")) {
                     AdvanceSymbolPos(ref pos);
+                    _containsLoops = true;
                     return new ZeroOrMore(startPos, inner);
                 } else if (Matches(peekSym, "+")) {
                     AdvanceSymbolPos(ref pos);
+                    _containsLoops = true;
                     return new OneOrMore(startPos, inner);
                 } else {
                     return inner;
@@ -550,9 +558,9 @@ namespace NDepCheck.PathMatching {
 
         private bool ParseOptionalCount(ref int pos) {
             bool isCount = false;
-            if (Matches(PeekSymbol(pos, eofOk: true), "$")) {
+            if (Matches(PeekSymbol(pos, eofOk: true), "#")) {
                 if (_isCountEncountered) {
-                    throw new RegexSyntaxException(_definition, pos, "$ can only be used once");
+                    throw new RegexSyntaxException(_definition, pos, "# can only be used once");
                 }
                 AdvanceSymbolPos(ref pos);
                 isCount = true;
@@ -563,14 +571,15 @@ namespace NDepCheck.PathMatching {
 
         [CanBeNull]
         private TItemMatch CreateItemMatch(int pos, [NotNull] string s) {
+            string trimmed = s.TrimStart('{').TrimEnd('}');
             try {
                 TItemMatch definedMatch;
-                return _definedItemMatches.TryGetValue(s, out definedMatch)
+                return _definedItemMatches.TryGetValue(trimmed, out definedMatch)
                     ? definedMatch
-                    : CreateItemMatch(s, _ignoreCase);
+                    : CreateItemMatch(trimmed, _ignoreCase);
             } catch (Exception ex) {
                 throw new RegexSyntaxException(_definition, pos,
-                    $"Cannot create ItemMatch from '{s}' - reason: {ex.Message}");
+                    $"Cannot create ItemMatch from '{trimmed}' - reason: {ex.Message}");
             }
         }
 
@@ -578,14 +587,15 @@ namespace NDepCheck.PathMatching {
 
         [CanBeNull]
         private TDependencyMatch CreateDependencyMatch(int pos, [NotNull] string s) {
+            string trimmed = s.TrimStart('{').TrimEnd('}');
             try {
                 TDependencyMatch definedMatch;
-                return _definedDependencyMatches.TryGetValue(s, out definedMatch)
+                return _definedDependencyMatches.TryGetValue(trimmed, out definedMatch)
                     ? definedMatch
-                    : CreateDependencyMatch(s, _ignoreCase);
+                    : CreateDependencyMatch(trimmed, _ignoreCase);
             } catch (Exception ex) {
                 throw new RegexSyntaxException(_definition, pos,
-                    $"Cannot create dependency match from '{s}' - reason: {ex.Message}");
+                    $"Cannot create dependency match from '{trimmed}' - reason: {ex.Message}");
             }
         }
 
@@ -606,6 +616,7 @@ namespace NDepCheck.PathMatching {
                     });
         }
 
+        [DebuggerDisplay("{" + nameof(ToString) + "()}")]
         private abstract class AbstractGraphkenState<T, TMatch, TNode, TTargetNode>
             where TNode : NodeBefore<TMatch, TNode, TTargetNode> where TTargetNode : Node {
 
@@ -615,6 +626,11 @@ namespace NDepCheck.PathMatching {
 
             protected AbstractGraphkenState([NotNull] IDictionary<TNode, object> active) {
                 _active = active;
+            }
+
+            [ExcludeFromCodeCoverage]
+            public override string ToString() {
+                return GetType().Name + "(" + string.Join(",", _active.Select(kvp => kvp.Key)) + ")";
             }
 
             public override int GetHashCode() {
@@ -738,5 +754,163 @@ namespace NDepCheck.PathMatching {
                 return definition.Substring(start, Math.Min(definition.Length - start, length));
             }
         }
+    }
+
+    public static class PathRegex {
+        public const string HELP = @"
+Path regular expressions, or path regexes for short, are used to describe
+patterns for paths. They are used by ""path finding transformers"" like
+PathMarker or CycleFinder.
+
+A path, in NDepCheck, is a sequence of dependencies. For the purpose of
+path matching, it is considered to be an alternating sequence of items
+and dependencies, e.g. 
+
+    a:b'c  --'x-->  d:e'f  --'y->  g:h'i
+
+This is an informal sketch of a path with two dependencies that
+* starts at an item a:b which is marked with marker c,
+* traverses a dependency marked with x that
+* leads to an item d:e which is marked with marker f,
+* and continues via a dependency makred with y
+* to a final item g:h that is marked with i.
+(For information on items, see '-? items').
+
+A path regex is a general expression that can match such paths.
+For this, it consists of an alternating sequence of item and dependency matches.
+The simplest two matches are
+
+* .  a single dot matches any dependency
+* :  a single colon matches any item
+
+The path example above would therefore be matched by the
+path regex
+
+    :.:.:
+
+i.e., 
+
+    an arbitrary item - arbitrary dependency - item - dependency - item
+
+However, like real (string) regexes, path regexes also support looping and
+alternating constructs. A group of matches can be put into parentheses and
+suffixed with * (zero or more occurrences), + (one or more occurrences), or
+? (zero or one occurrence). A simple path regex that would also match the
+example path is
+
+    :(.:)+
+
+i.e., an item and then a non-empty sequence of alternating dependencies and
+items. In fact, this path regex will match every possible path, as every
+path consists of a starting item and then some dependencies.
+
+Here is a more complex example: Match all paths from a node marked with 'C
+to a node marked with 'I using only dependencies marked with 'i or 'm, and
+count the number of 'C items leading to each 'I:
+
+    {'C}# ( [{'i}{'m}] : )* [{'i}{'m}] {'I}
+
+Explanation:
+
+* We start with a path match (see '-? matches') that matches all items marked
+  with C.
+* Then we have a list of pairs of
+** dependencies marked with 'i or 'm
+** and a subsequent arbitrary item (the colon)
+* Finally, a last dependency also marked with 'i or 'm leads to an 'I item.
+
+This is a typical path that connects classes with the interfaces that they
+implement in C# or Java.
+From the example, one can see a few properties of path regexes:
+* They can have embedded item and dependency matches for selective matching.
+  This produces quite a lot of curly braces; but fortunately, when using
+  them e.g. with PathMarker, this can often be abbreviated to
+    C#([im]:)*[im]I
+  which then looks very much like a standard string regex.
+* They can contain embedded spaces which is ignored. Actually, also embedded
+  underscores are ignored; this is useful when formatting a path regex used
+  as an argument. The abbreviated expression above might then be written as
+    C#_([im]_:)*_[im]_I
+  for example.
+* There are no ^ and $ markers; path regexes are always anchored at both ends.
+* The # symbol indicates that the items (or dependencies) matching the preceding
+  pattern should be counted. PathMarker uses this information to mark the items
+  along the path with the number of ""reaching matches"".
+* Finally - and not so easy to see -, * (and +) are neither ""eager"" nor 
+  ""minimal"". Rather, they work like the original Kleene operator, which always 
+  looks far enough ahead to decide whether the loop should be taken once more or
+  exited. Internally, this is done by following all possibilities in parallel
+  until one of the reaches the end.
+
+It must be stressed that a path regex must describe an alternating sequence of 
+items and dependencies. Hence, .* is not a valid path regex: It would describe 
+a sequence of dependencies with no items in between. Also :* or [{a:b}]+ are
+not allowed, as they would describe sequences of items without dependencies 
+between them. As a final example, (:.|.) also makes no sense: It would be
+a sequence of either an item and a dependency, or a dependency alone; but
+such an expression could not follow anything: In x(:.|.), x could be neither
+a dependency pattern (because then, with the second branch would, the two
+dependency patterns x and . would ""collide"") nor an item pattern (as then,
+item pattern x would immediately precede item pattern :.).
+
+Here is the full syntax of path regexes. The meta symbols are:
+* ::= is the symbol for each production
+* | separates syntax alternatives
+* {...} means zero or more repetitions,
+* (...) groups syntax elements,
+* ...? means zero or one occurrences
+* '...' are literal strings
+Spaces and _ are removed before the regex is parsed.
+
+regex        ::= alternatives
+
+alternatives ::= sequence { '|' sequence }
+
+sequence     ::= { element }
+
+element      ::= '(' alternatives ')' quantifier?
+               | '[' '^'? pattern { pattern } ']' '#'?
+               | pattern '#'?
+               | '.' '#'?
+               | ':' '#'?
+
+pattern      ::= a single letter or digit
+               | '{' { any char except closing brace } '}'
+
+quantifier   ::= '*' | '+' | '?'
+
+The left-hand sides of these syntax productions are called ""parts""
+in the following.
+
+For each part, it is uniquely defined whether it starts, and ends, with
+an item or a dependency pattern. The definitions are as follows:
+* . starts and ends with an dependency
+* : starts and ends with an item
+* a pattern starts and ends with the opposite of its preceeding pattern
+* a non-empty sequence starts with whatever its first element starts with;
+  and ends with whatever its last elements ends.
+* an empty sequence starts with the opposite of what the part preceeding it
+  ends; and ends with the same as what ends that preceeding part.
+* alternatives start with what any of their subparts start; and end with
+  what any of their subparts ends.
+* a regex always starts with an item.
+To be correct, a regex must also end with item; and any part inside must
+end with the opposite that starts all poentially following parts.
+The potentially following part of a part p are defined as follows:
+* The textually following part;
+* In addition, if p is a sequence with quantifier * or +, the first subpart
+  of p is potentially following its last subpart.
+* In addition, if a potentially following part q can match emptily, also
+  the potentially following parts of q; where ""can match emptily"" is
+  defined as follows:
+** Every part with quantifier * or ? can match emptily;
+** Every empty sequence can match emptily.
+** An alternative can match emptily if at least one of its subparts
+   (sequence) can match emptily.
+** No other parts can match emptily.
+
+Wew ... that should be it.
+";
+
     }
 }

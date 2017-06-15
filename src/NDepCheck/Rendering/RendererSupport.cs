@@ -14,7 +14,7 @@ namespace NDepCheck.Rendering {
         public static string ItemAsString([NotNull] this Item usedItem, bool showItemMarkers, bool isEnd, bool endOfCycle, bool matchedByCountMatch) {
             return (endOfCycle ? "<= " : "")
                    + (showItemMarkers ? usedItem.AsFullString() : usedItem.AsString())
-                   + (matchedByCountMatch ? " (*)" : "")
+                   + (matchedByCountMatch ? " #" : "")
                    + (isEnd ? " $" : "");
         }
     }

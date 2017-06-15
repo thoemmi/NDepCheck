@@ -127,13 +127,13 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestCreateSimpleItemCountRegex() {
-            SimpleTestPathRegex regex = new SimpleTestPathRegex("A1(B$2)*C");
+            SimpleTestPathRegex regex = new SimpleTestPathRegex("A1(B#2)*C");
             Assert.IsNotNull(regex);
         }
 
         [TestMethod]
         public void TestCreateSimpleDependencyCountRegex() {
-            SimpleTestPathRegex regex = new SimpleTestPathRegex("A1(B2$)*C");
+            SimpleTestPathRegex regex = new SimpleTestPathRegex("A1(B2#)*C");
             Assert.IsNotNull(regex);
         }
 
@@ -258,7 +258,7 @@ namespace NDepCheck.Tests {
 
         [TestMethod]
         public void TestAdvanceOneOrMore() {
-            IGraphkenState result = AdvanceToEnd(":(.:)+", "a", "1", "-b", "2", "-c");
+            IGraphkenState result = AdvanceToEnd(": (. :)+", "a", "1", "-b", "2", "-c");
             Assert.IsFalse(result.CountedObjects.Any());
         }
 

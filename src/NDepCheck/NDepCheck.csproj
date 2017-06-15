@@ -99,8 +99,9 @@
     <Compile Include="AbstractSourceLocation.cs" />
     <Compile Include="ItemAndDependencyFactoryList.cs" />
     <Compile Include="PathMatching\PathRegex.cs" />
+    <Compile Include="SimpleBoyerMoore.cs" />
     <Compile Include="Transforming\PathFinding\AddPathDeps.cs" />
-    <Compile Include="Transforming\PathFinding\RegexPathMarker.cs" />
+    <Compile Include="Transforming\PathFinding\PathMarker.cs" />
     <Compile Include="Transforming\PathFinding\PathOptions.cs" />
     <Compile Include="WorkingGraph.cs" />
     <Compile Include="ICalculator.cs" />
@@ -161,7 +162,7 @@
     <Compile Include="Transforming\Modifying\KeepOnlyDeps.cs" />
     <Compile Include="Transforming\Modifying\MarkDeps.cs" />
     <Compile Include="Matching\Matchers.cs" />
-    <Compile Include="Transforming\PathFinding\PathMarker.cs" />
+    <Compile Include="Transforming\PathFinding\OLDPathMarker.cs" />
     <Compile Include="Transforming\Projecting\ProjectItems.AbstractProjector.cs" />
     <Compile Include="Transforming\Projecting\ProjectItems.SelfOptimizingFirstLetterProjector.cs" />
     <Compile Include="Transforming\Projecting\ProjectItems.AbstractSelfOptimizingProjector.cs" />

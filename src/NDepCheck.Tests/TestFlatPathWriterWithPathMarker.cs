@@ -9,7 +9,7 @@ using NDepCheck.Transforming.PathFinding;
 
 namespace NDepCheck.Tests {
     [TestClass, ExcludeFromCodeCoverage]
-    public class TestFlatPathWriters : AbstractWriterTest {
+    public class TestFlatPathWriterWithPathMarker : AbstractWriterTest {
         [TestInitialize]
         public void TestInitialize() {
             new GlobalContext().ResetAll();
@@ -17,7 +17,7 @@ namespace NDepCheck.Tests {
 
         private Dependency CreateDependency(WorkingGraph graph, Item from, Item to, string pathMarker, bool isStart, bool isEnd, bool isMatchedByCountMatch, bool isLoopBack) {
             Dependency d = FromTo(graph, from, to);
-            d.MarkPathElement(pathMarker, 0, isStart: isStart, isEnd: isEnd, isMatchedByCountMatch: isMatchedByCountMatch,
+            d.MarkPathElement(pathMarker, 0, isStart: isStart, isEnd: isEnd, isMatchedByCountSymbol: isMatchedByCountMatch,
                 isLoopBack: isLoopBack);
             return d;
         }
@@ -31,7 +31,7 @@ namespace NDepCheck.Tests {
             var pathMarker = "P0";
 
             Item a = graph.CreateItem(t3, "a:aa:aaa".Split(':'));
-            a.MarkPathElement(pathMarker, 0, isStart: false, isEnd: false, isMatchedByCountMatch: false, isLoopBack: false);
+            a.MarkPathElement(pathMarker, 0, isStart: false, isEnd: false, isMatchedByCountSymbol: false, isLoopBack: false);
             Item b = graph.CreateItem(t3, "b:bb:bbb".Split(':'));
             b.SetMarker(pathMarker, 1);
 
@@ -70,7 +70,7 @@ T3:b:bb:bbb'A $", result.Trim());
         }
 
         private static string FindPathsAndWriteFlat(GlobalContext gc, IEnumerable<Dependency> dependencies, string markerPrefix, string transformOptions) {
-            var pm = new PathMarker();
+            var pm = new OLDPathMarker();
             pm.Configure(gc, "", false);
             var transformedDependencies = new List<Dependency>();
             pm.Transform(gc, dependencies, transformOptions, transformedDependencies, s => null);
@@ -85,10 +85,10 @@ T3:b:bb:bbb'A $", result.Trim());
         }
 
         private static string CreateDefaultOptions(string markerPrefix, int maxPathLength = 5) {
-            return ($"{{ {PathMarker.AddIndexedMarkerOption} {markerPrefix} " +
-                    $"{PathMarker.PathOptions.MaxPathLengthOption} {maxPathLength} " +
-                    $"{PathMarker.PathOptions.CountItemAnchorOption} a: " +
-                    $"{PathMarker.PathOptions.MultipleItemAnchorOption} ~c: }}").Replace(" ", Environment.NewLine);
+            return ($"{{ {OLDPathMarker.AddIndexedMarkerOption} {markerPrefix} " +
+                    $"{OLDPathMarker.PathOptions.MaxPathLengthOption} {maxPathLength} " +
+                    $"{OLDPathMarker.PathOptions.CountItemAnchorOption} a: " +
+                    $"{OLDPathMarker.PathOptions.MultipleItemAnchorOption} ~c: }}").Replace(" ", Environment.NewLine);
         }
 
         [TestMethod]
@@ -112,7 +112,7 @@ T3:b:bb:bbb'A $", result.Trim());
         public void TestSimpleFlatPathWriter() {
             var gc = new GlobalContext();
 
-            IEnumerable<Dependency> dependencies = new PathMarker().CreateSomeTestDependencies(gc.CurrentGraph);
+            IEnumerable<Dependency> dependencies = new OLDPathMarker().CreateSomeTestDependencies(gc.CurrentGraph);
 
             string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A"));
 
@@ -147,7 +147,7 @@ T3:g:gg:ggg'A $", result.Trim());
         public void TestLimitedFlatPathWriter() {
             var gc = new GlobalContext();
 
-            IEnumerable<Dependency> dependencies = new PathMarker().CreateSomeTestDependencies(gc.CurrentGraph);
+            IEnumerable<Dependency> dependencies = new OLDPathMarker().CreateSomeTestDependencies(gc.CurrentGraph);
 
             string result = FindPathsAndWriteFlat(gc, dependencies, "A", CreateDefaultOptions("A", 4));
 
@@ -229,8 +229,8 @@ T3:d:dd:ddd'A $", result.Trim());
             string o = FindPathsAndWriteFlat(gc, dependencies, "A", "{ -im A -pi a -ci 2 -pi g }".Replace(" ", Environment.NewLine));
 
             Console.WriteLine(o);
-            Assert.IsTrue(o.Contains("b:2 (*)"));
-            Assert.IsTrue(o.Contains("c:2 (*)"));
+            Assert.IsTrue(o.Contains("b:2 #"));
+            Assert.IsTrue(o.Contains("c:2 #"));
             Assert.IsTrue(o.Contains("d:3'A=2"));
             Assert.IsTrue(o.Contains("e:4'A=2"));
             Assert.IsTrue(o.Contains("g:5'A=2 $"));

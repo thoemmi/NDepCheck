@@ -190,11 +190,11 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 recordNewCycleToRoot += (cycleIndex, cycle, addIndexToMarkerFormat) => {
                     string indexedMarker = indexedMarkerPrefix + cycleIndex.ToString(addIndexToMarkerFormat);
                     Dependency[] cycleDependencies = cycle.Reverse().ToArray();
-                    cycleDependencies[0].UsingItem.MarkPathElement(indexedMarker, 0, isStart: true, isEnd: false, isMatchedByCountMatch: false, isLoopBack: false);
+                    cycleDependencies[0].UsingItem.MarkPathElement(indexedMarker, 0, isStart: true, isEnd: false, isMatchedByCountSymbol: false, isLoopBack: false);
                     for (var i = 0; i < cycleDependencies.Length; i++) {
                         Dependency d = cycleDependencies[i];
                         bool isEnd = i == cycleDependencies.Length - 1;
-                        d.MarkPathElement(indexedMarker, i, isStart: i == 0, isEnd: isEnd, isMatchedByCountMatch: false, isLoopBack: isEnd);
+                        d.MarkPathElement(indexedMarker, i, isStart: i == 0, isEnd: isEnd, isMatchedByCountSymbol: false, isLoopBack: isEnd);
                         // Currently no reachability counts, as no path match options are implemented
                     }
                 };

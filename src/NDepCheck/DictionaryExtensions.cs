@@ -14,11 +14,20 @@ namespace NDepCheck {
             }
         }
 
+        public static TValue GetOrAdd<TKey, TValue>([NotNull] this IDictionary<TKey, TValue> dictionary,
+                                       TKey key, Func<TValue> createNewValue) {
+            TValue result;
+            if (!dictionary.TryGetValue(key, out result)) {
+                dictionary.Add(key, result = createNewValue());
+            }
+            return result;
+        }
+
         public static void Set<TKey, TValue>([NotNull] this Dictionary<TKey, TValue> dictionary, TKey key, TValue value) {
             dictionary[key] = value;
         }
 
-        public static void Increment([NotNull] this Dictionary<string, int> dictionary, string key, int increment) {
+        public static void Increment<TKey>([NotNull] this Dictionary<TKey, int> dictionary, TKey key, int increment = 1) {
             dictionary[key] = dictionary.Get(key) + increment;
         }
 

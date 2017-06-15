@@ -75,14 +75,15 @@
     <Compile Include="DisposingFile.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="MainTests.cs" />
-    <Compile Include="StringTests.cs" />
+    <Compile Include="StringAndArrayTests.cs" />
     <Compile Include="TestAddTransitiveDeps.cs" />
     <Compile Include="TestCheckDeps.cs" />
+    <Compile Include="TestFlatPathWriterWithRegexMarker.cs" />
     <Compile Include="TestPathRegexTraverser.cs" />
     <Compile Include="TestPathRegex.cs" />
     <Compile Include="TestMarkCycleDeps.cs" />
     <Compile Include="TestConstraints.cs" />
-    <Compile Include="TestFlatPathWriters.cs" />
+    <Compile Include="TestFlatPathWriterWithPathMarker.cs" />
     <Compile Include="TestHideTransitiveEdges.cs" />
     <Compile Include="TestMarkDeps.cs" />
     <Compile Include="TestMarkMinimalCutDeps.cs" />

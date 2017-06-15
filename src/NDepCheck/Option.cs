@@ -173,11 +173,17 @@ namespace NDepCheck {
         }
 
         public static bool IsOptionGroupStart(string optionValue) {
-            return optionValue.StartsWith("{") || optionValue.StartsWith("<.");
+            return optionValue == "{"
+                || optionValue == "<."
+                || Regex.IsMatch(optionValue, @"^{\s+")
+                || Regex.IsMatch(optionValue, @"^<\.\s+");
         }
 
         public static bool IsOptionGroupEnd(string optionValue) {
-            return optionValue.EndsWith("}") || optionValue.EndsWith(".>");
+            return optionValue == "}"
+                || optionValue == ".>"
+                || Regex.IsMatch(optionValue, @"\s+}$")
+                || Regex.IsMatch(optionValue, @"\s+\.>$");
         }
 
         private static bool LooksLikeAnOption(string s) {

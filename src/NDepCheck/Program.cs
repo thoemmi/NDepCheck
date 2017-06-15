@@ -7,13 +7,14 @@ using System.Text;
 using JetBrains.Annotations;
 using NDepCheck.Markers;
 using NDepCheck.Matching;
+using NDepCheck.PathMatching;
 using NDepCheck.Rendering.TextWriting;
 using NDepCheck.Transforming.ViolationChecking;
 using NDepCheck.WebServing;
 
 namespace NDepCheck {
     public class Program {
-        public const string VERSION = "V.3.89";
+        public const string VERSION = "V.3.90";
 
         public const int OK_RESULT = 0;
         public const int OPTIONS_PROBLEM = 180;
@@ -1068,6 +1069,12 @@ namespace NDepCheck {
                 return exitValue;
             } else if (filter.StartsWith("marker")) {
                 Console.WriteLine(MutableMarkerSet.MARKER_HELP);
+                return exitValue;
+            } else if (filter.StartsWith("regex")) {
+                Console.WriteLine(PathRegex.HELP);
+                return exitValue;
+            } else if (filter.StartsWith("match")) {
+                Console.WriteLine(PathRegex.HELP);
                 return exitValue;
             } else if (filter.StartsWith("type")) {
                 Console.WriteLine("*** THIS SHOULD BE A HELP TEXT ABOUT NDepCheck item types");
