@@ -5,7 +5,17 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.Projecting {
-    public partial class ProjectItems : AbstractTransformerWithFileConfiguration<ProjectionSet> {
+    public partial class ProjectItems : AbstractTransformerWithFileConfiguration<ProjectionSet,
+        ProjectItems.ConfigureOptions, ProjectItems.TransformOptions> {
+        public class ConfigureOptions {
+            // empty
+        }
+
+        public class TransformOptions {
+            [CanBeNull, ItemNotNull]
+            public IEnumerable<Dependency> BackProjectionDependencies;
+        }
+
         internal const string ABSTRACT_IT_LEFT = "<";
         internal const string ABSTRACT_IT_BOTH = "!";
         internal const string ABSTRACT_IT_RIGHT = ">";
@@ -90,13 +100,14 @@ Examples:
 
         #region Configure
 
-        public override void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
-            base.Configure(globalContext, configureOptions, forceReload);
-
+        protected override ConfigureOptions CreateConfigureOptions([NotNull] GlobalContext globalContext,
+            [CanBeNull] string configureOptionsString, bool forceReload) {
+            var localVars = new ValuesFrame();
+            var options = new ConfigureOptions();
             ProjectionSet orderedProjections = null;
             _projector = null;
 
-            Option.Parse(globalContext, configureOptions,
+            Option.Parse(globalContext, configureOptionsString,
                 MatcherStrategyOption.Action((args, j) => {
                     string strategy = Option.ExtractRequiredOptionValue(args, ref j, "missing strategy");
                     switch (strategy) {
@@ -118,16 +129,15 @@ Examples:
                     string fullSourceName =
                         Path.GetFullPath(Option.ExtractRequiredOptionValue(args, ref j, "missing projections filename"));
                     orderedProjections = GetOrReadChildConfiguration(globalContext, () => new StreamReader(fullSourceName),
-                        fullSourceName, globalContext.IgnoreCase, "????", forceReload);
+                        fullSourceName, globalContext.IgnoreCase, "????", forceReload, localVars);
                     return j;
                 }), ProjectionsOption.Action((args, j) => {
                     orderedProjections = GetOrReadChildConfiguration(globalContext,
                             () => new StringReader(string.Join(Environment.NewLine, args.Skip(j + 1))),
-                            ProjectionsOption.ShortName, globalContext.IgnoreCase, "????", forceReload: true);
+                            ProjectionsOption.ShortName, globalContext.IgnoreCase, "????", forceReload: true, localVars: localVars);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;
                 }));
-
 
             if (orderedProjections == null || !orderedProjections.AllProjections.Any()) {
                 Log.WriteWarning("No projections defined");
@@ -137,11 +147,12 @@ Examples:
                 _projector = _createProjector(orderedProjections.AllProjections, globalContext.IgnoreCase);
                 _allProjectionsForMatchCountLoggingOnly = orderedProjections.AllProjections;
             }
+            return options;
         }
 
         protected override ProjectionSet CreateConfigurationFromText([NotNull] GlobalContext globalContext, string fullConfigFileName,
             int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
-            Dictionary<string, string> configValueCollector) {
+            Dictionary<string, string> configValueCollector, ValuesFrame localVars) {
 
             ItemType sourceItemType = null;
             ItemType targetItemType = null;
@@ -176,7 +187,7 @@ Examples:
                             return $"{line}: line must start with $, {ABSTRACT_IT_LEFT}, {ABSTRACT_IT_BOTH}, or {ABSTRACT_IT_RIGHT}";
                         }
                     }
-                }, configValueCollector: configValueCollector);
+                }, configValueCollector: configValueCollector, localVars: localVars);
             return new ProjectionSet(elements);
         }
 
@@ -217,22 +228,27 @@ Examples:
 
         #region Transform
 
-        public override int Transform([NotNull] GlobalContext globalContext, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies, [NotNull] Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
-            IEnumerable<Dependency> backProjectionDependencies = null;
-            Option.Parse(globalContext, transformOptions,
+        protected override TransformOptions CreateTransformOptions([NotNull] GlobalContext globalContext,
+            [CanBeNull] string transformOptionsString, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+            var transformOptions = new TransformOptions();
+            Option.Parse(globalContext, transformOptionsString,
                 BackProjectionGraphOption.Action((args, j) => {
                     string backProjectionGraphName = Option.ExtractOptionValue(args, ref j);
-                    backProjectionDependencies = findOtherWorkingGraph(backProjectionGraphName);
-                    if (backProjectionDependencies == null) {
+                    transformOptions.BackProjectionDependencies = findOtherWorkingGraph(backProjectionGraphName);
+                    if (transformOptions.BackProjectionDependencies == null) {
                         throw new ArgumentException($"Could not find graph '{backProjectionGraphName}'");
                     }
                     return j;
                 })
             );
+            return transformOptions;
+        }
 
+        public override int Transform([NotNull] GlobalContext globalContext, [NotNull] ConfigureOptions configureOptions,
+                [NotNull] TransformOptions transformOptions, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
+                [NotNull] List<Dependency> transformedDependencies) {
 
-            if (backProjectionDependencies != null) {
+            if (transformOptions.BackProjectionDependencies != null) {
                 Dictionary<FromTo, Dependency> dependenciesForBackProjection = dependencies.ToDictionary(
                         d => new FromTo(d.UsingItem, d.UsedItem), d => d);
 
@@ -242,8 +258,9 @@ Examples:
                 //int notBackProjected = 0;
                 var localCollector = new Dictionary<FromTo, Dependency>();
                 var mapItems = new Dictionary<Item, Item>();
-                foreach (var d in backProjectionDependencies) {
-                    FromTo f = ProjectDependency(globalContext.CurrentGraph, d, localCollector, () => OnMissingPattern(ref missingPatternCount));
+                foreach (var d in transformOptions.BackProjectionDependencies) {
+                    FromTo f = ProjectDependency(globalContext.CurrentGraph, d, localCollector,
+                                                 onMissingPattern: () => OnMissingPattern(ref missingPatternCount));
 
                     if (f != null) {
                         Dependency projected;
@@ -294,7 +311,7 @@ Examples:
             Item Project(WorkingGraph cachingGraph, Item item, bool left);
         }
 
-        private FromTo ProjectDependency(WorkingGraph currentWorkingGraph, Dependency d, Dictionary<FromTo, Dependency> localCollector, 
+        private FromTo ProjectDependency(WorkingGraph currentWorkingGraph, Dependency d, Dictionary<FromTo, Dependency> localCollector,
                                          Func<bool> onMissingPattern) {
             Item usingItem = _projector.Project(cachingGraph: currentWorkingGraph, item: d.UsingItem, left: true);
             Item usedItem = _projector.Project(cachingGraph: currentWorkingGraph, item: d.UsedItem, left: false);

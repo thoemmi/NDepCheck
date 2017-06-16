@@ -5,7 +5,15 @@ using JetBrains.Annotations;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.SpecialDependencyMarking {
-    public class MarkMinimalCutDeps : ITransformer {
+    public class MarkMinimalCutDeps : TransformerWithOptions<Ignore, MarkMinimalCutDeps.TransformOptions> {
+        public class TransformOptions {
+            public List<ItemMatch> SourceMatches = new List<ItemMatch>();
+            public List<ItemMatch> TargetMatches = new List<ItemMatch>();
+            public string MarkerToAddToSourceSide;
+            public string MarkerToAddToCut;
+            public Func<Dependency, int> WeightForCut = d => d.BadCt;
+        }
+
         public static readonly Option MatchSourceOption = new Option("ms", "match-sources", "&", "Match to select source items", @default: null, multiple: true);
         public static readonly Option MatchTargetOption = new Option("mt", "match-targets", "&", "Match to select target items", @default: null, multiple: true);
         public static readonly Option DepsMarkerOption = new Option("dm", "dependency-cut-marker", "&", "Marker added to dependencies on minimal cut", @default: null);
@@ -17,9 +25,7 @@ namespace NDepCheck.Transforming.SpecialDependencyMarking {
             MatchSourceOption, MatchTargetOption, DepsMarkerOption
         };
 
-        private bool _ignoreCase;
-
-        public string GetHelp(bool detailedHelp, string filter) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             return $@"Mark dependencies with special properties - UNTESTED.
 
 Configuration options: None
@@ -27,8 +33,9 @@ Configuration options: None
 Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)}";
         }
 
-        public void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions) {
-            _ignoreCase = globalContext.IgnoreCase;
+        protected override Ignore CreateConfigureOptions([NotNull] GlobalContext globalContext,
+            [CanBeNull] string configureOptionsString, bool forceReload) {
+            return Ignore.Om;
         }
 
         private class EdgeWithFlow {
@@ -49,48 +56,45 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             public bool ReverseInResidual => Flow > 0;
         }
 
-        public void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
-            _ignoreCase = globalContext.IgnoreCase;
-        }
+        protected override TransformOptions CreateTransformOptions([NotNull] GlobalContext globalContext, 
+            [CanBeNull] string transformOptionsString, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+            var transformOptions = new TransformOptions();
 
-        public int Transform([NotNull] GlobalContext globalContext, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
-
-            var sourceMatches = new List<ItemMatch>();
-            var targetMatches = new List<ItemMatch>();
-            string markerToAddToSourceSide = null;
-            string markerToAddToCut = null;
-            Func<Dependency, int> weightForCut = d => d.BadCt;
-
-            Option.Parse(globalContext, transformOptions,
+            Option.Parse(globalContext, transformOptionsString,
                 MatchSourceOption.Action((args, j) => {
-                    sourceMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Match pattern missing"), _ignoreCase, anyWhereMatcherOk: true));
+                    transformOptions.SourceMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Match pattern missing"), globalContext.IgnoreCase, anyWhereMatcherOk: true));
                     return j;
                 }),
                 MatchTargetOption.Action((args, j) => {
-                    targetMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Match pattern missing"), _ignoreCase, anyWhereMatcherOk: true));
+                    transformOptions.TargetMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Match pattern missing"), globalContext.IgnoreCase, anyWhereMatcherOk: true));
                     return j;
                 }),
                 UseQuestionableCountOption.Action((args, j) => {
-                    weightForCut = d => d.QuestionableCt;
+                    transformOptions.WeightForCut = d => d.QuestionableCt;
                     return j;
                 }),
                 UseCountOption.Action((args, j) => {
-                    weightForCut = d => d.Ct;
+                    transformOptions.WeightForCut = d => d.Ct;
                     return j;
                 }),
                 DepsMarkerOption.Action((args, j) => {
-                    markerToAddToCut = Option.ExtractRequiredOptionValue(args, ref j, "Dependency marker missing").Trim('\'').Trim();
+                    transformOptions.MarkerToAddToCut = Option.ExtractRequiredOptionValue(args, ref j, "Dependency marker missing").Trim('\'').Trim();
                     return j;
                 }),
                 SourceMarkerOption.Action((args, j) => {
-                    markerToAddToSourceSide = Option.ExtractRequiredOptionValue(args, ref j, "Source marker missing").Trim('\'').Trim();
+                    transformOptions.MarkerToAddToSourceSide = Option.ExtractRequiredOptionValue(args, ref j, "Source marker missing").Trim('\'').Trim();
                     return j;
                 }));
+            return transformOptions;
+        }
+
+        public override int Transform([NotNull] GlobalContext globalContext, Ignore Ignore, 
+            [NotNull] TransformOptions transformOptions, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
+            [NotNull] List<Dependency> transformedDependencies) {
 
             var items = new HashSet<Item>(dependencies.SelectMany(d => new[] { d.UsingItem, d.UsedItem }));
-            var sourceItems = new List<Item>(items.Where(i => sourceMatches.Any(m => m.Matches(i).Success)));
-            var targetItems = new HashSet<Item>(items.Where(i => targetMatches.Any(m => m.Matches(i).Success)));
+            var sourceItems = new List<Item>(items.Where(i => transformOptions.SourceMatches.Any(m => m.Matches(i).Success)));
+            var targetItems = new HashSet<Item>(items.Where(i => transformOptions.TargetMatches.Any(m => m.Matches(i).Success)));
             if (!sourceItems.Any()) {
                 throw new ApplicationException("No source items found - minimal cut cannot be computed");
             } else if (!targetItems.Any()) {
@@ -107,7 +111,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
             // Find maximal flow from sources to targets via the Ford-Fulkerson algorithm - see e.g. 
             // http://www.cs.princeton.edu/courses/archive/spr04/cos226/lectures/maxflow.4up.pdf;
-            Dictionary<Dependency, EdgeWithFlow> edges = dependencies.ToDictionary(d => d, d => new EdgeWithFlow(d, weightForCut));
+            Dictionary<Dependency, EdgeWithFlow> edges = dependencies.ToDictionary(d => d,
+                                                                d => new EdgeWithFlow(d, transformOptions.WeightForCut));
 
             Dictionary<Item, List<EdgeWithFlow>> outgoing = Item.CollectMap(dependencies, d => d.UsingItem, d => edges[d]);
             SortByFallingCapacity(outgoing);
@@ -132,11 +137,11 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
             // Find minimal cut and add markers
             foreach (var s in reachableFromSources) {
-                if (markerToAddToSourceSide != null) {
-                    s.IncrementMarker(markerToAddToSourceSide);
+                if (transformOptions.MarkerToAddToSourceSide != null) {
+                    s.IncrementMarker(transformOptions.MarkerToAddToSourceSide);
                 }
                 foreach (var d in GetList(outgoing, s).Where(e => !reachableFromSources.Contains(e.UsedItem))) {
-                    d.Dependency.IncrementMarker(markerToAddToCut);
+                    d.Dependency.IncrementMarker(transformOptions.MarkerToAddToCut);
                 }
             }
 
@@ -211,7 +216,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
             // Graph from http://web.stanford.edu/class/cs97si/08-network-flow-problems.pdf p.7
             Item s = transformingGraph.CreateItem(ItemType.SIMPLE, "s");
             Item a = transformingGraph.CreateItem(ItemType.SIMPLE, "a");

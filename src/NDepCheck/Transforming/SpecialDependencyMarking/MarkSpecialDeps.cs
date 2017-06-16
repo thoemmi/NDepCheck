@@ -6,7 +6,17 @@ using JetBrains.Annotations;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.SpecialDependencyMarking {
-    public class MarkSpecialDeps : ITransformer {
+    public class MarkSpecialDeps : TransformerWithOptions<Ignore, MarkSpecialDeps.TransformOptions> {
+        public class TransformOptions {
+            [NotNull, ItemNotNull]
+            public List<DependencyMatch> Matches = new List<DependencyMatch>();
+            [NotNull, ItemNotNull]
+            public List<DependencyMatch> Excludes = new List<DependencyMatch>();
+            public bool MarkSingleCycleNodes;
+            public bool MarkTransitiveDependencies;
+            public string MarkerToAdd;
+        }
+
         public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions("mark");
 
         public static readonly Option AddMarkerOption = new Option("am", "add-marker", "&", "Marker added to identified items", @default: null);
@@ -18,9 +28,7 @@ namespace NDepCheck.Transforming.SpecialDependencyMarking {
             AddMarkerOption, MarkTransitiveDependenciesOption, MarkSingleCyclesOption
         );
 
-        private bool _ignoreCase;
-
-        public string GetHelp(bool detailedHelp, string filter) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             return $@"Mark dependencies with special properties - UNTESTED.
 
 Configuration options: None
@@ -28,48 +36,48 @@ Configuration options: None
 Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)}";
         }
 
-        public void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
-            _ignoreCase = globalContext.IgnoreCase;
+        protected override Ignore CreateConfigureOptions([NotNull] GlobalContext globalContext,
+            [CanBeNull] string configureOptionsString, bool forceReload) {
+            return Ignore.Om;
         }
 
-        public int Transform([NotNull] GlobalContext globalContext, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies, 
-            [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
-
-            var matches = new List<DependencyMatch>();
-            var excludes = new List<DependencyMatch>();
-            bool markSingleCycleNodes = false;
+        protected override TransformOptions CreateTransformOptions([NotNull] GlobalContext globalContext, [CanBeNull] string transformOptionsString, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+            var transformOptions = new TransformOptions();
             //bool recursive = false;
-            bool markTransitiveDependencies = false;
-            string markerToAdd = null;
 
-            DependencyMatchOptions.Parse(globalContext, transformOptions, _ignoreCase, matches, excludes,
+            DependencyMatchOptions.Parse(globalContext, transformOptionsString, globalContext.IgnoreCase, transformOptions.Matches, transformOptions.Excludes,
                 MarkSingleCyclesOption.Action((args, j) => {
-                    markSingleCycleNodes = true;
+                    transformOptions.MarkSingleCycleNodes = true;
                     return j;
                     //}), RecursiveMarkOption.Action((args, j) => {
                     //    recursive = true;
                     //    return j;
                 }),
                 MarkTransitiveDependenciesOption.Action((args, j) => {
-                    markTransitiveDependencies = true;
+                    transformOptions.MarkTransitiveDependencies = true;
                     return j;
                 }),
                 AddMarkerOption.Action((args, j) => {
-                    markerToAdd = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim();
+                    transformOptions.MarkerToAdd = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim();
                     return j;
                 }));
 
-            Dependency[] matchingDependencies = dependencies.Where(d => d.IsMarkerMatch(matches, excludes)).ToArray();
+            return transformOptions;
+        }
 
-            if (markSingleCycleNodes) {
+        public override int Transform([NotNull] GlobalContext globalContext, Ignore Ignore, [NotNull] TransformOptions transformOptions, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies, [NotNull] List<Dependency> transformedDependencies) {
+
+            Dependency[] matchingDependencies = dependencies.Where(d => d.IsMarkerMatch(transformOptions.Matches, transformOptions.Excludes)).ToArray();
+
+            if (transformOptions.MarkSingleCycleNodes) {
                 foreach (var d in matchingDependencies) {
                     if (Equals(d.UsingItem, d.UsedItem)) {
-                        d.IncrementMarker(markerToAdd);
+                        d.IncrementMarker(transformOptions.MarkerToAdd);
                     }
                 }
             }
 
-            if (markTransitiveDependencies) {
+            if (transformOptions.MarkTransitiveDependencies) {
                 Dictionary<Item, Dependency[]> outgoing = Item.CollectOutgoingDependenciesMap(matchingDependencies);
                 foreach (var root in outgoing.Keys) {
                     var itemsAtDistance1FromRoot = new Dictionary<Item, List<Dependency>>();
@@ -87,7 +95,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                             break;
                         }
                         RemoveReachableItems(itemAtDistance2FromRoot, new HashSet<Item> { root }, outgoing,
-                            itemsAtDistance1FromRoot, markerToAdd);
+                            itemsAtDistance1FromRoot, transformOptions.MarkerToAdd);
                     }
                 }
             }
@@ -117,7 +125,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
             Item a = transformingGraph.CreateItem(ItemType.SIMPLE, "Ax");
             Item b = transformingGraph.CreateItem(ItemType.SIMPLE, "Bx");
             Item c = transformingGraph.CreateItem(ItemType.SIMPLE, "Cloop");

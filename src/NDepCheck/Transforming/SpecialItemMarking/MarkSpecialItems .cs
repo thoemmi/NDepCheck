@@ -5,7 +5,18 @@ using JetBrains.Annotations;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.SpecialItemMarking {
-    public class MarkSpecialItems : ITransformer {
+    public class MarkSpecialItems : TransformerWithOptions<Ignore, MarkSpecialItems.TransformOptions> {
+        public class TransformOptions {
+            [NotNull, ItemNotNull]
+            public List<ItemMatch> Matches = new List<ItemMatch>();
+            public bool MarkSources;
+            public bool MarkSinks;
+            public bool ConsiderSelfCyclesInSourcesAndSinks;
+            public bool MarkSingleCycleNodes;
+            public bool Recursive;
+            public string MarkerToAdd;
+        }
+
         public static readonly Option MatchOption = new Option("im", "item-match", "&", "Match to select items to check", @default: "select all", multiple: true);
         public static readonly Option AddMarkerOption = new Option("am", "add-marker", "&", "Marker added to identified items", @default: null);
         public static readonly Option RecursiveMarkOption = new Option("mr", "mark-recursively", "", "Repeat marking", @default: false);
@@ -19,9 +30,7 @@ namespace NDepCheck.Transforming.SpecialItemMarking {
             MarkSinksOption, MarkSourcesOption, ConsiderSelfCyclesOption, MarkSingleCyclesOption
         };
 
-        private bool _ignoreCase;
-
-        public string GetHelp(bool detailedHelp, string filter) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             return $@"Mark items with special properties.
 
 Configuration options: None
@@ -29,51 +38,54 @@ Configuration options: None
 Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)}";
         }
 
-        public void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
-            _ignoreCase = globalContext.IgnoreCase;
+        protected override Ignore CreateConfigureOptions([NotNull] GlobalContext globalContext,
+            [CanBeNull] string configureOptionsString, bool forceReload) {
+            return Ignore.Om;
         }
 
-        public int Transform([NotNull] GlobalContext globalContext, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+        protected override TransformOptions CreateTransformOptions(GlobalContext globalContext, string transformOptionsString,
+            Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+            var options = new TransformOptions();
 
-            var matches = new List<ItemMatch>();
-            bool markSources = false;
-            bool markSinks = false;
-            bool ignoreSelfCyclesInSourcesAndSinks = true;
-            bool markSingleCycleNodes = false;
-            bool recursive = false;
-            string markerToAdd = null;
-
-            Option.Parse(globalContext, transformOptions,
+            Option.Parse(globalContext, transformOptionsString,
                 MatchOption.Action((args, j) => {
-                    matches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "missing match definition"), _ignoreCase, anyWhereMatcherOk: true));
+                    options.Matches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "missing match definition"),
+                        globalContext.IgnoreCase, anyWhereMatcherOk: true));
                     return j;
                 }), MarkSingleCyclesOption.Action((args, j) => {
-                    markSingleCycleNodes = true;
+                    options.MarkSingleCycleNodes = true;
                     return j;
                 }), ConsiderSelfCyclesOption.Action((args, j) => {
-                    ignoreSelfCyclesInSourcesAndSinks = false;
+                    options.ConsiderSelfCyclesInSourcesAndSinks = true;
                     return j;
                 }), RecursiveMarkOption.Action((args, j) => {
-                    recursive = true;
+                    options.Recursive = true;
                     return j;
                 }), MarkSourcesOption.Action((args, j) => {
-                    markSources = true;
+                    options.MarkSources = true;
                     return j;
                 }), MarkSinksOption.Action((args, j) => {
-                    markSinks = true;
+                    options.MarkSinks = true;
                     return j;
                 }), AddMarkerOption.Action((args, j) => {
-                    markerToAdd = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim();
+                    options.MarkerToAdd = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim();
                     return j;
                 }));
+            return options;
+        }
+
+        public override int Transform([NotNull] GlobalContext globalContext, Ignore configureOptions,
+            [NotNull] TransformOptions transformOptions, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
+            [NotNull] List<Dependency> transformedDependencies) {
 
             Dependency[] matchingDependencies = dependencies
-                .Where(d => !matches.Any()
-                        || matches.Any(m => ItemMatch.IsMatch(m, d.UsingItem)) && matches.Any(m => ItemMatch.IsMatch(m, d.UsedItem)))
+                .Where(d => !transformOptions.Matches.Any()
+                        || transformOptions.Matches.Any(m => ItemMatch.IsMatch(m, d.UsingItem))
+                           && transformOptions.Matches.Any(m => ItemMatch.IsMatch(m, d.UsedItem)))
                 .ToArray();
 
-            MatrixDictionary<Item, int> aggregatedCounts = MatrixDictionary.CreateCounts(matchingDependencies, d => d.Ct, globalContext.CurrentGraph);
+            MatrixDictionary<Item, int> aggregatedCounts = MatrixDictionary.CreateCounts(matchingDependencies, d => d.Ct,
+                globalContext.CurrentGraph);
 
             // Force each item to exist on both matrix axes
             foreach (var from in aggregatedCounts.RowKeys) {
@@ -88,22 +100,22 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             // appear; and nodes with only self cycles are either not a source and sink (if ignoreSelfCycles=false),
             // or they are both a source and a sink and hence are found in the first Mark run.
 
-            if (markSinks) {
+            if (transformOptions.MarkSinks) {
                 Mark(aggregatedCounts, ac => ac.RowKeys, i => aggregatedCounts.GetRowSum(i),
-                    ignoreSelfCyclesInSourcesAndSinks, recursive, markerToAdd);
+                    !transformOptions.ConsiderSelfCyclesInSourcesAndSinks, transformOptions.Recursive, transformOptions.MarkerToAdd);
             }
-            if (markSources) {
+            if (transformOptions.MarkSources) {
                 Mark(aggregatedCounts, ac => ac.ColumnKeys, i => aggregatedCounts.GetColumnSum(i),
-                    ignoreSelfCyclesInSourcesAndSinks, recursive, markerToAdd);
+                    !transformOptions.ConsiderSelfCyclesInSourcesAndSinks, transformOptions.Recursive, transformOptions.MarkerToAdd);
             }
 
             var remainingNodes = new HashSet<Item>(aggregatedCounts.RowKeys);
             remainingNodes.UnionWith(aggregatedCounts.ColumnKeys);
 
-            if (markSingleCycleNodes) {
+            if (transformOptions.MarkSingleCycleNodes) {
                 foreach (var d in matchingDependencies) {
                     if (Equals(d.UsingItem, d.UsedItem)) {
-                        d.UsingItem.IncrementMarker(markerToAdd);
+                        d.UsingItem.IncrementMarker(transformOptions.MarkerToAdd);
                     }
                 }
             }
@@ -130,7 +142,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             } while (recursive && itemRemoved);
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
             Item a = transformingGraph.CreateItem(ItemType.SIMPLE, "Ax");
             Item b = transformingGraph.CreateItem(ItemType.SIMPLE, "Bx");
             Item c = transformingGraph.CreateItem(ItemType.SIMPLE, "Cloop");

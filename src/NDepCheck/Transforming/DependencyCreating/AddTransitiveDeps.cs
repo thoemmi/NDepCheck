@@ -6,7 +6,21 @@ using NDepCheck.Markers;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.DependencyCreating {
-    public class AddTransitiveDeps : ITransformer {
+    public class AddTransitiveDeps : TransformerWithOptions<Ignore, AddTransitiveDeps.TransformOptions> {
+        public class TransformOptions {
+            [NotNull, ItemNotNull]
+            public List<DependencyMatch> Matches = new List<DependencyMatch>();
+            [NotNull, ItemNotNull]
+            public List<DependencyMatch> Excludes = new List<DependencyMatch>();
+            [NotNull, ItemNotNull]
+            public List<ItemMatch> FromItemMatches = new List<ItemMatch>();
+            [NotNull, ItemNotNull]
+            public List<ItemMatch> ToItemMatches = new List<ItemMatch>();
+            [NotNull, ItemNotNull]
+            public List<string> MarkersToAdd = new List<string>();
+            public bool Idempotent;
+        }
+
         public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions("traverse");
 
         //public static readonly Option RemoveOriginalOption = new Option("ro", "remove-original", "", "If present, original dependency of a newly created reverse dependency is removed", @default: false);
@@ -20,11 +34,9 @@ namespace NDepCheck.Transforming.DependencyCreating {
             AddMarkerOption, IdempotentOption, FromItemsOption, ToItemsOption
         );
 
-        private bool _ignoreCase;
-
         private int _transformRunCt = 0;
 
-        public string GetHelp(bool detailedHelp, string filter) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             return $@"Add transitive edges.
 
 Configuration options: None
@@ -32,33 +44,30 @@ Configuration options: None
 Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)}";
         }
 
-        public void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
-            _ignoreCase = globalContext.IgnoreCase;
+        protected override Ignore CreateConfigureOptions([NotNull] GlobalContext globalContext,
+            [CanBeNull] string configureOptionsString, bool forceReload) {
+            var options = new Ignore();
+            return options;
         }
 
-        public int Transform([NotNull] GlobalContext globalContext, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+        protected override TransformOptions CreateTransformOptions([NotNull] GlobalContext globalContext, 
+            [CanBeNull] string transformOptionsString, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+            var transformOptions = new TransformOptions();
 
-            var matches = new List<DependencyMatch>();
-            var excludes = new List<DependencyMatch>();
-
-            var fromItemMatches = new List<ItemMatch>();
-            var toItemMatches = new List<ItemMatch>();
-            var markersToAdd = new List<string>();
             //bool removeOriginal = false;
-            bool idempotent = false;
 
-            DependencyMatchOptions.Parse(globalContext, transformOptions, _ignoreCase, matches, excludes,
+            DependencyMatchOptions.Parse(globalContext, transformOptionsString, globalContext.IgnoreCase, 
+                transformOptions.Matches, transformOptions.Excludes,
                 FromItemsOption.Action((args, j) => {
-                    fromItemMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing 'from' match"), _ignoreCase, anyWhereMatcherOk: true));
+                    transformOptions.FromItemMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing 'from' match"), globalContext.IgnoreCase, anyWhereMatcherOk: true));
                     return j;
                 }),
                 ToItemsOption.Action((args, j) => {
-                    toItemMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing 'to' match"), _ignoreCase, anyWhereMatcherOk: true));
+                    transformOptions.ToItemMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing 'to' match"), globalContext.IgnoreCase, anyWhereMatcherOk: true));
                     return j;
                 }),
                 IdempotentOption.Action((args, j) => {
-                    idempotent = true;
+                    transformOptions.Idempotent = true;
                     return j;
                 }),
                 //RemoveOriginalOption.Action((args, j) => {
@@ -66,27 +75,38 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 //    return j;
                 //}),
                 AddMarkerOption.Action((args, j) => {
-                    markersToAdd.Add(Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim());
+                    transformOptions.MarkersToAdd.Add(Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim());
                     return j;
                 }));
 
+            return transformOptions;
+        }
+
+        public override int Transform([NotNull] GlobalContext globalContext, Ignore Ignore, 
+            [NotNull] TransformOptions transformOptions, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
+            [NotNull] List<Dependency> transformedDependencies) {
+
             _transformRunCt++;
-            MutableMarkerSet.AddComputedMarkerIfNoMarkers(markersToAdd, fromItemMatches, toItemMatches, "" + _transformRunCt);
+            MutableMarkerSet.AddComputedMarkerIfNoMarkers(transformOptions.MarkersToAdd, 
+                transformOptions.FromItemMatches, transformOptions.ToItemMatches, "" + _transformRunCt);
 
             WorkingGraph currentWorkingGraph = globalContext.CurrentGraph;
 
-            DependencyPattern idempotentPattern = new DependencyPattern("'" + string.Join("+", markersToAdd), _ignoreCase);
-            Dictionary<FromTo, Dependency> checkPresence = idempotent ? FromTo.AggregateAllDependencies(currentWorkingGraph, dependencies) : new Dictionary<FromTo, Dependency>();
+            DependencyPattern idempotentPattern = new DependencyPattern("'" + string.Join("+", transformOptions.MarkersToAdd), globalContext.IgnoreCase);
+            Dictionary<FromTo, Dependency> checkPresence = transformOptions.Idempotent
+                ? FromTo.AggregateAllDependencies(currentWorkingGraph, dependencies) 
+                : new Dictionary<FromTo, Dependency>();
             Dictionary<Item, Dependency[]> outgoing = Item.CollectOutgoingDependenciesMap(dependencies);
-            IEnumerable<Item> matchingFroms = outgoing.Keys.Where(i => IsMatch(fromItemMatches, i));
+            IEnumerable<Item> matchingFroms = outgoing.Keys.Where(i => IsMatch(transformOptions.FromItemMatches, i));
 
-            Dictionary<string, int> markersToAddAsDictionary = markersToAdd.Distinct().ToDictionary(s => s, s => 1);
+            Dictionary<string, int> markersToAddAsDictionary = transformOptions.MarkersToAdd.Distinct().ToDictionary(s => s, s => 1);
 
             var result = new List<Dependency>();
             foreach (var from in matchingFroms) {
                 RecursivelyFlood(from, from, new HashSet<Item> { from }, checkPresence, idempotentPattern, outgoing,
-                                 toItemMatches, matches, excludes, markersToAddAsDictionary, result, null, globalContext.CheckAbort,
-                                 currentWorkingGraph);
+                                 transformOptions.ToItemMatches, transformOptions.Matches, transformOptions.Excludes, 
+                                 markersToAddAsDictionary, result, null, globalContext.CheckAbort,
+                                 currentWorkingGraph, globalContext.IgnoreCase);
             }
 
             transformedDependencies.AddRange(dependencies);
@@ -101,9 +121,9 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         }
 
         private void RecursivelyFlood(Item root, Item from, HashSet<Item> visited, Dictionary<FromTo, Dependency> checkPresence,
-            DependencyPattern idempotentPattern, Dictionary<Item, Dependency[]> outgoing, IEnumerable<ItemMatch> toItemMatches, 
-            List<DependencyMatch> matches, List<DependencyMatch> excludes, Dictionary<string, int> markersToAddOrNull, 
-            List<Dependency> result, Dependency collectedEdge, [NotNull] Action checkAbort, WorkingGraph workingGraph) {
+            DependencyPattern idempotentPattern, Dictionary<Item, Dependency[]> outgoing, IEnumerable<ItemMatch> toItemMatches,
+            List<DependencyMatch> matches, List<DependencyMatch> excludes, Dictionary<string, int> markersToAddOrNull,
+            List<Dependency> result, Dependency collectedEdge, [NotNull] Action checkAbort, WorkingGraph workingGraph, bool ignoreCase) {
             if (outgoing.ContainsKey(from)) {
                 checkAbort();
                 foreach (var d in outgoing[from].Where(d => d.IsMarkerMatch(matches, excludes))) {
@@ -112,7 +132,10 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                         Dependency rootToTarget = collectedEdge == null
                             ? d
                             : workingGraph.CreateDependency(root, target, d.Source,
-                                new MutableMarkerSet(_ignoreCase, markersToAddOrNull ?? MutableMarkerSet.ConcatOrUnionWithMarkers(collectedEdge.AbstractMarkerSet, d.AbstractMarkerSet, _ignoreCase)),
+                                new MutableMarkerSet(ignoreCase, 
+                                    markersToAddOrNull
+                                    ?? MutableMarkerSet.ConcatOrUnionWithMarkers(collectedEdge.AbstractMarkerSet, 
+                                                                                 d.AbstractMarkerSet,ignoreCase)),
                                 collectedEdge.Ct + d.Ct, collectedEdge.QuestionableCt + d.QuestionableCt,
                                 collectedEdge.BadCt + d.BadCt, collectedEdge.NotOkReason ?? d.NotOkReason, d.ExampleInfo);
 
@@ -129,14 +152,14 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
                         // Continue search
                         RecursivelyFlood(root, target, visited, checkPresence, idempotentPattern, outgoing,
-                                         toItemMatches, matches, excludes, markersToAddOrNull, result, rootToTarget, 
-                                         checkAbort, workingGraph);
+                                         toItemMatches, matches, excludes, markersToAddOrNull, result, rootToTarget,
+                                         checkAbort, workingGraph, ignoreCase);
                     }
                 }
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
             var s1 = transformingGraph.CreateItem(ItemType.SIMPLE, "S1");
             var s2 = transformingGraph.CreateItem(ItemType.SIMPLE, "S2");
             var a = transformingGraph.CreateItem(ItemType.SIMPLE, "A");

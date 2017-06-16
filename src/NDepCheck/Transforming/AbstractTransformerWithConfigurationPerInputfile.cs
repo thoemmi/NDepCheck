@@ -4,34 +4,36 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming {
-    public abstract class AbstractTransformerPerContainerUriWithFileConfiguration<TConfigurationPerContainer>
-            : AbstractTransformerWithFileConfiguration<TConfigurationPerContainer> {
+    public abstract class AbstractTransformerPerContainerUriWithFileConfiguration<TConfigurationPerContainer, TConfigureOptions, TTransformOptions>
+            : AbstractTransformerWithFileConfiguration<TConfigurationPerContainer, TConfigureOptions, TTransformOptions> {
         #region Transform
 
-        public override int Transform([NotNull] GlobalContext globalContext, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+        public override int Transform([NotNull] GlobalContext globalContext, TConfigureOptions configureOptions, 
+            [NotNull] TTransformOptions transformOptions, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies, 
+            [NotNull] List<Dependency> transformedDependencies) {
 
             IEnumerable<IGrouping<string, Dependency>> dependenciesByContainer = dependencies.GroupBy(d => d.Source?.ContainerUri);
 
-            BeforeAllTransforms(globalContext, transformOptions, dependenciesByContainer.Select(g => g.Key));
+            BeforeAllTransforms(globalContext, configureOptions, transformOptions, dependenciesByContainer.Select(g => g.Key));
 
             int result = Program.OK_RESULT;
             foreach (var container in dependenciesByContainer) {
-                int r = TransformContainer(globalContext, container, container.Key, transformedDependencies);
+                int r = TransformContainer(globalContext, configureOptions, transformOptions, container, container.Key, transformedDependencies);
                 result = Math.Max(result, r);
             }
 
-            AfterAllTransforms(globalContext);
+            AfterAllTransforms(globalContext, configureOptions, transformOptions);
 
             return result;
         }
 
-        public abstract void BeforeAllTransforms([NotNull] GlobalContext globalContext, [CanBeNull] string transformOptions, IEnumerable<string> containerNames);
+        public abstract void BeforeAllTransforms([NotNull] GlobalContext globalContext, TConfigureOptions configureOptions, [NotNull] TTransformOptions transformOptions, IEnumerable<string> containerNames);
 
-        public abstract int TransformContainer([NotNull] GlobalContext globalContext,
-            [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string containerName, [NotNull] List<Dependency> transformedDependencies);
+        public abstract int TransformContainer([NotNull] GlobalContext globalContext, TConfigureOptions configureOptions,
+            [NotNull] TTransformOptions transformOptions, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies, 
+            string containerName, [NotNull] List<Dependency> transformedDependencies);
 
-        public abstract void AfterAllTransforms([NotNull] GlobalContext globalContext);
+        public abstract void AfterAllTransforms([NotNull] GlobalContext globalContext, TConfigureOptions configureOptions, [NotNull] TTransformOptions transformOptions);
 
         #endregion Transform
     }

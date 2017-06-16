@@ -38,7 +38,8 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
+        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, 
+            string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
             bool noExampleInfo = false;
             var matches = new List<DependencyMatch>();
             var excludes = new List<DependencyMatch>();

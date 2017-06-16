@@ -6,7 +6,31 @@ using NDepCheck.Markers;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.Modifying {
-    public class MarkDeps : ITransformer {
+    public class MarkDeps : TransformerWithOptions<Ignore, MarkDeps.TransformOptions> {
+        public class TransformOptions {
+            [NotNull, ItemNotNull]
+            public List<DependencyMatch> Matches = new List<DependencyMatch>();
+            [NotNull, ItemNotNull]
+            public List<DependencyMatch> Excludes = new List<DependencyMatch>();
+            public bool ClearLeft;
+            public bool ClearDependency;
+            public bool ClearRight;
+            [NotNull, ItemNotNull]
+            public List<string> MarkersToAddOnLeft = new List<string>();
+            [NotNull]
+            public Dictionary<string, int> MarkersToAddOnDep = new Dictionary<string, int>();
+            [NotNull, ItemNotNull]
+            public List<string> MarkersToAddOnRight = new List<string>();
+            [NotNull, ItemNotNull]
+            public List<string> MarkerPatternsToRemoveOnLeft = new List<string>();
+            [NotNull, ItemNotNull]
+            public List<string> MarkersToRemoveOnDep = new List<string>();
+            [NotNull, ItemNotNull]
+            public List<string> MarkerPatternsToRemoveOnRight = new List<string>();
+            public bool ResetBad;
+            public bool ResetQuestionable;
+        }
+
         public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions("mark");
 
         public static readonly Option MarkLeftItemOption = new Option("ml", "mark-left", "marker", "Marker to add to item on left", @default: "", multiple: true);
@@ -31,7 +55,7 @@ namespace NDepCheck.Transforming.Modifying {
             ResetBadCountOption, ResetQuestionableCountOption
         );
 
-        public string GetHelp(bool detailedHelp, string filter) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             string result = $@"Modify counts and markers on dependencies, delete or keep dependencies.
 
 Configuration options: None
@@ -71,103 +95,93 @@ Examples:
             return result;
         }
 
-        private bool _ignoreCase;
-
-        public void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
-            _ignoreCase = globalContext.IgnoreCase;
+        protected override Ignore CreateConfigureOptions([NotNull] GlobalContext globalContext,
+            [CanBeNull] string configureOptionsString, bool forceReload) {
+            return Ignore.Om;
         }
 
-        public int Transform([NotNull] GlobalContext globalContext, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
-
-            var matches = new List<DependencyMatch>();
-            var excludes = new List<DependencyMatch>();
-
-            bool clearLeft = false;
-            bool clearDependency = false;
-            bool clearRight = false;
-
-            var markersToAddOnLeft = new List<string>();
-            var markersToAddOnDep = new Dictionary<string, int>();
-            var markersToAddOnRight = new List<string>();
-
-            var markerPatternsToRemoveOnLeft = new List<string>();
-            var markersToRemoveOnDep = new List<string>();
-            var markerPatternsToRemoveOnRight = new List<string>();
-
-            bool resetBad = false;
-            bool resetQuestionable = false;
-
-            DependencyMatchOptions.Parse(globalContext, transformOptions, _ignoreCase, matches, excludes,
+        protected override TransformOptions CreateTransformOptions([NotNull] GlobalContext globalContext,
+            [CanBeNull] string transformOptionsString, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+            var transformOptions = new TransformOptions();
+            
+            DependencyMatchOptions.Parse(globalContext, transformOptionsString, globalContext.IgnoreCase, transformOptions.Matches, transformOptions.Excludes,
                 MarkLeftItemOption.Action((args, j) => {
                     string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
-                    markersToAddOnLeft.Add(marker.TrimStart('\''));
+                    transformOptions.MarkersToAddOnLeft.Add(marker.TrimStart('\''));
                     return j;
                 }),
                 MarkDependencyItemOption.Action((args, j) => {
                     string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
-                    markersToAddOnDep[marker.TrimStart('\'')] = 1;
+                    transformOptions.MarkersToAddOnDep[marker.TrimStart('\'')] = 1;
                     return j;
                 }),
                 MarkRightItemOption.Action((args, j) => {
                     string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
-                    markersToAddOnRight.Add(marker.TrimStart('\''));
+                    transformOptions.MarkersToAddOnRight.Add(marker.TrimStart('\''));
                     return j;
                 }),
                 UnmarkLeftItemOption.Action((args, j) => {
                     string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
-                    markerPatternsToRemoveOnLeft.Add(marker.TrimStart('\''));
+                    transformOptions.MarkerPatternsToRemoveOnLeft.Add(marker.TrimStart('\''));
                     return j;
                 }),
                 UnmarkDependencyItemOption.Action((args, j) => {
                     string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
-                    markersToRemoveOnDep.Add(marker.TrimStart('\''));
+                    transformOptions.MarkersToRemoveOnDep.Add(marker.TrimStart('\''));
                     return j;
                 }),
                 UnmarkRightItemOption.Action((args, j) => {
                     string marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker");
-                    markerPatternsToRemoveOnRight.Add(marker.TrimStart('\''));
+                    transformOptions.MarkerPatternsToRemoveOnRight.Add(marker.TrimStart('\''));
                     return j;
                 }),
                 ClearLeftItemOption.Action((args, j) => {
-                    clearLeft = true;
+                    transformOptions.ClearLeft = true;
                     return j;
                 }),
                 ClearDependencyItemOption.Action((args, j) => {
-                    clearDependency = true;
+                    transformOptions.ClearDependency = true;
                     return j;
                 }),
                 ClearRightItemOption.Action((args, j) => {
-                    clearRight = true;
+                    transformOptions.ClearRight = true;
                     return j;
                 }),
                 ResetBadCountOption.Action((args, j) => {
-                    resetBad = true;
+                    transformOptions.ResetBad = true;
                     return j;
                 }),
                 ResetQuestionableCountOption.Action((args, j) => {
-                    resetQuestionable = true;
+                    transformOptions.ResetQuestionable = true;
                     return j;
                 })
             );
+            return transformOptions;
+        }
+
+        public override int Transform([NotNull] GlobalContext globalContext, Ignore Ignore, 
+            [NotNull] TransformOptions transformOptions, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies, 
+            [NotNull] List<Dependency> transformedDependencies) {
 
             var leftMatches = new HashSet<Item>();
             var rightMatches = new HashSet<Item>();
 
             int n = 0;
-            foreach (var d in dependencies.Where(d => d.IsMarkerMatch(matches, excludes))) {
+            bool ignoreCase = globalContext.IgnoreCase;
+
+            foreach (var d in dependencies.Where(d => d.IsMarkerMatch(transformOptions.Matches, transformOptions.Excludes))) {
                 leftMatches.Add(d.UsingItem);
                 rightMatches.Add(d.UsedItem);
-                if (clearDependency) {
+                if (transformOptions.ClearDependency) {
                     d.ClearMarkers();
                 } else {
-                    d.UnionWithMarkers(markersToAddOnDep);
-                    d.RemoveMarkers(markersToRemoveOnDep, _ignoreCase);
+                    d.UnionWithMarkers(transformOptions.MarkersToAddOnDep);
+                    d.RemoveMarkers(transformOptions.MarkersToRemoveOnDep, ignoreCase);
                 }
-                if (resetBad) {
+                if (transformOptions.ResetBad) {
                     d.ResetBad();
                 }
-                if (resetQuestionable) {
+                if (transformOptions.ResetQuestionable) {
                     d.ResetQuestionable();
                 }
                 n++;
@@ -175,22 +189,22 @@ Examples:
 
             Log.WriteInfo($"Marked {n} dependencies");
 
-            ReadOnlyMarkerSet markersToAddOnLeftMarkerSet = new ReadOnlyMarkerSet(_ignoreCase, markersToAddOnLeft);
-            ReadOnlyMarkerSet markersToAddOnRightMarkerSet = new ReadOnlyMarkerSet(_ignoreCase, markersToAddOnRight);
+            ReadOnlyMarkerSet markersToAddOnLeftMarkerSet = new ReadOnlyMarkerSet(ignoreCase, transformOptions.MarkersToAddOnLeft);
+            ReadOnlyMarkerSet markersToAddOnRightMarkerSet = new ReadOnlyMarkerSet(ignoreCase, transformOptions.MarkersToAddOnRight);
 
             // Items are modified afterwards - match loop above uses unchanged values
             foreach (var left in leftMatches) {
-                MarkItem(clearLeft, left, markersToAddOnLeftMarkerSet, markerPatternsToRemoveOnLeft, _ignoreCase);
+                MarkItem(transformOptions.ClearLeft, left, markersToAddOnLeftMarkerSet, transformOptions.MarkerPatternsToRemoveOnLeft, ignoreCase);
             }
             foreach (var right in rightMatches) {
-                MarkItem(clearRight, right, markersToAddOnRightMarkerSet, markerPatternsToRemoveOnRight, _ignoreCase);
+                MarkItem(transformOptions.ClearRight, right, markersToAddOnRightMarkerSet, transformOptions.MarkerPatternsToRemoveOnRight, ignoreCase);
             }
 
             transformedDependencies.AddRange(dependencies);
             return Program.OK_RESULT;
         }
 
-        private static void MarkItem(bool clear, Item item, IMarkerSet markersToAdd, 
+        private static void MarkItem(bool clear, Item item, IMarkerSet markersToAdd,
                                      List<string> markerPatternsToRemove, bool ignoreCase) {
             if (clear) {
                 item.ClearMarkers();
@@ -200,7 +214,7 @@ Examples:
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
             Item am = transformingGraph.CreateItem(ItemType.SIMPLE, new[] { "A" }, new[] { "M" });
             Item bm = transformingGraph.CreateItem(ItemType.SIMPLE, new[] { "B" }, new[] { "M" });
             Item cn = transformingGraph.CreateItem(ItemType.SIMPLE, new[] { "C" }, new[] { "N" });

@@ -71,11 +71,10 @@ T3:b:bb:bbb'A $", result.Trim());
         }
 
         private static string FindPathsAndWriteFlat(GlobalContext gc, IEnumerable<Dependency> dependencies,
-            string markerPrefix, string transformOptions) {
+            string markerPrefix, PathMarker.TransformOptions transformOptions) {
             var pm = new PathMarker();
-            pm.Configure(gc, "", false);
             var transformedDependencies = new List<Dependency>();
-            pm.Transform(gc, dependencies, transformOptions, transformedDependencies, s => null);
+            pm.Transform(gc, Ignore.Om, transformOptions, dependencies, transformedDependencies);
 
             string result;
             using (var s = new MemoryStream()) {
@@ -86,12 +85,14 @@ T3:b:bb:bbb'A $", result.Trim());
             return result;
         }
 
-        private static string CreateDefaultOptions(string markerPrefix, string regex, int maxPathLength = 5,
-            string additionalOptions = "") {
-            return
-            ($"{{ {PathMarker.AddIndexedMarkerOption} {markerPrefix} " +
-             $"{PathMarker.MaxPathLengthOption} {maxPathLength} " + $"{PathMarker.IgnorePrefixPaths} " +
-             additionalOptions + $"{PathMarker.RegexOption} {regex} }}").Replace(" ", Environment.NewLine);
+        private static PathMarker.TransformOptions CreateDefaultOptions(string markerPrefix, string regex, int maxPathLength = 5) {
+            return new PathMarker.TransformOptions {
+                Marker = markerPrefix,
+                AddIndex = true,
+                MaxPathLength = maxPathLength,
+                IgnorePrefixPaths = true,
+                Regex = regex
+            };
         }
 
         [TestMethod]
@@ -227,7 +228,11 @@ T3:d:dd:ddd'A $", result.Trim());
             };
 
             string o = FindPathsAndWriteFlat(gc, dependencies, "A",
-                "{ -im A -pr a.{:2}#.d.:.g }".Replace(" ", Environment.NewLine));
+                new PathMarker.TransformOptions {
+                    Marker = "A",
+                    AddIndex = true,
+                    Regex = "a.{:2}#.d.:.g"
+                });
 
             Console.WriteLine(o);
             Assert.IsTrue(o.Contains("b:2 #"));

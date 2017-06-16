@@ -4,10 +4,21 @@ using JetBrains.Annotations;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.DependencyCreating {
-    public class AddReverseDeps : ITransformer {
+    public class AddReverseDeps : TransformerWithOptions<Ignore, AddReverseDeps.TransformOptions> {
+        public class TransformOptions {
+            [NotNull, ItemNotNull]
+            public List<DependencyMatch> Matches = new List<DependencyMatch>();
+            [NotNull, ItemNotNull]
+            public List<DependencyMatch> Excludes = new List<DependencyMatch>();
+            [CanBeNull]
+            public string MarkerToAdd;
+            public bool RemoveOriginal;
+            public bool Idempotent;
+        }
+
         public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions("reverse");
 
-        public static readonly Option RemoveOriginalOption = new Option("ro", "remove-original", "", "If present, original dependency of a newly created reverse dependency is removed", @default:false);
+        public static readonly Option RemoveOriginalOption = new Option("ro", "remove-original", "", "If present, original dependency of a newly created reverse dependency is removed", @default: false);
         public static readonly Option AddMarkerOption = new Option("am", "add-marker", "&", "Marker added to newly created reverse dependencies", @default: "none");
         public static readonly Option IdempotentOption = new Option("ip", "idempotent", "", "Do not add if dependency with provided marker already exists", @default: false);
 
@@ -15,9 +26,7 @@ namespace NDepCheck.Transforming.DependencyCreating {
             RemoveOriginalOption, AddMarkerOption, IdempotentOption
         );
 
-        private bool _ignoreCase;
-
-        public string GetHelp(bool detailedHelp, string filter) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             return $@"Add reverse edges.
 
 Configuration options: None
@@ -25,50 +34,53 @@ Configuration options: None
 Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)}";
         }
 
-        public void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
-            _ignoreCase = globalContext.IgnoreCase;
+        protected override Ignore CreateConfigureOptions([NotNull] GlobalContext globalContext,
+            [CanBeNull] string configureOptionsString, bool forceReload) {
+            return Ignore.Om;
         }
 
-        public int Transform([NotNull] GlobalContext globalContext, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
-            var matches = new List<DependencyMatch>();
-            var excludes = new List<DependencyMatch>();
-            string markerToAdd = null;
-            bool removeOriginal = false;
-            bool idempotent = false;
+        protected override TransformOptions CreateTransformOptions([NotNull] GlobalContext globalContext, 
+            [CanBeNull] string transformOptionsString, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+            var transformOptions = new TransformOptions();
 
-            DependencyMatchOptions.Parse(globalContext, transformOptions, _ignoreCase, matches, excludes,
+            DependencyMatchOptions.Parse(globalContext, transformOptionsString, globalContext.IgnoreCase, transformOptions.Matches, transformOptions.Excludes,
                 IdempotentOption.Action((args, j) => {
-                    idempotent = true;
+                    transformOptions.Idempotent = true;
                     return j;
                 }),
                 RemoveOriginalOption.Action((args, j) => {
-                    removeOriginal = true;
+                    transformOptions.RemoveOriginal = true;
                     return j;
-                }), 
+                }),
                 AddMarkerOption.Action((args, j) => {
-                    markerToAdd = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim();
+                    transformOptions.MarkerToAdd = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name").Trim('\'').Trim();
                     return j;
                 }));
 
-            DependencyPattern idempotentPattern = markerToAdd == null ? null : new DependencyPattern("'" + markerToAdd, _ignoreCase);
-            Dictionary<FromTo, Dependency> fromTos = idempotent ? FromTo.AggregateAllDependencies(globalContext.CurrentGraph, dependencies) : null;
+            return transformOptions;
+        }
+
+        public override int Transform([NotNull] GlobalContext globalContext, Ignore Ignore, 
+            [NotNull] TransformOptions transformOptions, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
+            [NotNull] List<Dependency> transformedDependencies) {
+            DependencyPattern idempotentPattern = transformOptions.MarkerToAdd == null ? null : new DependencyPattern("'" + transformOptions.MarkerToAdd, globalContext.IgnoreCase);
+            Dictionary<FromTo, Dependency> fromTos = transformOptions.Idempotent ? FromTo.AggregateAllDependencies(globalContext.CurrentGraph, dependencies) : null;
 
             int added = 0;
             int removed = 0;
             foreach (var d in dependencies) {
-                if (!removeOriginal) {
+                if (!transformOptions.RemoveOriginal) {
                     transformedDependencies.Add(d);
                 } else {
                     removed++;
                 }
-                if (d.IsMarkerMatch(matches, excludes)) {
+                if (d.IsMarkerMatch(transformOptions.Matches, transformOptions.Excludes)) {
                     if (fromTos == null ||
                         !FromTo.ContainsMatchingDependency(fromTos, d.UsedItem, d.UsingItem, idempotentPattern)) {
                         var newDependency = globalContext.CurrentGraph.CreateDependency(d.UsedItem, d.UsingItem, d.Source, d.MarkerSet, d.Ct,
                                                            d.QuestionableCt, d.BadCt, d.NotOkReason, d.ExampleInfo);
-                        if (markerToAdd != null) {
-                            newDependency.IncrementMarker(markerToAdd);
+                        if (transformOptions.MarkerToAdd != null) {
+                            newDependency.IncrementMarker(transformOptions.MarkerToAdd);
                         }
                         transformedDependencies.Add(newDependency);
                         added++;
@@ -79,7 +91,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             return Program.OK_RESULT;
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
             var a = transformingGraph.CreateItem(ItemType.SIMPLE, "A");
             var b = transformingGraph.CreateItem(ItemType.SIMPLE, "B");
             return new[] {

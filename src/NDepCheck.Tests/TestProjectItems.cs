@@ -35,7 +35,7 @@ namespace NDepCheck.Tests {
             Item t = graph.CreateItem(generic2, "m:t");
 
             var result = new List<Dependency>();
-            pi.Transform(gc, new[] {
+            pi.Transform(gc, new ProjectItems.ConfigureOptions(), new ProjectItems.TransformOptions(), new[] {
                 graph.CreateDependency(a, a, null, "a_a", 1), // the first surviving dependency
                 graph.CreateDependency(a, s, null, "a_s", 1), // vanishes, because s is not mapped
                 graph.CreateDependency(ab, s, null, "ab_s", 1), // same
@@ -55,7 +55,7 @@ namespace NDepCheck.Tests {
                 // !cb 3
                 // !s  4
                 // !t  3
-            }, "", result, n => null);
+            }, result);
 
             Assert.AreEqual(2, result.Count);
             Assert.AreEqual("A", result[0].UsingItem.Values[0]);

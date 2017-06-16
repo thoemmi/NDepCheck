@@ -7,14 +7,13 @@ using NDepCheck.Transforming.SpecialItemMarking;
 namespace NDepCheck.Tests {
     [TestClass, ExcludeFromCodeCoverage]
     public class TestMarkSpecialItems {
-        private static IEnumerable<Item> Run(string options, string mark) {
+        private static IEnumerable<Item> Run(MarkSpecialItems.TransformOptions options, string mark) {
             var gc = new GlobalContext();
             try {
                 var msi = new MarkSpecialItems();
                 var result = new List<Dependency>();
-                msi.Transform(gc, msi.CreateSomeTestDependencies(gc.CurrentGraph), options.Replace(" ", "\r\n"), result, s => null);
-                return
-                    result.SelectMany(d => new[] { d.UsingItem, d.UsedItem })
+                msi.Transform(gc, Ignore.Om, options, msi.CreateSomeTestDependencies(gc.CurrentGraph), result);
+                return result.SelectMany(d => new[] { d.UsingItem, d.UsedItem })
                         .Distinct()
                         .Where(i => i.MarkersContain(mark));
             } finally {
@@ -30,44 +29,55 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestMarkSources() {
             const string mark = "MARK";
-            IEnumerable<Item> result = Run($"{{ {MarkSpecialItems.MarkSourcesOption} " +
-                                           $"{MarkSpecialItems.AddMarkerOption} {mark} }}", mark);
+            IEnumerable<Item> result = Run(new MarkSpecialItems.TransformOptions {
+                MarkSources = true,
+                MarkerToAdd = mark
+            }, mark);
             AssertResult(result, 'A');
         }
 
         [TestMethod]
         public void TestMarkSourcesRecursively() {
             const string mark = "MARK";
-            IEnumerable<Item> result = Run($"{{ {MarkSpecialItems.MarkSourcesOption} " +
-                                           $"{MarkSpecialItems.RecursiveMarkOption} " +
-                                           $"{MarkSpecialItems.AddMarkerOption} {mark} }}", mark);
+            IEnumerable<Item> result = Run(new MarkSpecialItems.TransformOptions {
+                MarkSources = true,
+                Recursive = true,
+                MarkerToAdd = mark
+            }, mark);
             AssertResult(result, 'A', 'B');
         }
 
         [TestMethod]
         public void TestMarkSinks() {
             const string mark = "MARK";
-            IEnumerable<Item> result = Run($"{{ {MarkSpecialItems.MarkSinksOption} " +
-                                           $"{MarkSpecialItems.AddMarkerOption} {mark} }}", mark);
+            IEnumerable<Item> result = Run(new MarkSpecialItems.TransformOptions {
+                MarkSinks = true,
+                MarkerToAdd = mark
+            }, mark);
             AssertResult(result, 'I', 'J');
         }
 
         [TestMethod]
         public void TestMarkSinksRecursivelyIncludingSelfCycles() {
             const string mark = "MARK";
-            IEnumerable<Item> result = Run($"{{ {MarkSpecialItems.MarkSinksOption} " +
-                                           $"{MarkSpecialItems.RecursiveMarkOption} " +
-                                           $"{MarkSpecialItems.ConsiderSelfCyclesOption} " +
-                                           $"{MarkSpecialItems.AddMarkerOption} {mark} }}", mark);
+            IEnumerable<Item> result = Run(
+                new MarkSpecialItems.TransformOptions {
+                    MarkSinks = true,
+                    ConsiderSelfCyclesInSourcesAndSinks = true,
+                    Recursive = true,
+                    MarkerToAdd = mark
+                }, mark);
             AssertResult(result, 'F', 'G', 'H', 'I', 'J');
         }
 
         [TestMethod]
         public void TestMarkSinksRecursively() {
             const string mark = "MARK";
-            IEnumerable<Item> result = Run($"{{ {MarkSpecialItems.MarkSinksOption} " +
-                                           $"{MarkSpecialItems.RecursiveMarkOption} " +
-                                           $"{MarkSpecialItems.AddMarkerOption} {mark} }}", mark);
+            IEnumerable<Item> result = Run(new MarkSpecialItems.TransformOptions {
+                MarkSinks = true,
+                Recursive = true,
+                MarkerToAdd = mark
+            }, mark);
             AssertResult(result, 'E', 'F', 'G', 'H', 'I', 'J');
         }
     }

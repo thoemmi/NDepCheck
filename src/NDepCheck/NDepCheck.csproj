@@ -100,6 +100,7 @@
     <Compile Include="ItemAndDependencyFactoryList.cs" />
     <Compile Include="PathMatching\PathRegex.cs" />
     <Compile Include="SimpleBoyerMoore.cs" />
+    <Compile Include="TransformerWithOptions.cs" />
     <Compile Include="Transforming\PathFinding\AddPathDeps.cs" />
     <Compile Include="Transforming\PathFinding\PathMarker.cs" />
     <Compile Include="Transforming\PathFinding\PathOptions.cs" />

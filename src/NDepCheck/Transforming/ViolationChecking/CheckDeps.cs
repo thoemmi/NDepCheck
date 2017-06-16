@@ -5,7 +5,26 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.ViolationChecking {
-    public class CheckDeps : AbstractTransformerPerContainerUriWithFileConfiguration<DependencyRuleSet> {
+    public class CheckDeps
+        : AbstractTransformerPerContainerUriWithFileConfiguration<DependencyRuleSet, 
+            CheckDeps.ConfigureOptions, CheckDeps.TransformOptions> {
+        public class ConfigureOptions {
+            [NotNull, ItemNotNull]
+            public readonly List<DirectoryInfo> _searchRootsForRuleFiles = new List<DirectoryInfo>();
+            [NotNull]
+            public string _ruleFileExtension = ".dep";
+            [CanBeNull]
+            public DependencyRuleSet _defaultRuleSet;
+            [NotNull]
+            internal ValuesFrame LocalVars = new ValuesFrame();
+        }
+
+        public class TransformOptions {
+            public bool ShowUnusedQuestionableRules;
+            public bool ShowUnusedRules;
+            public bool AddMarker;
+        }
+
         public static readonly Option RuleFileExtensionOption = new Option("re", "rule-extension", "extension", "extension for rule files", @default: ".dep");
         public static readonly Option RuleRootDirectoryOption = new Option("rr", "rule-rootdirectory", "directory", "search directory for rule files (searched recursively)", @default: "no search for rule files", multiple: true);
         public static readonly Option DefaultRuleFileOption = new Option("rf", "rule-defaultfile", "filename", "default rule file", @default: "no default rule file");
@@ -18,14 +37,6 @@ namespace NDepCheck.Transforming.ViolationChecking {
         public static readonly Option AddMarkersForBadGroups = new Option("ag", "add-group-marker", "", "Add a marker for each group that marks the dependency as bad", @default: false);
 
         private static readonly Option[] _transformOptions = { ShowUnusedQuestionableRulesOption, ShowAllUnusedRulesOption, AddMarkersForBadGroups };
-
-        [NotNull, ItemNotNull]
-        private readonly List<DirectoryInfo> _searchRootsForRuleFiles = new List<DirectoryInfo>();
-        [NotNull]
-        private string _ruleFileExtension = ".dep";
-        [CanBeNull]
-        private DependencyRuleSet _defaultRuleSet;
-
 
         HashSet<DependencyRuleGroup> _allCheckedGroups;
 
@@ -47,37 +58,38 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
         internal const string MAY_USE_WITH_WARNING_TAIL = "-?";
         internal const string MUST_NOT_USE_TAIL = "-!";
 
-        public override void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
-            base.Configure(globalContext, configureOptions, forceReload);
-
-            Option.Parse(globalContext, configureOptions,
+        protected override ConfigureOptions CreateConfigureOptions(GlobalContext globalContext,
+            string configureOptionsString, bool forceReload) {
+            var options = new ConfigureOptions();
+            Option.Parse(globalContext, configureOptionsString,
                 RuleFileExtensionOption.Action((args, j) => {
-                    _ruleFileExtension = '.' + Option.ExtractRequiredOptionValue(args, ref j, "missing extension").TrimStart('.');
+                    options._ruleFileExtension = '.' + Option.ExtractRequiredOptionValue(args, ref j, "missing extension").TrimStart('.');
                     return j;
                 }),
                 RuleRootDirectoryOption.Action((args, j) => {
-                    _searchRootsForRuleFiles.Add(new DirectoryInfo(Option.ExtractRequiredOptionValue(args, ref j, "missing rule-search root directory")));
+                    options._searchRootsForRuleFiles.Add(new DirectoryInfo(Option.ExtractRequiredOptionValue(args, ref j, "missing rule-search root directory")));
                     return j;
                 }),
                 DefaultRuleFileOption.Action((args, j) => {
                     string fullSourceName = Path.GetFullPath(Option.ExtractRequiredOptionValue(args, ref j, "missing default rules filename"));
-                    _defaultRuleSet = GetOrReadChildConfiguration(globalContext,
-                        () => new StreamReader(fullSourceName), fullSourceName, globalContext.IgnoreCase, "????", forceReload);
+                    options._defaultRuleSet = GetOrReadChildConfiguration(globalContext,
+                        () => new StreamReader(fullSourceName), fullSourceName, globalContext.IgnoreCase, "????", forceReload, options.LocalVars);
                     return j;
                 }),
                 DefaultRulesOption.Action((args, j) => {
-                    _defaultRuleSet = GetOrReadChildConfiguration(globalContext,
+                    options._defaultRuleSet = GetOrReadChildConfiguration(globalContext,
                         () => new StringReader(string.Join(Environment.NewLine, args.Skip(j + 1))),
-                        DefaultRulesOption.ShortName, globalContext.IgnoreCase, "????", forceReload: true);
+                        DefaultRulesOption.ShortName, globalContext.IgnoreCase, "????", forceReload: true, localVars: options.LocalVars);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;
                 })
             );
+            return options;
         }
 
-        protected override DependencyRuleSet CreateConfigurationFromText([NotNull] GlobalContext globalContext, string fullConfigFileName,
-            int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
-            Dictionary<string, string> configValueCollector) {
+        protected override DependencyRuleSet CreateConfigurationFromText([NotNull] GlobalContext globalContext, 
+            string fullConfigFileName, int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, 
+            bool forceReloadConfiguration, Dictionary<string, string> configValueCollector, ValuesFrame localVars) {
 
             ItemType usingItemType = null;
             ItemType usedItemType = null;
@@ -140,7 +152,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                             return null;
                         }
                     }
-                }, configValueCollector: configValueCollector);
+                }, configValueCollector: configValueCollector, localVars: localVars);
             return new DependencyRuleSet(ruleGroups, children);
         }
 
@@ -148,27 +160,31 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
 
         #region Transform
 
-        private bool _showUnusedQuestionableRules;
-        private bool _showUnusedRules;
-        private bool _addMarker;
         private int _allFilesCt, _okFilesCt;
         private Dictionary<string, int> _matchesByGroup;
 
-        public override void BeforeAllTransforms([NotNull] GlobalContext globalContext, string transformOptions, IEnumerable<string> containerNames) {
-            _showUnusedQuestionableRules = _showUnusedRules = _addMarker = false;
+        protected override TransformOptions CreateTransformOptions(GlobalContext globalContext, 
+            string transformOptionsString, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+            var options = new TransformOptions();
+            options.ShowUnusedQuestionableRules = options.ShowUnusedRules = options.AddMarker = false;
 
-            Option.Parse(globalContext, transformOptions,
+            Option.Parse(globalContext, transformOptionsString,
                 ShowUnusedQuestionableRulesOption.Action((args, j) => {
-                    _showUnusedQuestionableRules = true;
+                    options.ShowUnusedQuestionableRules = true;
                     return j;
                 }), ShowAllUnusedRulesOption.Action((args, j) => {
-                    _showUnusedRules = true;
+                    options.ShowUnusedRules = true;
                     return j;
                 }), AddMarkersForBadGroups.Action((args, j) => {
-                    _addMarker = true;
+                    options.AddMarker = true;
                     return j;
                 }));
 
+            return options;
+        }
+
+        public override void BeforeAllTransforms([NotNull] GlobalContext globalContext, [NotNull] ConfigureOptions configureOptions,
+            [NotNull] TransformOptions transformOptions, [NotNull, ItemNotNull] IEnumerable<string> containerNames) {
             _allFilesCt = _okFilesCt = 0;
             _allCheckedGroups = new HashSet<DependencyRuleGroup>();
 
@@ -177,16 +193,18 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             Log.WriteInfo("Checking dependencies from " + string.Join(", ", containerNames));
         }
 
-        public override int TransformContainer([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
-            [CanBeNull] string containerName, [NotNull] List<Dependency> transformedDependencies) {
+        public override int TransformContainer([NotNull] GlobalContext globalContext,
+            [NotNull] ConfigureOptions configureOptions, [NotNull] TransformOptions transformOptions,
+            [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, [CanBeNull] string containerName,
+            [NotNull] List<Dependency> transformedDependencies) {
 
             transformedDependencies.AddRange(dependencies);
 
             var fullRuleFileNames = new List<string>();
-            foreach (var root in _searchRootsForRuleFiles) {
+            foreach (var root in configureOptions._searchRootsForRuleFiles) {
                 try {
                     fullRuleFileNames.AddRange(
-                        root.GetFiles(Path.GetFileName(containerName) + _ruleFileExtension,
+                        root.GetFiles(Path.GetFileName(containerName) + configureOptions._ruleFileExtension,
                             SearchOption.AllDirectories).Select(fi => fi.FullName));
                 } catch (IOException ex) {
                     Log.WriteWarning($"Cannot access files in {root} ({ex.Message})");
@@ -196,7 +214,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             fullRuleFileNames = fullRuleFileNames.Distinct().ToList();
 
             if (!fullRuleFileNames.Any() && containerName != null) {
-                fullRuleFileNames = new List<string> { Path.GetFullPath(containerName) + _ruleFileExtension };
+                fullRuleFileNames = new List<string> { Path.GetFullPath(containerName) + configureOptions._ruleFileExtension };
             }
 
             DependencyRuleSet ruleSetForAssembly;
@@ -204,25 +222,25 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 string allFilenames = string.Join(", ", fullRuleFileNames.Select(fi => $"'{fi}'"));
                 throw new ApplicationException(
                     $"More than one dependency rule file found for input file {containerName} in and below " +
-                    $"{string.Join(", ", _searchRootsForRuleFiles)}: {allFilenames}");
+                    $"{string.Join(", ", configureOptions._searchRootsForRuleFiles)}: {allFilenames}");
             } else if (!fullRuleFileNames.Any()) {
                 ruleSetForAssembly = null;
             } else {
                 string fullRuleFileName = fullRuleFileNames[0];
                 ruleSetForAssembly = File.Exists(fullRuleFileName)
                     ? GetOrReadChildConfiguration(globalContext, () => new StreamReader(fullRuleFileName),
-                        fullRuleFileName, globalContext.IgnoreCase, "...", forceReload: false)
+                        fullRuleFileName, globalContext.IgnoreCase, "...", forceReload: false, localVars: configureOptions.LocalVars)
                     : null;
             }
 
             // Nothing found - we take the default set.
             if (ruleSetForAssembly == null) {
-                if (_defaultRuleSet == null) {
+                if (configureOptions._defaultRuleSet == null) {
                     throw new ApplicationException(
                         $"No dependency rule file found for input file {containerName} in and below " +
-                        $"{string.Join(", ", _searchRootsForRuleFiles)}, and no default rules provided");
+                        $"{string.Join(", ", configureOptions._searchRootsForRuleFiles)}, and no default rules provided");
                 } else {
-                    ruleSetForAssembly = _defaultRuleSet;
+                    ruleSetForAssembly = configureOptions._defaultRuleSet;
                 }
             }
 
@@ -231,11 +249,12 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             // (b) reset counts in all rules (that are read in)
             // (c) keep a callback list of checked rules ...
 
-            return CheckDependencies(globalContext, dependencies, containerName, ruleSetForAssembly);
+            return CheckDependencies(globalContext, transformOptions, dependencies, containerName, ruleSetForAssembly);
         }
 
-        private int CheckDependencies([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
-                                      [CanBeNull] string containerName, [CanBeNull] DependencyRuleSet ruleSetForAssembly) {
+        private int CheckDependencies([NotNull] GlobalContext globalContext, [NotNull] TransformOptions transformOptions,
+                [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
+                [CanBeNull] string containerName, [CanBeNull] DependencyRuleSet ruleSetForAssembly) {
             if (!dependencies.Any()) {
                 return Program.OK_RESULT;
             }
@@ -251,7 +270,7 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                 int questionableCount = 0;
 
                 foreach (var group in checkedGroups) {
-                    int matchCount = group.Check(dependencies, _addMarker, ref badCount, ref questionableCount);
+                    int matchCount = group.Check(dependencies, transformOptions.AddMarker, ref badCount, ref questionableCount);
 
                     if (!_matchesByGroup.ContainsKey(group.GroupPattern)) {
                         _matchesByGroup[group.GroupPattern] = matchCount;
@@ -288,7 +307,8 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
             throw new NotImplementedException();
         }
 
-        public override void AfterAllTransforms([NotNull] GlobalContext globalContext) {
+        public override void AfterAllTransforms([NotNull] GlobalContext globalContext, 
+            [NotNull]ConfigureOptions configureOptions, [NotNull] TransformOptions transformOptions) {
             foreach (var kvp in _matchesByGroup.OrderBy(kvp => kvp.Key)) {
                 Log.WriteInfo($"Checked {kvp.Value} dependencies matching group {kvp.Key}");
             }
@@ -298,9 +318,9 @@ Transformer options: {Option.CreateHelp(_transformOptions, detailedHelp, filter)
                                                .Distinct()
                                                .OrderBy(r => r.RuleSourceName)
                                                .ThenBy(r => r.LineNo)) {
-                if (_showUnusedQuestionableRules && r.IsQuestionableRule && !r.WasHit) {
+                if (transformOptions.ShowUnusedQuestionableRules && r.IsQuestionableRule && !r.WasHit) {
                     Log.WriteInfo("Questionable rule " + r + " was never matched - maybe you can remove it!");
-                } else if (_showUnusedRules && !r.WasHit) {
+                } else if (transformOptions.ShowUnusedRules && !r.WasHit) {
                     Log.WriteInfo("Rule " + r + " was never matched - maybe you can remove it!");
                 } else {
                     if (Log.IsChattyEnabled) {

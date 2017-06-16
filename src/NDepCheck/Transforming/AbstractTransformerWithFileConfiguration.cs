@@ -5,34 +5,28 @@ using System.Text;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming {
-    public abstract class AbstractTransformerWithFileConfiguration<TConfiguration> : ITransformer {
+    public abstract class AbstractTransformerWithFileConfiguration<TConfiguration, TConfigureOptions, TTransformOptions> 
+            : TransformerWithOptions<TConfigureOptions, TTransformOptions> {
         /// <summary>
         /// Constant for variable settings.
         /// </summary>
         private const string ASSIGN = ":=";
 
-        private ValuesFrame _localVars;
-
-        public abstract string GetHelp(bool detailedHelp, string filter);
-
         #region Configure
 
         private readonly Dictionary<string, TConfiguration> _configFile2Config = new Dictionary<string, TConfiguration>();
 
-        private readonly Dictionary<string, Dictionary<string, string>> _container2configValues = new Dictionary<string, Dictionary<string, string>>();
-
-        public virtual void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
-            _localVars = new ValuesFrame();
-        }
+        private readonly Dictionary<string, Dictionary<string, string>> _container2configValues = 
+                                                                    new Dictionary<string, Dictionary<string, string>>();
 
         protected string NormalizeLine([NotNull] GlobalContext globalContext, [CanBeNull] string line,
-            [CanBeNull] Dictionary<string, string> configValueCollector) {
+            [CanBeNull] Dictionary<string, string> configValueCollector, ValuesFrame localVars) {
             if (line != null) {
                 int commentStart = line.IndexOf("//", StringComparison.InvariantCulture);
                 if (commentStart >= 0) {
                     line = line.Substring(0, commentStart);
                 }
-                return globalContext.ExpandDefinesAndHexChars(_localVars.ExpandDefines(line.Trim(), null), configValueCollector).Trim();
+                return globalContext.ExpandDefinesAndHexChars(localVars.ExpandDefines(line.Trim(), null), configValueCollector).Trim();
             } else {
                 return null;
             }
@@ -42,13 +36,12 @@ namespace NDepCheck.Transforming {
             TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
             [NotNull] Action<TConfiguration, string> onIncludedConfiguration,
             [NotNull] Func<string, int, string> onLineWithLineNo,
-
-            [CanBeNull] Dictionary<string, string> configValueCollector) {
+            [CanBeNull] Dictionary<string, string> configValueCollector, ValuesFrame localVars) {
 
             int lineNo = startLineNo;
 
             for (;;) {
-                string line = NormalizeLine(globalContext, tr.ReadLine(), configValueCollector);
+                string line = NormalizeLine(globalContext, tr.ReadLine(), configValueCollector, localVars);
 
                 if (line == null) {
                     break;
@@ -63,12 +56,12 @@ namespace NDepCheck.Transforming {
                         string fullIncludeFileName = Path.Combine(Path.GetDirectoryName(fullConfigFileName) ?? @"\", includeFilename);
                         TConfiguration childConfiguration = GetOrReadChildConfiguration(globalContext,
                             () => new StreamReader(fullIncludeFileName), fullIncludeFileName,
-                            ignoreCase, fileIncludeStack, forceReloadConfiguration);
+                            ignoreCase, fileIncludeStack, forceReloadConfiguration, localVars);
                         onIncludedConfiguration(childConfiguration, fullConfigFileName);
                     } else if (line.Contains(ASSIGN)) {
                         KeyValuePair<string, string>? kvp = ParseVariableDefinition(line);
                         if (kvp != null) {
-                            _localVars.SetDefine(kvp.Value.Key, kvp.Value.Value, $"at {fullConfigFileName}:{lineNo}");
+                            localVars.SetDefine(kvp.Value.Key, kvp.Value.Value, $"at {fullConfigFileName}:{lineNo}");
                         }
                     } else {
                         string errorOrNull = onLineWithLineNo(line, lineNo);
@@ -97,7 +90,8 @@ namespace NDepCheck.Transforming {
         }
 
         protected TConfiguration GetOrReadChildConfiguration([NotNull] GlobalContext globalContext,
-            Func<TextReader> createReader, string containerUri, bool ignoreCase, string fileIncludeStack, bool forceReload) {
+            Func<TextReader> createReader, string containerUri, bool ignoreCase, string fileIncludeStack, bool forceReload,
+            ValuesFrame localVars) {
             TConfiguration childConfiguration;
 
             Dictionary<string, string> previousConfigValues;
@@ -124,7 +118,7 @@ namespace NDepCheck.Transforming {
             if (forceReload || !_configFile2Config.TryGetValue(containerUri, out childConfiguration)) {
                 using (var tr = createReader()) {
                     childConfiguration = CreateConfigurationFromText(globalContext, containerUri, 0, tr, ignoreCase,
-                        fileIncludeStack + "+" + containerUri, forceReload, previousConfigValues);
+                        fileIncludeStack + "+" + containerUri, forceReload, previousConfigValues, localVars);
                     _configFile2Config[containerUri] = childConfiguration;
                 }
             }
@@ -133,17 +127,8 @@ namespace NDepCheck.Transforming {
 
         protected abstract TConfiguration CreateConfigurationFromText([NotNull] GlobalContext globalContext, string fullConfigFileName,
             int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration,
-            [CanBeNull] Dictionary<string, string> configValueCollector);
+            [CanBeNull] Dictionary<string, string> configValueCollector, ValuesFrame localVars);
 
         #endregion Configure
-
-        #region Transform
-
-        public abstract int Transform([NotNull] GlobalContext globalContext, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
-            [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies, [NotNull] Func<string, IEnumerable<Dependency>> findOtherWorkingGraph);
-
-        public abstract IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph);
-
-        #endregion Transform
     }
 }

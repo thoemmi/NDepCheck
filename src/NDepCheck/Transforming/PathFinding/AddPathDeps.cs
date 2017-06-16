@@ -5,22 +5,27 @@ using JetBrains.Annotations;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.PathFinding {
-    public class AddPathDeps : ITransformer {
+    public class OLDAddPathDeps : TransformerWithOptions<Ignore, OLDAddPathDeps.TransformOptions> {
+        public class TransformOptions {
+            public bool Backwards;
+            [CanBeNull]
+            public ItemMatch PathAnchor;
+            [NotNull, ItemNotNull]
+            public List<AbstractPathMatch<Dependency, Item>> ExpectedPathMatches = new List<AbstractPathMatch<Dependency, Item>>();
+            [CanBeNull]
+            public string Marker;
+            public bool PathAnchorIsCountMatch;
+            [CanBeNull]
+            public AbstractPathMatch<Dependency, Item> CountMatch;
+            [CanBeNull]
+            public int? MaxPathLength;
+        }
+
         private struct DownInfo {
             public readonly IMatchableObject BehindCountMatch;
 
             public DownInfo(IMatchableObject behindCountMatch) {
                 BehindCountMatch = behindCountMatch;
-            }
-        }
-
-        private struct HereInfo {
-            public readonly bool DependencyMatchedByCountMatch;
-            public readonly bool UsedItemMatchedByCountMatch;
-
-            public HereInfo(bool dependencyMatchedByCountMatch, bool usedItemMatchedByCountMatch) {
-                DependencyMatchedByCountMatch = dependencyMatchedByCountMatch;
-                UsedItemMatchedByCountMatch = usedItemMatchedByCountMatch;
             }
         }
 
@@ -31,21 +36,20 @@ namespace NDepCheck.Transforming.PathFinding {
                 EndItems.UnionWith(childUp.EndItems);
             }
 
-            public void Add(TItem topUsedItem, bool hereDependencyMatchedByCountMatch, bool hereUsedItemMatchedByCountMatch) {
+            public void Add(TItem topUsedItem) {
                 EndItems.Add(topUsedItem);
             }
         }
 
         private class AddPathDepsTraverser<TDependency, TItem> : AbstractDepthFirstPathTraverser<TDependency, TItem,
-            DownInfo, HereInfo, UpInfo<TItem>>
+            DownInfo, Ignore, UpInfo<TItem>>
                 where TDependency : AbstractDependency<TItem>
                 where TItem : AbstractItem<TItem> {
             private readonly int _maxPathLength;
             private readonly AbstractPathMatch<TDependency, TItem> _countMatch;
             private readonly HashSet<TItem> _seenInnerPathStarts = new HashSet<TItem>();
 
-            public readonly List<TDependency> PathDependencies = new List<TDependency>();
-            public readonly Dictionary<TItem, HashSet<IMatchableObject>> Counts = new Dictionary<TItem, HashSet<IMatchableObject>>();
+            private readonly Dictionary<TItem, HashSet<IMatchableObject>> Counts = new Dictionary<TItem, HashSet<IMatchableObject>>();
 
             private readonly HashSet<ItemAndInt> _onPath = new HashSet<ItemAndInt>();
             private readonly bool _backwards;
@@ -63,7 +67,6 @@ namespace NDepCheck.Transforming.PathFinding {
                     ? AbstractItem<TItem>.CollectIncomingDependenciesMap(dependencies)
                     : AbstractItem<TItem>.CollectOutgoingDependenciesMap(dependencies);
                 _seenInnerPathStarts.Clear();
-                PathDependencies.Clear();
                 Counts.Clear();
                 _onPath.Clear();
 
@@ -125,8 +128,6 @@ namespace NDepCheck.Transforming.PathFinding {
                 _seenInnerPathStarts.Add(usedItem);
 
                 IMatchableObject pushDownMatch = null;
-                bool dependencyMatchedByCountMatch = false;
-                bool usedItemMatchedByCountMatch = false;
                 if (down.BehindCountMatch != null) {
                     pushDownMatch = down.BehindCountMatch;
                 } else if (_countMatch == null) {
@@ -134,20 +135,18 @@ namespace NDepCheck.Transforming.PathFinding {
                 } else if (_countMatch == pathMatchOrNull) {
                     if (_countMatch is DependencyPathMatch<TDependency, TItem>) {
                         pushDownMatch = tailDependency;
-                        dependencyMatchedByCountMatch = true;
                     } else {
                         pushDownMatch = usedItem;
-                        usedItemMatchedByCountMatch = true;
                     }
                 } else {
                     // default values are ok
                 }
-                return new DownAndHere(new DownInfo(pushDownMatch), new HereInfo(dependencyMatchedByCountMatch, usedItemMatchedByCountMatch));
+                return new DownAndHere(new DownInfo(pushDownMatch), Ignore.Om);
             }
 
             protected override UpInfo<TItem> BeforePopDependency(Stack<TDependency> currentPath, int expectedPathMatchIndex,
                     AbstractPathMatch<TDependency, TItem> pathMatchOrNull, bool isEnd,
-                    HereInfo here, UpInfo<TItem> upSum, UpInfo<TItem> childUp) {
+                    Ignore here, UpInfo<TItem> upSum, UpInfo<TItem> childUp) {
 
                 upSum.UnionWith(childUp);
 
@@ -156,7 +155,7 @@ namespace NDepCheck.Transforming.PathFinding {
                 bool isEndOfCycle = _onPath.Contains(key);
 
                 if (isEnd || isEndOfCycle) {
-                    upSum.Add(top.UsedItem, here.DependencyMatchedByCountMatch, here.UsedItemMatchedByCountMatch);
+                    upSum.Add(top.UsedItem);
                 }
                 return upSum;
             }
@@ -178,41 +177,44 @@ namespace NDepCheck.Transforming.PathFinding {
         public static readonly Option KeepOnlyPathsOption = new Option("kp", "keep-only-paths", "", "remove all dependencies not on matched paths", @default: false);
 
         private static readonly Option[] _allOptions = PathOptions.WithOptions(AddMarkerOption, KeepOnlyPathsOption);
-        public void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
-            // empty
+
+        protected override Ignore CreateConfigureOptions([NotNull] GlobalContext globalContext,
+            [CanBeNull] string configureOptionsString, bool forceReload) {
+            return Ignore.Om;
         }
 
-        public int Transform([NotNull] GlobalContext globalContext, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
-            string transformOptions, [NotNull] List<Dependency> transformedDependencies, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
-            bool backwards;
-            ItemMatch pathAnchor;
-            bool pathAnchorIsCountMatch;
-            var expectedPathMatches = new List<AbstractPathMatch<Dependency, Item>>();
-            AbstractPathMatch<Dependency, Item> countMatch;
-            ////bool keepOnlyPathEdges = false;
-            int? maxPathLength;
-            string marker = null;
+        protected override TransformOptions CreateTransformOptions([NotNull] GlobalContext globalContext, 
+            [CanBeNull] string transformOptionsString, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+            var transformOptions = new TransformOptions();
 
-            PathOptions.Parse(globalContext, transformOptions, out backwards, out pathAnchor, out pathAnchorIsCountMatch,
-                expectedPathMatches, out countMatch, out maxPathLength,
+            PathOptions.Parse(globalContext, transformOptionsString, out transformOptions.Backwards,
+                out transformOptions.PathAnchor, out transformOptions.PathAnchorIsCountMatch,
+                transformOptions.ExpectedPathMatches, out transformOptions.CountMatch, out transformOptions.MaxPathLength,
                 AddMarkerOption.Action((args, j) => {
-                    marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
+                    transformOptions.Marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
                     return j;
                 })
-                ////KeepOnlyPathsOption.Action((args, j) => {
-                ////    keepOnlyPathEdges = true;
-                ////    return j;
-                ////})
+            ////KeepOnlyPathsOption.Action((args, j) => {
+            ////    keepOnlyPathEdges = true;
+            ////    return j;
+            ////})
             );
-            AbstractPathMatch<Dependency, Item>[] expectedPathMatchesArray = expectedPathMatches.ToArray();
-            var c = new AddPathDepsTraverser<Dependency, Item>(maxPathLength ?? 1 + expectedPathMatchesArray.Length * 2,
-                                                              backwards, countMatch, globalContext.CheckAbort);
-            List<FromTo<Item, Dependency>> fromTos = c.Traverse(dependencies, pathAnchor, pathAnchorIsCountMatch, expectedPathMatchesArray);
+            return transformOptions;
+        }
+
+        public override int Transform([NotNull] GlobalContext globalContext, Ignore Ignore, 
+            [NotNull] TransformOptions transformOptions, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
+            [NotNull] List<Dependency> transformedDependencies) {
+            AbstractPathMatch<Dependency, Item>[] expectedPathMatchesArray = transformOptions.ExpectedPathMatches.ToArray();
+            var c = new AddPathDepsTraverser<Dependency, Item>(
+                transformOptions.MaxPathLength ?? 1 + expectedPathMatchesArray.Length * 2,
+                transformOptions.Backwards, transformOptions.CountMatch, globalContext.CheckAbort);
+            List<FromTo<Item, Dependency>> fromTos = c.Traverse(dependencies, transformOptions.PathAnchor, transformOptions.PathAnchorIsCountMatch, expectedPathMatchesArray);
 
             transformedDependencies.AddRange(dependencies);
 
             foreach (var r in fromTos) {
-                transformedDependencies.Add(globalContext.CurrentGraph.CreateDependency(r.From, r.To, null, marker, 0 /*TODO: Sum of edges????*/));
+                transformedDependencies.Add(globalContext.CurrentGraph.CreateDependency(r.From, r.To, null, transformOptions.Marker ?? "", 0 /*TODO: Sum of edges????*/));
             }
 
             Log.WriteInfo($"... added {fromTos.Count} dependencies");
@@ -220,7 +222,7 @@ namespace NDepCheck.Transforming.PathFinding {
             return Program.OK_RESULT;
         }
 
-        public string GetHelp(bool detailedHelp, string filter) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             return
     $@"  Writes dependencies to .dip files, which can be read in by 
   NDepCheck's DipReader. This is very helpful for building pipelines 
@@ -229,7 +231,7 @@ namespace NDepCheck.Transforming.PathFinding {
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
             var a = transformingGraph.CreateItem(t3, "a:aa:aaa".Split(':'));

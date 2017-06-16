@@ -32,7 +32,7 @@ namespace NDepCheck.Tests {
             var deps = new[] { graph.CreateDependency(a, b, null, "", 1), graph.CreateDependency(b, a, null, "", 1), };
             var result = new List<Dependency>();
 
-            new MarkCycleDeps().Transform(gc, deps, "", result, s => null);
+            new MarkCycleDeps().Transform(gc, Ignore.Om, new MarkCycleDeps.TransformOptions(), deps, result);
 
             Assert.AreEqual(2, result.Count);
             Assert.AreEqual(1, result[0].BadCt);
@@ -58,7 +58,8 @@ namespace NDepCheck.Tests {
             };
             var result = new List<Dependency>();
 
-            new MarkCycleDeps().Transform(gc, deps, MarkCycleDeps.KeepOnlyCyclesOption.Opt, result, s => null);
+            new MarkCycleDeps().Transform(gc, Ignore.Om,
+                new MarkCycleDeps.TransformOptions { KeepOnlyCycleDependencies = true }, deps, result);
 
             result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
 
@@ -118,10 +119,12 @@ namespace NDepCheck.Tests {
             };
             var result = new List<Dependency>();
 
-            new MarkCycleDeps().Transform(gc, deps,
-                ($"{{ {MarkCycleDeps.AddIndexedMarkerOption} {markerPrefix} " +
-                 $"{(keepOnlyCyclesOption ? MarkCycleDeps.KeepOnlyCyclesOption.Opt : "")} }}")
-                .Replace(" ", "\r\n"), result, s => null);
+            new MarkCycleDeps().Transform(gc, Ignore.Om,
+                new MarkCycleDeps.TransformOptions {
+                    KeepOnlyCycleDependencies = keepOnlyCyclesOption,
+                    IndexedMarkerPrefix = markerPrefix
+                },
+                deps, result);
 
             result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
             return result;
@@ -152,10 +155,11 @@ namespace NDepCheck.Tests {
             var result = new List<Dependency>();
 
             const string marker = "Cycle";
-            new MarkCycleDeps().Transform(gc, deps,
-            ($"{{ {MarkCycleDeps.KeepOnlyCyclesOption} " +
-             $"{MarkCycleDeps.MaxCycleLengthOption} 3 " +
-             $"{MarkCycleDeps.EffectOptions.AddMarkerOption} {marker} }}").Replace(" ", "\r\n"), result, s => null);
+            new MarkCycleDeps().Transform(gc, Ignore.Om, new MarkCycleDeps.TransformOptions {
+                KeepOnlyCycleDependencies = true,
+                MaxCycleLength = 3,
+                Effects = new Action<Dependency>[] { dep => dep.IncrementMarker(marker) }
+            }, deps, result);
 
             result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
 
@@ -206,10 +210,9 @@ namespace NDepCheck.Tests {
                 graph.CreateDependency(e, c, null, "", 1),
             };
             var result = new List<Dependency>();
-
-            new MarkCycleDeps().Transform(gc, deps,
-                $"{{ {MarkCycleDeps.AddIndexedMarkerOption} {cycleMarkerPrefix} }}".Replace(" ", Environment.NewLine),
-                result, s => null);
+            new MarkCycleDeps().Transform(gc, Ignore.Om, new MarkCycleDeps.TransformOptions {
+                IndexedMarkerPrefix = cycleMarkerPrefix
+            }, deps, result);
 
             result.Sort((x, y) => string.Compare(x.UsingItemAsString, y.UsingItemAsString, StringComparison.Ordinal));
             return result;
@@ -286,7 +289,6 @@ SIMPLE:c'X1
 SIMPLE:d
 <= SIMPLE:c'X1 $", result.Trim());
             }
-
         }
     }
 }

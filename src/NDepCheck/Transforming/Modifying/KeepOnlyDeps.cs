@@ -5,12 +5,17 @@ using JetBrains.Annotations;
 using NDepCheck.Matching;
 
 namespace NDepCheck.Transforming.Modifying {
-    public class KeepOnlyDeps : ITransformer {
+    public class KeepOnlyDeps : TransformerWithOptions<Ignore, KeepOnlyDeps.TransformOptions> {
+        public class TransformOptions {
+            [NotNull, ItemNotNull]
+            public List<DependencyMatch> Matches = new List<DependencyMatch>();
+            [NotNull, ItemNotNull]
+            public List<DependencyMatch> Excludes = new List<DependencyMatch>();
+        }
+
         private static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions("keep");
 
-        private bool _ignoreCase;
-
-        public string GetHelp(bool detailedHelp, string filter) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             return $@"Keep only matching dependencies.
 
 Configuration options: None
@@ -18,24 +23,30 @@ Configuration options: None
 Transformer options: {Option.CreateHelp(DependencyMatchOptions.WithOptions(), detailedHelp, filter)}";
         }
 
-        public void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
-            _ignoreCase = globalContext.IgnoreCase;
+        protected override Ignore CreateConfigureOptions([NotNull] GlobalContext globalContext,
+            [CanBeNull] string configureOptionsString, bool forceReload) {
+            return Ignore.Om;
         }
 
-        public int Transform([NotNull] GlobalContext globalContext, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies, 
-            [CanBeNull] string transformOptions, [NotNull] List<Dependency> transformedDependencies, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+        protected override TransformOptions CreateTransformOptions([NotNull] GlobalContext globalContext, 
+            [CanBeNull] string transformOptionsString, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+            var transformOptions = new TransformOptions();
 
-            var matches = new List<DependencyMatch>();
-            var excludes = new List<DependencyMatch>();
+            DependencyMatchOptions.Parse(globalContext, transformOptionsString, globalContext.IgnoreCase,
+                                         transformOptions.Matches, transformOptions.Excludes);
+            return transformOptions;
+        }
 
-            DependencyMatchOptions.Parse(globalContext, transformOptions, _ignoreCase, matches, excludes);
-
-            transformedDependencies.AddRange(dependencies.Where(d => d.IsMarkerMatch(matches, excludes)));
+        public override int Transform([NotNull] GlobalContext globalContext, Ignore Ignore, 
+            [NotNull] TransformOptions transformOptions, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
+            [NotNull] List<Dependency> transformedDependencies) {
+            transformedDependencies.AddRange(
+                dependencies.Where(d => d.IsMarkerMatch(transformOptions.Matches, transformOptions.Excludes)));
 
             return Program.OK_RESULT;
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
             Item a = transformingGraph.CreateItem(ItemType.SIMPLE, "A");
             Item b = transformingGraph.CreateItem(ItemType.SIMPLE, "B");
             return new[] {

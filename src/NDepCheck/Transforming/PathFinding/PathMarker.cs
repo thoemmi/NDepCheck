@@ -6,7 +6,25 @@ using NDepCheck.Matching;
 using NDepCheck.PathMatching;
 
 namespace NDepCheck.Transforming.PathFinding {
-    public class PathMarker : ITransformer {
+    public class PathMarker : TransformerWithOptions<Ignore, PathMarker.TransformOptions> {
+        public class TransformOptions {
+            public bool Backwards;
+            [NotNull]
+            public string Marker = "_";
+            public bool AddIndex;
+            public bool KeepOnlyPathEdges;
+            public bool IgnorePrefixPaths;
+            public bool IgnoreSubpaths;
+            [CanBeNull]
+            public int? MaxPathLength;
+            public bool AddTransitiveDependencyInsteadOfMarking;
+            [NotNull]
+            public Dictionary<string, DependencyMatch> DefinedDependencyMatches = new Dictionary<string, DependencyMatch>();
+            [NotNull]
+            public Dictionary<string, ItemMatch> DefinedItemMatches = new Dictionary<string, ItemMatch>();
+            public string Regex;
+        }
+
         private class PathNode {
             [CanBeNull]
             private readonly PathNode _previous;
@@ -181,10 +199,10 @@ namespace NDepCheck.Transforming.PathFinding {
         public static readonly Option KeepOnlyPathsOption = new Option("kp", "keep-only-paths", "",
             "remove all dependencies not on matched paths", @default: false);
 
-        public static readonly Option IgnorePrefixPaths = new Option("ip", "ignore-prefix-paths", "",
+        public static readonly Option IgnorePrefixPathsOption = new Option("ip", "ignore-prefix-paths", "",
             "ignore paths that are the prefix (start) of anotehr path", @default: false);
 
-        public static readonly Option IgnoreSubpaths = new Option("is", "ignore-subpaths", "",
+        public static readonly Option IgnoreSubpathsOption = new Option("is", "ignore-subpaths", "",
             "ignore paths that are contained in another (longer) path", @default: false);
 
         public static readonly Option DefineDependencyMatchOption = new Option("dd", "define-dependency-match",
@@ -204,78 +222,74 @@ namespace NDepCheck.Transforming.PathFinding {
 
         private static readonly Option[] _allOptions = {
             AddIndexedMarkerOption, AddDependencyOption, AddMarkerOption,
-            KeepOnlyPathsOption, IgnorePrefixPaths, IgnoreSubpaths, DefineDependencyMatchOption, DefineItemMatchOption,
+            KeepOnlyPathsOption, IgnorePrefixPathsOption, IgnoreSubpathsOption, DefineDependencyMatchOption, DefineItemMatchOption,
             BackwardsOption, MaxPathLengthOption
         };
 
-        public void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions,
-            bool forceReload) {
-            // empty
+        protected override Ignore CreateConfigureOptions([NotNull] GlobalContext globalContext,
+            [CanBeNull] string configureOptionsString, bool forceReload) {
+            return Ignore.Om;
         }
 
-        public int Transform([NotNull] GlobalContext globalContext,
-            [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies, string transformOptions,
-            [NotNull] List<Dependency> transformedDependencies,
-            Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+        protected override TransformOptions CreateTransformOptions([NotNull] GlobalContext globalContext,
+            [CanBeNull] string transformOptionsString, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+            var transformOptions = new TransformOptions();
 
-            bool backwards = false;
-            string marker = "_";
-            bool addIndex = false;
-            bool keepOnlyPathEdges = false;
-            bool ignorePrefixPaths = false;
-            bool ignoreSubpaths = false;
-            int? maxPathLength = null;
-            bool addTransitiveDependencyInsteadOfMarking = false;
-            Dictionary<string, DependencyMatch> definedDependencyMatches = new Dictionary<string, DependencyMatch>();
-            Dictionary<string, ItemMatch> definedItemMatches = new Dictionary<string, ItemMatch>();
-            string regex = null;
-
-            Option.Parse(globalContext, transformOptions, BackwardsOption.Action((args, j) => {
-                backwards = true;
+            Option.Parse(globalContext, transformOptionsString, BackwardsOption.Action((args, j) => {
+                transformOptions.Backwards = true;
                 return j;
             }), MaxPathLengthOption.Action((args, j) => {
-                maxPathLength = Option.ExtractIntOptionValue(args, ref j, "Invalid maximum path length");
+                transformOptions.MaxPathLength = Option.ExtractIntOptionValue(args, ref j, "Invalid maximum path length");
                 return j;
             }), AddMarkerOption.Action((args, j) => {
-                marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
+                transformOptions.Marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
                 return j;
             }), AddIndexedMarkerOption.Action((args, j) => {
-                marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
-                addIndex = true;
+                transformOptions.Marker = Option.ExtractRequiredOptionValue(args, ref j, "missing marker name");
+                transformOptions.AddIndex = true;
                 return j;
             }), KeepOnlyPathsOption.Action((args, j) => {
-                keepOnlyPathEdges = true;
+                transformOptions.KeepOnlyPathEdges = true;
                 return j;
-            }), IgnorePrefixPaths.Action((args, j) => {
-                ignorePrefixPaths = true;
+            }), IgnorePrefixPathsOption.Action((args, j) => {
+                transformOptions.IgnorePrefixPaths = true;
                 return j;
-            }), IgnoreSubpaths.Action((args, j) => {
-                ignoreSubpaths = true;
+            }), IgnoreSubpathsOption.Action((args, j) => {
+                transformOptions.IgnoreSubpaths = true;
                 return j;
             }), AddDependencyOption.Action((args, j) => {
-                addTransitiveDependencyInsteadOfMarking = true;
+                transformOptions.AddTransitiveDependencyInsteadOfMarking = true;
                 return j;
             }), DefineDependencyMatchOption.Action((args, j) => {
                 string name = Option.ExtractRequiredOptionValue(args, ref j, "missing name");
                 string pattern = Option.ExtractNextRequiredValue(args, ref j, "missing pattern");
-                definedDependencyMatches[name] = DependencyMatch.Create(pattern, globalContext.IgnoreCase);
+                transformOptions.DefinedDependencyMatches[name] = DependencyMatch.Create(pattern, globalContext.IgnoreCase);
                 return j;
             }), DefineItemMatchOption.Action((args, j) => {
                 string name = Option.ExtractRequiredOptionValue(args, ref j, "missing name");
                 string pattern = Option.ExtractNextRequiredValue(args, ref j, "missing pattern");
-                definedItemMatches[name] = new ItemMatch(pattern, globalContext.IgnoreCase, anyWhereMatcherOk: true);
+                transformOptions.DefinedItemMatches[name] = new ItemMatch(pattern, globalContext.IgnoreCase, anyWhereMatcherOk: true);
                 return j;
             }), RegexOption.Action((args, j) => {
-                regex = Option.ExtractRequiredOptionValue(args, ref j, "missing regex");
+                transformOptions.Regex = Option.ExtractRequiredOptionValue(args, ref j, "missing regex");
                 return j;
             }));
 
+            return transformOptions;
+        }
+
+        public override int Transform([NotNull] GlobalContext globalContext, Ignore Ignore,
+            [NotNull] TransformOptions transformOptions, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies, 
+            [NotNull] List<Dependency> transformedDependencies) {
+
             var foundPaths = new List<PathInfo>();
-            var pathRegex = new PathRegex<Item, Dependency>(regex ?? ":(.:)+", definedItemMatches,
-                definedDependencyMatches, globalContext.IgnoreCase);
+            string regex = transformOptions.Regex ?? ":(.:)+";
+            var pathRegex = new PathRegex<Item, Dependency>(regex, transformOptions.DefinedItemMatches,
+                transformOptions.DefinedDependencyMatches, globalContext.IgnoreCase);
             var countedObjectsPerItem = new Dictionary<Item, HashSet<IMatchableObject>>();
             var traverser = new RegexPathMarkerTraverser(pathRegex,
-                maxPathLength ?? (pathRegex.ContainsLoops ? 1000 : regex.Length), backwards, ignorePrefixPaths,
+                transformOptions.MaxPathLength ?? (pathRegex.ContainsLoops ? 1000 : regex.Length),
+                transformOptions.Backwards, transformOptions.IgnorePrefixPaths,
                 globalContext.CheckAbort, foundPaths, countedObjectsPerItem);
             traverser.Traverse(dependencies);
 
@@ -284,11 +298,11 @@ namespace NDepCheck.Transforming.PathFinding {
             if (pathRegex.ContainsCountSymbol) {
                 foreach (var kvp in countedObjectsPerItem) {
                     kvp.Value.Remove(null);
-                    kvp.Key.SetMarker(marker, kvp.Value.Count);
+                    kvp.Key.SetMarker(transformOptions.Marker, kvp.Value.Count);
                 }
             }
 
-            if (ignoreSubpaths) {
+            if (transformOptions.IgnoreSubpaths) {
                 foundPaths.Sort((f1, f2) => f2.PathLength - f1.PathLength);
                 var longPaths = new List<PathInfo>();
                 foreach (var f in foundPaths) {
@@ -299,7 +313,7 @@ namespace NDepCheck.Transforming.PathFinding {
                 foundPaths = longPaths;
             }
 
-            if (addTransitiveDependencyInsteadOfMarking) {
+            if (transformOptions.AddTransitiveDependencyInsteadOfMarking) {
                 var transitiveEdges = new HashSet<Dependency>();
                 foreach (var f in foundPaths) {
                     if (f.Tail == null) {
@@ -308,20 +322,20 @@ namespace NDepCheck.Transforming.PathFinding {
 
                     IEnumerable<Dependency> path = f.PathNodes.Select(n => n.Dependency);
                     transitiveEdges.Add(globalContext.CurrentGraph.CreateDependency(f.Root, f.Tail.Dependency.UsedItem,
-                        source: null, markers: marker, ct: path.Max(p => p.Ct),
+                        source: null, markers: transformOptions.Marker, ct: path.Max(p => p.Ct),
                         questionableCt: path.Max(d => d.QuestionableCt), badCt: path.Max(d => d.BadCt),
                         notOkReason: path.Select(d => d.NotOkReason).FirstOrDefault(),
                         exampleInfo: path.Select(d => d.ExampleInfo).FirstOrDefault()));
                 }
-                transformedDependencies.AddRange(keepOnlyPathEdges
+                transformedDependencies.AddRange(transformOptions.KeepOnlyPathEdges
                     ? transitiveEdges
                     : dependencies.Concat(transitiveEdges));
             } else {
                 int n = 0;
-                string addIndexToMarkerFormat = addIndex ? "D" + ("" + foundPaths.Count).Length : null;
+                string addIndexToMarkerFormat = transformOptions.AddIndex ? "D" + ("" + foundPaths.Count).Length : null;
                 var pathDependencies = new HashSet<Dependency>();
                 foreach (var f in foundPaths) {
-                    string m = marker + (addIndexToMarkerFormat == null ? "" : n++.ToString(addIndexToMarkerFormat));
+                    string m = transformOptions.Marker + (addIndexToMarkerFormat == null ? "" : n++.ToString(addIndexToMarkerFormat));
                     int i = 0;
                     foreach (var node in f.PathNodes) {
                         pathDependencies.Add(node.Dependency);
@@ -333,12 +347,12 @@ namespace NDepCheck.Transforming.PathFinding {
                         isMatchedByCountSymbol: f.RootIsCounted, isLoopBack: false /*??*/);
                 }
 
-                transformedDependencies.AddRange(keepOnlyPathEdges ? pathDependencies : dependencies);
+                transformedDependencies.AddRange(transformOptions.KeepOnlyPathEdges ? pathDependencies : dependencies);
             }
             return Program.OK_RESULT;
         }
 
-        public string GetHelp(bool detailedHelp, string filter) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             var result = $@"  Marks paths in dependency graph.
 
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
@@ -355,7 +369,7 @@ Path marking:
             return result;
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph transformingGraph) {
             ItemType t3 = ItemType.New("T3(ShortName:MiddleName:LongName)");
 
             var a = transformingGraph.CreateItem(t3, "a:aa:aaa".Split(':'));

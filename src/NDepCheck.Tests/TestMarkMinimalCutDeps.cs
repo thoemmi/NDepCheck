@@ -11,17 +11,19 @@ namespace NDepCheck.Tests {
     public static class TestUtils {
         public static bool MarkersContain(this IWithMarkerSet d, string s) {
             CountPattern<IMatcher>.Eval eval = MarkerMatch.CreateEval(s + ">0", ignoreCase: false);
-            return d.MarkerSet.IsMatch(new[] {eval});
+            return d.MarkerSet.IsMatch(new[] { eval });
         }
     }
 
     [TestClass, ExcludeFromCodeCoverage]
     public class TestMarkMinimalCutDeps {
-        private static IEnumerable<Dependency> Run(GlobalContext gc, string options, IEnumerable<Dependency> dependencies) {
+        private static IEnumerable<Dependency> Run(GlobalContext gc, MarkMinimalCutDeps.TransformOptions options,
+            IEnumerable<Dependency> dependenciesOrNullForTestDependencies) {
             try {
                 var mmc = new MarkMinimalCutDeps();
                 var result = new List<Dependency>();
-                mmc.Transform(gc, dependencies ?? mmc.CreateSomeTestDependencies(gc.CurrentGraph), options.Replace(" ", "\r\n"), result, s => null);
+                mmc.Transform(gc, Ignore.Om, options, 
+                    dependenciesOrNullForTestDependencies ?? mmc.CreateSomeTestDependencies(gc.CurrentGraph), result);
                 return result;
             } finally {
                 // Also static caches must be reset, as "Mark" modifies Items
@@ -45,9 +47,12 @@ namespace NDepCheck.Tests {
             };
 
             const string mark = "CUT";
-            IEnumerable<Dependency> result = Run(gc, $"{{ {MarkMinimalCutDeps.MatchSourceOption} a " +
-                                                     $"{MarkMinimalCutDeps.MatchTargetOption} d " +
-                                                     $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
+            IEnumerable<Dependency> result = Run(gc,
+                new MarkMinimalCutDeps.TransformOptions {
+                    SourceMatches = new List<ItemMatch> { new ItemMatch("a", false, anyWhereMatcherOk: true) },
+                    TargetMatches = new List<ItemMatch> { new ItemMatch("d", false, anyWhereMatcherOk: true) },
+                    MarkerToAddToCut = mark
+                }, dependencies);
             Assert.IsTrue(result.All(z => z.MarkersContain(mark) == (z.Ct == 20)), string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
         }
 
@@ -77,9 +82,12 @@ namespace NDepCheck.Tests {
             };
 
             const string mark = "CUT";
-            IEnumerable<Dependency> result = Run(gc, $"{{ {MarkMinimalCutDeps.MatchSourceOption} s " +
-                                                     $"{MarkMinimalCutDeps.MatchTargetOption} t " +
-                                                     $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
+            IEnumerable<Dependency> result = Run(gc,
+                                new MarkMinimalCutDeps.TransformOptions {
+                                    SourceMatches = new List<ItemMatch> { new ItemMatch("s", false, anyWhereMatcherOk: true) },
+                                    TargetMatches = new List<ItemMatch> { new ItemMatch("t", false, anyWhereMatcherOk: true) },
+                                    MarkerToAddToCut = mark
+                                }, dependencies);
             Assert.IsTrue(result.All(z => z.MarkersContain(mark) == (Equals(z.UsingItem, s))),
                           string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
         }
@@ -122,9 +130,11 @@ namespace NDepCheck.Tests {
             Dependency[] dependencies = CreateExampleGraph(gc);
 
             const string mark = "CUT";
-            IEnumerable<Dependency> result = Run(gc, $"{{ {MarkMinimalCutDeps.MatchSourceOption} s " +
-                                                     $"{MarkMinimalCutDeps.MatchTargetOption} t " +
-                                                     $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
+            IEnumerable<Dependency> result = Run(gc, new MarkMinimalCutDeps.TransformOptions {
+                SourceMatches = new List<ItemMatch> { new ItemMatch("s", false, anyWhereMatcherOk: true) },
+                TargetMatches = new List<ItemMatch> { new ItemMatch("t", false, anyWhereMatcherOk: true) },
+                MarkerToAddToCut = mark
+            }, dependencies);
             Assert.IsTrue(result.All(z => z.MarkersContain(mark) == new[] { 12, 36, 78 }.Contains(z.Ct)),
                           string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
         }
@@ -145,9 +155,11 @@ namespace NDepCheck.Tests {
             }).ToArray();
 
             const string mark = "CUT";
-            IEnumerable<Dependency> result = Run(gc, $"{{ {MarkMinimalCutDeps.MatchSourceOption} r* " +
-                                                     $"{MarkMinimalCutDeps.MatchTargetOption} t " +
-                                                     $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", dependencies);
+            IEnumerable<Dependency> result = Run(gc, new MarkMinimalCutDeps.TransformOptions {
+                SourceMatches = new List<ItemMatch> { new ItemMatch("r*", false, anyWhereMatcherOk: true) },
+                TargetMatches = new List<ItemMatch> { new ItemMatch("t", false, anyWhereMatcherOk: true) },
+                MarkerToAddToCut = mark
+            }, dependencies);
             Assert.IsTrue(result.All(z => z.MarkersContain(mark) == new[] { 12, 36, 78 }.Contains(z.Ct)),
                           string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
         }
@@ -174,10 +186,12 @@ namespace NDepCheck.Tests {
             const string mark = "CUT";
             const string source = "SOURCE";
 
-            IEnumerable<Dependency> result = Run(gc, $"{{ {MarkMinimalCutDeps.MatchSourceOption} s " +
-                                                     $"{MarkMinimalCutDeps.MatchTargetOption} t " +
-                                                     $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} " +
-                                                     $"{MarkMinimalCutDeps.SourceMarkerOption} {source} }}", dependencies);
+            IEnumerable<Dependency> result = Run(gc, new MarkMinimalCutDeps.TransformOptions {
+                SourceMatches = new List<ItemMatch> { new ItemMatch("s", false, anyWhereMatcherOk: true) },
+                TargetMatches = new List<ItemMatch> { new ItemMatch("t", false, anyWhereMatcherOk: true) },
+                MarkerToAddToCut = mark,
+                MarkerToAddToSourceSide = source
+            }, dependencies);
             Assert.IsTrue(result.All(z => z.MarkersContain(mark) == new[] { 102, 104 }.Contains(z.Ct)),
                           string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
             Assert.IsTrue(s.MarkersContain(source));
@@ -190,10 +204,13 @@ namespace NDepCheck.Tests {
         [TestMethod]
         public void TestMarkYetAnotherCut() {
             const string mark = "CUT";
-            IEnumerable<Dependency> result = Run(new GlobalContext(), $"{{ {MarkMinimalCutDeps.MatchSourceOption} s " +
-                                                     $"{MarkMinimalCutDeps.MatchTargetOption} t " +
-                                                     $"{MarkMinimalCutDeps.UseQuestionableCountOption} " +
-                                                     $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} }}", null);
+            IEnumerable<Dependency> result = Run(new GlobalContext(),
+                new MarkMinimalCutDeps.TransformOptions {
+                    SourceMatches = new List<ItemMatch> { new ItemMatch("s", false, anyWhereMatcherOk: true) },
+                    TargetMatches = new List<ItemMatch> { new ItemMatch("t", false, anyWhereMatcherOk: true) },
+                    WeightForCut = d => d.QuestionableCt,
+                    MarkerToAddToCut = mark
+                }, dependenciesOrNullForTestDependencies: null);
             Assert.IsTrue(result.All(z => z.MarkersContain(mark) == new[] { 112, 142, 145 }.Contains(z.Ct)),
                           string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
         }
@@ -215,10 +232,12 @@ namespace NDepCheck.Tests {
             const string mark = "CUT";
             const string source = "SOURCE";
 
-            IEnumerable<Dependency> result = Run(gc, $"{{ {MarkMinimalCutDeps.MatchSourceOption} a " +
-                                                     $"{MarkMinimalCutDeps.MatchTargetOption} d " +
-                                                     $"{MarkMinimalCutDeps.DepsMarkerOption} {mark} " +
-                                                     $"{MarkMinimalCutDeps.SourceMarkerOption} {source} }}", dependencies);
+            IEnumerable<Dependency> result = Run(gc, new MarkMinimalCutDeps.TransformOptions {
+                SourceMatches = new List<ItemMatch> { new ItemMatch("a", false, anyWhereMatcherOk: true) },
+                TargetMatches = new List<ItemMatch> { new ItemMatch("d", false, anyWhereMatcherOk: true) },
+                MarkerToAddToCut = mark,
+                MarkerToAddToSourceSide = source
+            }, dependencies);
             Assert.IsTrue(result.All(z => !z.MarkersContain(mark)),
                           string.Join("\r\n", result.Select(z => z.AsLimitableStringWithTypes(withExampleInfo: false, threeLines: false))));
             Assert.IsTrue(a.MarkersContain(source));

@@ -5,7 +5,17 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming.Modifying {
-    public class ModifyItems : AbstractTransformerWithFileConfiguration<IEnumerable<ItemAction>> {
+    public class ModifyItems : AbstractTransformerWithFileConfiguration<IEnumerable<ItemAction>,
+        ModifyItems.ConfigureOptions, ModifyItems.TransformOptions> {
+        public class ConfigureOptions {
+            [NotNull, ItemNotNull]
+            public IEnumerable<ItemAction> OrderedActions = new ItemAction[0];
+        }
+
+        public class TransformOptions {
+            // empty
+        }
+
         public static readonly Option ModificationsFileOption = new Option("mf", "modifications-file", "filename", "File containing modifications", @default: "");
         public static readonly Option ModificationsOption = new Option("ml", "modifications-list", "modifications", "Inline modifications", orElse: ModificationsFileOption);
 
@@ -61,46 +71,53 @@ Examples:
             return result;
         }
 
-        private IEnumerable<ItemAction> _orderedActions;
+        protected override ConfigureOptions CreateConfigureOptions([NotNull] GlobalContext globalContext,
+            [CanBeNull] string configureOptionsString, bool forceReload) {
+            var localVars = new ValuesFrame();
 
-        public override void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptions, bool forceReload) {
-            base.Configure(globalContext, configureOptions, forceReload);
-
-            Option.Parse(globalContext, configureOptions,
+            var options = new ConfigureOptions();
+            Option.Parse(globalContext, configureOptionsString,
                 ModificationsFileOption.Action((args, j) => {
                     string fullSourceName = Path.GetFullPath(Option.ExtractRequiredOptionValue(args, ref j, "missing modifications filename"));
-                    _orderedActions = GetOrReadChildConfiguration(globalContext,
-                        () => new StreamReader(fullSourceName), fullSourceName, globalContext.IgnoreCase, "????", forceReload);
+                    options.OrderedActions = GetOrReadChildConfiguration(globalContext,
+                        () => new StreamReader(fullSourceName), fullSourceName, globalContext.IgnoreCase, "????", forceReload, localVars);
                     return j;
                 }),
                 ModificationsOption.Action((args, j) => {
-                    _orderedActions = GetOrReadChildConfiguration(globalContext,
+                    options.OrderedActions = GetOrReadChildConfiguration(globalContext,
                         () => new StringReader(string.Join(Environment.NewLine, args.Skip(j + 1))),
-                        ModificationsOption.ShortName, globalContext.IgnoreCase, "????", forceReload: true);
+                        ModificationsOption.ShortName, globalContext.IgnoreCase, "????", forceReload: true, localVars:localVars);
                     // ... and all args are read in, so the next arg index is past every argument.
                     return int.MaxValue;
                 })
             );
+            return options;
         }
 
-        protected override IEnumerable<ItemAction> CreateConfigurationFromText([NotNull] GlobalContext globalContext, string fullConfigFileName, 
-            int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack, bool forceReloadConfiguration, 
-            Dictionary<string, string> configValueCollector) {
+        protected override IEnumerable<ItemAction> CreateConfigurationFromText([NotNull] GlobalContext globalContext, 
+            string fullConfigFileName, int startLineNo, TextReader tr, bool ignoreCase, string fileIncludeStack,
+            bool forceReloadConfiguration, Dictionary<string, string> configValueCollector, ValuesFrame localVars) {
 
             var actions = new List<ItemAction>();
-            ProcessTextInner(globalContext, fullConfigFileName, startLineNo, tr, ignoreCase, fileIncludeStack, forceReloadConfiguration,
-                onIncludedConfiguration: (e, n) => actions.AddRange(e),
+            ProcessTextInner(globalContext, fullConfigFileName, startLineNo, tr, ignoreCase, fileIncludeStack, 
+                forceReloadConfiguration, onIncludedConfiguration: (e, n) => actions.AddRange(e),
                 onLineWithLineNo: (line, lineNo) => {
                     actions.Add(new ItemAction(line.Trim(), ignoreCase, fullConfigFileName, startLineNo));
                     return null;
-                }, configValueCollector: configValueCollector);
+                }, configValueCollector: configValueCollector, localVars: localVars);
             return actions;
         }
 
-        public override int Transform([NotNull] GlobalContext globalContext, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
-            string transformOptions, [NotNull] List<Dependency> transformedDependencies, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+        protected override TransformOptions CreateTransformOptions([NotNull] GlobalContext globalContext, 
+            [CanBeNull] string transformOptionsString, Func<string, IEnumerable<Dependency>> findOtherWorkingGraph) {
+            return new TransformOptions();
+        }
 
-            if (_orderedActions == null) {
+        public override int Transform([NotNull] GlobalContext globalContext, [NotNull] ConfigureOptions configureOptions,
+            [NotNull] TransformOptions transformOptions, [NotNull] [ItemNotNull] IEnumerable<Dependency> dependencies,
+            [NotNull] List<Dependency> transformedDependencies) {
+
+            if (!configureOptions.OrderedActions.Any()) {
                 Log.WriteWarning($"No actions configured for {GetType().Name}");
             } else {
 
@@ -117,7 +134,7 @@ Examples:
                     Dependency[] outgoing;
                     items2outgoing.TryGetValue(i, out outgoing);
 
-                    ItemAction firstMatchingAction = _orderedActions.FirstOrDefault(a => a.Matches(incoming, i, outgoing));
+                    ItemAction firstMatchingAction = configureOptions.OrderedActions.FirstOrDefault(a => a.Matches(incoming, i, outgoing));
                     if (firstMatchingAction == null) {
                         Log.WriteWarning("No match in actions for item " + i + " - item is deleted");
                         allItems.Remove(i);
