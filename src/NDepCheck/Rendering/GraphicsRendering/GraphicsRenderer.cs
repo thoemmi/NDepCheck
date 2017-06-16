@@ -880,8 +880,8 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             return bitmap;
         }
 
-        public virtual void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
-            DoRender(globalContext, dependencies, argsAsString, target);
+        public virtual void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string options, [NotNull] WriteTarget target, bool ignoreCase) {
+            DoRender(globalContext, dependencies, options, target);
         }
 
         protected string DoRender([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, WriteTarget baseFileName, params OptionAction[] additionalOptions) {
@@ -981,7 +981,7 @@ namespace NDepCheck.Rendering.GraphicsRendering {
 
         public abstract string GetHelp(bool detailedHelp, string filter);
 
-        public WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget) {
+        public WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string optionsString, WriteTarget baseTarget) {
             return GetHtmlFileName(baseTarget);
         }
     }

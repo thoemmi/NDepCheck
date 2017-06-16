@@ -168,8 +168,8 @@ namespace NDepCheck.Rendering.GraphicsRendering {
         protected static readonly Option[] _allOptions = _allGraphicsRendererOptions
                         .Concat(new[] { BottomRegexOption, OrderFieldOption, NoEmptiesOnBottomOption, NoEmptiesOnLeftOption }).ToArray();
 
-        public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
-            DoRender(globalContext, dependencies, argsAsString, target,
+        public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string options, [NotNull] WriteTarget target, bool ignoreCase) {
+            DoRender(globalContext, dependencies, options, target,
                 BottomRegexOption.Action((args, j) => {
                     string pattern = Option.ExtractRequiredOptionValue(args, ref j, "Pattern for selection of bottom items missing");
                     _bottomItemMatch = new ItemMatch(null, pattern, 0, ignoreCase, anyWhereMatcherOk: true);

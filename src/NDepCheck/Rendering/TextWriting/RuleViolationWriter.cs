@@ -8,28 +8,38 @@ using System.Xml.Linq;
 using JetBrains.Annotations;
 
 namespace NDepCheck.Rendering.TextWriting {
-    public class RuleViolationWriter : IRenderer {
+    public class RuleViolationWriter : RendererWithOptions<RuleViolationWriter.Options> {
+        public class Options {
+            public bool XmlOutput;
+            public bool SimpleRuleOutput;
+            public bool NewLine;
+        }
+
         public static readonly Option XmlOutputOption = new Option("xo", "xml-output", "", "Write output to XML file", @default: false);
         public static readonly Option RuleOutputOption = new Option("ro", "rule-output", "", "Write output in rule format", @default: false);
         public static readonly Option NewlineOption = new Option("nl", "newline", "", "Write violations on three lines", @default: false);
 
         private static readonly Option[] _allOptions = { XmlOutputOption, NewlineOption };
 
-        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
-            bool xmlOutput, simpleRuleOutput, newLine;
-            ParseArgs(globalContext, argsAsString, out xmlOutput, out simpleRuleOutput, out newLine);
+        protected override Options CreateRenderOptions(GlobalContext globalContext, string options) {
+            return ParseArgs(globalContext, options);
+        }
+
+        public override void Render([NotNull] GlobalContext globalContext,
+            [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Options options,
+            [NotNull] WriteTarget target, bool ignoreCase) {
 
             int violationsCount = dependencies.Count(d => d.NotOkCt > 0);
 
             if (target.IsConsoleOut) {
                 var consoleLogger = new ConsoleLogger();
                 foreach (var d in dependencies.Where(d => d.QuestionableCt > 0 && d.BadCt == 0)) {
-                    consoleLogger.WriteViolation(d, simpleRuleOutput);
+                    consoleLogger.WriteViolation(d, options.SimpleRuleOutput);
                 }
                 foreach (var d in dependencies.Where(d => d.BadCt > 0)) {
-                    consoleLogger.WriteViolation(d, simpleRuleOutput);
+                    consoleLogger.WriteViolation(d, options.SimpleRuleOutput);
                 }
-            } else if (xmlOutput) {
+            } else if (options.XmlOutput) {
                 var document = new XDocument(
                 new XElement("Violations",
                     from dependency in dependencies where dependency.NotOkCt > 0
@@ -42,7 +52,7 @@ namespace NDepCheck.Rendering.TextWriting {
                         //new XElement("UsedNamespace", violation.Dependency.UsedNamespace),
                         new XElement("FileName", dependency.Source)
                         ))
-                        );
+                    );
                 var settings = new XmlWriterSettings { Encoding = Encoding.UTF8, Indent = true };
                 WriteTarget writeTarget = GetXmlFile(target);
                 Log.WriteInfo($"Writing {violationsCount} violations to {writeTarget}");
@@ -53,7 +63,7 @@ namespace NDepCheck.Rendering.TextWriting {
                 WriteTarget writeTarget = GetTextFile(target);
                 Log.WriteInfo($"Writing {violationsCount} violations to {writeTarget }");
                 using (var sw = writeTarget.CreateWriter()) {
-                    RenderToTextWriter(dependencies, sw, simpleRuleOutput, newLine);
+                    RenderToTextWriter(dependencies, sw, options.SimpleRuleOutput, options.NewLine);
                 }
             }
         }
@@ -66,27 +76,22 @@ namespace NDepCheck.Rendering.TextWriting {
             return target.ChangeExtension(".xml");
         }
 
-        private static void ParseArgs([NotNull] GlobalContext globalContext, [CanBeNull] string argsAsString, 
-            out bool xmlOutput, out bool simpleRuleOutput, out bool newLine) {
-            bool xml = false;
-            bool nl = false;
-            bool ro = false;
-            Option.Parse(globalContext, argsAsString,
+        private static Options ParseArgs([NotNull] GlobalContext globalContext, [CanBeNull] string options) {
+            var result = new Options();
+            Option.Parse(globalContext, options,
                 XmlOutputOption.Action((args, j) => {
-                    xml = true;
+                    result.XmlOutput = true;
                     return j;
                 }),
                 RuleOutputOption.Action((args, j) => {
-                    ro = true;
+                    result.SimpleRuleOutput = true;
                     return j;
                 }),
                 NewlineOption.Action((args, j) => {
-                    nl = true;
+                    result.NewLine = true;
                     return j;
                 }));
-            xmlOutput = xml;
-            simpleRuleOutput = ro;
-            newLine = nl;
+            return result;
         }
 
         private static void RenderToTextWriter([NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, ITargetWriter sw, bool simpleRuleOutput, bool newLine) {
@@ -96,13 +101,14 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
+        public override void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
+            Stream stream, string testOption) {
             using (var sw = new TargetStreamWriter(stream)) {
                 RenderToTextWriter(dependencies, sw, false, false);
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
             ItemType simple = ItemType.New("SIMPLE(Name)");
             Item root = renderingGraph.CreateItem(simple, "root");
             Item ok = renderingGraph.CreateItem(simple, "ok");
@@ -115,7 +121,7 @@ namespace NDepCheck.Rendering.TextWriting {
             };
         }
 
-        public string GetHelp(bool detailedHelp, string filter) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             return
 $@"  Writes dependency rule violations to file in text or xml format.
   This is the output for the primary reason of NDepCheck: Checking rules.
@@ -123,10 +129,8 @@ $@"  Writes dependency rule violations to file in text or xml format.
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
-        public WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget) {
-            bool xmlOutput, ignoreRuleOutput, ignoreNewLine;
-            ParseArgs(globalContext, argsAsString, out xmlOutput, out ignoreRuleOutput, out ignoreNewLine);
-            return xmlOutput ? GetXmlFile(baseTarget) : GetTextFile(baseTarget);
+        public override WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, Options options, WriteTarget baseTarget) {
+            return options.XmlOutput ? GetXmlFile(baseTarget) : GetTextFile(baseTarget);
         }
     }
 }

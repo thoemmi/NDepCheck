@@ -9,7 +9,25 @@ namespace NDepCheck.Rendering.TextWriting {
     /// <summary>
     /// Writer for items in standard format
     /// </summary>
-    public class ItemWriter : IRenderer {
+    public class ItemWriter : RendererWithOptions<ItemWriter.Options> {
+        public class Options {
+            [NotNull, ItemNotNull]
+            public List<ItemMatch> ItemMatches = new List<ItemMatch>();
+            [NotNull, ItemNotNull]
+            public List<ItemMatch> ItemExcludes = new List<ItemMatch>();
+            [NotNull, ItemNotNull]
+            public List<DependencyMatch> IndegreeMatches = new List<DependencyMatch>();
+            [NotNull, ItemNotNull]
+            public List<DependencyMatch> IndegreeExcludes = new List<DependencyMatch>();
+            [NotNull, ItemNotNull]
+            public List<DependencyMatch> OutdegreeMatches = new List<DependencyMatch>();
+            [NotNull, ItemNotNull]
+            public List<DependencyMatch> OutdegreeExcludes = new List<DependencyMatch>();
+            public bool WriteOnlyIfIndegreeNotZero;
+            public bool WriteOnlyIfOutdegreeNotZero;
+            public bool ShowMarkers;
+        }
+
         public static readonly Option MatchOption = new Option("im", "item-match", "&", "Match to select items to write", @default: "all items are written", multiple: true);
         public static readonly Option NoMatchOption = new Option("nm", "no-match", "&", "Match to exclude items", @default: "no items are excluded", multiple: true);
 
@@ -29,58 +47,52 @@ namespace NDepCheck.Rendering.TextWriting {
             ShowMarkersOption, ProjectionOption
         };
 
-        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
-            var itemMatches = new List<ItemMatch>();
-            var itemExcludes = new List<ItemMatch>();
 
-            var indegreeMatches = new List<DependencyMatch>();
-            var indegreeExcludes = new List<DependencyMatch>();
-            var outdegreeMatches = new List<DependencyMatch>();
-            var outdegreeExcludes = new List<DependencyMatch>();
-
-            bool writeOnlyIfIndegreeNotZero = false;
-            bool writeOnlyIfOutdegreeNotZero = false;
-            bool showMarkers = false;
-
-            Option.Parse(globalContext, argsAsString,
+        protected override Options CreateRenderOptions(GlobalContext globalContext, string options) {
+            var result = new Options();
+            Option.Parse(globalContext, options,
                 MatchOption.Action((args, j) => {
-                    itemMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item match"), globalContext.IgnoreCase, anyWhereMatcherOk: true));
+                    result.ItemMatches.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item match"), globalContext.IgnoreCase, anyWhereMatcherOk: true));
                     return j;
                 }),
                 NoMatchOption.Action((args, j) => {
-                    itemExcludes.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item match"), globalContext.IgnoreCase, anyWhereMatcherOk: true));
+                    result.ItemExcludes.Add(new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Missing item match"), globalContext.IgnoreCase, anyWhereMatcherOk: true));
                     return j;
                 }),
                 IndegreeMatchOption.Action((args, j) => {
-                    indegreeMatches.Add(DependencyMatch.Create(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), globalContext.IgnoreCase));
+                    result.IndegreeMatches.Add(DependencyMatch.Create(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), globalContext.IgnoreCase));
                     return j;
                 }),
                 IndegreeNoMatchOption.Action((args, j) => {
-                    indegreeExcludes.Add(DependencyMatch.Create(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), globalContext.IgnoreCase));
+                    result.IndegreeExcludes.Add(DependencyMatch.Create(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), globalContext.IgnoreCase));
                     return j;
                 }),
                 OutdegreeMatchOption.Action((args, j) => {
-                    outdegreeMatches.Add(DependencyMatch.Create(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), globalContext.IgnoreCase));
+                    result.OutdegreeMatches.Add(DependencyMatch.Create(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), globalContext.IgnoreCase));
                     return j;
                 }),
                 OutdegreeNoMatchOption.Action((args, j) => {
-                    outdegreeExcludes.Add(DependencyMatch.Create(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), globalContext.IgnoreCase));
+                    result.OutdegreeExcludes.Add(DependencyMatch.Create(Option.ExtractRequiredOptionValue(args, ref j, "Missing dependency match"), globalContext.IgnoreCase));
                     return j;
                 }),
                 IndegreeNotZeroOption.Action((args, j) => {
-                    writeOnlyIfIndegreeNotZero = true;
+                    result.WriteOnlyIfIndegreeNotZero = true;
                     return j;
                 }),
                 OutdegreeNotZeroOption.Action((args, j) => {
-                    writeOnlyIfOutdegreeNotZero = true;
+                    result.WriteOnlyIfOutdegreeNotZero = true;
                     return j;
                 }),
                 ShowMarkersOption.Action((args, j) => {
-                    showMarkers = true;
+                    result.ShowMarkers = true;
                     return j;
                 }));
+            return result;
+        }
 
-            WriteTarget masterFile = GetMasterFileName(globalContext, argsAsString, target);
+        public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Options options, [NotNull] WriteTarget target, bool ignoreCase) {
+
+            WriteTarget masterFile = GetMasterFileName(globalContext, options, target);
             using (var sw = masterFile.CreateWriter()) {
                 bool writeHeader = masterFile.IsConsoleOut;
                 if (!writeHeader) {
@@ -88,13 +100,14 @@ namespace NDepCheck.Rendering.TextWriting {
                     sw.WriteLine();
                 }
 
-                Write(dependencies, sw, itemMatches, itemExcludes, indegreeMatches, indegreeExcludes,
-                      outdegreeMatches, outdegreeExcludes, writeOnlyIfIndegreeNotZero, writeOnlyIfOutdegreeNotZero,
-                      showMarkers, ignoreCase);
+                Write(dependencies, sw, options.ItemMatches, options.ItemExcludes, options.IndegreeMatches, options.IndegreeExcludes,
+                      options.OutdegreeMatches, options.OutdegreeExcludes, options.WriteOnlyIfIndegreeNotZero,
+                      options.WriteOnlyIfOutdegreeNotZero, options.ShowMarkers, ignoreCase);
             }
         }
 
-        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream output, string option) {
+        public override void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext,
+            [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream output, string option) {
             using (var sw = new TargetStreamWriter(output)) {
                 Write(dependencies, sw, itemMatches: null, itemExcludes: null, indegreeMatches: null, indegreeExcludes: null,
                       outdegreeMatches: null, outdegreeExcludes: null,
@@ -149,7 +162,7 @@ namespace NDepCheck.Rendering.TextWriting {
             return adjacency.TryGetValue(i, out dependencies) ? dependencies.Count(d => d.IsMarkerMatch(matches, excludes)) : 0;
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
             ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
 
             var bac = renderingGraph.CreateItem(amo, "BAC:BAC:0100".Split(':'), "area".Split(','));
@@ -176,14 +189,14 @@ namespace NDepCheck.Rendering.TextWriting {
                 notOkReason: questionable > 0 ? "testdata" : null);
         }
 
-        public string GetHelp(bool detailedHelp, string filter) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             return
 $@"  Writes items to .txt files.
 
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
-        public WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget) {
+        public override WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, Options options, WriteTarget baseTarget) {
             return GlobalContext.CreateFullFileName(baseTarget, ".txt");
         }
     }

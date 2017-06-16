@@ -9,7 +9,13 @@ namespace NDepCheck.Rendering.TextWriting {
     /// <summary>
     /// Writer for dependencies in standard "DIP" format
     /// </summary>
-    public class DipWriter : IRenderer {
+    public class DipWriter : RendererWithOptions<DipWriter.Options> {
+        public class Options {
+            public bool NoExampleInfo;
+            public List<DependencyMatch> Matches = new List<DependencyMatch>();
+            public List<DependencyMatch> Excludes = new List<DependencyMatch>();
+        }
+
         public static readonly DependencyMatchOptions DependencyMatchOptions = new DependencyMatchOptions("write");
         public static readonly Option NoExampleInfoOption = new Option("ne", "no-example", "", "Does not write example info", @default: false);
 
@@ -38,30 +44,33 @@ namespace NDepCheck.Rendering.TextWriting {
             }
         }
 
-        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, 
-            string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
-            bool noExampleInfo = false;
-            var matches = new List<DependencyMatch>();
-            var excludes = new List<DependencyMatch>();
-            DependencyMatchOptions.Parse(globalContext, argsAsString, globalContext.IgnoreCase, matches, excludes,
+        protected override Options CreateRenderOptions(GlobalContext globalContext, string options) {
+            var result = new Options();
+            DependencyMatchOptions.Parse(globalContext, options, globalContext.IgnoreCase, result.Matches, result.Excludes,
                 NoExampleInfoOption.Action((args, j) => {
-                    noExampleInfo = true;
+                    result.NoExampleInfo = true;
                     return j;
                 }));
-            using (var sw = GetMasterFileName(globalContext, argsAsString, target).CreateWriter(logToConsoleInfo: true)) {
-                int n = Write(dependencies, sw, !noExampleInfo, matches, excludes);
+            return result;
+        }
+
+        public override void Render([NotNull] GlobalContext globalContext,
+            [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies,
+            Options options, [NotNull] WriteTarget target, bool ignoreCase) {
+            using (var sw = GetMasterFileName(globalContext, options, target).CreateWriter(logToConsoleInfo: true)) {
+                int n = Write(dependencies, sw, !options.NoExampleInfo, options.Matches, options.Excludes);
                 Log.WriteInfo($"... written {n} dependencies");
             }
         }
 
-        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream output, string option) {
+        public override void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream output, string option) {
             using (var sw = new TargetStreamWriter(output)) {
                 sw.WriteLine($"// Written {DateTime.Now} by {typeof(DipWriter).Name} in NDepCheck {Program.VERSION}");
                 Write(dependencies, sw, withExampleInfo: true, matches: null, excludes: null);
             }
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
             ItemType amo = ItemType.New("AMO(Assembly:Module:Order)");
 
             var bac = renderingGraph.CreateItem(amo, "BAC:BAC:0100".Split(':'));
@@ -83,7 +92,7 @@ namespace NDepCheck.Rendering.TextWriting {
             return graph.CreateDependency(from, to, new TextFileSourceLocation("Test", 1), "Use", ct: ct, questionableCt: questionable);
         }
 
-        public string GetHelp(bool detailedHelp, string filter) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             return
 $@"  Writes dependencies to .dip files, which can be read in by 
   NDepCheck's DipReader. This is very helpful for building pipelines 
@@ -92,7 +101,7 @@ $@"  Writes dependencies to .dip files, which can be read in by
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
-        public WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget) {
+        public override WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, Options options, WriteTarget baseTarget) {
             return GlobalContext.CreateFullFileName(baseTarget, ".dip");
         }
     }

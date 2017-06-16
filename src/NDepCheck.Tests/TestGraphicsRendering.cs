@@ -284,7 +284,7 @@ namespace NDepCheck.Tests {
                     (from, i) => items.Skip(i).Select(to => graph.CreateDependency(from, to, new TextFileSourceLocation(prefix, i), "Use", 10 * i))).ToArray();
 
             new SomewhatComplexTestRenderer(boxHeight).Render(gc, dependencies,
-                argsAsString: "", target: new WriteTarget(Path.GetTempFileName(), append: false, limitLinesForConsole: 100),ignoreCase: false);
+                options: "", target: new WriteTarget(Path.GetTempFileName(), append: false, limitLinesForConsole: 100),ignoreCase: false);
         }
 
         [TestMethod]

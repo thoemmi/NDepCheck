@@ -150,7 +150,7 @@ $@"  Write a textual matrix representation of dependencies.
             string itemFormat, Dictionary<Item, int> item2Index, bool withNotOkCt, IEnumerable<Item> sortedItems,
             string ctFormat, IDictionary<Item, IEnumerable<Dependency>> itemsAndDependencies);
 
-        public abstract void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase);
+        public abstract void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string options, [NotNull] WriteTarget target, bool ignoreCase);
 
         public abstract void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string testOption);
 
@@ -158,6 +158,6 @@ $@"  Write a textual matrix representation of dependencies.
             return $"{GetType().Name} usage: -___ outputfileName";
         }
 
-        public abstract WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget);
+        public abstract WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string optionsString, WriteTarget baseTarget);
     }
 }

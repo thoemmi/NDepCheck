@@ -46,18 +46,18 @@ namespace NDepCheck.Rendering.GraphicsRendering {
             }
         }
 
-        public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
+        public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string options, [NotNull] WriteTarget target, bool ignoreCase) {
             int? labelWidthOrNull;
             bool withNotOkCt;
             ItemMatch itemMatchOrNull;
-            ParseOptions(globalContext, argsAsString, ignoreCase, out labelWidthOrNull, out withNotOkCt, out itemMatchOrNull);
+            ParseOptions(globalContext, options, ignoreCase, out labelWidthOrNull, out withNotOkCt, out itemMatchOrNull);
 
             using (var sw = target.ChangeExtension(".csv").CreateWriter()) {
                 Render(dependencies, null/*TODO: InnerMatch?*/, sw, labelWidthOrNull, withNotOkCt);
             }
         }
 
-        public override WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget) {
+        public override WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string optionsString, WriteTarget baseTarget) {
             return baseTarget.ChangeExtension(".csv");
         }
     }

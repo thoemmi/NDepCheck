@@ -262,8 +262,8 @@ namespace NDepCheck.Rendering.GraphicsRendering {
                 exampleInfo: questionableCt > 0 ? from + "==>" + to : "");
         }
 
-        public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
-            DoRender(globalContext, dependencies, argsAsString, target,
+        public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string options, [NotNull] WriteTarget target, bool ignoreCase) {
+            DoRender(globalContext, dependencies, options, target,
                 InterfaceSelectorOption.Action((args, j) => {
                     _interfaceSelector = new Regex(Option.ExtractRequiredOptionValue(args, ref j, "Regex for interface selector missing"));
                     return j;

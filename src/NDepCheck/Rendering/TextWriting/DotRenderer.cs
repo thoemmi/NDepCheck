@@ -9,7 +9,12 @@ namespace NDepCheck.Rendering.TextWriting {
     /// <summary>
     /// Class that creates AT&amp;T DOT (graphviz) output from dependencies - see <a href="http://graphviz.org/">http://graphviz.org/</a>.
     /// </summary>
-    public class DotRenderer : IRenderer {
+    public class DotRenderer : RendererWithOptions<DotRenderer.Options> {
+        public class Options {
+            public ItemMatch InnerMatch;
+            public int? MaxExampleLength;
+        }
+
         public static readonly Option MaxExampleLengthOption = new Option("ml", "max-example-length", "#", "Maximal length of example string", @default:"full example");
         public static readonly Option InnerMatchOption = new Option("im", "inner-item", "#", "Match to mark item as inner item", @default: "all items are inner");
 
@@ -36,21 +41,26 @@ namespace NDepCheck.Rendering.TextWriting {
             output.WriteLine("}");
         }
 
-        public void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, string argsAsString, [NotNull] WriteTarget target, bool ignoreCase) {
-            int? maxExampleLength = null;
-            ItemMatch innerMatch = null;
-            Option.Parse(globalContext, argsAsString,
+        protected override Options CreateRenderOptions(GlobalContext globalContext, string options) {
+            var result = new Options();
+            Option.Parse(globalContext, options,
                 MaxExampleLengthOption.Action((args, j) => {
-                    maxExampleLength = Option.ExtractIntOptionValue(args, ref j,
+                    result.MaxExampleLength = Option.ExtractIntOptionValue(args, ref j,
                         "No valid length after " + MaxExampleLengthOption.Name);
                     return j;
                 }),
                 AbstractMatrixRenderer.InnerMatchOption.Action((args, j) => {
-                    innerMatch = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Pattern for selecting inner items missing"), ignoreCase, anyWhereMatcherOk: true);
+                    result.InnerMatch = new ItemMatch(Option.ExtractRequiredOptionValue(args, ref j, "Pattern for selecting inner items missing"), 
+                        globalContext.IgnoreCase, anyWhereMatcherOk: true);
                     return j;
                 }));
+            return result;
+        }
+
+        public override void Render([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, 
+                    Options options, [NotNull] WriteTarget target, bool ignoreCase) {
             using (var sw = GetDotFileName(target).CreateWriter()) {
-                Render(dependencies, sw, innerMatch, maxExampleLength);
+                Render(dependencies, sw, options.InnerMatch, options.MaxExampleLength);
             }
         }
 
@@ -58,13 +68,13 @@ namespace NDepCheck.Rendering.TextWriting {
             return target.ChangeExtension(".dot");
         }
 
-        public void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
+        public override void RenderToStreamForUnitTests([NotNull] GlobalContext globalContext, [NotNull, ItemNotNull] IEnumerable<Dependency> dependencies, Stream stream, string testOption) {
             using (var sw = new TargetStreamWriter(stream)) {
                 Render(dependencies, sw, null, null);
             }
         }
 
-        public string GetHelp(bool detailedHelp, string filter) {
+        public override string GetHelp(bool detailedHelp, string filter) {
             return
 $@"  Writes dependencies to file in .dot format (graphviz; see http://graphviz.org/).
   This is helpful for smaller dependency graphs without any programming.
@@ -74,11 +84,11 @@ $@"  Writes dependencies to file in .dot format (graphviz; see http://graphviz.o
 {Option.CreateHelp(_allOptions, detailedHelp, filter)}";
         }
 
-        public WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, string argsAsString, WriteTarget baseTarget) {
+        public override WriteTarget GetMasterFileName([NotNull] GlobalContext globalContext, Options options, WriteTarget baseTarget) {
             return GetDotFileName(baseTarget);
         }
 
-        public IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
+        public override IEnumerable<Dependency> CreateSomeTestDependencies(WorkingGraph renderingGraph) {
             return RendererSupport.CreateSomeTestItems(renderingGraph);
         }
     }
