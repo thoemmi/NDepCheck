@@ -42,9 +42,10 @@ namespace NDepCheck.Reading.AssemblyReading {
         };
 
         private static readonly MarkerGenerator<ParameterDefinition>[] _parameterDefinitionMarkers = {
-            CreateCheck<ParameterDefinition>(t => t.IsIn, _in),
+            CreateCheck<ParameterDefinition>(t => !(t.ParameterType is ByReferenceType) && !t.IsOut || t.IsIn, _in),
             CreateCheck<ParameterDefinition>(t => t.IsOptional, _optional),
             CreateCheck<ParameterDefinition>(t => t.IsOut, _out),
+            CreateCheck<ParameterDefinition>(t => t.ParameterType is ByReferenceType, _ref),
             CreateCheck<ParameterDefinition>(t => t.IsReturnValue, _return),
             // and maybe more, from other Mono.Cecil information
         };

@@ -5,7 +5,8 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming {
     public abstract class AbstractTransformerPerContainerUriWithFileConfiguration<TConfigurationPerContainer, TConfigureOptions, TTransformOptions>
-            : AbstractTransformerWithFileConfiguration<TConfigurationPerContainer, TConfigureOptions, TTransformOptions> {
+            : AbstractTransformerWithFileConfiguration<TConfigurationPerContainer, TConfigureOptions, TTransformOptions> 
+            where TConfigureOptions : new() {
         #region Transform
 
         public override int Transform([NotNull] GlobalContext globalContext, TConfigureOptions configureOptions, 

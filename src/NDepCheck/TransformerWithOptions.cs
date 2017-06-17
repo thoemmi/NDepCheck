@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using JetBrains.Annotations;
 
 namespace NDepCheck {
-    public abstract class TransformerWithOptions<TConfigureOptions, TTransformOptions> : ITransformer {
-        private TConfigureOptions _configureOptions;
+    public abstract class TransformerWithOptions<TConfigureOptions, TTransformOptions> : ITransformer
+        where TConfigureOptions : new() {
+        private TConfigureOptions _configureOptions = new TConfigureOptions();
 
         public void Configure([NotNull] GlobalContext globalContext, [CanBeNull] string configureOptionsString,
             bool forceReload) {

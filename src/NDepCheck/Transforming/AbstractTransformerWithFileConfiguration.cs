@@ -6,7 +6,8 @@ using JetBrains.Annotations;
 
 namespace NDepCheck.Transforming {
     public abstract class AbstractTransformerWithFileConfiguration<TConfiguration, TConfigureOptions, TTransformOptions> 
-            : TransformerWithOptions<TConfigureOptions, TTransformOptions> {
+            : TransformerWithOptions<TConfigureOptions, TTransformOptions>
+        where TConfigureOptions : new() {
         /// <summary>
         /// Constant for variable settings.
         /// </summary>

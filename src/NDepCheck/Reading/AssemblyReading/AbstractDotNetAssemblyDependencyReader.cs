@@ -41,6 +41,7 @@ namespace NDepCheck.Reading.AssemblyReading {
         public const string _private = "_private";
         public const string _public = "_public";
         public const string _readonly = "_readonly";
+        public const string _ref = "_ref";
         public const string _return = "_return";
         public const string _static = "_static";
 
