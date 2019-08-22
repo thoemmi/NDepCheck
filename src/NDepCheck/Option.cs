@@ -371,7 +371,7 @@ namespace NDepCheck {
                         }
                         name = name.Trim();
                         if (name != "") {
-                            yield return name;
+                            yield return Path.GetFullPath(name);
                         }
                     }
                 }
@@ -385,16 +385,16 @@ namespace NDepCheck {
                 }
 
                 foreach (string name in Directory.GetFiles(dir, filePattern)) {
-                    yield return name;
+                    yield return Path.GetFullPath(name);
                 }
             } else if (Directory.Exists(pattern)) {
                 foreach (var ext in extensionsForDirectoryReading) {
                     foreach (string name in Directory.GetFiles(pattern, "*" + ext)) {
-                        yield return name;
+                        yield return Path.GetFullPath(name);
                     }
                 }
             } else {
-                yield return pattern;
+                yield return Path.GetFullPath(pattern);
             }
         }
     }

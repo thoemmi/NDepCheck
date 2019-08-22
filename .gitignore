@@ -28,3 +28,5 @@ src/CommonAssemblyInfo.cs
 /rrr.nd
 /rrr.dip
 /src/NDepCheckViolations*.txt
+/.vs
+/src/.vs/NDepCheck/v16/Server/sqlite3
